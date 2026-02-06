@@ -1,0 +1,41 @@
+.blurOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(10px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999999; 
+  animation: fadeLoader 0.4s ease;
+}
+
+@keyframes fadeLoader {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Glow spinner */
+.loaderContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.spinner {
+  width: 70px;
+  height: 70px;
+  border: 6px solid rgba(0,0,0,0.1);
+  border-top-color: #007bff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite, glow 1.2s ease-in-out infinite alternate;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes glow {
+  from { box-shadow: 0 0 4px #007bff; }
+  to { box-shadow: 0 0 18px #007bff; }
+}

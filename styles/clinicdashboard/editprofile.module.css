@@ -1,0 +1,121 @@
+.formContainer {
+  max-width: 800px;
+  margin: 2rem auto;
+  padding: 2rem;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  font-family: sans-serif;
+}
+.error {
+  color: red;
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+}
+
+.heading {
+  text-align: center;
+  font-size: 1.5rem;
+  margin-bottom: 1.5rem;
+  color: #111827;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.field {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 200px;
+}
+
+.fullWidth {
+  flex: 1 1 100%;
+}
+
+.field label {
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  color: #374151;
+}
+
+.field input,
+.field textarea {
+  padding: 0.6rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 1rem;
+  background: #f9fafb;
+}
+
+.field input:focus,
+.field textarea:focus {
+  outline: none;
+  border-color: #6366f1;
+  background-color: #fff;
+}
+
+.imagePreview {
+  width: 100px;
+  height: 100px;
+  object-fit: cover;
+  margin-top: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+.fieldCheckboxes {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 1.6rem;
+}
+
+.fieldCheckboxes label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.95rem;
+}
+
+.submitBtn,
+.editBtn {
+  display: block;
+  width: 100%;
+  padding: 0.8rem;
+  background-color: #6366f1;
+  color: white;
+  font-weight: bold;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  margin-top: 1rem;
+  transition: background-color 0.3s ease;
+}
+
+.submitBtn:hover,
+.editBtn:hover {
+  background-color: #4f46e5;
+}
+
+/* ✅ Mobile Responsive */
+@media (max-width: 600px) {
+  .row {
+    flex-direction: column;
+  }
+
+  .submitBtn,
+  .editBtn {
+    font-size: 0.95rem;
+  }
+}
+
+

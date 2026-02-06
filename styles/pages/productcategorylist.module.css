@@ -1,0 +1,7 @@
+.cliniContainer { padding: 1rem; }
+.clinicTitle { font-size: 1.5rem; margin-bottom: 1rem; }
+.gridContainer { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 1rem; }
+.categoryCard { padding: 0.5rem; background: #f0f0f0; border-radius: 8px; text-align: center; cursor: pointer; transition: transform 0.2s; }
+.categoryCard:hover { transform: scale(1.05); }
+.categoryImg { width: 100%; height: 120px; object-fit: cover; border-radius: 8px; }
+.categoryName { margin-top: 0.5rem; font-weight: bold; }

@@ -1,0 +1,245 @@
+  .card {
+    display: flex;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    overflow: hidden;
+    background-color: #fff;
+    margin: 20px 2rem;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  }
+.icons{
+  padding-right:7px;
+  font-size: 25px;
+  text-align: center;
+}
+  .leftSection {
+    width: 200px;
+    min-width: 200px;
+  }
+
+  .image {
+    width: 20vw;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 8px;
+    padding: 1rem 1rem;
+  }
+
+  .rightSection {
+    flex: 1;
+    padding: 28px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 32vh;
+    padding-left: 11rem;
+        cursor: pointer;
+  }
+
+  .nameRow {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  .name {
+    font-weight: bold;
+    color: #333;
+  }
+
+  .verified {
+    color: #1c8a42;
+    font-size: 14px;
+    font-weight: 600;
+    background: #e6f4ea;
+    padding: 2px 6px;
+    border-radius: 6px;
+  }
+
+  .ratingReviewRow {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 8px;
+    font-size: 14px;
+  }
+
+  .rating {
+    background-color: #1f71a7;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-weight: bold;
+  }
+
+  .reviews {
+    color: #444;
+  }
+
+  .trust {
+    background-color: #ffde59;
+    padding: 2px 6px;
+    border-radius: 5px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .topSearch {
+    background: #f1f1f1;
+    padding: 2px 6px;
+    font-size: 13px;
+    border-radius: 5px;
+  }
+
+  .addressRow {
+    font-size: 15px;
+    color: #444;
+    margin-bottom: 6px;
+  }
+
+  .descriptionRow {
+    font-size: 14px;
+    color: #333;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+  }
+
+  .buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 8px;
+  }
+
+  .call {
+    background-color: #2987c6;
+    color: white;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    height: 35px;
+  }
+
+  .whatsapp {
+    border: 2px solid #1c8a42;
+    color: #1c8a42;
+    background-color: #fff;
+    padding: 8px 14px;
+    border-radius: 25px;
+    cursor: pointer;
+        display: flex;
+        align-items: center;
+    font-size: 14px;
+    height: 35px;
+  }
+
+  .direction,
+  .details {
+    background-color: #2987c6;
+    color: white;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+
+  /* ============================
+    📱 Mobile Responsive Styles
+    ============================ */
+  @media (max-width: 480px) {
+    .card {
+      flex-direction: column;
+      margin: 10px 1rem;
+    }
+
+    .leftSection {
+      width: 100%;
+      min-width: auto;
+    }
+
+    .image {
+      width: 100%;
+      height: 180px;
+      border-radius: 10px 10px 0 0;
+    }
+
+    .rightSection {
+        padding: 10px;
+        padding-left: 10px;
+        height: aut
+    }
+
+    .nameRow {
+      font-size: 18px;
+      flex-wrap: wrap;
+    }
+
+    .ratingReviewRow {
+      gap: 6px;
+    }
+
+    .addressRow,
+    .descriptionRow {
+      font-size: 13px;
+    }
+.buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.call,
+.whatsapp,
+.direction,
+.details {
+  width: 48%;
+  justify-content: center;
+}
+
+  }
+.imageWrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.prevBtn,
+.nextBtn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(0, 0, 0, 0.5);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 35px;
+  height: 35px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.prevBtn {
+  left: 20px;
+}
+
+.nextBtn {
+  right: -87px;
+}
+
+.prevBtn:hover,
+.nextBtn:hover {
+  background: rgba(0, 0, 0, 0.7);
+}

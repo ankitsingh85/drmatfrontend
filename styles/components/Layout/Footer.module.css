@@ -1,0 +1,109 @@
+.footer {
+  background-color: #0a4b83;
+  color: white;
+  padding: 45px 20px;
+margin-top: 1rem;;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  max-width: 1200px;
+  margin: auto;
+}
+
+.leftSection {
+  margin-bottom: 30px;
+}
+
+.logo {
+  background-color: white;
+  width: 150px;
+  margin-bottom: 10px;
+}
+
+.description {
+  font-size: 14px;
+  line-height: 1.5;
+  font-weight: bold;
+}
+
+.rightSection {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  justify-content: space-between;
+}
+
+.linkColumn {
+  flex: 1 1 100%; /* Mobile default: one per row */
+  min-width: 140px;
+}
+
+.linkColumn h3 {
+  font-size: 16px;
+  margin-bottom: 10px;
+}
+
+.linkColumn ul {
+  list-style: none;
+  padding: 0;
+}
+
+.linkColumn ul li {
+  margin-bottom: 5px;
+}
+
+.linkColumn ul li a {
+  color: white;
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.linkColumn ul li a:hover {
+  text-decoration: underline;
+}
+
+/* Medium Screens (Tablets) */
+@media (min-width: 600px) {
+  .container {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+.footer {
+  background-color: #0a4b83;
+  color: white;
+  padding: 45px 20px;
+margin-top: 0rem;;
+}
+  .leftSection {
+    flex: 1;
+    max-width: 33%;
+    padding-right: 20px;
+    margin-bottom: 0;
+  }
+
+  .rightSection {
+    flex: 2;
+  }
+
+  .linkColumn {
+    flex: 1 1 45%; /* 2 columns per row */
+  }
+}
+
+/* Large Screens (Desktops) */
+@media (min-width: 900px) {
+  .linkColumn {
+    flex: 1 1 22%; /* 4 columns per row */
+  }
+}
+
+.footerBottom {
+  text-align: center;
+  font-size: 0.9rem;
+  background-color: black;
+  color: white;
+  width: 100%;
+}

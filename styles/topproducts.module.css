@@ -1,0 +1,544 @@
+.container {
+  max-width: 1100px; /* reduced width */
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.heading {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  text-align: center;
+  color: #222;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); /* smaller cards */
+  gap: 1rem;
+}
+
+.card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  padding: 0.75rem;
+  text-align: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.imageWrapper {
+  position: relative;
+  margin-bottom: 0.5rem;
+}
+
+.image {
+  width: 75%;
+  height: 132px; /* smaller image */
+  object-fit: cover;
+  border-radius: 0.5rem;
+}
+
+.noImage {
+  width: 100%;
+  height: 120px;
+  background: #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
+  border-radius: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: #ef4444;
+  color: white;
+  font-size: 0.7rem;
+  font-weight: bold;
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.25rem;
+}
+
+.name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.company {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-bottom: 0.25rem;
+}
+
+.category {
+  font-size: 0.7rem;
+  color: hsl(218, 11%, 65%);
+  margin-bottom: 0.5rem;
+  display: none;
+}
+
+.priceRow {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.3rem;
+  margin-bottom: 0.75rem;
+}
+
+.discountPrice {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #16a34a;
+}
+
+.originalPrice {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  text-decoration: line-through;
+}
+
+.actions {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+
+.addToCart,
+.buyNow {
+  flex: 1;
+  padding: 0.35rem 0.5rem; /* smaller buttons */
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 0.4rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.addToCart {
+  background: #155e95;
+  color: white;
+  border: none;
+}
+
+.addToCart:hover {
+    background: White;
+  color: #155e95;
+  border: 1px solid #155e95;
+}
+
+.buyNow {
+  background: White;
+  color: #155e95;
+  border: 1px solid #155e95;
+}
+
+.buyNow:hover {
+  background: #155e95;
+  color: white;
+  border: none;
+}
+
+/* ✅ Mobile adjustments */
+@media (max-width: 640px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+
+  .actions {
+    flex-direction: column; /* stack buttons on mobile */
+  }
+
+  .addToCart,
+  .buyNow {
+    font-size: 0.7rem;
+    padding: 0.3rem;
+  }
+}
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  padding: 0.75rem;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+}
+
+.imageWrapper {
+  position: relative;
+}
+
+.image {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  border-radius: 0.5rem;
+  transition: transform 0.5s ease;
+}
+
+.card:hover .image {
+  transform: scale(1.05);
+}
+
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(21, 94, 149, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  animation: fadeInOverlay 0.4s forwards;
+}
+
+@keyframes fadeInOverlay {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.iconContainer {
+  display: flex;
+  gap: 20px;
+}
+
+.icon {
+  font-size: 24px;
+  color: black;
+  cursor: pointer;
+  transition: color 0.3s ease, transform 0.3s ease;
+}
+
+.icon:hover {
+  color: #155e95;
+  transform: scale(1.2);
+}
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  padding: 0.75rem;
+  text-align: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.imageWrapper {
+  position: relative;
+}
+
+.image {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  border-radius: 0.5rem;
+  transition: transform 0.8s ease; /* smooth zoom */
+}
+
+.card:hover .image {
+  transform: scale(1.1); /* zoom effect */
+}
+
+/* Overlay exactly same size as image */
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(251, 250, 250, 0.75); /* light gray fade */
+  /* border: 1px solid #155e95; */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  pointer-events: none;
+  border-radius: 0.5rem; /* match image border radius */
+}
+
+.card:hover .overlay {
+  animation: slideOverlayFromRight 0.8s ease forwards;
+}
+
+.card:not(:hover) .overlay {
+  animation: slideOverlayToRight 0.8s ease forwards;
+}
+
+@keyframes slideOverlayFromRight {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0%);
+  }
+}
+
+@keyframes slideOverlayToRight {
+  from {
+    opacity: 1;
+    transform: translateX(0%);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+
+.actions {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+  justify-content: center;
+}
+
+.addToCart,
+.buyNow {
+  flex: 1;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 0.4rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  opacity: 0;
+}
+
+.addToCart {
+  background: #155e95;
+  color: white;
+  border: none;
+  transform: translateX(-100%);
+}
+
+.buyNow {
+  background: white;
+  color: #155e95;
+  border: 1px solid #155e95;
+  transform: translateX(100%);
+}
+
+.card:hover .addToCart {
+  animation: slideButtonFromLeft 0.8s ease forwards;
+  opacity: 1;
+}
+
+.card:hover .buyNow {
+  animation: slideButtonFromRight 0.8s ease forwards;
+  opacity: 1;
+}
+
+.card:not(:hover) .addToCart {
+  animation: slideButtonToLeft 0.8s ease forwards;
+  opacity: 0;
+}
+
+.card:not(:hover) .buyNow {
+  animation: slideButtonToRight 0.8s ease forwards;
+  opacity: 0;
+}
+
+@keyframes slideButtonFromLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0%);
+  }
+}
+
+@keyframes slideButtonToLeft {
+  from {
+    opacity: 1;
+    transform: translateX(0%);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes slideButtonFromRight {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0%);
+  }
+}
+
+@keyframes slideButtonToRight {
+  from {
+    opacity: 1;
+    transform: translateX(0%);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+/* Mobile view adjustments (Flipkart/Amazon style) */
+@media (max-width: 640px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+  }
+
+  .card {
+    padding: 0.5rem;
+  }
+
+  .image {
+    width: 100%;
+    height: 150px; /* smaller image */
+    object-fit: contain;
+    border-radius: 0.25rem;
+    transform: none !important; /* remove zoom on mobile */
+  }
+
+  .overlay {
+    display: none; /* hide hover overlay on mobile */
+  }
+
+  .actions {
+    flex-direction: column;
+    gap: 0.25rem;
+    margin-top: 0.5rem;
+  }
+
+  .addToCart,
+  .buyNow {
+    flex: 1;
+    padding: 0.25rem 0.4rem;
+    font-size: 0.7rem;
+    transform: none !important; /* remove slide animation */
+    opacity: 1 !important; /* always visible */
+  }
+
+  .badge {
+    font-size: 0.65rem;
+    padding: 0.15rem 0.35rem;
+  }
+
+  .priceRow {
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+
+  .discountPrice {
+    font-size: 0.85rem;
+  }
+
+  .originalPrice {
+    font-size: 0.7rem;
+  }
+
+  .name {
+    font-size: 0.85rem;
+  }
+
+  .company,
+  .category {
+    font-size: 0.65rem;
+  }
+}
+/* 🔥 Force 6 × 3 layout */
+.grid {
+  grid-template-columns: repeat(6, 1fr);
+}
+
+/* 🔥 Show More card */
+.showMore {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed #155e95;
+  color: #155e95;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.showMore span {
+  margin-top: 8px;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

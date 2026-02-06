@@ -1,0 +1,130 @@
+/* ================= WRAPPER ================= */
+.wrapper {
+  position: relative;
+  width: 100%;
+  padding: 16px 32px;
+  box-sizing: border-box;
+}
+
+/* ================= SLIDER ================= */
+.slider {
+  display: flex;
+  gap: 16px;               /* 🔽 reduced gap */
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+}
+
+/* ================= CARD ================= */
+/* 🔥 Narrower cards – still 5 visible */
+.card {
+  flex: 0 0 calc(20% - 22px); /* 🔽 width reduced */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: transform 0.2s ease;
+}
+
+.card:hover {
+  transform: scale(1.015); /* subtle hover like SC */
+}
+
+/* ================= CARD TITLE ================= */
+.cardTitle {
+  font-size: 12px;        /* 🔽 smaller text */
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 5px;    /* 🔽 tighter spacing */
+  color: #111;
+  line-height: 1.2;
+}
+
+/* ================= VIDEO WRAPPER ================= */
+/* 🔥 HEIGHT REDUCED SIGNIFICANTLY */
+.videoWrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 9 / 11;   /* 🔥 shorter card */
+  border-radius: 12px;    /* 🔽 slightly tighter */
+  overflow: hidden;
+  background: #000;
+}
+
+/* Video / iframe */
+.videoWrapper iframe,
+.videoWrapper video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* ================= MUTE BUTTON ================= */
+.muteBtn {
+  position: absolute;
+  bottom: 6px;
+  right: 6px;
+  background: rgba(0, 0, 0, 0.55);
+  border: none;
+  border-radius: 50%;
+  padding: 5px;
+  font-size: 13px;
+  cursor: pointer;
+  color: #fff;
+}
+
+/* ================= ARROWS ================= */
+.arrow {
+  position: absolute;
+  top: 54%;
+  transform: translateY(-50%);
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid #ddd;
+  background: #fff;
+  font-size: 18px;
+  cursor: pointer;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.left {
+  left: 6px;
+}
+
+.right {
+  right: 6px;
+}
+
+/* ================= RESPONSIVE ================= */
+@media (max-width: 1024px) {
+  .card {
+    flex: 0 0 calc(33.33% - 18px);
+  }
+}
+
+@media (max-width: 768px) {
+  .card {
+    flex: 0 0 calc(50% - 14px);
+  }
+}
+
+@media (max-width: 480px) {
+  .wrapper {
+    padding: 12px;
+  }
+
+  .card {
+    flex: 0 0 75%;
+  }
+
+  .cardTitle {
+    font-size: 11.5px;
+  }
+
+  .videoWrapper {
+    aspect-ratio: 9 / 12;
+  }
+}

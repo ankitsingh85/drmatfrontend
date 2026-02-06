@@ -1,0 +1,79 @@
+.appointmentContainer {
+  max-width: 500px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.heading {
+  text-align: center;
+  margin-bottom: 25px;
+  font-size: 24px;
+  color: #333;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+}
+
+.label {
+  margin-bottom: 6px;
+  font-size: 15px;
+  font-weight: 500;
+  color: #444;
+}
+
+.inputField {
+  padding: 10px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+.selectField {
+  padding: 10px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  background-color: #fff;
+}
+
+.submitButton {
+  padding: 12px;
+  font-size: 16px;
+  background-color: #1976d2;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.submitButton:hover {
+  background-color: #155a9c;
+}
+
+@media (max-width: 600px) {
+  .appointmentContainer {
+    padding: 15px;
+  }
+
+  .heading {
+    font-size: 20px;
+  }
+
+  .inputField,
+  .selectField,
+  .submitButton {
+    font-size: 14px;
+  }
+
+  .label {
+    font-size: 14px;
+  }
+}

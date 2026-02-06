@@ -1,0 +1,122 @@
+.container {
+  display: flex;
+  justify-content: center;
+  background-color: #fdf3e3;
+  padding: 4rem 1rem; /* Add top and bottom padding for spacing */
+height: 100vh;
+  box-sizing: border-box;
+}
+
+.card {
+  background-color: white;
+  padding: 2rem;
+  border-radius: 25px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 450px;
+  margin-top: 2rem;   /* Optional: extra top margin */
+  margin-bottom: 2rem; /* Optional: extra bottom margin */
+}
+
+.heading {
+  font-size: 1.8rem;
+  font-weight: bold;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem 1rem;
+}
+
+.option {
+  background-color: white;
+  border: 1px solid #ccc;
+  border-radius: 20px;
+  padding: 8px 12px;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.option input {
+  cursor: pointer;
+}
+
+.button {
+  margin: 2rem auto 0; /* top: 2rem, auto left & right to center, 0 bottom */
+  padding: 10px 25px;
+  background-color: #002d62;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  font-size: 1rem;
+  cursor: pointer;
+  width: 100px;
+  display: block; /* necessary for margin auto to work on button */
+}
+
+
+.skip {
+  text-align: center;
+  margin-top: 1rem;
+  font-size: 0.85rem;
+  color: #444;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.option input[type='checkbox'] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  border: 2px solid black;
+  border-radius: 50%;
+  background-color: white;
+  cursor: pointer;
+  position: relative;
+  margin-right: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.option input[type='checkbox']:checked::before {
+  content: "";
+  width: 5px;
+  height: 10px;
+  border: solid black;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+  display: inline-block;
+}
+
+/* .option input[type='checkbox'] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border: 2px solid black;
+  border-radius: 50%;
+  background: white;
+  cursor: pointer;
+  position: relative;
+}
+
+.option input[type='checkbox']:checked::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 6px;
+  width: 4px;
+  height: 9px;
+  border: solid black;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+} */
+

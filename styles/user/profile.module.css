@@ -1,0 +1,92 @@
+.topbar{
+    color: white;
+    padding: 1rem;
+    text-align: center;
+    font-size: 1.2rem;
+}
+
+.container {
+  padding: 2rem;
+  font-family: 'Segoe UI', sans-serif;
+  max-width: 600px;
+  margin: auto;
+}
+
+.profileHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+}
+
+.avatar {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.userInfo {
+  flex: 1;
+  margin-left: 1rem;
+}
+
+.name {
+  font-weight: bold;
+  font-size: 1.2rem;
+}
+
+.email {
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.editBtn {
+  background-color: #003366;
+  color: white;
+  padding: 0.4rem 1rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.card {
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  padding: 1rem 0;
+}
+
+.profileItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.9rem 1.2rem;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+}
+
+.profileItem:last-child {
+  border-bottom: none;
+}
+
+.itemLeft {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.95rem;
+  color: #333;
+}
+
+.itemRight {
+  color: #aaa;
+  font-size: 1.1rem;
+}
+.footer {
+  margin-top: 2rem;
+  text-align: center;
+  color: #888;
+  font-size: 0.85rem;
+}

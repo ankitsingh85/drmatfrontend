@@ -1,0 +1,87 @@
+.sliderWrapper {
+  width: 92%;
+  max-width: 1400px;
+  margin: 2rem auto;
+  position: relative;
+}
+
+.viewport {
+  overflow: hidden;
+}
+
+/* SLIDER */
+.slider {
+  display: flex;
+}
+
+/* 3 slides visible */
+.slide {
+  flex: 0 0 calc(100% / 3);
+  padding: 0 10px;
+}
+
+.slide img {
+  width: 100%;
+  height: 220px;
+  object-fit: cover;
+  border-radius: 14px;
+  display: block;
+}
+
+/* TOP CONTROLS */
+.topControls {
+  position: absolute;
+  top: -18px;
+  right: 10px;
+  display: flex;
+  gap: 8px;
+  z-index: 10;
+}
+
+.topControls button,
+.playPause {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #fff;
+  border: 1px solid #ddd;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* BOTTOM BAR */
+.bottomBar {
+  margin-top: 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.progressTrack {
+  flex: 1;
+  height: 6px;
+  background: #e5e7eb;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.progress {
+  height: 100%;
+  background: #111;
+  transition: width 0.4s ease;
+}
+
+/* RESPONSIVE */
+@media (max-width: 1024px) {
+  .slide {
+    flex: 0 0 50%;
+  }
+}
+
+@media (max-width: 640px) {
+  .slide {
+    flex: 0 0 100%;
+  }
+}

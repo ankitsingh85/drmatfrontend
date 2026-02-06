@@ -1,0 +1,458 @@
+/* Header styles */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.2rem 2rem;
+  border-bottom: 1px solid #e0e0e0;
+  background: #fff;
+}
+
+.logo {
+  font-size: 1.6rem;
+  font-weight: bold;
+  color: #003f5c;
+}
+
+.hkBox {
+  background-color: #155E95;
+  color: #fff;
+  padding: 0 0.3rem;
+  margin: 0 0.2rem;
+}
+
+.steps {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.step {
+  text-align: center;
+}
+
+.circle,
+.circleGrey {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: auto;
+  font-size: 1rem;
+}
+
+.circle {
+  border: 2px solid #155E95;
+  color: #155E95;
+}
+
+.circleGrey {
+  background-color: #f0f0f0;
+  color: #aaa;
+}
+
+.stepLabel {
+  font-size: 0.85rem;
+  color: #888;
+  margin-top: 0.3rem;
+}
+
+.stepLabelActive {
+  font-size: 0.85rem;
+  color: #000;
+  font-weight: 600;
+  margin-top: 0.3rem;
+}
+
+.line {
+  width: 40px;
+  height: 2px;
+  background-color: #d4d4d4;
+}
+
+/* Cart Layout */
+.container {
+  display: flex;
+  padding: 2rem;
+  gap: 2rem;
+  background-color: #fafafa;
+  font-family: 'Inter', sans-serif;
+}
+
+.left {
+  flex: 2;
+  width: 100%;
+  height:auto;
+  background-color: white;
+  padding: 20px;
+  border-radius:10px;
+}
+
+.right {
+  flex: 1;
+  background-color: #f8f8f8;
+  padding: 1rem;
+  border-radius: 10px;
+}
+
+.title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+}
+
+.card {
+  display: flex;
+  border: 1px solid #e5e7eb;
+  padding: 1rem;
+  border-radius: 10px;
+  background: #fff;
+  margin-bottom: 1rem;
+  align-items: flex-start;
+}
+
+.productImage {
+  width: 100px;
+  height: auto;
+  margin-right: 1rem;
+}
+
+.details {
+  flex-grow: 1;
+}
+
+.name {
+  font-size: 1rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.priceRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.25rem 0;
+}
+
+.price {
+  font-weight: 600;
+}
+
+.discount {
+  color: #00bf3c;
+  font-weight: 500;
+}
+
+.reward {
+  color: #fbbf24;
+  font-size: 0.9rem;
+}
+
+.mrp {
+  font-size: 0.9rem;
+  color: #999;
+}
+
+.qtyRow {
+  margin: 0.5rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.qtyBtn {
+  width: 25px;
+  height: 25px;
+  background-color: #f2f2f2;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+.qty {
+  padding: 0 0.5rem;
+}
+
+.delivery {
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-left: 1rem;
+}
+
+.icon {
+  color: #aaa;
+  cursor: pointer;
+}
+
+.continue {
+  color: #155E95;
+  margin-top: 1rem;
+  cursor: pointer;
+}
+
+/* Right section styles */
+.pinRow {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.pinInput {
+  flex-grow: 1;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+.checkBtn {
+  background-color: white;
+  border: none;
+  color: #155E95;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.couponRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: #fff;
+  border-radius: 10px;
+  cursor: pointer;
+  margin-bottom: 1rem;
+}
+
+.couponIcon {
+  font-size: 1.2rem;
+}
+
+.payBtn {
+  width: 100%;
+  background-color: #155E95;
+  color: white;
+  padding: 1rem;
+  border: none;
+  font-weight: 600;
+  font-size: 1rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  cursor: pointer;
+}
+
+.summaryBox {
+  background-color: #fff;
+  padding: 1rem;
+  border-radius: 10px;
+}
+
+.summaryTitle {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.summaryRow {
+  display: flex;
+  justify-content: space-between;
+  margin: 0.5rem 0;
+}
+
+.green {
+  color: green;
+}
+
+.strike {
+  text-decoration: line-through;
+  color: #999;
+}
+
+.saveExtra {
+  color: #ff6f00;
+  font-size: 0.9rem;
+  margin: 0.5rem 0;
+}
+
+.link {
+  color: #155E95;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.totalPay {
+  font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+  font-size: 1.1rem;
+  margin-top: 1rem;
+}
+
+.savingsNote {
+  font-size: 0.9rem;
+  color: green;
+  margin-top: 0.5rem;
+}
+
+/* ---------------- MOBILE RESPONSIVE ---------------- */
+@media screen and (max-width: 768px) {
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 1rem;
+    gap: 0.5rem;
+  }
+.logo{
+      margin-left: 7rem;
+}
+  .steps {
+    width: 100%;
+    justify-content: space-between;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .stepLabel,
+  .stepLabelActive {
+    font-size: 0.75rem;
+  }
+
+  .container {
+    flex-direction: column;
+    padding: 1rem;
+    margin-bottom: 4rem;
+  }
+
+  .left, .right {
+    padding: 1rem;
+    width: 100%;
+  }
+
+  .right {
+    margin-top: 1.5rem;
+  }
+
+  .title {
+    font-size: 1.2rem;
+    text-align: center;
+  }
+
+  .card {
+    flex-direction: row;
+    align-items: flex-start;
+    padding: 0.75rem;
+  }
+
+  .productImage {
+    width: 80px;
+    height: auto;
+    margin-top: 3rem;
+    margin-right: 0.75rem;
+  }
+
+  .details {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+            margin-left: 1rem;
+            gap: .2rem;
+  }
+
+  .name {
+    font-size: 0.95rem;
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+      display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  }
+
+  .priceRow {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    flex-wrap: wrap;
+  }
+
+  .reward {
+    font-size: 0.8rem;
+  }
+
+  .qtyRow {
+    justify-content: flex-start;
+    gap: 0.3rem;
+  }
+
+  .delivery {
+    font-size: 0.75rem;
+    margin-top: 0.25rem;
+  }
+
+  .actions {
+    padding-left: 0.5rem;
+    display: flex;
+    flex-direction: row-reverse;
+    margin-top: 103px;
+    justify-content: space-between;
+  }
+
+  .pinRow {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .couponRow {
+    flex-direction: row-reverse;
+        gap: 14.5rem;
+        text-align: center;
+  }
+
+  .payBtn {
+    font-size: 1rem;
+    padding: 0.75rem;
+  }
+
+  .summaryBox {
+    padding: 1rem;
+  }
+
+  .summaryRow {
+    font-size: 0.9rem;
+  }
+
+  .totalPay {
+    flex-direction: row;
+    gap: 0.5rem;
+    text-align: center;
+  }
+
+  .savingsNote {
+    text-align: center;
+  }
+}
+
+/* Show this section only on mobile */
+.mobileTopOnly {
+  display: none;
+}
+
+@media screen and (max-width: 768px) {
+  .mobileTopOnly {
+    display: block;
+    background-color: #f8f8f8;
+    padding: 1rem 1rem 0;
+  }
+
+  .desktopOnly {
+    display: none;
+  }
+}

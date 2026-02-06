@@ -1,0 +1,128 @@
+.container {
+  max-width: 1400px;
+  margin: 40px auto;
+  padding: 40px;
+  background: #ffffff;
+  border-radius: 28px;
+  box-shadow: 0 30px 80px rgba(15, 23, 42, 0.12);
+}
+
+.heading {
+  font-size: 34px;
+  font-weight: 900;
+  margin-bottom: 30px;
+  color: #020617;
+}
+
+/* ================= CONTROLS ================= */
+.controls {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.controlsInput,
+.controlsSelect {
+  padding: 14px 18px;
+  border-radius: 14px;
+  border: 1px solid #cbd5f5;
+  font-size: 14px;
+}
+
+/* ================= TABLE ================= */
+.tableWrap {
+  overflow-x: auto;
+  border-radius: 20px;
+  border: 1px solid #e5e7eb;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tableHead {
+  background: #f8fafc;
+}
+
+.tableHead th {
+  font-weight: 800;
+  text-align: left;
+  padding: 16px;
+  font-size: 13px;
+  color: #020617;
+}
+
+.tableRow td {
+  padding: 16px;
+  border-top: 1px solid #e5e7eb;
+  font-size: 14px;
+  color: #334155;
+}
+
+.tableRow:hover {
+  background: #f9fafb;
+}
+
+/* ================= ACTIONS ================= */
+.actions {
+  display: flex;
+  gap: 10px;
+}
+
+.actionBtn {
+  font-size: 18px;
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+
+/* ================= STATES ================= */
+.loading {
+  padding: 40px;
+  text-align: center;
+  font-size: 18px;
+  color: #64748b;
+}
+
+/* ================= MODAL ================= */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: #ffffff;
+  padding: 32px;
+  border-radius: 24px;
+  max-width: 520px;
+  width: 100%;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
+}
+
+.modalTitle {
+  margin-bottom: 16px;
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.modalText {
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: #334155;
+}
+
+.modalBtn {
+  margin-top: 20px;
+  padding: 14px 28px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #cfd0fa, #9ebbfd);
+  border: none;
+  font-weight: 800;
+  cursor: pointer;
+}

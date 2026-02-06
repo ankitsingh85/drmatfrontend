@@ -1,0 +1,120 @@
+.quizContainer {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100vh;
+  padding: 2rem 1rem;
+  background-color: #fdf3e3;
+  overflow-y: auto;
+}
+
+.form {
+  background: white;
+  padding: 2rem;
+  border-radius: 25px;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+  width: 350px;
+  text-align: center;
+}
+
+.logo {
+  width: 50%;
+  max-width: 130px;
+  height: auto;
+  padding: 10px;
+  margin-bottom: 1rem;
+}
+
+.head {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-bottom: 1.5rem;
+}
+
+.inputGroup {
+  margin-bottom: 1rem;
+  text-align: left;
+}
+
+.label {
+  font-weight: bold;
+  margin-bottom: 0.3rem;
+  display: block;
+}
+
+.optionsContainer {
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* Two equal-width columns */
+  gap: 10px;
+  margin-top: 2rem; /* Spacing from the question */
+}
+
+
+.option {
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  background-color: #fdf3e3;
+  cursor: pointer;
+  color: black;
+}
+
+.option.selected {
+  background-color: #002d62;
+  color: white;
+  font-weight: bold;
+}
+
+.buttonContainer {
+  margin-top: 1.5rem;
+}
+
+.button {
+  width: 100%;
+  padding: 10px;
+  background-color: #002d62;
+  color: white;
+  font-size: 1rem;
+  font-weight: bold;
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+}
+
+.backButton {
+  margin-top: 0.5rem;
+  background-color: transparent;
+  color: #002d62;
+  border: none;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.terms {
+  color: grey;
+  font-weight: 200;
+  font-size: 0.6rem;
+  margin-top: 1rem;
+  text-align: center;
+}
+
+/* Image Styling */
+.imageContainer {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.image {
+  width: 100%;
+  max-width: 250px;
+  height: auto;
+}
+
+@media (max-height: 600px) {
+  .container {
+    align-items: flex-start;
+    padding-top: 2rem;
+    overflow-y: auto;
+  }
+}

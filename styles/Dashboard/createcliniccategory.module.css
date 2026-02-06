@@ -1,0 +1,141 @@
+.container {
+  max-width: 1280px;
+  margin: 40px auto;
+  padding: 48px;
+  background: #ffffff;
+  border-radius: 28px;
+  box-shadow: 0 30px 80px rgba(15, 23, 42, 0.12);
+}
+
+.heading {
+  font-size: 34px;
+  font-weight: 900;
+  margin-bottom: 32px;
+  color: #020617;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
+}
+
+.section {
+  padding: 32px;
+  border-radius: 24px;
+  background: linear-gradient(180deg, #ffffff, #f9fafb);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  position: relative;
+}
+
+.section::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 6px;
+  height: 100%;
+  background: linear-gradient(180deg, #cfd0fa, #9ebbfd);
+  border-radius: 24px 0 0 24px;
+}
+
+.sectionTitle {
+  font-size: 20px;
+  font-weight: 800;
+  margin-bottom: 20px;
+  color: #0f172a;
+  padding-left: 10px;
+}
+
+.field,
+.fullField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: #475569;
+}
+
+.input {
+  padding: 16px 18px;
+  border-radius: 16px;
+  border: 1px solid #cbd5f5;
+  font-size: 15px;
+}
+
+.preview {
+  margin-top: 12px;
+  max-width: 220px;
+  border-radius: 14px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+
+.submitBtn {
+  align-self: center;
+  padding: 18px 46px;
+  border-radius: 999px;
+  font-size: 18px;
+  font-weight: 800;
+  background: linear-gradient(180deg, #cfd0fa, #9ebbfd);
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 20px 40px rgba(37, 99, 235, 0.35);
+}
+
+.submitBtn:hover {
+  transform: translateY(-2px);
+}
+
+.error {
+  color: #dc2626;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.noImage {
+  color: #64748b;
+  font-weight: 600;
+}
+.uploadBox {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.uploadBtn {
+  padding: 14px 28px;
+  border-radius: 999px;
+  border: none;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  background: linear-gradient(180deg, #cfd0fa, #9ebbfd);
+  color: #020617;
+  box-shadow: 0 14px 30px rgba(37, 99, 235, 0.35);
+  transition: all 0.3s ease;
+}
+
+.uploadBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 22px 45px rgba(37, 99, 235, 0.45);
+}
+
+.uploadHint {
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.preview {
+  margin-top: 16px;
+  max-height: 180px;
+  border-radius: 18px;
+  object-fit: cover;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+}

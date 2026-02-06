@@ -1,0 +1,94 @@
+.productListing {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Sidebar styling */
+.sidebar {
+  width: 15%;
+  min-width: 220px;
+  position: sticky;
+  top: 80px; /* Adjust if you have a topbar */
+  padding: 15px;
+  background-color: #fff;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  float: left;
+}
+
+
+/* Product grid container */
+.productsContainer {
+  width: 85%;
+  float: right;
+  padding: 10px 20px;
+  box-sizing: border-box;
+  margin-top: -30px;
+}
+
+/* Pagination styling */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-top: 30px;
+}
+
+/* Active Page Button */
+.activePAge {
+  background-color: #155E95;
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  font-weight: bold;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+/* Inactive Page Button */
+.inactivePage {
+  background-color: #f0f0f0;
+  color: #333;
+  border: none;
+  padding: 8px 14px;
+  font-weight: normal;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.inactivePage:hover {
+  background-color: #ddd;
+}
+@media (max-width: 768px) {
+  .productListing {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+    position: static;
+    margin-bottom: 20px;
+  }
+
+  .productsContainer {
+    width: 100%;
+    padding: 0 10px;
+    display: grid;
+    grid-template-columns: 1fr; /* one column for mobile */
+    gap: 16px;
+  }
+
+  .productCard {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .pagination {
+    flex-wrap: wrap;
+  }
+}

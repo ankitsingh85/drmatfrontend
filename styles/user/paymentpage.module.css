@@ -1,0 +1,211 @@
+.wrapper {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: 'Inter', sans-serif;
+}
+
+/* Topbar Full Width */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 15px 20px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  margin-bottom: 30px;
+  flex-wrap: wrap;
+}
+
+.logo {
+  cursor: pointer;
+}
+
+.steps {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.circle {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  transition: all 0.3s ease;
+}
+
+.filledCircle {
+  background-color: #2563eb;
+  color: white;
+  animation: fillCircle 0.5s ease forwards;
+}
+
+.outlinedCircle {
+  border: 2px solid #2563eb;
+  color: #2563eb;
+  background-color: white;
+}
+
+@keyframes fillCircle {
+  0% {transform: scale(0); opacity: 0.3;}
+  100% {transform: scale(1); opacity: 1;}
+}
+
+.line {
+  width: 50px;
+  height: 2px;
+  background-color: #d1d5db;
+}
+
+.stepLabel {
+  margin-top: 5px;
+  font-size: 14px;
+}
+
+.completedLabel {
+  font-weight: 600;
+  color: #374151;
+}
+
+.activeLabel {
+  font-weight: 600;
+  color: #2563eb;
+}
+
+/* Main Content Flex */
+.mainContent {
+  display: flex;
+  gap: 25px;
+  flex-wrap: wrap;
+}
+
+/* Left Delivery Card */
+.leftCard {
+  flex: 1;
+  min-width: 300px;
+}
+
+.deliveryCard {
+  background-color: #f9fafb;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+}
+
+.cardTitle {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+/* Right Order Summary */
+.rightCard {
+  flex: 1;
+  min-width: 300px;
+}
+
+.summaryCard {
+  background-color: #ffffff;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.summaryRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 16px;
+}
+
+.separator {
+  height: 1px;
+  background-color: #d1d5db;
+  margin: 10px 0;
+}
+
+.summaryTotal {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 600;
+  font-size: 18px;
+}
+
+.payBtn {
+  margin-top: 15px;
+  padding: 12px;
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.payBtn:hover {
+  background-color: #1d4ed8;
+  transform: scale(1.02);
+}
+
+/* Payment Success */
+.paymentSuccess {
+  text-align: center;
+  background-color: #f9fafb;
+  padding: 60px 30px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  animation: fadeIn 0.5s ease forwards;
+}
+
+@keyframes fadeIn {
+  from {opacity: 0; transform: translateY(-10px);}
+  to {opacity: 1; transform: translateY(0);}
+}
+
+.successTitle {
+  font-size: 28px;
+  color: #16a34a;
+  margin-bottom: 20px;
+}
+
+.successText {
+  font-size: 16px;
+  color: #374151;
+  margin-bottom: 10px;
+}
+
+.successBtn {
+  margin-top: 20px;
+  background-color: #2563eb;
+  color: white;
+  padding: 12px 25px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.successBtn:hover {
+  background-color: #1d4ed8;
+}
+
+@media (max-width: 768px) {
+  .mainContent {
+    flex-direction: column;
+  }
+}

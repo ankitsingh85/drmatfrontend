@@ -1,0 +1,107 @@
+/* Desktop Styles */
+.sidebar {
+  background-color: #ffffff;
+  border-radius: 10px;
+  padding: 15px 1px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.title {
+  text-align: center;
+  font-weight: bold;
+  margin-bottom: 15px;
+  font-size: 18px;
+  color: #333;
+}
+
+.categoryList {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+.card {
+  background-color: rgb(245, 247, 249);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+}
+
+
+
+  
+
+
+.image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.label {
+  background-color: #2987c6;
+  padding: 8px 4px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #fff;
+}
+
+/* Mobile Styles */
+@media (max-width: 768px) {
+  .sidebar {
+    padding: 0 0 10px 0;
+  }
+
+  .title {
+    display: none;
+  }
+
+  .categoryList {
+    flex-direction: row;
+    overflow-x: auto;
+    gap: 10px;
+    padding: 10px 10px;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .categoryList::-webkit-scrollbar {
+    display: none;
+  }
+
+  .card {
+    min-width: 70px;
+    max-width: 70px;
+    border-radius: 8px;
+    scroll-snap-align: start;
+    border: 2px solid transparent;
+  }
+
+
+  .cardActive {
+    background-color: rgb(156, 206, 237);
+    border-color: #ffffff;
+  }
+
+  .image {
+    width: 100%;
+    height: 50px;
+    border-radius: 15%;
+    object-fit: cover;
+
+  }
+
+  .label {
+    font-size: 12px;
+    padding: 6px 0;
+    background-color: transparent;
+    font-weight: 500;
+    color: #000;
+    white-space: nowrap;
+  }
+}

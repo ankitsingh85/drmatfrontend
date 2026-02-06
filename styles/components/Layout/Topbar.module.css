@@ -1,0 +1,266 @@
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 40px;
+  background-color: #ffffff;
+  width: 100%;
+  z-index: 100;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  position: relative;
+  font-family: "Arial", sans-serif;
+}
+
+/* Left section (logo + menu) */
+.leftSection {
+  display: flex;
+  align-items: center;
+  gap: 35px;
+}
+
+.logo {
+  z-index: 101;
+  max-width: 120px;
+  height: auto;
+  cursor:pointer;
+}
+
+/* Nav links */
+.navLinks {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+}
+
+.navLink {
+ font-size: 13px;
+    font-weight: 600;
+    color: #41444c;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.navLink:hover {
+  text-decoration: underline solid 2px;
+  color: #1f49be;
+}
+
+/* Right section (icons + auth) */
+.rightSection {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-shrink: 0;
+}
+
+.location {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  gap: 6px;
+  font-size: 14px;
+  color: #444;
+  transition: color 0.2s ease;
+}
+
+.location:hover {
+  color: #0070f3;
+}
+
+.locationText {
+  font-size: 13px;
+  color: #555;
+  white-space: nowrap;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.authLinks {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 400;
+  color: #1a2238;
+}
+
+.separator {
+  color: #1a2238;
+}
+
+.userName {
+  font-size: 14px;
+  font-weight: 400;
+  color: #1a2238;
+}
+
+.cartInfo {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  min-width: 32px;
+  min-height: 32px;
+  justify-content: center;
+}
+
+/* Hamburger menu */
+.hamburger {
+  display: none;
+  cursor: pointer;
+  z-index: 101;
+}
+
+/* ===================== */
+/* 📱 Responsive Styles  */
+/* ===================== */
+
+/* Tablets & smaller desktops */
+@media (max-width: 1080px) {
+  .leftSection {
+    gap: 40px;
+  }
+
+  .hamburger {
+    display: block;
+  }
+
+  .navLinks {
+    position: absolute;
+    top: 70px;
+    left: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 20px;
+    background-color: #ffffff;
+    padding: 20px 30px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+    display: none;
+    z-index: 100;
+    width: 100%;
+  }
+
+  .navLinks.open {
+    display: flex;
+  }
+
+  .logo {
+    margin-left: 1rem;
+  }
+}
+
+/* Small tablets & large phones (landscape) */
+@media (max-width: 768px) {
+  .topbar {
+    padding: 10px 20px;
+  }
+
+  .leftSection {
+    gap: 20px;
+  }
+
+  .navLink {
+    font-size: 15px;
+  }
+
+  .rightSection {
+    gap: 12px;
+  }
+
+  .locationText {
+    max-width: 100px;
+    font-size: 12px;
+  }
+}
+
+/* Phones (portrait) */
+@media (max-width: 480px) {
+  .topbar {
+    padding: 8px 16px;
+  }
+
+  .logo {
+    max-width: 90px;
+  }
+
+  .navLinks {
+    padding: 15px 20px;
+    gap: 15px;
+  }
+
+  .navLink {
+    font-size: 14px;
+  }
+
+  .rightSection {
+    gap: 10px;
+  }
+
+  .userName {
+    display: none; /* hide name on very small screens */
+  }
+
+  .locationText {
+    display: none; /* only keep icon */
+  }
+}
+
+/* Very small devices (<= 370px) */
+@media (max-width: 370px) {
+  .topbar {
+    padding: 6px 12px;
+  }
+
+  .logo {
+    margin-left: 0.5rem;
+    max-width: 80px;
+    cursor:pointer;
+  }
+
+  .navLinks {
+    padding: 12px 15px;
+    gap: 12px;
+  }
+
+  .navLink {
+    font-size: 13px;
+  }
+}
+.cartBadge {
+      background: #13578b;
+    color: white;
+    border-radius: 50%;
+    padding: 2px 6px;
+    font-size: 12px;
+    position: absolute;
+    top: 13px;
+    right: 36px;
+}
+/* 🔽 Add this to Topbar.module.css */
+.logoutBtn {
+  background-color: #f44336; /* red */
+  color: white;
+  border: none;
+  padding: 6px 14px;
+  margin-left: 10px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.logoutBtn:hover {
+  background-color: #d32f2f; /* darker red */
+  transform: scale(1.05);
+}
+
+.logoutBtn:active {
+  background-color: #b71c1c;
+  transform: scale(0.95);
+}
+@media (max-width: 480px) {
+  .hamburger {
+    display: none; /* hide hamburger on mobile */
+  }
+}

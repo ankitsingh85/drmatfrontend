@@ -1,0 +1,95 @@
+/* Overall container */
+.container {
+  padding: 1rem;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+}
+
+/* Heading */
+.heading {
+  text-align: center;
+  font-size: 2rem;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 2rem;
+}
+
+/* Clinic list */
+.ul {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  list-style-type: none;
+  padding: 0;
+}
+
+/* Individual clinic card */
+.clinic-card {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  padding: 1rem;
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
+}
+
+.clinic-card:hover {
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+/* Clinic image */
+.img {
+  flex: 0 0 150px;
+  width: 150px;
+  height: 150px;
+  object-fit: cover;
+  border-radius: 8px;
+  margin-right: 1rem;
+}
+
+/* Clinic card content */
+.card-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  text-align: left; /* Ensures all text is aligned left */
+}
+
+.clinic-name {
+  font-size: 1.5rem;
+  margin: 0;
+  color: #333;
+}
+
+.description {
+  margin: 0.5rem 0;
+  color: #555;
+  font-size: 1rem;
+}
+
+.address {
+  color: #777;
+  font-size: 0.9rem;
+}
+
+/* Button */
+.button {
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  align-self: flex-start; /* Aligns the button to the left */
+}
+
+.button:hover {
+  background-color: #45a049;
+}

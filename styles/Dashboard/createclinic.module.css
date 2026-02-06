@@ -1,0 +1,225 @@
+/* ================= ROOT PAGE ================= */
+.page {
+  width: 100%;
+  overflow-x: hidden;
+  /* ❌ DO NOT set min-height or height here */
+}
+
+/* ================= CONTAINER ================= */
+.container {
+  max-width: 1280px;
+  margin: 50px auto;
+  padding: 48px;
+  background: linear-gradient(180deg, #ffffff, #f8fafc);
+  border-radius: 28px;
+  box-shadow: 0 30px 80px rgba(15, 23, 42, 0.12);
+
+  /* 🔥 IMPORTANT */
+  overflow: visible;
+}
+
+/* ================= HEADING ================= */
+.heading {
+  font-size: 34px;
+  font-weight: 900;
+  margin-bottom: 36px;
+  color: #020617;
+}
+
+/* ================= FORM ================= */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 42px;
+
+  /* 🔥 no scroll context */
+  overflow: visible;
+}
+
+/* ================= SECTION ================= */
+.section {
+  background: #ffffff;
+  padding: 32px;
+  border-radius: 24px;
+  border: 1px solid #e5e7eb;
+
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 22px;
+
+  position: relative;
+
+  /* 🔥 THIS IS THE KEY */
+  overflow: visible;
+}
+
+/* Left color bar */
+.section::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 6px;
+  height: 100%;
+  border-radius: 24px 0 0 24px;
+  background: linear-gradient(180deg, #cfd0fa, #9ebbfd);
+}
+
+/* ================= SECTION TITLE ================= */
+.sectionTitle {
+  grid-column: 1 / -1;
+  font-size: 20px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+/* ================= FIELD ================= */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field label {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+/* ================= INPUTS ================= */
+.input,
+.textarea,
+.readonlyInput {
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid #cbd5f5;
+  font-size: 15px;
+  background: #ffffff;
+}
+
+.textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.readonlyInput {
+  background: #f1f5f9;
+  cursor: not-allowed;
+}
+
+/* ================= FOCUS ================= */
+.input:focus,
+.textarea:focus {
+  border-color: #6366f1;
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.25);
+}
+
+/* ================= CHECKBOX ================= */
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.checkbox input {
+  accent-color: #4f46e5;
+}
+
+/* ================= BUTTON ================= */
+.submitBtn {
+  align-self: center;
+  margin-top: 28px;
+  padding: 18px 52px;
+  border-radius: 999px;
+  font-size: 18px;
+  font-weight: 800;
+  background: linear-gradient(180deg, #cfd0fa, #9ebbfd);
+  color: #ffffff;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 20px 40px rgba(37, 99, 235, 0.4);
+  transition: all 0.3s ease;
+}
+
+.submitBtn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 30px 60px rgba(37, 99, 235, 0.45);
+}
+
+/* ================= RESPONSIVE ================= */
+@media (max-width: 900px) {
+  .section {
+    grid-template-columns: 1fr;
+  }
+
+  .submitBtn {
+    width: 100%;
+  }
+}
+.addBtn,.addDoctorBtn {
+  grid-column: 1 / -1;
+  width: fit-content;
+  padding: 10px 18px;
+  border-radius: 10px;
+  background: #2563eb;
+  color: #fff;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+}
+
+.addBtn,.addDoctorBtn:hover {
+  background: #1e40af;
+}
+
+.doctorCard {
+  grid-column: 1 / -1;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  padding: 14px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+
+.modal {
+  background: #fff;
+  padding: 28px;
+  border-radius: 18px;
+  width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.modalActions button {
+  padding: 10px 18px;
+  border-radius: 10px;
+  border: none;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.modalActions button:last-child {
+  background: #2563eb;
+  color: white;
+}

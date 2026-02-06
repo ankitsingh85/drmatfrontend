@@ -1,0 +1,181 @@
+.container {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+
+
+/* Instruction Box */
+.instructions {
+  background-color: #f0f7ff;
+  border: 1px solid #b3d4fc;
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  color: #1a3a6d;
+  font-size: 0.95rem;
+}
+
+.instructions p {
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.instructions ul {
+  margin: 0;
+  padding-left: 1.2rem;
+}
+
+.instructions li {
+  margin-bottom: 0.3rem;
+}
+
+/* Error Message */
+.error {
+  color: #d9534f;
+  font-weight: 600;
+  margin: 1rem 0;
+  text-align: center;
+}
+
+/* Upload Section */
+.uploadSection {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 2rem;
+}
+
+.uploadBtn {
+  background-color: #2563eb;
+  color: white;
+  padding: 0.6rem 1.2rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.2s ease-in-out;
+}
+
+.uploadBtn:hover {
+  background-color: #1e40af;
+}
+
+/* Offers Grid */
+.offersGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.5rem;
+}
+
+.offerCard {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 1rem;
+  text-align: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  transition: transform 0.2s ease-in-out;
+}
+
+.offerCard:hover {
+  transform: translateY(-4px);
+}
+
+.offerImage {
+  width: 100%;
+  max-height: 220px;
+  object-fit: contain;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+}
+
+/* Buttons */
+.buttons {
+  display: flex;
+  justify-content: center;
+  gap: 0.8rem;
+}
+
+.updateBtn,
+.deleteBtn {
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: background 0.2s ease-in-out;
+}
+
+.updateBtn {
+  background-color: #10b981;
+  color: white;
+}
+
+.updateBtn:hover {
+  background-color: #059669;
+}
+
+.deleteBtn {
+  background-color: #ef4444;
+  color: white;
+}
+
+.deleteBtn:hover {
+  background-color: #b91c1c;
+}
+/* Preview Grid */
+.previewGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+.previewCard {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 0.8rem;
+  width: 180px;
+  text-align: center;
+  background: #fafafa;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+
+.previewCard.valid {
+  border-color: #10b981;
+}
+
+.previewCard.invalid {
+  border-color: #ef4444;
+  background: #fff5f5;
+}
+
+.previewImage {
+  width: 100%;
+  height: 100px;
+  object-fit: contain;
+  border-radius: 4px;
+  margin-bottom: 0.5rem;
+}
+
+.fileName {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #374151;
+  margin: 0.2rem 0;
+}
+
+.fileSize {
+  font-size: 0.8rem;
+  color: #6b7280;
+  margin-bottom: 0.3rem;
+}
+
+.previewError {
+  color: #ef4444;
+  font-size: 0.8rem;
+  font-weight: 500;
+}

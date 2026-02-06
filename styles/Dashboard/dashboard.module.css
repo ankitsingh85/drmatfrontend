@@ -1,0 +1,76 @@
+.dashboardContainer {
+  padding: 1.5rem 2rem;
+}
+
+.dashboardTitle {
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  color: #111827;
+}
+
+.cardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 1.5rem;
+}
+
+.card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: rgba(149, 157, 165, 0.1) 0px 4px 12px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: rgba(149, 157, 165, 0.2) 0px 6px 16px;
+}
+
+.iconWrapper {
+  width: 55px;
+  height: 55px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cardValue {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.2;
+}
+
+.cardTitle {
+  font-size: 0.9rem;
+  color: #6b7280;
+  margin-top: 0.25rem;
+}
+
+.loading, .error {
+  font-size: 1.2rem;
+  text-align: center;
+  margin-top: 2rem;
+  color: #6b7280;
+}
+
+/* Responsive */
+@media screen and (max-width: 600px) {
+  .dashboardContainer {
+    padding: 1rem;
+  }
+
+  .cardValue {
+    font-size: 1.5rem;
+  }
+
+  .dashboardTitle {
+    font-size: 1.2rem;
+  }
+}

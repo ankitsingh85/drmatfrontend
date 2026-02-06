@@ -1,0 +1,199 @@
+.featuredSection {
+  position: relative;
+  width: 100%;
+  padding: 20px 0;
+  overflow: hidden;
+}
+
+.sliderWrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+}
+
+.imageContainer {
+  position: relative;
+  width: 473px;
+  height: 300px;
+  cursor: pointer;
+  opacity: 0;
+}
+
+.imageSliderImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 16px;
+  box-shadow: 0px 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+.imageOverlay {
+  position: absolute;
+  bottom: 10px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.5), transparent);
+  padding: 10px;
+  border-radius: 0 0 16px 16px;
+}
+
+.imageHeading {
+  color: #fff;
+  font-size: 18px;
+  font-weight: bold;
+  margin: 0;
+}
+
+/* Animations */
+@keyframes dropFromTop {
+  from {
+    transform: translateY(-50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideFromLeft {
+  from {
+    transform: translateX(-100px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideFromRight {
+  from {
+    transform: translateX(100px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.centerImage {
+  animation: dropFromTop 0.8s ease forwards;
+  opacity: 1;
+}
+
+.leftImage {
+  animation: slideFromLeft 0.8s ease forwards;
+  opacity: 1;
+}
+
+.rightImage {
+  animation: slideFromRight 0.8s ease forwards;
+  opacity: 1;
+}
+
+/* Dots */
+.dots {
+  display: flex;
+  justify-content: center;
+  margin-top: 15px;
+  gap: 8px;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  background: #ccc;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.activeDot {
+  background: #4f46e5;
+}
+@media (max-width: 768px) {
+  /* Slider container: horizontal scroll */
+  .mobileSliderWrapper {
+    overflow-x: auto;           /* enable horizontal scroll */
+    overflow-y: hidden;         /* hide vertical scroll */
+    -webkit-overflow-scrolling: touch; /* smooth scrolling on iOS */
+    display: flex;
+    gap: 16px;                  /* space between images */
+    padding: 0 16px;            /* side padding */
+    scroll-snap-type: x mandatory; /* snap scrolling */
+    width: 100%;
+  }
+
+  /* Inner wrapper (optional) */
+  .mobileSliderInner {
+    display: flex;
+    gap: 16px;
+  }
+
+  /* Individual images */
+  .mobileImageContainer {
+    flex: 0 0 80%;              /* occupy 80% of viewport (peek next) */
+    height: 220px;
+    position: relative;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0px 6px 16px rgba(0, 0, 0, 0.15);
+    scroll-snap-align: center;  /* snap to center when scrolling */
+    background: #fff;
+  }
+
+  /* Image inside container */
+  .mobileImage {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 16px;
+  }
+
+  /* Overlay text */
+  .imageOverlay {
+    position: absolute;
+    bottom: 10px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.4), transparent);
+    padding: 8px;
+    border-radius: 0 0 16px 16px;
+  }
+
+  .imageHeading {
+    color: #fff;
+    font-size: 16px;
+    font-weight: bold;
+    margin: 0;
+  }
+
+  /* Dots navigation (optional) */
+  .dots {
+    display: flex;
+    justify-content: center;
+    margin-top: 10px;
+    gap: 6px;
+  }
+
+  .dot {
+    width: 8px;
+    height: 8px;
+    background: #bbb;
+    border-radius: 50%;
+    transition: background 0.3s ease;
+  }
+
+  .activeDot {
+    background: #4f46e5;
+  }
+
+  /* Hide scrollbar for cleaner look */
+  .mobileSliderWrapper::-webkit-scrollbar {
+    display: none;
+  }
+}

@@ -1,0 +1,91 @@
+.ratingOverview {
+    padding: 20px;
+    margin: 0px auto;
+    max-width: 100%;
+    border-bottom: 1px solid #ccc;
+    font-family: Arial, sans-serif;
+  }
+  
+  .ratingHeader {
+    display: flex;
+    justify-content: flex-start;
+    gap:5rem;
+    align-items: center;
+  }
+  
+  .writeReviewBtn {
+    padding: 8px 16px;
+    border: 1px solid #007bff;
+    background-color: white;
+    color: #007bff;
+    font-weight: 600;
+    font-size: 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+  }
+  
+  .writeReviewBtn:hover {
+    background-color: #007bff;
+    color: white;
+  }
+  
+  .averageRating {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1rem;
+    margin-top: 15px;
+  }
+  
+  .ratingValue {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #333;
+  }
+  
+  .star {
+    color: #f5a623;
+    font-size: 1.5rem;
+  }
+  
+  .totalReviews {
+    color: gray;
+    font-size: 0.9rem;
+  }
+  
+  .ratingBars {
+    margin-top: 20px;
+  }
+  
+  .ratingRow {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 6px 0;
+  }
+  
+  .starLabel {
+    width: 15px;
+    font-size: 14px;
+  }
+  
+  .barWrapper {
+    width: 200px;
+    height: 8px;
+    background-color: #e0e0e0;
+    border-radius: 5px;
+    overflow: hidden;
+  }
+  
+  .barFill {
+    height: 100%;
+    background-color: #007bff;
+    border-radius: 5px;
+  }
+  
+  .reviewCount {
+    font-size: 12px;
+    color: gray;
+  }
+  

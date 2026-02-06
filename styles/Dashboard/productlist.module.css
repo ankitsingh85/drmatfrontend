@@ -1,0 +1,96 @@
+.container {
+  padding: 20px;
+  background: #f8f9fb;
+}
+
+.heading {
+  font-size: 22px;
+  margin-bottom: 15px;
+}
+
+.controls {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.search {
+  padding: 8px;
+  width: 250px;
+}
+
+.table {
+  width: 100%;
+  background: #fff;
+  border-collapse: collapse;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.table th,
+.table td {
+  padding: 14px;
+  border-bottom: 1px solid #eee;
+  text-align: left;
+}
+
+.table th {
+  background: #f1f4f8;
+  font-weight: 600;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+.eye,
+.edit,
+.delete {
+  border: none;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.eye {
+  background: #e3f2fd;
+}
+
+.edit {
+  background: #fff3cd;
+}
+
+.delete {
+  background: #f8d7da;
+}
+
+/* ===== MODAL ===== */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal {
+  background: #fff;
+  padding: 20px;
+  width: 700px;
+  max-height: 80vh;
+  overflow-y: auto;
+  border-radius: 10px;
+}
+
+.modalGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.modalGrid p {
+  font-size: 14px;
+  color: #555;
+}

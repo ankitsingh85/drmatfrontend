@@ -1,0 +1,122 @@
+.container {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: auto;
+}
+
+.heading {
+  font-size: 2.2rem;
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 2rem;
+  color: #2c3e50;
+}
+
+.loading {
+  text-align: center;
+  font-size: 1.2rem;
+  color: #555;
+}
+
+/* Stats Cards Grid */
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2.5rem;
+}
+
+.card {
+  background: #ffffff;
+  border-radius: 1rem;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  padding: 1.5rem;
+  text-align: center;
+  transition: transform 0.2s ease-in-out;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+}
+
+.card h3 {
+  font-size: 1.2rem;
+  margin-bottom: 0.5rem;
+  color: #34495e;
+}
+
+.card p {
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: #16a085;
+}
+
+/* Sections (Appointments & Reviews) */
+.section {
+  margin-top: 2rem;
+  background: #f9fafb;
+  padding: 1.5rem;
+  border-radius: 1rem;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+
+.section h2 {
+  font-size: 1.6rem;
+  margin-bottom: 1rem;
+  color: #2c3e50;
+}
+
+/* Generic list */
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.listItem {
+  background: #fff;
+  padding: 1rem;
+  border-radius: 0.8rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.date {
+  font-size: 0.85rem;
+  color: #777;
+}
+
+/* Reviews */
+.reviewList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.reviewCard {
+  background: #fff;
+  padding: 1rem;
+  border-radius: 0.8rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.reviewHeader {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.rating {
+  font-weight: bold;
+  color: #f39c12;
+}
+
+.comment {
+  font-size: 0.95rem;
+  margin-bottom: 0.5rem;
+  color: #555;
+}
