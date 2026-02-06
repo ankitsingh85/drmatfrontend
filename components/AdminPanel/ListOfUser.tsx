@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { API_URL } from "@/config/api";
 import styles from "@/styles/Dashboard/listofuser.module.css";
+import editStyles from "@/styles/Dashboard/createuser.module.css";
 
 interface User {
   _id: string;
@@ -22,8 +23,12 @@ export default function ListOfUser() {
   const [search, setSearch] = useState("");
   const [dateFilter, setDateFilter] = useState("all");
 
-  /* VIEW MODAL */
-  const [viewUser, setViewUser] = useState<User | null>(null);
+  /* EDIT STATE */
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState<
+    Partial<User & { password?: string }>
+  >({});
 
   useEffect(() => {
     fetchUsers();
@@ -36,7 +41,7 @@ export default function ListOfUser() {
     setLoading(false);
   };
 
-  /* SEARCH + FILTER */
+  /* FILTER */
   const filteredUsers = useMemo(() => {
     let data = [...users];
 
@@ -63,10 +68,65 @@ export default function ListOfUser() {
     return data;
   }, [users, search, dateFilter]);
 
+  /* DELETE */
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this user?")) return;
     await fetch(`${API_URL}/users/${id}`, { method: "DELETE" });
     fetchUsers();
+  };
+
+  /* EDIT */
+  const handleEdit = (user: User) => {
+    setEditingUser(user);
+    setEditForm({
+      name: user.name,
+      email: user.email,
+      contactNo: user.contactNo || "",
+      address: user.address || "",
+      password: "", // 🔒 never prefill
+    });
+    setIsEditing(true);
+  };
+
+  const handleEditChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    setEditForm({ ...editForm, [e.target.name]: e.target.value });
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingUser) return;
+
+    const payload: any = {
+      name: editForm.name,
+      email: editForm.email,
+      contactNo: editForm.contactNo,
+      address: editForm.address,
+    };
+
+    // ✅ optional password update
+    if (editForm.password && editForm.password.trim() !== "") {
+      payload.password = editForm.password;
+    }
+
+    await fetch(`${API_URL}/users/${editingUser._id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    alert("✅ User updated successfully");
+    setIsEditing(false);
+    setEditingUser(null);
+    setEditForm({});
+    fetchUsers();
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditingUser(null);
+    setEditForm({});
   };
 
   if (loading) return <p className={styles.loading}>Loading users…</p>;
@@ -95,7 +155,7 @@ export default function ListOfUser() {
         </select>
       </div>
 
-      {/* TABLE */}
+      {/* TABLE (UNCHANGED) */}
       <div className={styles.tableWrap}>
         <table className={styles.table}>
           <thead className={styles.tableHead}>
@@ -120,9 +180,9 @@ export default function ListOfUser() {
                 <td className={styles.actions}>
                   <button
                     className={styles.actionBtn}
-                    onClick={() => setViewUser(u)}
+                    onClick={() => handleEdit(u)}
                   >
-                    👁
+                    ✏️
                   </button>
                   <button
                     className={styles.actionBtn}
@@ -137,39 +197,79 @@ export default function ListOfUser() {
         </table>
       </div>
 
-      {/* VIEW MODAL */}
-      {viewUser && (
-        <div className={styles.modalOverlay}>
-          <div className={styles.modal}>
-            <h3 className={styles.modalTitle}>User Details</h3>
+      {/* INLINE EDIT FORM */}
+      {isEditing && editingUser && (
+        <div className={editStyles.container} style={{ marginTop: 40 }}>
+          <h1 className={editStyles.heading}>Edit User</h1>
 
-            <p className={styles.modalText}>
-              <b>Patient ID:</b> {viewUser.patientId}
-            </p>
-            <p className={styles.modalText}>
-              <b>Name:</b> {viewUser.name}
-            </p>
-            <p className={styles.modalText}>
-              <b>Email:</b> {viewUser.email}
-            </p>
-            <p className={styles.modalText}>
-              <b>Contact:</b> {viewUser.contactNo || "-"}
-            </p>
-            <p className={styles.modalText}>
-              <b>Address:</b> {viewUser.address || "-"}
-            </p>
-            <p className={styles.modalText}>
-              <b>Created At:</b>{" "}
-              {new Date(viewUser.createdAt).toLocaleString()}
-            </p>
+          <form className={editStyles.form} onSubmit={handleEditSubmit}>
+            <div className={editStyles.section}>
+              <h2 className={editStyles.sectionTitle}>User Information</h2>
 
-            <button
-              className={styles.modalBtn}
-              onClick={() => setViewUser(null)}
-            >
-              Close
-            </button>
-          </div>
+              <input
+                className={editStyles.input}
+                value={editingUser.patientId}
+                disabled
+              />
+
+              <input
+                name="name"
+                value={editForm.name || ""}
+                onChange={handleEditChange}
+                className={editStyles.input}
+                placeholder="Name"
+              />
+
+              <input
+                name="email"
+                value={editForm.email || ""}
+                onChange={handleEditChange}
+                className={editStyles.input}
+                placeholder="Email"
+              />
+
+              <input
+                name="contactNo"
+                value={editForm.contactNo || ""}
+                onChange={handleEditChange}
+                className={editStyles.input}
+                placeholder="Contact Number"
+              />
+
+              <textarea
+                name="address"
+                value={editForm.address || ""}
+                onChange={handleEditChange}
+                className={editStyles.textarea}
+                placeholder="Address"
+              />
+            </div>
+
+            <div className={editStyles.section}>
+              <h2 className={editStyles.sectionTitle}>Update Password</h2>
+              <input
+                type="password"
+                name="password"
+                value={editForm.password || ""}
+                onChange={handleEditChange}
+                className={editStyles.input}
+                placeholder="Leave blank to keep current password"
+              />
+            </div>
+
+            <div style={{ display: "flex", gap: 12 }}>
+              <button type="submit" className={editStyles.submitBtn}>
+                Update User
+              </button>
+              <button
+                type="button"
+                className={editStyles.submitBtn}
+                onClick={handleCancelEdit}
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
         </div>
       )}
     </div>

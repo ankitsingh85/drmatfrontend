@@ -72,9 +72,9 @@ const ListOfDoctor: React.FC = () => {
       firstName: doctor.firstName,
       lastName: doctor.lastName,
       specialist: doctor.specialist,
-      email: doctor.email,
+      email: doctor.email, // ✅ PREFILL EMAIL
       description: doctor.description || "",
-      password: "", // ✅ never prefill
+      password: "",
     });
     setIsEditing(true);
   };
@@ -88,41 +88,38 @@ const ListOfDoctor: React.FC = () => {
   };
 
   const handleEditSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  if (!editingDoctor) return;
+    e.preventDefault();
+    if (!editingDoctor) return;
 
-  try {
-    const payload: any = {
-      title: editForm.title,
-      firstName: editForm.firstName,
-      lastName: editForm.lastName,
-      specialist: editForm.specialist,
-      email: editForm.email,
-      description: editForm.description,
-    };
+    try {
+      const payload: any = {
+        title: editForm.title,
+        firstName: editForm.firstName,
+        lastName: editForm.lastName,
+        specialist: editForm.specialist,
+        email: editForm.email, // ✅ EMAIL INCLUDED
+        description: editForm.description,
+      };
 
-    // 🔐 SEND PASSWORD ONLY IF USER ENTERED IT
-    if (editForm.password && editForm.password.trim().length > 0) {
-      payload.password = editForm.password.trim();
+      if (editForm.password && editForm.password.trim()) {
+        payload.password = editForm.password.trim();
+      }
+
+      await axios.put(
+        `${API_URL}/doctoradmin/${editingDoctor._id}`,
+        payload
+      );
+
+      alert("✅ Doctor updated successfully");
+      setIsEditing(false);
+      setEditingDoctor(null);
+      setEditForm({});
+      fetchDoctors();
+    } catch (err: any) {
+      console.error(err);
+      alert(err.response?.data?.message || "❌ Failed to update doctor");
     }
-
-    await axios.put(
-      `${API_URL}/doctoradmin/${editingDoctor._id}`,
-      payload
-    );
-
-    alert("✅ Doctor updated successfully");
-
-    setIsEditing(false);
-    setEditingDoctor(null);
-    setEditForm({});
-    fetchDoctors();
-  } catch (err: any) {
-    console.error(err);
-    alert(err.response?.data?.message || "❌ Failed to update doctor");
-  }
-};
-
+  };
 
   const handleCancelEdit = () => {
     setIsEditing(false);
@@ -137,7 +134,7 @@ const ListOfDoctor: React.FC = () => {
     <div className={styles.container}>
       <h2 className={styles.title}>List of Doctors</h2>
 
-      {/* ================= TABLE (UNCHANGED) ================= */}
+      {/* ================= TABLE ================= */}
       <table className={styles.table}>
         <thead>
           <tr>
@@ -183,7 +180,6 @@ const ListOfDoctor: React.FC = () => {
           <h1 className={createStyles.heading}>Edit Doctor</h1>
 
           <form className={createStyles.form} onSubmit={handleEditSubmit}>
-            {/* BASIC INFO */}
             <div className={createStyles.section}>
               <h2 className={createStyles.sectionTitle}>Basic Information</h2>
 
@@ -225,6 +221,18 @@ const ListOfDoctor: React.FC = () => {
               </div>
 
               <div className={createStyles.field}>
+                <label className={createStyles.label}>Email</label>
+                <input
+                  type="email"
+                  name="email"
+                  value={editForm.email || ""}
+                  onChange={handleEditChange}
+                  className={createStyles.input}
+                  required
+                />
+              </div>
+
+              <div className={createStyles.field}>
                 <label className={createStyles.label}>Specialist</label>
                 <select
                   name="specialist"
@@ -240,7 +248,6 @@ const ListOfDoctor: React.FC = () => {
               </div>
             </div>
 
-            {/* DESCRIPTION */}
             <div className={createStyles.section}>
               <h2 className={createStyles.sectionTitle}>Doctor Description</h2>
               <textarea
@@ -251,23 +258,16 @@ const ListOfDoctor: React.FC = () => {
               />
             </div>
 
-            {/* PASSWORD UPDATE */}
             <div className={createStyles.section}>
               <h2 className={createStyles.sectionTitle}>Update Password</h2>
-
-              <div className={createStyles.field}>
-                <label className={createStyles.label}>
-                  New Password (optional)
-                </label>
-                <input
-                  type="password"
-                  name="password"
-                  value={editForm.password || ""}
-                  onChange={handleEditChange}
-                  className={createStyles.input}
-                  placeholder="Leave empty to keep current password"
-                />
-              </div>
+              <input
+                type="password"
+                name="password"
+                value={editForm.password || ""}
+                onChange={handleEditChange}
+                className={createStyles.input}
+                placeholder="Leave empty to keep current password"
+              />
             </div>
 
             <div style={{ display: "flex", gap: 12 }}>
@@ -286,7 +286,6 @@ const ListOfDoctor: React.FC = () => {
         </div>
       )}
 
-      {/* ================= OLD MODAL (KEPT) ================= */}
       {modalOpen && editingDoctor && (
         <div className={styles.modalOverlay}>
           <div className={styles.modal}>
