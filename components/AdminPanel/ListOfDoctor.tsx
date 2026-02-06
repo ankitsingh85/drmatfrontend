@@ -5,6 +5,7 @@ import axios from "axios";
 import styles from "@/styles/Dashboard/listofdoctor.module.css";
 import createStyles from "@/styles/Dashboard/createdoctor.module.css";
 import { API_URL } from "@/config/api";
+// import { ListOfDoctors } from '@/components/ClinicAdmin/ListOfDoctors';
 
 interface Doctor {
   _id: string;
@@ -289,7 +290,7 @@ const ListOfDoctor: React.FC = () => {
       {modalOpen && editingDoctor && (
         <div className={styles.modalOverlay}>
           <div className={styles.modal}>
-            <h3>Edit Doctor</h3>
+            <h3>Edit doctor</h3>
           </div>
         </div>
       )}
