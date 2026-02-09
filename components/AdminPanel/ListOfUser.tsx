@@ -4,7 +4,7 @@ export const dynamic = "force-dynamic";
 import React, { useEffect, useMemo, useState } from "react";
 import { API_URL } from "@/config/api";
 import styles from "@/styles/Dashboard/listofuser.module.css";
-import editStyles from "@/styles/Dashboard/createuser.module.css";
+import editStyles from "@/styles/Dashboard/createUser.module.css";
 
 interface User {
   _id: string;
