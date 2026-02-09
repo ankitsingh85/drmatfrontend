@@ -5,6 +5,7 @@ import React, { useEffect, useState } from "react";
 import styles from "@/styles/Dashboard/listofcategory.module.css";
 
 interface Category {
+  _id: string;
   id: string;
   name: string;
   imageUrl: string;
@@ -32,11 +33,12 @@ const ListOfCategory = () => {
 
       const validCategories = data
         .map((cat: any) => ({
-          id: cat.id || cat._id,
+          _id: cat._id,
+          id: cat.id,
           name: cat.name,
           imageUrl: cat.imageUrl,
         }))
-        .filter((cat: Category) => cat.id && cat.id.trim() !== "");
+        .filter((cat: Category) => cat._id && cat.id);
 
       setCategories(validCategories);
     } catch (error) {
@@ -51,7 +53,7 @@ const ListOfCategory = () => {
         method: "DELETE",
       });
       if (!res.ok) throw new Error("Failed to delete category");
-      setCategories((prev) => prev.filter((cat) => cat.id !== id));
+      setCategories((prev) => prev.filter((cat) => cat._id !== id));
     } catch (error) {
       console.error("Delete error:", error);
     }
@@ -98,7 +100,7 @@ const ListOfCategory = () => {
       if (editImage) imageUrl = await convertToBase64(editImage);
 
       const res = await fetch(
-        `${API_URL}/categories/${editingCategory?.id}`,
+        `${API_URL}/categories/${editingCategory?._id}`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -109,7 +111,7 @@ const ListOfCategory = () => {
 
       const updated = await res.json();
       setCategories((prev) =>
-        prev.map((cat) => (cat.id === updated.id || cat.id === updated._id ? updated : cat))
+        prev.map((cat) => (cat._id === updated._id ? updated : cat))
       );
 
       setEditingCategory(null);
@@ -142,7 +144,7 @@ const ListOfCategory = () => {
         </thead>
         <tbody>
           {categories.map((cat) => (
-            <tr key={cat.id}>
+            <tr key={cat._id}>
               <td>{cat.id}</td>
               <td>{cat.name}</td>
               <td>
@@ -154,7 +156,7 @@ const ListOfCategory = () => {
                 </button>
                 <button
                   className={styles.deleteBtn}
-                  onClick={() => handleDelete(cat.id)}
+                  onClick={() => handleDelete(cat._id)}
                 >
                   🗑
                 </button>

@@ -165,7 +165,7 @@ export default function ListOfUser() {
               <th>Name</th>
               <th>Email</th>
               <th>Contact</th>
-              <th>Created</th>
+              <th>Date</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -177,7 +177,7 @@ export default function ListOfUser() {
                 <td>{u.name}</td>
                 <td>{u.email}</td>
                 <td>{u.contactNo || "-"}</td>
-                <td>{new Date(u.createdAt).toLocaleDateString()}</td>
+                <td>{new Date(u.createdAt).toLocaleString()}</td>
                 <td className={styles.actions}>
                   <button
                     className={styles.actionBtn}
