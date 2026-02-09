@@ -1,254 +1,395 @@
-  "use client";
-  import { API_URL } from "@/config/api";
+"use client";
+export const dynamic = "force-dynamic";
 
-  import React, { useEffect, useState } from "react";
-  import styles from "@/styles/Dashboard/listofclinic.module.css";
+import { API_URL } from "@/config/api";
+import React, { useEffect, useState } from "react";
+import styles from "@/styles/Dashboard/listofclinic.module.css";
+import createStyles from "@/styles/Dashboard/createclinic.module.css";
 
-  type ClinicCategory = {
-    _id: string;
-    name: string;
+type ClinicCategory = {
+  _id: string;
+  name: string;
+};
+
+type Doctor = {
+  name: string;
+  regNo: string;
+  specialization: string;
+};
+
+type Clinic = {
+  _id: string;
+  cuc: string;
+  clinicName: string;
+  website?: string;
+  contactNumber?: string;
+  email: string;
+  dermaCategory?: ClinicCategory;
+  address: string;
+  clinicStatus?: string;
+  doctors: Doctor[];
+
+  clinicLogo?: string;
+  bannerImage?: string;
+  photos?: string[];
+};
+
+function ListOfClinic() {
+  const [clinics, setClinics] = useState<Clinic[]>([]);
+  const [categories, setCategories] = useState<ClinicCategory[]>([]);
+  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  const [editingClinic, setEditingClinic] = useState<Clinic | null>(null);
+  const [editForm, setEditForm] = useState<Partial<Clinic>>({});
+  const [isEditing, setIsEditing] = useState(false);
+
+  const [viewClinic, setViewClinic] = useState<Clinic | null>(null);
+
+  useEffect(() => {
+    fetchClinics();
+    fetchCategories();
+  }, []);
+
+  const fetchClinics = async () => {
+    setLoading(true);
+    const res = await fetch(`${API_URL}/clinics`);
+    const data = await res.json();
+    setClinics(data);
+    setLoading(false);
   };
 
-  type Doctor = {
-    name: string;
-    regNo: string;
-    specialization: string;
+  const fetchCategories = async () => {
+    const res = await fetch(`${API_URL}/clinic-categories`);
+    const data = await res.json();
+    setCategories(data);
   };
 
-  type Clinic = {
-    _id: string;
-    cuc: string;
+  const filteredClinics = clinics.filter((c) =>
+    c.clinicName.toLowerCase().includes(search.toLowerCase())
+  );
 
-    clinicName: string;
-    website?: string;
-    contactNumber?: string;
-    email: string;
-
-    dermaCategory?: ClinicCategory;
-
-    address: string;
-    clinicStatus?: string;
-
-    doctors: Doctor[];
-
-    /* ✅ ADDED: MEDIA FROM CREATE CLINIC */
-    clinicLogo?: string;          // base64
-    bannerImage?: string;         // base64
-    photos?: string[];            // base64[]
+  const handleDelete = async (id: string) => {
+    if (!confirm("Delete this clinic?")) return;
+    await fetch(`${API_URL}/clinics/${id}`, { method: "DELETE" });
+    setClinics((prev) => prev.filter((c) => c._id !== id));
   };
 
-  function ListOfClinic() {
-    const [clinics, setClinics] = useState<Clinic[]>([]);
-    const [filteredClinics, setFilteredClinics] = useState<Clinic[]>([]);
-    const [categories, setCategories] = useState<ClinicCategory[]>([]);
-    const [search, setSearch] = useState("");
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
+  const handleEdit = (clinic: Clinic) => {
+    setEditingClinic(clinic);
+    setEditForm({
+      clinicName: clinic.clinicName,
+      website: clinic.website,
+      contactNumber: clinic.contactNumber,
+      email: clinic.email,
+      address: clinic.address,
+      clinicStatus: clinic.clinicStatus,
+      dermaCategory: clinic.dermaCategory,
+    });
+    setIsEditing(true);
+  };
 
-    /* ================= EDIT MODAL ================= */
-    const [showModal, setShowModal] = useState(false);
-    const [editClinic, setEditClinic] = useState<Clinic | null>(null);
+  const handleEditChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    setEditForm({ ...editForm, [e.target.name]: e.target.value });
+  };
 
-    /* ================= VIEW MODAL ================= */
-    const [viewClinic, setViewClinic] = useState<Clinic | null>(null);
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingClinic) return;
 
-    useEffect(() => {
-      fetchClinics();
-      fetchCategories();
-    }, []);
-
-    /* ✅ FILTER */
-    useEffect(() => {
-      const query = search.toLowerCase();
-      const filtered = clinics.filter((c) =>
-        (c.clinicName || "").toLowerCase().includes(query)
-      );
-      setFilteredClinics(filtered);
-    }, [search, clinics]);
-
-    const fetchClinics = async () => {
-      try {
-        const res = await fetch(`${API_URL}/clinics`);
-        const data = await res.json();
-        setClinics(data);
-        setFilteredClinics(data);
-      } catch {
-        setError("Failed to load clinics.");
-      } finally {
-        setLoading(false);
-      }
+    const payload = {
+      ...editForm,
+      dermaCategory: editForm.dermaCategory?._id,
     };
 
-    const fetchCategories = async () => {
-      try {
-        const res = await fetch(`${API_URL}/clinic-categories`);
-        const data = await res.json();
-        setCategories(data);
-      } catch (err) {
-        console.error(err);
-      }
-    };
+    const res = await fetch(`${API_URL}/clinics/${editingClinic._id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
 
-    const handleDelete = async (id: string) => {
-      if (!confirm("Delete this clinic?")) return;
-      await fetch(`${API_URL}/clinics/${id}`, { method: "DELETE" });
-      setClinics((prev) => prev.filter((c) => c._id !== id));
-    };
+    const updated = await res.json();
 
-    const openEditModal = (clinic: Clinic) => {
-      setEditClinic(JSON.parse(JSON.stringify(clinic)));
-      setShowModal(true);
-    };
+    setClinics((prev) =>
+      prev.map((c) => (c._id === updated._id ? updated : c))
+    );
 
-    const handleUpdate = async (e: React.FormEvent) => {
-      e.preventDefault();
-      if (!editClinic) return;
+    setIsEditing(false);
+    setEditingClinic(null);
+    setEditForm({});
+    alert("✅ Clinic updated successfully");
+  };
 
-      const res = await fetch(`${API_URL}/clinics/${editClinic._id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...editClinic,
-          dermaCategory: editClinic.dermaCategory?._id,
-        }),
-      });
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditingClinic(null);
+    setEditForm({});
+  };
 
-      const updated = await res.json();
+  const getImage = (img?: string) =>
+    img?.startsWith("data:") ? img : img || "";
 
-      setClinics((prev) =>
-        prev.map((c) => (c._id === updated._id ? updated : c))
-      );
-      setShowModal(false);
-    };
+  return (
+    <div className={styles.container}>
+      <h1 className={styles.heading}>Clinic Management</h1>
 
-    /* ✅ BASE64 SAFE IMAGE */
-    const getImage = (img?: string) => {
-      if (!img) return "";
-      if (img.startsWith("data:")) return img;
-      return img;
-    };
+      <input
+        className={styles.search}
+        placeholder="Search clinic..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+      />
 
-    return (
-      <div className={styles.container}>
-        <h1 className={styles.heading}>Clinic Management</h1>
+      {loading ? (
+        <p className={styles.status}>Loading clinics...</p>
+      ) : (
+        <div className={styles.tableWrapper}>
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th>Logo</th>
+                <th>CUC</th>
+                <th>Name</th>
+                <th>Website</th>
+                <th>Contact</th>
+                <th>Category</th>
+                <th>View</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
 
-        <input
-          className={styles.search}
-          placeholder="Search clinic..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-
-        {loading ? (
-          <p className={styles.status}>Loading clinics...</p>
-        ) : error ? (
-          <p className={styles.error}>{error}</p>
-        ) : filteredClinics.length === 0 ? (
-          <p className={styles.status}>No clinics found</p>
-        ) : (
-          <div className={styles.tableWrapper}>
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th>Logo</th> {/* ✅ ADDED */}
-                  <th>CUC</th>
-                  <th>Name</th>
-                  <th>Website</th>
-                  <th>Contact</th>
-                  <th>Category</th>
-                  <th>View</th>
-                  <th>Actions</th>
+            <tbody>
+              {filteredClinics.map((clinic) => (
+                <tr key={clinic._id}>
+                  <td>
+                    {clinic.clinicLogo ? (
+                      <img
+                        src={getImage(clinic.clinicLogo)}
+                        style={{
+                          width: 48,
+                          height: 48,
+                          borderRadius: 8,
+                          objectFit: "cover",
+                        }}
+                      />
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                  <td>{clinic.cuc}</td>
+                  <td>{clinic.clinicName}</td>
+                  <td>{clinic.website || "—"}</td>
+                  <td>{clinic.contactNumber || "—"}</td>
+                  <td>{clinic.dermaCategory?.name || "—"}</td>
+                  <td>
+                    <button
+                      className={styles.viewBtn}
+                      onClick={() => setViewClinic(clinic)}
+                    >
+                      👁
+                    </button>
+                  </td>
+                  <td>
+                    <button
+                      className={styles.editBtn}
+                      onClick={() => handleEdit(clinic)}
+                    >
+                      ✏️
+                    </button>
+                    <button
+                      className={styles.deleteBtn}
+                      onClick={() => handleDelete(clinic._id)}
+                    >
+                      🗑
+                    </button>
+                  </td>
                 </tr>
-              </thead>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
-              <tbody>
-                {filteredClinics.map((clinic) => (
-                  <tr key={clinic._id}>
-                    <td>
-                      {clinic.clinicLogo ? (
-                        <img
-                          src={getImage(clinic.clinicLogo)}
-                          alt="Logo"
-                          style={{
-                            width: 48,
-                            height: 48,
-                            objectFit: "cover",
-                            borderRadius: 8,
-                          }}
-                        />
-                      ) : (
-                        "—"
-                      )}
-                    </td>
 
-                    <td>{clinic.cuc}</td>
-                    <td>{clinic.clinicName}</td>
-                    <td>{clinic.website || "—"}</td>
-                    <td>{clinic.contactNumber || "—"}</td>
-                    <td>{clinic.dermaCategory?.name || "—"}</td>
 
-                    <td>
-                      <button
-                        className={styles.viewBtn}
-                        onClick={() => setViewClinic(clinic)}
-                      >
-                        👁
-                      </button>
-                    </td>
+{/* ================= INLINE EDIT FORM (RESTORED) ================= */}
+{isEditing && editingClinic && (
+  <div className={createStyles.container} style={{ marginTop: 40 }}>
+    <h1 className={createStyles.heading}>Edit Clinic</h1>
 
-                    <td>
-                      <div className={styles.actions}>
-                        <button
-                          className={styles.editBtn}
-                          onClick={() => openEditModal(clinic)}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          className={styles.deleteBtn}
-                          onClick={() => handleDelete(clinic._id)}
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+    <form className={createStyles.form} onSubmit={handleEditSubmit}>
+      {/* ===== BASIC INFO ===== */}
+      <div className={createStyles.section}>
+        <h2 className={createStyles.sectionTitle}>Basic Information</h2>
 
-        {/* ================= VIEW MODAL ================= */}
-        {viewClinic && (
-          <div className={styles.modalOverlay}>
-            <div className={styles.viewModal}>
-              <h2>{viewClinic.clinicName}</h2>
+        <div className={createStyles.field}>
+          <label className={createStyles.label}>CUC</label>
+          <input
+            value={editingClinic.cuc}
+            disabled
+            className={createStyles.input}
+          />
+        </div>
 
-              {viewClinic.bannerImage && (
-                <img
-                  src={getImage(viewClinic.bannerImage)}
-                  style={{
-                    width: "100%",
-                    height: 180,
-                    objectFit: "cover",
-                    borderRadius: 12,
-                    marginBottom: 16,
-                  }}
-                />
-              )}
+        <div className={createStyles.field}>
+          <label className={createStyles.label}>Clinic Name</label>
+          <input
+            name="clinicName"
+            value={editForm.clinicName || ""}
+            onChange={handleEditChange}
+            className={createStyles.input}
+            required
+          />
+        </div>
 
-              <div className={styles.viewGrid}>
-                <p><b>CUC:</b> {viewClinic.cuc}</p>
-                <p><b>Email:</b> {viewClinic.email}</p>
-                <p><b>Contact:</b> {viewClinic.contactNumber}</p>
-                <p><b>Website:</b> {viewClinic.website}</p>
-                <p><b>Category:</b> {viewClinic.dermaCategory?.name}</p>
-                <p><b>Address:</b> {viewClinic.address}</p>
-                <p><b>Status:</b> {viewClinic.clinicStatus}</p>
-              </div>
+        <div className={createStyles.field}>
+          <label className={createStyles.label}>Email</label>
+          <input
+            type="email"
+            name="email"
+            value={editForm.email || ""}
+            onChange={handleEditChange}
+            className={createStyles.input}
+          />
+        </div>
 
-              {viewClinic.photos && viewClinic.photos.length > 0 && (
+        <div className={createStyles.field}>
+          <label className={createStyles.label}>Contact Number</label>
+          <input
+            name="contactNumber"
+            value={editForm.contactNumber || ""}
+            onChange={handleEditChange}
+            className={createStyles.input}
+          />
+        </div>
+
+        <div className={createStyles.field}>
+          <label className={createStyles.label}>Website</label>
+          <input
+            name="website"
+            value={editForm.website || ""}
+            onChange={handleEditChange}
+            className={createStyles.input}
+          />
+        </div>
+
+        <div className={createStyles.field}>
+          <label className={createStyles.label}>Address</label>
+          <input
+            name="address"
+            value={editForm.address || ""}
+            onChange={handleEditChange}
+            className={createStyles.input}
+          />
+        </div>
+      </div>
+
+      {/* ===== CATEGORY & STATUS ===== */}
+      <div className={createStyles.section}>
+        <h2 className={createStyles.sectionTitle}>Category & Status</h2>
+
+        <div className={createStyles.field}>
+          <label className={createStyles.label}>Category</label>
+          <select
+            value={editForm.dermaCategory?._id || ""}
+            onChange={(e) =>
+              setEditForm({
+                ...editForm,
+                dermaCategory: { _id: e.target.value, name: "" },
+              })
+            }
+            className={createStyles.input}
+          >
+            <option value="">Select Category</option>
+            {categories.map((cat) => (
+              <option key={cat._id} value={cat._id}>
+                {cat.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className={createStyles.field}>
+          <label className={createStyles.label}>Clinic Status</label>
+          <select
+            name="clinicStatus"
+            value={editForm.clinicStatus || ""}
+            onChange={handleEditChange}
+            className={createStyles.input}
+          >
+            <option value="">Select Status</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+            <option value="pending">Pending</option>
+          </select>
+        </div>
+      </div>
+
+      {/* ===== ACTIONS ===== */}
+      <div style={{ display: "flex", gap: 12 }}>
+        <button type="submit" className={createStyles.submitBtn}>
+          Update Clinic
+        </button>
+        <button
+          type="button"
+          className={createStyles.submitBtn}
+          onClick={handleCancelEdit}
+        >
+          Cancel
+        </button>
+      </div>
+    </form>
+  </div>
+)}
+
+
+      {/* ================= VIEW MODAL (FIXED) ================= */}
+      {viewClinic && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.viewModal}>
+            <h2>{viewClinic.clinicName}</h2>
+
+            {viewClinic.bannerImage && (
+              <img
+                src={getImage(viewClinic.bannerImage)}
+                style={{
+                  width: "100%",
+                  height: 180,
+                  objectFit: "cover",
+                  borderRadius: 12,
+                  marginBottom: 16,
+                }}
+              />
+            )}
+
+            <div className={styles.viewGrid}>
+              <p><b>CUC:</b> {viewClinic.cuc}</p>
+              <p><b>Email:</b> {viewClinic.email}</p>
+              <p><b>Contact:</b> {viewClinic.contactNumber}</p>
+              <p><b>Website:</b> {viewClinic.website}</p>
+              <p><b>Category:</b> {viewClinic.dermaCategory?.name}</p>
+              <p><b>Status:</b> {viewClinic.clinicStatus}</p>
+              <p><b>Address:</b> {viewClinic.address}</p>
+            </div>
+
+            {viewClinic.doctors?.length > 0 && (
+              <>
+                <h3 style={{ marginTop: 20 }}>Doctors</h3>
+                <ul>
+                  {viewClinic.doctors.map((d, i) => (
+                    <li key={i}>
+                      {d.name} – {d.specialization}
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+
+            {viewClinic.photos && viewClinic.photos.length > 0 && (
+              <>
+                <h3 style={{ marginTop: 20 }}>Clinic Photos</h3>
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                   {viewClinic.photos.map((img, i) => (
                     <img
@@ -263,75 +404,20 @@
                     />
                   ))}
                 </div>
-              )}
+              </>
+            )}
 
-              <button
-                className={styles.closeBtn}
-                onClick={() => setViewClinic(null)}
-              >
-                Close
-              </button>
-            </div>
+            <button
+              className={styles.closeBtn}
+              onClick={() => setViewClinic(null)}
+            >
+              Close
+            </button>
           </div>
-        )}
+        </div>
+      )}
+    </div>
+  );
+}
 
-        {/* ================= EDIT MODAL (UNCHANGED) ================= */}
-        {showModal && editClinic && (
-          <div className={styles.modalOverlay}>
-            <div className={styles.modal}>
-              <h2>Edit Clinic</h2>
-              <form onSubmit={handleUpdate}>
-                <input
-                  value={editClinic.clinicName}
-                  onChange={(e) =>
-                    setEditClinic({ ...editClinic, clinicName: e.target.value })
-                  }
-                  placeholder="Clinic Name"
-                />
-
-                <input
-                  value={editClinic.contactNumber || ""}
-                  onChange={(e) =>
-                    setEditClinic({ ...editClinic, contactNumber: e.target.value })
-                  }
-                  placeholder="Contact"
-                />
-
-                <select
-                  value={editClinic.dermaCategory?._id || ""}
-                  onChange={(e) =>
-                    setEditClinic({
-                      ...editClinic,
-                      dermaCategory: { _id: e.target.value, name: "" },
-                    })
-                  }
-                >
-                  <option value="">Select Category</option>
-                  {categories.map((cat) => (
-                    <option key={cat._id} value={cat._id}>
-                      {cat.name}
-                    </option>
-                  ))}
-                </select>
-
-                <div className={styles.modalActions}>
-                  <button type="submit" className={styles.saveBtn}>
-                    Save
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowModal(false)}
-                    className={styles.cancelBtn}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  export default ListOfClinic;
+export default ListOfClinic;

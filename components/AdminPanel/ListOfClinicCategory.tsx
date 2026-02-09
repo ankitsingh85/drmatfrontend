@@ -170,10 +170,10 @@ const ListOfClinicCategory = () => {
               </td>
               <td>
                 <button className={styles.editBtn} onClick={() => handleEdit(cat)}>
-                  Edit
+                  ✏️
                 </button>
                 <button className={styles.deleteBtn} onClick={() => handleDelete(cat._id)}>
-                  Delete
+                  🗑
                 </button>
               </td>
             </tr>

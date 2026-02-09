@@ -162,13 +162,13 @@ const ListOfDoctor: React.FC = () => {
                   className={styles.editButton}
                   onClick={() => handleEdit(d)}
                 >
-                  Edit
+                  ✏️
                 </button>
                 <button
                   className={styles.deleteButton}
                   onClick={() => handleDelete(d._id)}
                 >
-                  Delete
+                  🗑
                 </button>
               </td>
             </tr>

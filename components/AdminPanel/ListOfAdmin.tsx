@@ -3,7 +3,7 @@
 import { API_URL } from "@/config/api";
 import React, { useEffect, useMemo, useState } from "react";
 import styles from "@/styles/Dashboard/listofadmin.module.css";
-import createStyles from "@/styles/Dashboard/adminpages.module.css"; // ✅ form styles
+import createStyles from "@/styles/Dashboard/adminpages.module.css";
 
 interface Admin {
   _id: string;
@@ -23,11 +23,11 @@ export default function ListOfAdmin() {
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
 
-  /* ✏️ EDIT STATE (INLINE, NOT MODAL) */
+  /* ✏️ EDIT STATE */
   const [editingAdmin, setEditingAdmin] = useState<Admin | null>(null);
-  const [editForm, setEditForm] = useState<Partial<Admin & { password?: string }>>(
-    {}
-  );
+  const [editForm, setEditForm] = useState<
+    Partial<Admin & { password?: string }>
+  >({});
 
   useEffect(() => {
     fetchAdmins();
@@ -81,7 +81,7 @@ export default function ListOfAdmin() {
       email: admin.email,
       phone: admin.phone,
       role: admin.role,
-      password: "", // ✅ never prefill
+      password: "",
     });
   };
 
@@ -96,8 +96,6 @@ export default function ListOfAdmin() {
     if (!editingAdmin) return;
 
     const payload: any = { ...editForm };
-
-    // ✅ don’t send empty password
     if (!payload.password) delete payload.password;
 
     await fetch(`${API_URL}/admins/${editingAdmin._id}`, {
@@ -120,7 +118,7 @@ export default function ListOfAdmin() {
     <div className={styles.container}>
       <h1 className={styles.heading}>Admin Directory</h1>
 
-      {/* 🔍 SEARCH & FILTER BAR */}
+      {/* 🔍 SEARCH & FILTER */}
       <div className={styles.toolbar}>
         <input
           className={styles.search}
@@ -141,7 +139,7 @@ export default function ListOfAdmin() {
         </select>
       </div>
 
-      {/* ================= TABLE (UNCHANGED) ================= */}
+      {/* ================= TABLE ================= */}
       {filteredAdmins.length === 0 ? (
         <div className={styles.noData}>No admins found.</div>
       ) : (
@@ -170,18 +168,22 @@ export default function ListOfAdmin() {
                       {admin.role}
                     </span>
                   </td>
+
+                  {/* ✅ ICON ACTIONS */}
                   <td className={styles.actions}>
                     <button
-                      className={styles.editBtn}
+                      className={styles.iconBtn}
+                      title="Edit"
                       onClick={() => handleEdit(admin)}
                     >
-                      Edit
+                      ✏️
                     </button>
                     <button
-                      className={styles.deleteBtn}
+                      className={styles.iconBtn}
+                      title="Delete"
                       onClick={() => handleDelete(admin._id)}
                     >
-                      Delete
+                      🗑
                     </button>
                   </td>
                 </tr>
@@ -256,10 +258,8 @@ export default function ListOfAdmin() {
               </div>
             </div>
 
-            {/* ===== PASSWORD ===== */}
             <div className={createStyles.section}>
               <h2 className={createStyles.sectionTitle}>Update Password</h2>
-
               <div className={createStyles.field}>
                 <label className={createStyles.label}>
                   New Password (optional)
@@ -270,7 +270,6 @@ export default function ListOfAdmin() {
                   value={editForm.password || ""}
                   onChange={handleEditChange}
                   className={createStyles.input}
-                  placeholder="Leave empty to keep current password"
                 />
               </div>
             </div>

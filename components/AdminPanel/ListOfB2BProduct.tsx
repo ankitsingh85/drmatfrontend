@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-
-const API_URL =
-  process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000/api";
+import styles from "@/styles/Dashboard/productlist.module.css";
+import createStyles from "@/styles/Dashboard/createproduct.module.css";
+import { API_URL } from "@/config/api";
 
 interface B2BProduct {
   _id: string;
@@ -27,6 +27,10 @@ export default function ListOfB2BProduct() {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [sortKey, setSortKey] = useState("name");
   const [viewProduct, setViewProduct] = useState<B2BProduct | null>(null);
+
+  const [editingProduct, setEditingProduct] = useState<B2BProduct | null>(null);
+  const [editForm, setEditForm] = useState<Partial<B2BProduct>>({});
+  const [isEditing, setIsEditing] = useState(false);
 
   /* ================= FETCH ================= */
   useEffect(() => {
@@ -76,13 +80,77 @@ export default function ListOfB2BProduct() {
     setProducts((prev) => prev.filter((p) => p._id !== id));
   };
 
+  /* ================= EDIT ================= */
+  const handleEdit = (product: B2BProduct) => {
+    setEditingProduct(product);
+    setEditForm({ ...product });
+    setIsEditing(true);
+  };
+
+  const handleEditChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
+  ) => {
+    const { name, value } = e.target;
+
+    setEditForm((prev) => ({
+      ...prev,
+      [name]:
+        name === "pricePerUnit" ||
+        name === "stockAvailable" ||
+        name === "moq" ||
+        name === "gst"
+          ? value === ""
+            ? undefined
+            : Number(value)
+          : value,
+    }));
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingProduct) return;
+
+    try {
+      const { _id, createdAt, ...payload } = editForm;
+
+      const res = await fetch(`${API_URL}/b2b-products/${editingProduct._id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data?.message || "Failed to update B2B product");
+      }
+
+      setProducts((prev) => prev.map((p) => (p._id === data._id ? data : p)));
+      setIsEditing(false);
+      setEditingProduct(null);
+      setEditForm({});
+      alert("Product updated successfully");
+    } catch (error: any) {
+      alert(error?.message || "Update failed");
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditingProduct(null);
+    setEditForm({});
+  };
+
   return (
-    <div className="container">
-      <h1 className="heading">B2B Products</h1>
+    <div className={styles.container}>
+      <h1 className={styles.heading}>B2B Products</h1>
 
       {/* CONTROLS */}
-      <div className="controls">
+      <div className={styles.controls}>
         <input
+          className={styles.search}
           placeholder="Search by name, brand or SKU..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -105,8 +173,7 @@ export default function ListOfB2BProduct() {
       </div>
 
       {/* TABLE */}
-      <div className="tableWrap">
-        <table>
+      <table className={styles.table}>
           <thead>
             <tr>
               <th>SKU</th>
@@ -127,142 +194,191 @@ export default function ListOfB2BProduct() {
                 <td>{p.productName}</td>
                 <td>{p.category}</td>
                 <td>{p.brandName}</td>
-                <td>₹{p.pricePerUnit || 0}</td>
+                <td>Rs {p.pricePerUnit || 0}</td>
                 <td>{p.stockAvailable || 0}</td>
                 <td>{p.moq || 0}</td>
-                <td className="actions">
-                  <button onClick={() => setViewProduct(p)}>👁</button>
-                  <button onClick={() => handleDelete(p._id)}>🗑</button>
+                <td className={styles.actions}>
+                  <button className={styles.eye} onClick={() => setViewProduct(p)}>
+                    👁
+                  </button>
+                  <button className={styles.edit} onClick={() => handleEdit(p)}>
+                    ✏️
+                  </button>
+                  <button className={styles.delete} onClick={() => handleDelete(p._id)}>
+                    🗑
+                  </button>
                 </td>
               </tr>
             ))}
           </tbody>
-        </table>
-      </div>
+      </table>
 
-      {/* VIEW MODAL */}
-      {viewProduct && (
-        <div className="modalOverlay">
-          <div className="modal">
-            <h3>{viewProduct.productName}</h3>
-            <p><b>SKU:</b> {viewProduct.sku}</p>
-            <p><b>Category:</b> {viewProduct.category}</p>
-            <p><b>Brand:</b> {viewProduct.brandName}</p>
-            <p><b>Description:</b> {viewProduct.description}</p>
-            <p><b>Manufacturer:</b> {viewProduct.manufacturerName}</p>
-            <p><b>Certifications:</b> {viewProduct.certifications}</p>
-            <p><b>GST:</b> {viewProduct.gst}%</p>
+      {/* INLINE EDIT FORM */}
+      {isEditing && editingProduct && (
+        <div className={createStyles.container} style={{ marginTop: 40 }}>
+          <h1 className={createStyles.heading}>Edit B2B Product</h1>
 
-            <button onClick={() => setViewProduct(null)}>Close</button>
-          </div>
+          <form className={createStyles.form} onSubmit={handleEditSubmit}>
+            <div className={createStyles.section}>
+            <label>SKU</label>
+            <input
+              className={createStyles.input}
+              name="sku"
+              value={editForm.sku || ""}
+              onChange={handleEditChange}
+            />
+
+            <label>Product Name</label>
+            <input
+              className={createStyles.input}
+              name="productName"
+              value={editForm.productName || ""}
+              onChange={handleEditChange}
+            />
+
+            <label>Category</label>
+            <select
+              className={createStyles.input}
+              name="category"
+              value={editForm.category || ""}
+              onChange={handleEditChange}
+            >
+              {categories.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+
+            <label>Brand Name</label>
+            <input
+              className={createStyles.input}
+              name="brandName"
+              value={editForm.brandName || ""}
+              onChange={handleEditChange}
+            />
+
+            <label>Price Per Unit</label>
+            <input
+              className={createStyles.input}
+              type="number"
+              name="pricePerUnit"
+              value={editForm.pricePerUnit ?? ""}
+              onChange={handleEditChange}
+            />
+
+            <label>Stock Available</label>
+            <input
+              className={createStyles.input}
+              type="number"
+              name="stockAvailable"
+              value={editForm.stockAvailable ?? ""}
+              onChange={handleEditChange}
+            />
+
+            <label>MOQ</label>
+            <input
+              className={createStyles.input}
+              type="number"
+              name="moq"
+              value={editForm.moq ?? ""}
+              onChange={handleEditChange}
+            />
+
+            <label>GST (%)</label>
+            <input
+              className={createStyles.input}
+              type="number"
+              name="gst"
+              value={editForm.gst ?? ""}
+              onChange={handleEditChange}
+            />
+
+            <label>Manufacturer Name</label>
+            <input
+              className={createStyles.input}
+              name="manufacturerName"
+              value={editForm.manufacturerName || ""}
+              onChange={handleEditChange}
+            />
+
+            <label>Certifications</label>
+            <input
+              className={createStyles.input}
+              name="certifications"
+              value={editForm.certifications || ""}
+              onChange={handleEditChange}
+            />
+
+            <label>Description</label>
+            <textarea
+              className={createStyles.input}
+              name="description"
+              value={editForm.description || ""}
+              onChange={handleEditChange}
+            />
+            </div>
+
+            <div style={{ display: "flex", gap: 12 }}>
+              <button type="submit" className={createStyles.submitBtn}>
+                Update Product
+              </button>
+              <button
+                type="button"
+                className={createStyles.submitBtn}
+                onClick={handleCancelEdit}
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
         </div>
       )}
 
-      {/* INTERNAL CSS */}
-      <style jsx>{`
-        .container {
-          max-width: 1400px;
-          margin: 40px auto;
-          padding: 40px;
-          background: #fff;
-          border-radius: 28px;
-          box-shadow: 0 30px 80px rgba(15, 23, 42, 0.12);
-        }
+      {/* VIEW MODAL */}
+      {viewProduct && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modal}>
+            <h3>{viewProduct.productName}</h3>
+            <div className={styles.modalGrid}>
+              <p>
+                <b>SKU:</b> {viewProduct.sku}
+              </p>
+              <p>
+                <b>Category:</b> {viewProduct.category}
+              </p>
+              <p>
+                <b>Brand:</b> {viewProduct.brandName}
+              </p>
+              <p>
+                <b>Price:</b> Rs {viewProduct.pricePerUnit || 0}
+              </p>
+              <p>
+                <b>Stock:</b> {viewProduct.stockAvailable || 0}
+              </p>
+              <p>
+                <b>MOQ:</b> {viewProduct.moq || 0}
+              </p>
+              <p>
+                <b>GST:</b> {viewProduct.gst || 0}%
+              </p>
+            </div>
+            <p>
+              <b>Description:</b> {viewProduct.description}
+            </p>
+            <p>
+              <b>Manufacturer:</b> {viewProduct.manufacturerName}
+            </p>
+            <p>
+              <b>Certifications:</b> {viewProduct.certifications}
+            </p>
 
-        .heading {
-          font-size: 34px;
-          font-weight: 900;
-          margin-bottom: 30px;
-        }
-
-        .controls {
-          display: flex;
-          gap: 16px;
-          margin-bottom: 24px;
-        }
-
-        .controls input,
-        .controls select {
-          padding: 14px 18px;
-          border-radius: 14px;
-          border: 1px solid #cbd5f5;
-          font-size: 14px;
-        }
-
-        .tableWrap {
-          overflow-x: auto;
-          border-radius: 20px;
-          border: 1px solid #e5e7eb;
-        }
-
-        table {
-          width: 100%;
-          border-collapse: collapse;
-        }
-
-        th {
-          background: #f8fafc;
-          font-weight: 800;
-          text-align: left;
-          padding: 16px;
-          font-size: 13px;
-        }
-
-        td {
-          padding: 16px;
-          border-top: 1px solid #e5e7eb;
-          font-size: 14px;
-        }
-
-        tr:hover {
-          background: #f9fafb;
-        }
-
-        .actions button {
-          margin-right: 10px;
-          font-size: 18px;
-          cursor: pointer;
-          background: none;
-          border: none;
-        }
-
-        .modalOverlay {
-          position: fixed;
-          inset: 0;
-          background: rgba(0, 0, 0, 0.4);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .modal {
-          background: white;
-          padding: 32px;
-          border-radius: 24px;
-          max-width: 520px;
-          width: 100%;
-          box-shadow: 0 30px 80px rgba(0, 0, 0, 0.3);
-        }
-
-        .modal h3 {
-          margin-bottom: 16px;
-        }
-
-        .modal p {
-          margin-bottom: 8px;
-          font-size: 14px;
-        }
-
-        .modal button {
-          margin-top: 20px;
-          padding: 14px 28px;
-          border-radius: 999px;
-          background: linear-gradient(180deg, #cfd0fa, #9ebbfd);
-          border: none;
-          font-weight: 800;
-          cursor: pointer;
-        }
-      `}</style>
+            <div className={styles.modalActions}>
+              <button onClick={() => setViewProduct(null)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

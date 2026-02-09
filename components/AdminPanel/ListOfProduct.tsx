@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import styles from "@/styles/Dashboard/productlist.module.css";
+import createStyles from "@/styles/Dashboard/createproduct.module.css";
 import { API_URL } from "@/config/api";
 
 interface Category {
@@ -12,7 +13,7 @@ interface Category {
 interface Product {
   _id: string;
   productName: string;
-  category: string; // category id or name
+  category: string;
   mrpPrice: number;
   discountedPrice: number;
   brandName: string;
@@ -37,18 +38,20 @@ interface Product {
   createdAt: string;
 }
 
-// const API_URL =
-//   process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000/api";
-
 const ListOfProduct: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<"name" | "price">("name");
   const [filterCategory, setFilterCategory] = useState("all");
+
   const [viewProduct, setViewProduct] = useState<Product | null>(null);
 
-  /* ================= FETCH DATA ================= */
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [editForm, setEditForm] = useState<Partial<Product>>({});
+  const [isEditing, setIsEditing] = useState(false);
+
+  /* ================= FETCH ================= */
   useEffect(() => {
     fetchData();
   }, []);
@@ -59,18 +62,14 @@ const ListOfProduct: React.FC = () => {
       fetch(`${API_URL}/categories`),
     ]);
 
-    const prodData = await prodRes.json();
-    const catData = await catRes.json();
-
-    setProducts(prodData);
-    setCategories(catData);
+    setProducts(await prodRes.json());
+    setCategories(await catRes.json());
   };
 
-  /* ================= HELPERS ================= */
   const getCategoryName = (id: string) =>
     categories.find((c) => c._id === id)?.name || id;
 
-  /* ================= FILTER + SORT ================= */
+  /* ================= FILTER ================= */
   const filteredProducts = useMemo(() => {
     let data = [...products];
 
@@ -96,16 +95,56 @@ const ListOfProduct: React.FC = () => {
   /* ================= DELETE ================= */
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this product?")) return;
-
     await fetch(`${API_URL}/products/${id}`, { method: "DELETE" });
     setProducts((prev) => prev.filter((p) => p._id !== id));
+  };
+
+  /* ================= EDIT ================= */
+  const handleEdit = (product: Product) => {
+    setEditingProduct(product);
+    setEditForm({ ...product });
+    setIsEditing(true);
+  };
+
+  const handleEditChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
+    setEditForm({ ...editForm, [e.target.name]: e.target.value });
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingProduct) return;
+
+    const res = await fetch(`${API_URL}/products/${editingProduct._id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(editForm),
+    });
+
+    const updated = await res.json();
+
+    setProducts((prev) =>
+      prev.map((p) => (p._id === updated._id ? updated : p))
+    );
+
+    setIsEditing(false);
+    setEditingProduct(null);
+    setEditForm({});
+    alert("✅ Product updated successfully");
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditingProduct(null);
+    setEditForm({});
   };
 
   return (
     <div className={styles.container}>
       <h2 className={styles.heading}>Product List</h2>
 
-      {/* ===== CONTROLS ===== */}
+      {/* CONTROLS */}
       <div className={styles.controls}>
         <input
           className={styles.search}
@@ -129,14 +168,14 @@ const ListOfProduct: React.FC = () => {
         </select>
       </div>
 
-      {/* ===== TABLE ===== */}
+      {/* TABLE */}
       <table className={styles.table}>
         <thead>
           <tr>
-            <th>S.No</th>
+            <th>#</th>
             <th>Name</th>
             <th>Category</th>
-            <th>Price</th>
+            <th>MRP</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -149,13 +188,12 @@ const ListOfProduct: React.FC = () => {
               <td>{getCategoryName(p.category)}</td>
               <td>₹{p.mrpPrice}</td>
               <td className={styles.actions}>
-                <button
-                  className={styles.eye}
-                  onClick={() => setViewProduct(p)}
-                >
+                <button className={styles.eye} onClick={() => setViewProduct(p)}>
                   👁
                 </button>
-                <button className={styles.edit}>✏️</button>
+                <button className={styles.edit} onClick={() => handleEdit(p)}>
+                  ✏️
+                </button>
                 <button
                   className={styles.delete}
                   onClick={() => handleDelete(p._id)}
@@ -168,29 +206,102 @@ const ListOfProduct: React.FC = () => {
         </tbody>
       </table>
 
-      {/* ===== VIEW MODAL ===== */}
-      {viewProduct && (
-        <div className={styles.modalOverlay}>
-          <div className={styles.modal}>
-            <h3>{viewProduct.productName}</h3>
+      {/* ================= INLINE EDIT FORM ================= */}
+      {isEditing && editingProduct && (
+        <div className={createStyles.container} style={{ marginTop: 40 }}>
+          <h1 className={createStyles.heading}>Edit Product</h1>
 
-            <div className={styles.modalGrid}>
-              {Object.entries(viewProduct).map(([key, val]) => (
-                <div key={key}>
-                  <strong>{key}</strong>
-                  <p>
-                    {Array.isArray(val)
-                      ? val.join(", ")
-                      : String(val || "-")}
-                  </p>
-                </div>
-              ))}
+          <form className={createStyles.form} onSubmit={handleEditSubmit}>
+            <div className={createStyles.section}>
+              <label>Product Name</label>
+              <input name="productName" value={editForm.productName || ""} onChange={handleEditChange}  className={createStyles.input} />
+
+              <label>Brand Name</label>
+              <input name="brandName" value={editForm.brandName || ""} onChange={handleEditChange} className={createStyles.input}/>
+
+              <label>Category</label>
+              <select name="category" value={editForm.category || ""} onChange={handleEditChange}className={createStyles.input}>
+                {categories.map((c) => (
+                  <option key={c._id} value={c._id}>{c.name}</option>
+                ))}
+              </select>
+
+              <label>MRP Price</label>
+              <input type="number" name="mrpPrice" value={editForm.mrpPrice || ""} onChange={handleEditChange} className={createStyles.input}/>
+
+              <label>Discounted Price</label>
+              <input type="number" name="discountedPrice" value={editForm.discountedPrice || ""} onChange={handleEditChange} className={createStyles.input}/>
+
+              <label>Net Quantity</label>
+              <input name="netQuantity" value={editForm.netQuantity || ""} onChange={handleEditChange} className={createStyles.input} />
+
+              <label>Expiry Date</label>
+              <input type="date" name="expiryDate" value={editForm.expiryDate || ""} onChange={handleEditChange} className={createStyles.input} />
+
+              <label>Manufacturer</label>
+              <input name="manufacturerName" value={editForm.manufacturerName || ""} onChange={handleEditChange} className={createStyles.input}/>
+
+              <label>License Number</label>
+              <input name="licenseNumber" value={editForm.licenseNumber || ""} onChange={handleEditChange} className={createStyles.input}/>
+
+              <label>Packaging Type</label>
+              <input name="packagingType" value={editForm.packagingType || ""} onChange={handleEditChange}className={createStyles.input} />
+
+              <label>Ingredients</label>
+              <textarea name="ingredients" value={editForm.ingredients || ""} onChange={handleEditChange} className={createStyles.input}/>
+
+              <label>Usage Instructions</label>
+              <textarea name="usageInstructions" value={editForm.usageInstructions || ""} onChange={handleEditChange} className={createStyles.input} />
+
+              {/* <label>Benefits</label>
+              <textarea name="benefits" value={editForm.benefits || ""} onChange={handleEditChange} className={createStyles.input}/> */}
             </div>
 
-            <button onClick={() => setViewProduct(null)}>Close</button>
-          </div>
+            <div style={{ display: "flex", gap: 12 }}>
+              <button type="submit" className={createStyles.submitBtn}>
+                Update Product
+              </button>
+              <button type="button" className={createStyles.submitBtn} onClick={handleCancelEdit}>
+                Cancel
+              </button>
+            </div>
+          </form>
         </div>
       )}
+
+      {/* ================= VIEW MODAL ================= */}
+     {viewProduct && (
+  <div className={styles.modalOverlay}>
+    <div className={styles.modal}>
+      <h3>{viewProduct.productName}</h3>
+
+      <div className={styles.modalGrid}>
+        <p><b>Brand:</b> {viewProduct.brandName}</p>
+        <p><b>Category:</b> {getCategoryName(viewProduct.category)}</p>
+        <p><b>MRP:</b> ₹{viewProduct.mrpPrice}</p>
+        <p><b>Discounted:</b> ₹{viewProduct.discountedPrice}</p>
+        <p><b>Net Quantity:</b> {viewProduct.netQuantity}</p>
+        <p><b>Expiry Date:</b> {viewProduct.expiryDate}</p>
+      </div>
+
+      <p><b>Description:</b> {viewProduct.description}</p>
+      <p><b>Ingredients:</b> {viewProduct.ingredients}</p>
+      <p><b>Usage:</b> {viewProduct.usageInstructions}</p>
+
+      {viewProduct.productImages?.length > 0 && (
+        <div className={styles.modalImages}>
+          {viewProduct.productImages.map((img, i) => (
+            <img key={i} src={img} alt="Product" />
+          ))}
+        </div>
+      )}
+
+      <div className={styles.modalActions}>
+        <button onClick={() => setViewProduct(null)}>Close</button>
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 };

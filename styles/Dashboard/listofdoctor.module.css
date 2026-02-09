@@ -58,6 +58,7 @@
   font-size: 15px;
   color: #1e293b;
   border-bottom: 1px solid #e5e7eb;
+  text-align: center;
 }
 
 .tr:last-child .td {
@@ -89,7 +90,7 @@
 
 /* Edit */
 .editButton {
-  background: linear-gradient(180deg, #cfd0fa, #9ebbfd);
+  /* background: linear-gradient(180deg, #cfd0fa, #9ebbfd); */
   color: #020617;
   margin-right: 8px;
 }
@@ -101,7 +102,7 @@
 
 /* Delete */
 .deleteButton {
-  background: linear-gradient(180deg, #fecaca, #f87171);
+  /* background: linear-gradient(180deg, #fecaca, #f87171); */
   color: #7f1d1d;
 }
 

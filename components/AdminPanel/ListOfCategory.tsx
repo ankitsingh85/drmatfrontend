@@ -150,13 +150,13 @@ const ListOfCategory = () => {
               </td>
               <td>
                 <button className={styles.editBtn} onClick={() => handleEdit(cat)}>
-                  Edit
+                  ✏️
                 </button>
                 <button
                   className={styles.deleteBtn}
                   onClick={() => handleDelete(cat.id)}
                 >
-                  Delete
+                  🗑
                 </button>
               </td>
             </tr>

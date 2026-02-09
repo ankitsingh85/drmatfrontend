@@ -66,31 +66,111 @@
 }
 
 /* ===== MODAL ===== */
+/* ================= MODAL OVERLAY ================= */
+
 .modalOverlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(0, 0, 0, 0.55);
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 1000;
 }
 
+/* ================= MODAL ================= */
+
 .modal {
-  background: #fff;
-  padding: 20px;
-  width: 700px;
-  max-height: 80vh;
+  background: #ffffff;
+  width: 100%;
+  max-width: 720px;
+  max-height: 85vh;
   overflow-y: auto;
-  border-radius: 10px;
+  border-radius: 16px;
+  padding: 28px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
 }
+
+/* ================= MODAL TITLE ================= */
+
+.modal h3 {
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 20px;
+  color: #111827;
+}
+
+/* ================= MODAL CONTENT ================= */
+
+.modal p {
+  margin-bottom: 12px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #374151;
+}
+
+.modal p b {
+  color: #111827;
+  font-weight: 600;
+}
+
+/* ================= MODAL GRID ================= */
 
 .modalGrid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
+  gap: 12px 20px;
+  margin-bottom: 20px;
 }
 
-.modalGrid p {
+/* ================= IMAGES ================= */
+
+.modalImages {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.modalImages img {
+  width: 90px;
+  height: 90px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+}
+
+/* ================= MODAL ACTIONS ================= */
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 24px;
+}
+
+.modalActions button {
+  padding: 10px 18px;
+  border-radius: 10px;
+  background: #2563eb;
+  color: #fff;
+  border: none;
   font-size: 14px;
-  color: #555;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.modalActions button:hover {
+  background: #1e40af;
+}
+
+/* ================= RESPONSIVE ================= */
+
+@media (max-width: 640px) {
+  .modal {
+    padding: 20px;
+  }
+
+  .modalGrid {
+    grid-template-columns: 1fr;
+  }
 }

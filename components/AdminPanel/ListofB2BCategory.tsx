@@ -68,11 +68,14 @@ export default function ListofB2BCategory() {
                 <img src={cat.imageUrl} className={styles.image} />
               </td>
               <td>
+              {/* <button className={styles.editBtn} onClick={() => handleEdit(cat)}>
+                                  ✏️
+                                </button> */}
                 <button
                   className={styles.deleteBtn}
                   onClick={() => handleDelete(cat._id)}
                 >
-                  Delete
+                  🗑
                 </button>
               </td>
             </tr>

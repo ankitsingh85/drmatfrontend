@@ -66,16 +66,17 @@
 .editBtn {
   padding: 8px 16px;
   border-radius: 999px;
-  background: linear-gradient(180deg, #e0e7ff, #c7d2fe);
+  /* background: linear-gradient(180deg, #e0e7ff, #c7d2fe); */
   border: none;
   font-weight: 700;
   cursor: pointer;
+  margin:10px;
 }
 
 .deleteBtn {
   padding: 8px 16px;
   border-radius: 999px;
-  background: linear-gradient(180deg, #fecaca, #fca5a5);
+  /* background: linear-gradient(180deg, #fecaca, #fca5a5); */
   border: none;
   font-weight: 700;
   cursor: pointer;
