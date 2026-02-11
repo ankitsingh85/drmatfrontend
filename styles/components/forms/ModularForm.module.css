@@ -70,6 +70,7 @@
   border: 1px solid #ccc;
   border-radius: 50px;
   background-color: #fdf3e3;
+  margin: .7rem 0rem;
 }
 
 .verifyButton {
@@ -95,6 +96,8 @@
   border: none;
   border-radius: 50px;
   cursor: pointer;
+    margin: .7rem 0rem;
+
 }
 
 /* Image Styling */

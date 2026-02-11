@@ -46,6 +46,7 @@
   background-color: #fdf3e3;
   font-size: 0.9rem;
   outline: none;
+  margin: .7rem 0rem;
 }
 
 .input::placeholder {

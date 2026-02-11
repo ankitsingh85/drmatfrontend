@@ -23,6 +23,8 @@ export default function ListOfUser() {
   /* SEARCH & FILTER */
   const [search, setSearch] = useState("");
   const [dateFilter, setDateFilter] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   /* EDIT STATE */
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -30,6 +32,23 @@ export default function ListOfUser() {
   const [editForm, setEditForm] = useState<
     Partial<User & { password?: string }>
   >({});
+
+  const premiumButtonStyle: React.CSSProperties = {
+    border: "1px solid #d6d6d6",
+    borderRadius: 10,
+    padding: "9px 14px",
+    background: "linear-gradient(180deg, #ffffff 0%, #f7f7f7 100%)",
+    fontSize: 14,
+    fontWeight: 600,
+    letterSpacing: 0.2,
+    boxShadow: "0 1px 2px rgba(0, 0, 0, 0.08)",
+    cursor: "pointer",
+  };
+
+  const premiumButtonDisabledStyle: React.CSSProperties = {
+    opacity: 0.5,
+    cursor: "not-allowed",
+  };
 
   useEffect(() => {
     fetchUsers();
@@ -68,6 +87,114 @@ export default function ListOfUser() {
 
     return data;
   }, [users, search, dateFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / itemsPerPage));
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, dateFilter, itemsPerPage]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [currentPage, totalPages]);
+
+  const paginatedUsers = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredUsers.slice(start, start + itemsPerPage);
+  }, [filteredUsers, currentPage, itemsPerPage]);
+
+  const handleDownloadCSV = () => {
+    const rows = [
+      ["Patient ID", "Name", "Email", "Contact", "Address", "Created At"],
+      ...filteredUsers.map((u) => [
+        u.patientId,
+        u.name,
+        u.email,
+        u.contactNo || "",
+        u.address || "",
+        new Date(u.createdAt).toLocaleString(),
+      ]),
+    ];
+
+    const csv = rows
+      .map((row) =>
+        row
+          .map((cell) => `"${String(cell).replace(/"/g, '""')}"`)
+          .join(",")
+      )
+      .join("\n");
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "users.csv";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleDownloadPDF = () => {
+    const printable = window.open("", "_blank");
+    if (!printable) {
+      alert("Unable to open print window. Please allow popups.");
+      return;
+    }
+
+    const escapeHtml = (value: string) =>
+      value
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+
+    const rows = filteredUsers
+      .map(
+        (u) => `<tr>
+          <td>${escapeHtml(u.patientId)}</td>
+          <td>${escapeHtml(u.name)}</td>
+          <td>${escapeHtml(u.email)}</td>
+          <td>${escapeHtml(u.contactNo || "-")}</td>
+          <td>${escapeHtml(new Date(u.createdAt).toLocaleString())}</td>
+        </tr>`
+      )
+      .join("");
+
+    printable.document.write(`
+      <html>
+        <head>
+          <title>Users List</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            h2 { margin-bottom: 16px; }
+            table { width: 100%; border-collapse: collapse; }
+            th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+            th { background: #f4f4f4; }
+          </style>
+        </head>
+        <body>
+          <h2>Users List</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Patient ID</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Contact</th>
+                <th>Created At</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </body>
+      </html>
+    `);
+    printable.document.close();
+    printable.focus();
+    printable.print();
+  };
 
   /* DELETE */
   const handleDelete = async (id: string) => {
@@ -154,6 +281,23 @@ export default function ListOfUser() {
           <option value="7">Last 7 Days</option>
           <option value="30">Last 30 Days</option>
         </select>
+        <select
+          className={styles.controlsSelect}
+          value={itemsPerPage}
+          onChange={(e) => setItemsPerPage(Number(e.target.value))}
+        >
+          {[5, 10, 20, 50].map((size) => (
+            <option key={size} value={size}>
+              {size}/page
+            </option>
+          ))}
+        </select>
+        <button type="button" style={premiumButtonStyle} onClick={handleDownloadCSV}>
+          Download CSV
+        </button>
+        <button type="button" style={premiumButtonStyle} onClick={handleDownloadPDF}>
+          Download PDF
+        </button>
       </div>
 
       {/* TABLE (UNCHANGED) */}
@@ -171,7 +315,7 @@ export default function ListOfUser() {
           </thead>
 
           <tbody>
-            {filteredUsers.map((u) => (
+            {paginatedUsers.map((u) => (
               <tr key={u._id} className={styles.tableRow}>
                 <td>{u.patientId}</td>
                 <td>{u.name}</td>
@@ -194,8 +338,54 @@ export default function ListOfUser() {
                 </td>
               </tr>
             ))}
+            {paginatedUsers.length === 0 && (
+              <tr className={styles.tableRow}>
+                <td colSpan={6}>No users found.</td>
+              </tr>
+            )}
           </tbody>
         </table>
+      </div>
+      <div
+        style={{
+          marginTop: 12,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 12,
+          flexWrap: "wrap",
+        }}
+      >
+        <p style={{ margin: 0 }}>
+          Showing {paginatedUsers.length} of {filteredUsers.length}
+        </p>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button
+            type="button"
+            style={{
+              ...premiumButtonStyle,
+              ...(currentPage === 1 ? premiumButtonDisabledStyle : {}),
+            }}
+            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+          >
+            Prev
+          </button>
+          <span style={{ alignSelf: "center" }}>
+            Page {currentPage} of {totalPages}
+          </span>
+          <button
+            type="button"
+            style={{
+              ...premiumButtonStyle,
+              ...(currentPage === totalPages ? premiumButtonDisabledStyle : {}),
+            }}
+            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages}
+          >
+            Next
+          </button>
+        </div>
       </div>
 
       {/* INLINE EDIT FORM */}

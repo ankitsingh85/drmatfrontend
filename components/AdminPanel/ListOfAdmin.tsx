@@ -22,12 +22,31 @@ export default function ListOfAdmin() {
   /* 🔍 FILTER STATE */
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   /* ✏️ EDIT STATE */
   const [editingAdmin, setEditingAdmin] = useState<Admin | null>(null);
   const [editForm, setEditForm] = useState<
     Partial<Admin & { password?: string }>
   >({});
+
+  const premiumButtonStyle: React.CSSProperties = {
+    border: "1px solid #d6d6d6",
+    borderRadius: 10,
+    padding: "9px 14px",
+    background: "linear-gradient(180deg, #ffffff 0%, #f7f7f7 100%)",
+    fontSize: 14,
+    fontWeight: 600,
+    letterSpacing: 0.2,
+    boxShadow: "0 1px 2px rgba(0, 0, 0, 0.08)",
+    cursor: "pointer",
+  };
+
+  const premiumButtonDisabledStyle: React.CSSProperties = {
+    opacity: 0.5,
+    cursor: "not-allowed",
+  };
 
   useEffect(() => {
     fetchAdmins();
@@ -64,6 +83,107 @@ export default function ListOfAdmin() {
 
     return data;
   }, [admins, search, roleFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredAdmins.length / itemsPerPage));
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, roleFilter, itemsPerPage]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [currentPage, totalPages]);
+
+  const paginatedAdmins = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredAdmins.slice(start, start + itemsPerPage);
+  }, [filteredAdmins, currentPage, itemsPerPage]);
+
+  const handleDownloadCSV = () => {
+    const rows = [
+      ["Admin ID", "Name", "Email", "Phone", "Role"],
+      ...filteredAdmins.map((a) => [a.empId, a.name, a.email, a.phone, a.role]),
+    ];
+
+    const csv = rows
+      .map((row) =>
+        row
+          .map((cell) => `"${String(cell).replace(/"/g, '""')}"`)
+          .join(",")
+      )
+      .join("\n");
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "admins.csv";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleDownloadPDF = () => {
+    const printable = window.open("", "_blank");
+    if (!printable) {
+      alert("Unable to open print window. Please allow popups.");
+      return;
+    }
+
+    const escapeHtml = (value: string) =>
+      value
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+
+    const rows = filteredAdmins
+      .map(
+        (a) => `<tr>
+          <td>${escapeHtml(a.empId)}</td>
+          <td>${escapeHtml(a.name)}</td>
+          <td>${escapeHtml(a.email)}</td>
+          <td>${escapeHtml(a.phone || "-")}</td>
+          <td>${escapeHtml(a.role)}</td>
+        </tr>`
+      )
+      .join("");
+
+    printable.document.write(`
+      <html>
+        <head>
+          <title>Admins List</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            h2 { margin-bottom: 16px; }
+            table { width: 100%; border-collapse: collapse; }
+            th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+            th { background: #f4f4f4; }
+          </style>
+        </head>
+        <body>
+          <h2>Admins List</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Admin ID</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Role</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </body>
+      </html>
+    `);
+    printable.document.close();
+    printable.focus();
+    printable.print();
+  };
 
   /* ================= DELETE ================= */
   const handleDelete = async (id: string) => {
@@ -137,6 +257,22 @@ export default function ListOfAdmin() {
           <option value="superadmin">Super Admin</option>
           <option value="manager">Manager</option>
         </select>
+        <select
+          value={itemsPerPage}
+          onChange={(e) => setItemsPerPage(Number(e.target.value))}
+        >
+          {[5, 10, 20, 50].map((size) => (
+            <option key={size} value={size}>
+              {size}/page
+            </option>
+          ))}
+        </select>
+        <button type="button" style={premiumButtonStyle} onClick={handleDownloadCSV}>
+          Download CSV
+        </button>
+        <button type="button" style={premiumButtonStyle} onClick={handleDownloadPDF}>
+          Download PDF
+        </button>
       </div>
 
       {/* ================= TABLE ================= */}
@@ -157,7 +293,7 @@ export default function ListOfAdmin() {
             </thead>
 
             <tbody>
-              {filteredAdmins.map((admin) => (
+              {paginatedAdmins.map((admin) => (
                 <tr key={admin._id}>
                   <td className={styles.id}>{admin.empId}</td>
                   <td>{admin.name}</td>
@@ -190,6 +326,49 @@ export default function ListOfAdmin() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+      {filteredAdmins.length > 0 && (
+        <div
+          style={{
+            marginTop: 12,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: 12,
+            flexWrap: "wrap",
+          }}
+        >
+          <p style={{ margin: 0 }}>
+            Showing {paginatedAdmins.length} of {filteredAdmins.length}
+          </p>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              type="button"
+              style={{
+                ...premiumButtonStyle,
+                ...(currentPage === 1 ? premiumButtonDisabledStyle : {}),
+              }}
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+            >
+              Prev
+            </button>
+            <span style={{ alignSelf: "center" }}>
+              Page {currentPage} of {totalPages}
+            </span>
+            <button
+              type="button"
+              style={{
+                ...premiumButtonStyle,
+                ...(currentPage === totalPages ? premiumButtonDisabledStyle : {}),
+              }}
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+            >
+              Next
+            </button>
+          </div>
         </div>
       )}
 

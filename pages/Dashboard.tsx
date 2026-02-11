@@ -1,5 +1,6 @@
 "use client";
 import Image from "next/image";
+import { API_URL } from "@/config/api";
 
 import { useEffect, useState } from "react";
 import { jwtDecode } from "jwt-decode";
@@ -11,7 +12,6 @@ import CreateCategory from "@/components/AdminPanel/CreateProductCategory";
 import CreateClinicCategory from "@/components/AdminPanel/CreateClinicCategory";
 import CreateClinic from "@/components/AdminPanel/CreateClinic";
 import CreateProduct from "@/components/AdminPanel/CreateProduct";
-import Dashboard from "@/components/AdminPanel/Dashboard";
 import ListOfAdmin from "@/components/AdminPanel/ListOfAdmin";
 import ListOfCategory from "@/components/AdminPanel/ListOfCategory";
 import ListOfClinicCategory from "@/components/AdminPanel/ListOfClinicCategory";
@@ -43,9 +43,17 @@ import ListOfDoctor from "@/components/AdminPanel/ListOfDoctor";
 import styles from "@/styles/dashboard.module.css";
 import {
   FiUsers,
+  FiUserCheck,
+  FiUser,
+  FiHome,
+  FiBox,
+  FiGrid,
+  FiLayers,
+  FiBriefcase,
   FiMenu,
   FiX,
   FiLogOut,
+  FiRefreshCw,
   FiChevronDown,
   FiChevronRight,
 } from "react-icons/fi";
@@ -57,6 +65,7 @@ import CreateB2BCategory from "@/components/AdminPanel/CreateB2BCategory";
 import ListofB2BCategory from "@/components/AdminPanel/ListofB2BCategory";
 
 type JwtPayload = { id: string; role: string; exp: number };
+type BasicItem = { _id?: string; name?: string; createdAt?: string };
 
 export default function SuperAdminDashboard() {
   const router = useRouter();
@@ -66,6 +75,21 @@ export default function SuperAdminDashboard() {
   const [isMobile, setIsMobile] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [openCategory, setOpenCategory] = useState<string | null>(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
+  const [summaryError, setSummaryError] = useState("");
+  const [lastUpdated, setLastUpdated] = useState("");
+  const [summaryData, setSummaryData] = useState({
+    admins: [] as any[],
+    users: [] as any[],
+    doctors: [] as any[],
+    clinics: [] as any[],
+    productCategories: [] as any[],
+    clinicCategories: [] as any[],
+    serviceCategories: [] as any[],
+    products: [] as any[],
+    b2bCategories: [] as any[],
+    b2bProducts: [] as any[],
+  });
 
   /* ================= AUTH ================= */
   useEffect(() => {
@@ -118,6 +142,90 @@ export default function SuperAdminDashboard() {
     setActiveSection(section);
     setSidebarOpen(false);
   };
+
+  const fetchDashboardSummary = async () => {
+    setSummaryLoading(true);
+    setSummaryError("");
+
+    const endpoints = [
+      { key: "admins", url: `${API_URL}/admins` },
+      { key: "users", url: `${API_URL}/users` },
+      { key: "doctors", url: `${API_URL}/doctoradmin` },
+      { key: "clinics", url: `${API_URL}/clinics` },
+      { key: "productCategories", url: `${API_URL}/categories` },
+      { key: "clinicCategories", url: `${API_URL}/clinic-categories` },
+      { key: "serviceCategories", url: `${API_URL}/service-categories` },
+      { key: "products", url: `${API_URL}/products` },
+      { key: "b2bCategories", url: `${API_URL}/b2b-categories` },
+      { key: "b2bProducts", url: `${API_URL}/b2b-products` },
+    ] as const;
+
+    try {
+      const settled = await Promise.allSettled(
+        endpoints.map((entry) => fetch(entry.url))
+      );
+
+      const resolved = await Promise.all(
+        settled.map(async (entry) => {
+          if (entry.status !== "fulfilled" || !entry.value.ok) return [];
+          try {
+            const data = await entry.value.json();
+            return Array.isArray(data) ? data : [];
+          } catch {
+            return [];
+          }
+        })
+      );
+
+      const nextData = endpoints.reduce(
+        (acc, endpoint, index) => {
+          acc[endpoint.key] = resolved[index];
+          return acc;
+        },
+        {
+          admins: [] as any[],
+          users: [] as any[],
+          doctors: [] as any[],
+          clinics: [] as any[],
+          productCategories: [] as any[],
+          clinicCategories: [] as any[],
+          serviceCategories: [] as any[],
+          products: [] as any[],
+          b2bCategories: [] as any[],
+          b2bProducts: [] as any[],
+        }
+      );
+
+      setSummaryData(nextData);
+      setLastUpdated(new Date().toLocaleString());
+    } catch {
+      setSummaryError("Unable to fetch dashboard overview right now.");
+    } finally {
+      setSummaryLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!checkingAuth && activeSection === "dashBoard") {
+      fetchDashboardSummary();
+    }
+  }, [checkingAuth, activeSection]);
+
+  const sortByCreatedDesc = <T extends BasicItem>(items: T[]) =>
+    [...items].sort((a, b) => {
+      const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return bTime - aTime;
+    });
+
+  const recentAdmins = sortByCreatedDesc(summaryData.admins).slice(0, 2);
+  const recentDoctors = sortByCreatedDesc(summaryData.doctors).slice(0, 2);
+  const recentClinics = sortByCreatedDesc(summaryData.clinics).slice(0, 2);
+  const recentProducts = sortByCreatedDesc(summaryData.products).slice(0, 2);
+  const recentCategories = sortByCreatedDesc(summaryData.productCategories).slice(
+    0,
+    2
+  );
 
   if (checkingAuth) {
     return <div className={styles.loading}>Loading dashboard.......</div>;
@@ -312,7 +420,192 @@ export default function SuperAdminDashboard() {
 
         {/* MAIN CONTENT */}
         <div className={styles.mainContent}>
-          {activeSection === "dashBoard" && <Dashboard />}
+          {activeSection === "dashBoard" && (
+            <div className={styles.premiumDashboard}>
+              <div className={styles.dashboardHero}>
+                <div>
+                  <h2 className={styles.heroTitle}>Super Admin</h2>
+                  <p className={styles.heroSubtitle}>
+                    Real-time snapshot of all critical modules across your
+                    platform.
+                  </p>
+                </div>
+                <div className={styles.heroActions}>
+                  <p className={styles.lastUpdatedText}>
+                    Last updated: {lastUpdated || "Not synced yet"}
+                  </p>
+                  <button
+                    type="button"
+                    className={styles.refreshBtn}
+                    onClick={fetchDashboardSummary}
+                    disabled={summaryLoading}
+                  >
+                    <FiRefreshCw />
+                    {summaryLoading ? "Refreshing..." : "Refresh"}
+                  </button>
+                </div>
+              </div>
+
+              {summaryError && <p className={styles.summaryError}>{summaryError}</p>}
+
+              <div className={styles.statGrid}>
+                {[
+                  {
+                    label: "Admins",
+                    value: summaryData.admins.length,
+                    icon: <FiUserCheck />,
+                    tone: styles.toneAdmins,
+                  },
+                  {
+                    label: "Users",
+                    value: summaryData.users.length,
+                    icon: <FiUsers />,
+                    tone: styles.toneUsers,
+                  },
+                  {
+                    label: "Doctors",
+                    value: summaryData.doctors.length,
+                    icon: <FiUser />,
+                    tone: styles.toneDoctors,
+                  },
+                  {
+                    label: "Clinics",
+                    value: summaryData.clinics.length,
+                    icon: <FiHome />,
+                    tone: styles.toneClinics,
+                  },
+                  {
+                    label: "Products",
+                    value: summaryData.products.length,
+                    icon: <FiBox />,
+                    tone: styles.toneProducts,
+                  },
+                  {
+                    label: "B2B Products",
+                    value: summaryData.b2bProducts.length,
+                    icon: <FiBriefcase />,
+                    tone: styles.toneB2BProducts,
+                  },
+                  {
+                    label: "Product Categories",
+                    value: summaryData.productCategories.length,
+                    icon: <FiGrid />,
+                    tone: styles.toneProductCategories,
+                  },
+                  {
+                    label: "Clinic Categories",
+                    value: summaryData.clinicCategories.length,
+                    icon: <FiLayers />,
+                    tone: styles.toneClinicCategories,
+                  },
+                  {
+                    label: "Service Categories",
+                    value: summaryData.serviceCategories.length,
+                    icon: <FiLayers />,
+                    tone: styles.toneServiceCategories,
+                  },
+                  {
+                    label: "B2B Categories",
+                    value: summaryData.b2bCategories.length,
+                    icon: <FiLayers />,
+                    tone: styles.toneB2BCategories,
+                  },
+                ].map((item) => (
+                  <div key={item.label} className={`${styles.statCard} ${item.tone}`}>
+                    <div className={styles.statIcon}>{item.icon}</div>
+                    <div>
+                      <p className={styles.statValue}>{item.value}</p>
+                      <p className={styles.statLabel}>{item.label}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className={styles.insightGrid}>
+                <div className={styles.insightCard}>
+                  <h3>Recent Admins</h3>
+                  <ul>
+                    {recentAdmins.length > 0 ? (
+                      recentAdmins.map((a: any) => (
+                        <li key={a._id || a.email || a.name}>
+                          <span>{a.name || "Unnamed Admin"}</span>
+                          <small>{a.email || "-"}</small>
+                        </li>
+                      ))
+                    ) : (
+                      <li className={styles.emptyItem}>No admin records</li>
+                    )}
+                  </ul>
+                </div>
+
+                <div className={styles.insightCard}>
+                  <h3>Recent Doctors</h3>
+                  <ul>
+                    {recentDoctors.length > 0 ? (
+                      recentDoctors.map((d: any) => (
+                        <li key={d._id || d.email || d.firstName}>
+                          <span>
+                            {d.firstName || ""} {d.lastName || ""}
+                          </span>
+                          <small>{d.specialist || "-"}</small>
+                        </li>
+                      ))
+                    ) : (
+                      <li className={styles.emptyItem}>No doctor records</li>
+                    )}
+                  </ul>
+                </div>
+
+                <div className={styles.insightCard}>
+                  <h3>Recent Clinics</h3>
+                  <ul>
+                    {recentClinics.length > 0 ? (
+                      recentClinics.map((c: any) => (
+                        <li key={c._id || c.email || c.clinicName}>
+                          <span>{c.clinicName || "Unnamed Clinic"}</span>
+                          <small>{c.email || "-"}</small>
+                        </li>
+                      ))
+                    ) : (
+                      <li className={styles.emptyItem}>No clinic records</li>
+                    )}
+                  </ul>
+                </div>
+
+                <div className={styles.insightCard}>
+                  <h3>Recent Products</h3>
+                  <ul>
+                    {recentProducts.length > 0 ? (
+                      recentProducts.map((p: any) => (
+                        <li key={p._id || p.productName}>
+                          <span>{p.productName || "Unnamed Product"}</span>
+                          <small>{p.brandName || "-"}</small>
+                        </li>
+                      ))
+                    ) : (
+                      <li className={styles.emptyItem}>No product records</li>
+                    )}
+                  </ul>
+                </div>
+
+                <div className={styles.insightCard}>
+                  <h3>Recent Product Categories</h3>
+                  <ul>
+                    {recentCategories.length > 0 ? (
+                      recentCategories.map((cat: any) => (
+                        <li key={cat._id || cat.id || cat.name}>
+                          <span>{cat.name || "Unnamed Category"}</span>
+                          <small>{cat.id || "-"}</small>
+                        </li>
+                      ))
+                    ) : (
+                      <li className={styles.emptyItem}>No category records</li>
+                    )}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
           {activeSection === "createAdmin" && <CreateAdmin />}
           {activeSection === "listOfAdmin" && <ListOfAdmin />}
           {activeSection === "createUser" && <CreateUser />}
