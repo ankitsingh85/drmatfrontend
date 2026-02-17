@@ -26,23 +26,6 @@ const ListOfClinicCategory = () => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [error, setError] = useState("");
 
-  const premiumButtonStyle: React.CSSProperties = {
-    border: "1px solid #d6d6d6",
-    borderRadius: 10,
-    padding: "9px 14px",
-    background: "linear-gradient(180deg, #ffffff 0%, #f7f7f7 100%)",
-    fontSize: 14,
-    fontWeight: 600,
-    letterSpacing: 0.2,
-    boxShadow: "0 1px 2px rgba(0, 0, 0, 0.08)",
-    cursor: "pointer",
-  };
-
-  const premiumButtonDisabledStyle: React.CSSProperties = {
-    opacity: 0.5,
-    cursor: "not-allowed",
-  };
-
   useEffect(() => {
     fetchCategories();
   }, []);
@@ -284,16 +267,8 @@ const ListOfClinicCategory = () => {
 
   return (
     <div className={styles.container}>
-      <h2 className={styles.title}>List of Clinic Categories</h2>
-      <div
-        style={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: 10,
-          alignItems: "center",
-          marginBottom: 14,
-        }}
-      >
+      <h2 className={styles.heading}>List of Clinic Categories</h2>
+      <div className={styles.toolbar}>
         <input
           className={styles.search}
           placeholder="Search by category ID or name..."
@@ -301,6 +276,7 @@ const ListOfClinicCategory = () => {
           onChange={(e) => setSearch(e.target.value)}
         />
         <select
+          className={`${styles.filter} ${styles.pageFilter}`}
           value={itemsPerPage}
           onChange={(e) => setItemsPerPage(Number(e.target.value))}
         >
@@ -310,13 +286,22 @@ const ListOfClinicCategory = () => {
             </option>
           ))}
         </select>
-        <button type="button" style={premiumButtonStyle} onClick={handleDownloadCSV}>
+        <button
+          type="button"
+          className={styles.premiumButton}
+          onClick={handleDownloadCSV}
+        >
           Download CSV
         </button>
-        <button type="button" style={premiumButtonStyle} onClick={handleDownloadPDF}>
+        <button
+          type="button"
+          className={styles.premiumButton}
+          onClick={handleDownloadPDF}
+        >
           Download PDF
         </button>
       </div>
+      <div className={styles.tableWrapper}>
       <table className={styles.table}>
         <thead>
           <tr>
@@ -334,7 +319,7 @@ const ListOfClinicCategory = () => {
               <td>
                 <img src={cat.imageUrl} alt={cat.name} className={styles.image} />
               </td>
-              <td>
+              <td className={styles.actions}>
                 <button className={styles.editBtn} onClick={() => handleEdit(cat)}>
                   ✏️
                 </button>
@@ -351,6 +336,7 @@ const ListOfClinicCategory = () => {
           )}
         </tbody>
       </table>
+      </div>
       <div
         style={{
           marginTop: 12,
@@ -367,10 +353,9 @@ const ListOfClinicCategory = () => {
         <div style={{ display: "flex", gap: 8 }}>
           <button
             type="button"
-            style={{
-              ...premiumButtonStyle,
-              ...(currentPage === 1 ? premiumButtonDisabledStyle : {}),
-            }}
+            className={`${styles.premiumButton} ${
+              currentPage === 1 ? styles.premiumButtonDisabled : ""
+            }`}
             onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
             disabled={currentPage === 1}
           >
@@ -381,10 +366,9 @@ const ListOfClinicCategory = () => {
           </span>
           <button
             type="button"
-            style={{
-              ...premiumButtonStyle,
-              ...(currentPage === totalPages ? premiumButtonDisabledStyle : {}),
-            }}
+            className={`${styles.premiumButton} ${
+              currentPage === totalPages ? styles.premiumButtonDisabled : ""
+            }`}
             onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
             disabled={currentPage === totalPages}
           >

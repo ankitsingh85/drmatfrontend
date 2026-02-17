@@ -15,6 +15,7 @@ interface Doctor {
   lastName: string;
   specialist: string;
   email: string;
+  phone?: string;
   description?: string;
   createdAt: string;
 }
@@ -43,25 +44,6 @@ const ListOfDoctor: React.FC = () => {
 
   const [modalOpen, setModalOpen] = useState(false); // kept
   const [error, setError] = useState("");
-
-  const premiumButtonStyle: React.CSSProperties = {
-    border: "1px solid #d6d6d6",
-    borderRadius: 10,
-    padding: "9px 14px",
-    background:
-      "linear-gradient(180deg, #ffffff 0%, #f7f7f7 100%)",
-    fontSize: 14,
-    fontWeight: 600,
-    letterSpacing: 0.2,
-    boxShadow: "0 1px 2px rgba(0, 0, 0, 0.08)",
-    cursor: "pointer",
-    transition: "all 0.2s ease",
-  };
-
-  const premiumButtonDisabledStyle: React.CSSProperties = {
-    opacity: 0.5,
-    cursor: "not-allowed",
-  };
 
   /* ================= FETCH ================= */
   const fetchDoctors = async () => {
@@ -97,6 +79,7 @@ const ListOfDoctor: React.FC = () => {
       lastName: doctor.lastName,
       specialist: doctor.specialist,
       email: doctor.email, // ✅ PREFILL EMAIL
+      phone: doctor.phone || "",
       description: doctor.description || "",
       password: "",
     });
@@ -122,6 +105,7 @@ const ListOfDoctor: React.FC = () => {
         lastName: editForm.lastName,
         specialist: editForm.specialist,
         email: editForm.email, // ✅ EMAIL INCLUDED
+        phone: editForm.phone,
         description: editForm.description,
       };
 
@@ -155,7 +139,7 @@ const ListOfDoctor: React.FC = () => {
     const q = searchTerm.trim().toLowerCase();
     if (!q) return doctors;
     return doctors.filter((d) =>
-      [d.title, d.firstName, d.lastName, d.specialist, d.email]
+      [d.title, d.firstName, d.lastName, d.specialist, d.email, d.phone]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(q))
     );
@@ -183,13 +167,14 @@ const ListOfDoctor: React.FC = () => {
 
   const handleDownloadCSV = () => {
     const rows = [
-      ["Title", "First Name", "Last Name", "Specialist", "Email"],
+      ["Title", "First Name", "Last Name", "Specialist", "Email", "Phone"],
       ...filteredDoctors.map((d) => [
         d.title || "",
         d.firstName,
         d.lastName,
         d.specialist,
         d.email,
+        d.phone || "",
       ]),
     ];
 
@@ -236,6 +221,7 @@ const ListOfDoctor: React.FC = () => {
             <td>${escapeHtml(d.lastName)}</td>
             <td>${escapeHtml(d.specialist)}</td>
             <td>${escapeHtml(d.email)}</td>
+            <td>${escapeHtml(d.phone || "-")}</td>
           </tr>`
       )
       .join("");
@@ -262,6 +248,7 @@ const ListOfDoctor: React.FC = () => {
                 <th>Last Name</th>
                 <th>Specialist</th>
                 <th>Email</th>
+                <th>Phone</th>
               </tr>
             </thead>
             <tbody>${rows}</tbody>
@@ -280,28 +267,18 @@ const ListOfDoctor: React.FC = () => {
   return (
     <div className={styles.container}>
       <h2 className={styles.title}>List of Doctors</h2>
-      <div
-        style={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: 10,
-          alignItems: "center",
-          marginBottom: 16,
-        }}
-      >
+      <div className={styles.toolbar}>
         <input
           type="text"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Search by name, title, specialist, email"
-          className={createStyles.input}
-          style={{ maxWidth: 360 }}
+          placeholder="Search by name, title, specialist, email, phone"
+          className={styles.search}
         />
         <select
           value={itemsPerPage}
           onChange={(e) => setItemsPerPage(Number(e.target.value))}
-          className={createStyles.select}
-          style={{ width: 110 }}
+          className={`${styles.filter} ${styles.pageFilter}`}
         >
           {[5, 10, 20, 50].map((size) => (
             <option key={size} value={size}>
@@ -311,14 +288,14 @@ const ListOfDoctor: React.FC = () => {
         </select>
         <button
           type="button"
-          style={premiumButtonStyle}
+          className={styles.premiumButton}
           onClick={handleDownloadCSV}
         >
           Download CSV
         </button>
         <button
           type="button"
-          style={premiumButtonStyle}
+          className={styles.premiumButton}
           onClick={handleDownloadPDF}
         >
           Download PDF
@@ -334,6 +311,7 @@ const ListOfDoctor: React.FC = () => {
             <th className={styles.th}>Last Name</th>
             <th className={styles.th}>Specialist</th>
             <th className={styles.th}>Email</th>
+            <th className={styles.th}>Phone</th>
             <th className={styles.th}>Actions</th>
           </tr>
         </thead>
@@ -346,6 +324,7 @@ const ListOfDoctor: React.FC = () => {
               <td className={styles.td}>{d.lastName}</td>
               <td className={styles.td}>{d.specialist}</td>
               <td className={styles.td}>{d.email}</td>
+              <td className={styles.td}>{d.phone || "-"}</td>
               <td className={styles.td}>
                 <button
                   className={styles.editButton}
@@ -364,7 +343,7 @@ const ListOfDoctor: React.FC = () => {
           ))}
           {paginatedDoctors.length === 0 && (
             <tr>
-              <td className={styles.td} colSpan={6}>
+              <td className={styles.td} colSpan={7}>
                 No doctors found.
               </td>
             </tr>
@@ -387,10 +366,9 @@ const ListOfDoctor: React.FC = () => {
         <div style={{ display: "flex", gap: 8 }}>
           <button
             type="button"
-            style={{
-              ...premiumButtonStyle,
-              ...(currentPage === 1 ? premiumButtonDisabledStyle : {}),
-            }}
+            className={`${styles.premiumButton} ${
+              currentPage === 1 ? styles.premiumButtonDisabled : ""
+            }`}
             onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
             disabled={currentPage === 1}
           >
@@ -401,10 +379,9 @@ const ListOfDoctor: React.FC = () => {
           </span>
           <button
             type="button"
-            style={{
-              ...premiumButtonStyle,
-              ...(currentPage === totalPages ? premiumButtonDisabledStyle : {}),
-            }}
+            className={`${styles.premiumButton} ${
+              currentPage === totalPages ? styles.premiumButtonDisabled : ""
+            }`}
             onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
             disabled={currentPage === totalPages}
           >
@@ -468,6 +445,17 @@ const ListOfDoctor: React.FC = () => {
                   onChange={handleEditChange}
                   className={createStyles.input}
                   required
+                />
+              </div>
+
+              <div className={createStyles.field}>
+                <label className={createStyles.label}>Phone Number</label>
+                <input
+                  type="tel"
+                  name="phone"
+                  value={editForm.phone || ""}
+                  onChange={handleEditChange}
+                  className={createStyles.input}
                 />
               </div>
 

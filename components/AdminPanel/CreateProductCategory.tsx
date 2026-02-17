@@ -1,11 +1,9 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useRef, useState } from "react";
 import styles from "@/styles/Dashboard/createcategory.module.css";
 import MobileNavbar from "../Layout/MobileNavbar";
 import { API_URL } from "@/config/api";
-
-// const API_URL = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000/api";
 
 const CreateCategory = () => {
   const [categoryName, setCategoryName] = useState("");
@@ -16,6 +14,8 @@ const CreateCategory = () => {
   const [explorePreview, setExplorePreview] = useState<string | null>(null);
 
   const [error, setError] = useState("");
+  const [loadingCategory, setLoadingCategory] = useState(false);
+  const [loadingExplore, setLoadingExplore] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const exploreInputRef = useRef<HTMLInputElement>(null);
@@ -28,39 +28,42 @@ const CreateCategory = () => {
       reader.onerror = reject;
     });
 
-  /* ================= MAIN IMAGE ================= */
+  const isAllowedImage = (file: File) =>
+    ["image/jpeg", "image/jpg", "image/png", "image/webp"].includes(file.type);
+
+  const validateImage = (file: File, label: string) => {
+    if (!isAllowedImage(file)) {
+      setError(`${label} must be JPG, JPEG, PNG, or WEBP`);
+      return false;
+    }
+    if (file.size > 1024 * 1024) {
+      setError(`${label} must be less than or equal to 1MB`);
+      return false;
+    }
+    return true;
+  };
+
   const handleCategoryImage = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    if (file.size > 1024 * 1024) {
-      setError("Image must be ≤ 1MB");
-      return;
-    }
-
+    if (!validateImage(file, "Category image")) return;
     setError("");
     setCategoryImage(file);
     setPreviewUrl(URL.createObjectURL(file));
   };
 
-  /* ================= EXPLORE IMAGE ================= */
   const handleExploreImage = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    if (file.size > 1024 * 1024) {
-      setError("Explore image must be ≤ 1MB");
-      return;
-    }
-
+    if (!validateImage(file, "Explore image")) return;
     setError("");
     setExploreImage(file);
     setExplorePreview(URL.createObjectURL(file));
   };
 
-  /* ================= CREATE CATEGORY ================= */
   const handleCreateCategory = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
 
     if (!categoryName.trim()) {
       setError("Category name is required");
@@ -73,6 +76,7 @@ const CreateCategory = () => {
     }
 
     try {
+      setLoadingCategory(true);
       const base64Image = await convertToBase64(categoryImage);
 
       const res = await fetch(`${API_URL}/categories`, {
@@ -87,28 +91,30 @@ const CreateCategory = () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
 
-      alert("✅ Category created successfully");
+      alert("Category created successfully");
 
       setCategoryName("");
       setCategoryImage(null);
       setPreviewUrl(null);
-      setError("");
-
       if (fileInputRef.current) fileInputRef.current.value = "";
     } catch (err: any) {
       setError(err.message || "Something went wrong");
+    } finally {
+      setLoadingCategory(false);
     }
   };
 
-  /* ================= UPLOAD EXPLORE IMAGE ================= */
   const handleExploreSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
+
     if (!exploreImage) {
       setError("Please select explore image");
       return;
     }
 
     try {
+      setLoadingExplore(true);
       const base64Explore = await convertToBase64(exploreImage);
 
       const res = await fetch(`${API_URL}/categories`, {
@@ -123,25 +129,24 @@ const CreateCategory = () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
 
-      alert("✅ Explore image uploaded");
-
+      alert("Explore image uploaded");
       setExploreImage(null);
       setExplorePreview(null);
-
       if (exploreInputRef.current) exploreInputRef.current.value = "";
     } catch (err: any) {
       setError(err.message || "Explore upload failed");
+    } finally {
+      setLoadingExplore(false);
     }
   };
 
   return (
     <div className={styles.container}>
-      <h1 className={styles.heading}>Category Management</h1>
+      <h1 className={styles.heading}>Create Product Category</h1>
 
       {error && <p className={styles.error}>{error}</p>}
 
       <form className={styles.form} onSubmit={handleCreateCategory}>
-        {/* ================= CATEGORY DETAILS ================= */}
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>Create Category</h2>
 
@@ -166,27 +171,30 @@ const CreateCategory = () => {
               >
                 Choose Image
               </button>
-              <span className={styles.uploadHint}>Max size 1MB</span>
+              <span className={styles.uploadHint}>JPG/PNG/WEBP - Max 1MB</span>
             </div>
 
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/*"
+              accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
               hidden
               onChange={handleCategoryImage}
             />
 
-            {previewUrl && (
-              <img src={previewUrl} className={styles.preview} />
+            {previewUrl ? (
+              <img src={previewUrl} className={styles.preview} alt="Category preview" />
+            ) : (
+              <p className={styles.noImage}>No image selected</p>
             )}
           </div>
         </section>
 
-        <button className={styles.submitBtn}>Create Category</button>
+        <button className={styles.submitBtn} disabled={loadingCategory}>
+          {loadingCategory ? "Creating..." : "Create Category"}
+        </button>
       </form>
 
-      {/* ================= EXPLORE IMAGE ================= */}
       <form className={styles.form} onSubmit={handleExploreSubmit}>
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>Explore Category Image</h2>
@@ -199,25 +207,27 @@ const CreateCategory = () => {
             >
               Upload Explore Image
             </button>
-            <span className={styles.uploadHint}>Max size 1MB</span>
+            <span className={styles.uploadHint}>JPG/PNG/WEBP - Max 1MB</span>
           </div>
 
           <input
             ref={exploreInputRef}
             type="file"
-            accept="image/*"
+            accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
             hidden
             onChange={handleExploreImage}
           />
 
           {explorePreview ? (
-            <img src={explorePreview} className={styles.preview} />
+            <img src={explorePreview} className={styles.preview} alt="Explore preview" />
           ) : (
             <p className={styles.noImage}>No explore image uploaded</p>
           )}
         </section>
 
-        <button className={styles.submitBtn}>Save Explore Image</button>
+        <button className={styles.submitBtn} disabled={loadingExplore}>
+          {loadingExplore ? "Saving..." : "Save Explore Image"}
+        </button>
       </form>
 
       <MobileNavbar />

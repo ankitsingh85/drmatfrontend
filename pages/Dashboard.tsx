@@ -78,6 +78,7 @@ export default function SuperAdminDashboard() {
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [summaryError, setSummaryError] = useState("");
   const [lastUpdated, setLastUpdated] = useState("");
+  const [adminName, setAdminName] = useState("");
   const [summaryData, setSummaryData] = useState({
     admins: [] as any[],
     users: [] as any[],
@@ -111,6 +112,19 @@ export default function SuperAdminDashboard() {
         router.replace("/adminlogin");
         return;
       }
+
+      const storedName =
+        Cookies.get("adminName") ||
+        Cookies.get("name") ||
+        Cookies.get("username") ||
+        (decoded as any).name ||
+        (decoded as any).fullName ||
+        (decoded as any).firstName ||
+        (decoded as any).username ||
+        (decoded as any).email ||
+        "";
+
+      setAdminName(storedName || "Super Admin");
       setCheckingAuth(false);
     } catch {
       Cookies.remove("token");
@@ -263,7 +277,7 @@ export default function SuperAdminDashboard() {
 
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           <span style={{ fontWeight: 600, color: "#334155" }}>
-            Super Admin
+            {adminName || "Super Admin"}
           </span>
           <button
             onClick={handleLogout}
@@ -424,7 +438,9 @@ export default function SuperAdminDashboard() {
             <div className={styles.premiumDashboard}>
               <div className={styles.dashboardHero}>
                 <div>
-                  <h2 className={styles.heroTitle}>Super Admin</h2>
+                  <h2 className={styles.heroTitle}>
+                    {adminName || "Super Admin"}
+                  </h2>
                   <p className={styles.heroSubtitle}>
                     Real-time snapshot of all critical modules across your
                     platform.

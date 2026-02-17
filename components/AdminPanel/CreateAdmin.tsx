@@ -100,7 +100,7 @@ export default function CreateAdmin() {
 
   return (
     <div className={styles.container}>
-      <h1 className={styles.heading}>Admin Management</h1>
+      <h1 className={styles.heading}>Create Admin</h1>
 
       <form className={styles.form} onSubmit={handleSubmit}>
         {/* ================= LOGIN / PROFILE ================= */}

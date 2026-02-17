@@ -1,5 +1,5 @@
 .container {
-  max-width: 1100px; /* reduced width */
+  max-width: 1397px; /* reduced width */
   margin: 0 auto;
   padding: 1rem;
 }
@@ -15,7 +15,7 @@
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); /* smaller cards */
-  gap: 1rem;
+  gap: 10px;
 }
 
 .card {
@@ -167,7 +167,7 @@
   }
 }
 .container {
-  max-width: 1100px;
+  max-width: 1397px;
   margin: 0 auto;
   padding: 1rem;
 }
@@ -251,7 +251,7 @@
   transform: scale(1.2);
 }
 .container {
-  max-width: 1100px;
+  max-width: 1397px;
   margin: 0 auto;
   padding: 1rem;
 }

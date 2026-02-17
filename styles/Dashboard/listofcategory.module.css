@@ -20,12 +20,57 @@
   padding: 60px 0;
 }
 
+/* ===== TOOLBAR ===== */
+.toolbar {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.search {
+  flex: 1;
+  padding: 14px 18px;
+  border-radius: 14px;
+  border: 1px solid #c7d2fe;
+  font-size: 14px;
+}
+
+.filter {
+  padding: 14px 18px;
+  border-radius: 14px;
+  border: 1px solid #c7d2fe;
+  font-size: 14px;
+  min-width: 180px;
+}
+
+.pageFilter {
+  min-width: 110px;
+}
+
+.premiumButton {
+  border: 1px solid #d6d6d6;
+  border-radius: 10px;
+  padding: 15px 14px;
+  background: linear-gradient(180deg, #ffffff 0%, #f7f7f7 100%);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+}
+
+.premiumButtonDisabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* ===== TABLE WRAPPER ===== */
 .tableWrap {
   background: linear-gradient(180deg, #ffffff, #f8fafc);
   border-radius: 22px;
   box-shadow: 0 30px 80px rgba(15, 23, 42, 0.12);
   overflow: hidden;
+  overflow-x: auto;
 }
 
 /* ===== TABLE ===== */

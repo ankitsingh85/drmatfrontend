@@ -33,23 +33,6 @@ export default function ListOfUser() {
     Partial<User & { password?: string }>
   >({});
 
-  const premiumButtonStyle: React.CSSProperties = {
-    border: "1px solid #d6d6d6",
-    borderRadius: 10,
-    padding: "9px 14px",
-    background: "linear-gradient(180deg, #ffffff 0%, #f7f7f7 100%)",
-    fontSize: 14,
-    fontWeight: 600,
-    letterSpacing: 0.2,
-    boxShadow: "0 1px 2px rgba(0, 0, 0, 0.08)",
-    cursor: "pointer",
-  };
-
-  const premiumButtonDisabledStyle: React.CSSProperties = {
-    opacity: 0.5,
-    cursor: "not-allowed",
-  };
-
   useEffect(() => {
     fetchUsers();
   }, []);
@@ -264,16 +247,16 @@ export default function ListOfUser() {
       <h1 className={styles.heading}>Users</h1>
 
       {/* CONTROLS */}
-      <div className={styles.controls}>
+      <div className={styles.toolbar}>
         <input
-          className={styles.controlsInput}
+          className={styles.search}
           placeholder="Search by ID, Name or Email"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
 
         <select
-          className={styles.controlsSelect}
+          className={styles.filter}
           value={dateFilter}
           onChange={(e) => setDateFilter(e.target.value)}
         >
@@ -282,7 +265,7 @@ export default function ListOfUser() {
           <option value="30">Last 30 Days</option>
         </select>
         <select
-          className={styles.controlsSelect}
+          className={`${styles.filter} ${styles.pageFilter}`}
           value={itemsPerPage}
           onChange={(e) => setItemsPerPage(Number(e.target.value))}
         >
@@ -292,10 +275,18 @@ export default function ListOfUser() {
             </option>
           ))}
         </select>
-        <button type="button" style={premiumButtonStyle} onClick={handleDownloadCSV}>
+        <button
+          type="button"
+          className={styles.premiumButton}
+          onClick={handleDownloadCSV}
+        >
           Download CSV
         </button>
-        <button type="button" style={premiumButtonStyle} onClick={handleDownloadPDF}>
+        <button
+          type="button"
+          className={styles.premiumButton}
+          onClick={handleDownloadPDF}
+        >
           Download PDF
         </button>
       </div>
@@ -362,10 +353,9 @@ export default function ListOfUser() {
         <div style={{ display: "flex", gap: 8 }}>
           <button
             type="button"
-            style={{
-              ...premiumButtonStyle,
-              ...(currentPage === 1 ? premiumButtonDisabledStyle : {}),
-            }}
+            className={`${styles.premiumButton} ${
+              currentPage === 1 ? styles.premiumButtonDisabled : ""
+            }`}
             onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
             disabled={currentPage === 1}
           >
@@ -376,10 +366,9 @@ export default function ListOfUser() {
           </span>
           <button
             type="button"
-            style={{
-              ...premiumButtonStyle,
-              ...(currentPage === totalPages ? premiumButtonDisabledStyle : {}),
-            }}
+            className={`${styles.premiumButton} ${
+              currentPage === totalPages ? styles.premiumButtonDisabled : ""
+            }`}
             onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
             disabled={currentPage === totalPages}
           >

@@ -53,10 +53,12 @@
 
 /* BOTTOM BAR */
 .bottomBar {
-  margin-top: 18px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
+      margin-top: 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 20%;
+    margin-left: 35rem;
 }
 
 .progressTrack {

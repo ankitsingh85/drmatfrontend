@@ -78,11 +78,16 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-width: 0;
 }
 
 .field label {
   font-weight: 600;
   color: #1e293b;
+}
+
+.section > * {
+  min-width: 0;
 }
 
 /* ================= INPUTS ================= */
@@ -104,6 +109,33 @@
 .readonlyInput {
   background: #f1f5f9;
   cursor: not-allowed;
+}
+
+/* ================= REACT QUILL ================= */
+.field :global(.ql-toolbar.ql-snow) {
+  border: 1px solid #cbd5f5;
+  border-radius: 16px 16px 0 0;
+  background: #ffffff;
+}
+
+.field :global(.ql-container.ql-snow) {
+  border: 1px solid #cbd5f5;
+  border-top: 0;
+  border-radius: 0 0 16px 16px;
+  background: #ffffff;
+  min-height: 100px;
+  max-width: 100%;
+}
+
+.field :global(.ql-editor) {
+  min-height: 80px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.field :global(.ql-editor.ql-blank::before) {
+  color: #94a3b8;
+  font-style: normal;
 }
 
 /* ================= FOCUS ================= */

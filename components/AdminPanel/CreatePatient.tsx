@@ -64,7 +64,7 @@ export default function CreatePatient() {
   /* ================= UI ================= */
   return (
     <div className={styles.container}>
-      <h1 className={styles.heading}>Create Patient</h1>
+      <h1 className={styles.heading}>Create User</h1>
 
       <form className={styles.form} onSubmit={handleSubmit}>
         {/* ================= BASIC INFO ================= */}

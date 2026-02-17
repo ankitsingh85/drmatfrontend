@@ -43,7 +43,7 @@
 .videoWrapper {
   position: relative;
   width: 100%;
-  aspect-ratio: 9 / 11;   /* 🔥 shorter card */
+  aspect-ratio: 9 / 16;   /* taller vertical frame */
   border-radius: 12px;    /* 🔽 slightly tighter */
   overflow: hidden;
   background: #000;
@@ -125,6 +125,6 @@
   }
 
   .videoWrapper {
-    aspect-ratio: 9 / 12;
+    aspect-ratio: 9 / 16;
   }
 }

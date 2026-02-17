@@ -56,11 +56,6 @@
   background: #f8fafc;
 }
 
-.id {
-  font-weight: 700;
-  color: #4f46e5;
-}
-
 /* ===== BADGES ===== */
 .badge {
   padding: 6px 14px;
@@ -212,6 +207,10 @@
   border: 1px solid #c7d2fe;
   font-size: 14px;
   min-width: 180px;
+}
+
+.pageFilter {
+  min-width: 110px;
 }
 .iconBtn {
   background: transparent;

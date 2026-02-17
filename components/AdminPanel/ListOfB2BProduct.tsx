@@ -34,23 +34,6 @@ export default function ListOfB2BProduct() {
   const [editForm, setEditForm] = useState<Partial<B2BProduct>>({});
   const [isEditing, setIsEditing] = useState(false);
 
-  const premiumButtonStyle: React.CSSProperties = {
-    border: "1px solid #d6d6d6",
-    borderRadius: 10,
-    padding: "9px 14px",
-    background: "linear-gradient(180deg, #ffffff 0%, #f7f7f7 100%)",
-    fontSize: 14,
-    fontWeight: 600,
-    letterSpacing: 0.2,
-    boxShadow: "0 1px 2px rgba(0, 0, 0, 0.08)",
-    cursor: "pointer",
-  };
-
-  const premiumButtonDisabledStyle: React.CSSProperties = {
-    opacity: 0.5,
-    cursor: "not-allowed",
-  };
-
   /* ================= FETCH ================= */
   useEffect(() => {
     fetch(`${API_URL}/b2b-products`)
@@ -283,7 +266,7 @@ export default function ListOfB2BProduct() {
 
   return (
     <div className={styles.container}>
-      <h1 className={styles.heading}>B2B Products</h1>
+      <h1 className={styles.heading}>List Of B2B Products</h1>
 
       {/* CONTROLS */}
       <div className={styles.controls}>
@@ -294,7 +277,10 @@ export default function ListOfB2BProduct() {
           onChange={(e) => setSearch(e.target.value)}
         />
 
-        <select onChange={(e) => setCategoryFilter(e.target.value)}>
+        <select
+          className={styles.filter}
+          onChange={(e) => setCategoryFilter(e.target.value)}
+        >
           <option value="all">All Categories</option>
           {categories.map((c) => (
             <option key={c} value={c}>
@@ -303,12 +289,16 @@ export default function ListOfB2BProduct() {
           ))}
         </select>
 
-        <select onChange={(e) => setSortKey(e.target.value)}>
+        <select
+          className={styles.filter}
+          onChange={(e) => setSortKey(e.target.value)}
+        >
           <option value="name">Sort by Name</option>
           <option value="price">Sort by Price</option>
           <option value="stock">Sort by Stock</option>
         </select>
         <select
+          className={`${styles.filter} ${styles.pageFilter}`}
           value={itemsPerPage}
           onChange={(e) => setItemsPerPage(Number(e.target.value))}
         >
@@ -318,10 +308,18 @@ export default function ListOfB2BProduct() {
             </option>
           ))}
         </select>
-        <button type="button" style={premiumButtonStyle} onClick={handleDownloadCSV}>
+        <button
+          type="button"
+          className={styles.premiumButton}
+          onClick={handleDownloadCSV}
+        >
           Download CSV
         </button>
-        <button type="button" style={premiumButtonStyle} onClick={handleDownloadPDF}>
+        <button
+          type="button"
+          className={styles.premiumButton}
+          onClick={handleDownloadPDF}
+        >
           Download PDF
         </button>
       </div>
@@ -387,10 +385,9 @@ export default function ListOfB2BProduct() {
         <div style={{ display: "flex", gap: 8 }}>
           <button
             type="button"
-            style={{
-              ...premiumButtonStyle,
-              ...(currentPage === 1 ? premiumButtonDisabledStyle : {}),
-            }}
+            className={`${styles.premiumButton} ${
+              currentPage === 1 ? styles.premiumButtonDisabled : ""
+            }`}
             onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
             disabled={currentPage === 1}
           >
@@ -401,10 +398,9 @@ export default function ListOfB2BProduct() {
           </span>
           <button
             type="button"
-            style={{
-              ...premiumButtonStyle,
-              ...(currentPage === totalPages ? premiumButtonDisabledStyle : {}),
-            }}
+            className={`${styles.premiumButton} ${
+              currentPage === totalPages ? styles.premiumButtonDisabled : ""
+            }`}
             onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
             disabled={currentPage === totalPages}
           >

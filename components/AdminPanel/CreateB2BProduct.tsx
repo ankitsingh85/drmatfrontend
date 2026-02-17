@@ -1,8 +1,12 @@
 "use client";
 import { API_URL } from "@/config/api";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import styles from "@/styles/Dashboard/createb2bproduct.module.css";
+import "react-quill/dist/quill.snow.css";
+
+const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
 
 // const API_URL =
 //   process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000/api";
@@ -42,16 +46,16 @@ export default function CreateB2BProduct() {
     licenseNumber: "",
     mrp: "",
     discountedPrice: "",
-    gst: "",
+    gst: "5",
     taxIncluded: true,
 
     countryOfOrigin: "",
     shippingWeight: "",
     dispatchTime: "",
     returnPolicy: "",
-    howToUseVideo: "",
 
-    productImages: "",
+    productImages: [] as string[],
+    productVideoUrl: "",
     msds: "",
     customerReviews: "",
     relatedProducts: "",
@@ -85,6 +89,16 @@ export default function CreateB2BProduct() {
     fetchCategories();
   }, []);
 
+  const numericFields = new Set([
+    "packSize",
+    "pricePerUnit",
+    "bulkPriceTier",
+    "moq",
+    "stockAvailable",
+    "mrp",
+    "discountedPrice",
+  ]);
+
   const handleChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
@@ -92,12 +106,56 @@ export default function CreateB2BProduct() {
   ) => {
     const { name, value, type } = e.target as HTMLInputElement;
     const checked = (e.target as HTMLInputElement).checked;
+    let nextValue: string | boolean = value;
+
+    if (numericFields.has(name)) {
+      nextValue = value.replace(/\D/g, "");
+    }
+
+    if (name === "taxIncluded") {
+      nextValue = value === "true";
+    }
 
     setForm((prev) => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : value,
+      [name]: type === "checkbox" ? checked : nextValue,
     }));
   };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    Array.from(files).forEach((file) => {
+      if (!file.type.startsWith("image/")) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        setForm((prev) => ({
+          ...prev,
+          productImages: [...prev.productImages, reader.result as string],
+        }));
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleNumberKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (["e", "E", "+", "-", "."].includes(e.key)) {
+      e.preventDefault();
+    }
+  };
+
+  const quillModules = useMemo(
+    () => ({
+      toolbar: [
+        ["bold", "italic", "underline"],
+        [{ list: "ordered" }, { list: "bullet" }],
+        ["link"],
+        ["clean"],
+      ],
+    }),
+    []
+  );
 
   /* ================= UPDATED SUBMIT ================= */
   const handleSubmit = async (e: React.FormEvent) => {
@@ -109,7 +167,6 @@ export default function CreateB2BProduct() {
       shippingWeight,
       dispatchTime,
       returnPolicy,
-      howToUseVideo,
 
       /* ❌ ACTIONS & CONTACT (READ ONLY) */
       addToCart,
@@ -198,11 +255,71 @@ export default function CreateB2BProduct() {
         <div className={styles.section}>
           <h3 className={styles.sectionTitle}>Pricing & Quantity</h3>
 
-          <input className={styles.input} name="packSize" placeholder="Pack Size / Quantity" onChange={handleChange} />
-          <input className={styles.input} name="pricePerUnit" placeholder="Price per Unit" onChange={handleChange} />
-          <input className={styles.input} name="bulkPriceTier" placeholder="Bulk Price Tier" onChange={handleChange} />
-          <input className={styles.input} name="moq" placeholder="MOQ" onChange={handleChange} />
-          <input className={styles.input} name="stockAvailable" placeholder="Stock Available" onChange={handleChange} />
+          <input
+            type="number"
+            min="0"
+            step="1"
+            className={styles.input}
+            name="packSize"
+            value={form.packSize}
+            inputMode="numeric"
+            pattern="[0-9]*"
+            placeholder="Pack Size / Quantity"
+            onKeyDown={handleNumberKeyDown}
+            onChange={handleChange}
+          />
+          <input
+            type="number"
+            min="0"
+            step="1"
+            className={styles.input}
+            name="pricePerUnit"
+            value={form.pricePerUnit}
+            inputMode="numeric"
+            pattern="[0-9]*"
+            placeholder="Price per Unit"
+            onKeyDown={handleNumberKeyDown}
+            onChange={handleChange}
+          />
+          <input
+            type="number"
+            min="0"
+            step="1"
+            className={styles.input}
+            name="bulkPriceTier"
+            value={form.bulkPriceTier}
+            inputMode="numeric"
+            pattern="[0-9]*"
+            placeholder="Bulk Price Tier"
+            onKeyDown={handleNumberKeyDown}
+            onChange={handleChange}
+          />
+          <input
+            type="number"
+            min="0"
+            step="1"
+            className={styles.input}
+            name="moq"
+            value={form.moq}
+            inputMode="numeric"
+            pattern="[0-9]*"
+            placeholder="MOQ"
+            onKeyDown={handleNumberKeyDown}
+            onChange={handleChange}
+          />
+          <input
+            type="number"
+            min="0"
+            step="1"
+            className={styles.input}
+            name="stockAvailable"
+            value={form.stockAvailable}
+            inputMode="numeric"
+            pattern="[0-9]*"
+            placeholder="Stock Available"
+            onKeyDown={handleNumberKeyDown}
+            onChange={handleChange}
+          />
           <input type="date" className={styles.input} name="expiryDate" onChange={handleChange} />
         </div>
 
@@ -210,10 +327,42 @@ export default function CreateB2BProduct() {
         <div className={styles.section}>
           <h3 className={styles.sectionTitle}>Product Details</h3>
 
-          <textarea className={styles.textarea} name="description" placeholder="Product Description" onChange={handleChange} />
-          <textarea className={styles.textarea} name="ingredients" placeholder="Key Ingredients / Components" onChange={handleChange} />
-          <textarea className={styles.textarea} name="usageInstructions" placeholder="Usage Instructions" onChange={handleChange} />
-          <textarea className={styles.textarea} name="treatmentIndications" placeholder="Treatment Indications" onChange={handleChange} />
+          <div className={styles.field}>
+            <label className={styles.label}>Product Description</label>
+            <ReactQuill
+              className={styles.quill}
+              value={form.description}
+              onChange={(v) => setForm((prev) => ({ ...prev, description: v }))}
+              modules={quillModules}
+            />
+          </div>
+          <div className={styles.field}>
+            <label className={styles.label}>Key Ingredients / Components</label>
+            <ReactQuill
+              className={styles.quill}
+              value={form.ingredients}
+              onChange={(v) => setForm((prev) => ({ ...prev, ingredients: v }))}
+              modules={quillModules}
+            />
+          </div>
+          <div className={styles.field}>
+            <label className={styles.label}>Usage Instructions</label>
+            <ReactQuill
+              className={styles.quill}
+              value={form.usageInstructions}
+              onChange={(v) => setForm((prev) => ({ ...prev, usageInstructions: v }))}
+              modules={quillModules}
+            />
+          </div>
+          <div className={styles.field}>
+            <label className={styles.label}>Treatment Indications</label>
+            <ReactQuill
+              className={styles.quill}
+              value={form.treatmentIndications}
+              onChange={(v) => setForm((prev) => ({ ...prev, treatmentIndications: v }))}
+              modules={quillModules}
+            />
+          </div>
           <input className={styles.input} name="certifications" placeholder="Certifications" onChange={handleChange} />
         </div>
 
@@ -223,11 +372,39 @@ export default function CreateB2BProduct() {
 
           <input className={styles.input} name="manufacturerName" placeholder="Manufacturer Name" onChange={handleChange} />
           <input className={styles.input} name="licenseNumber" placeholder="License Number" onChange={handleChange} />
-          <input className={styles.input} name="mrp" placeholder="MRP (if applicable)" onChange={handleChange} />
-          <input className={styles.input} name="discountedPrice" placeholder="Discounted Price (B2B)" onChange={handleChange} />
-          <input className={styles.input} name="gst" placeholder="GST %" onChange={handleChange} />
+          <input
+            type="number"
+            min="0"
+            step="1"
+            className={styles.input}
+            name="mrp"
+            value={form.mrp}
+            inputMode="numeric"
+            pattern="[0-9]*"
+            placeholder="MRP (if applicable)"
+            onKeyDown={handleNumberKeyDown}
+            onChange={handleChange}
+          />
+          <input
+            type="number"
+            min="0"
+            step="1"
+            className={styles.input}
+            name="discountedPrice"
+            value={form.discountedPrice}
+            inputMode="numeric"
+            pattern="[0-9]*"
+            placeholder="Discounted Price (B2B)"
+            onKeyDown={handleNumberKeyDown}
+            onChange={handleChange}
+          />
+          <select className={styles.select} name="gst" value={form.gst} onChange={handleChange}>
+            <option value="5">5%</option>
+            <option value="12">12%</option>
+            <option value="18">18%</option>
+          </select>
 
-          <select className={styles.select} name="taxIncluded" onChange={handleChange}>
+          <select className={styles.select} name="taxIncluded" value={String(form.taxIncluded)} onChange={handleChange}>
             <option value="true">Tax Included</option>
             <option value="false">Tax Excluded</option>
           </select>
@@ -241,14 +418,20 @@ export default function CreateB2BProduct() {
           <input className={styles.input} disabled placeholder="Shipping Weight" />
           <input className={styles.input} disabled placeholder="Dispatch Time" />
           <input className={styles.input} disabled placeholder="Return Policy" />
-          <input className={styles.input} disabled placeholder="How to Use Video / Manual" />
         </div>
 
         {/* MEDIA & SUPPORT */}
         <div className={styles.section}>
           <h3 className={styles.sectionTitle}>Media & Support</h3>
 
-          <input className={styles.input} name="productImages" placeholder="Product Images (Upload / URL)" onChange={handleChange} />
+          <input
+            type="file"
+            multiple
+            accept="image/*"
+            className={styles.input}
+            onChange={handleImageUpload}
+          />
+          <input className={styles.input} name="productVideoUrl" placeholder="Product Video URL" onChange={handleChange} />
           <input className={styles.input} name="msds" placeholder="MSDS / Product Datasheet" onChange={handleChange} />
           <textarea className={styles.textarea} name="customerReviews" placeholder="Customer Ratings / Reviews" onChange={handleChange} />
           <input className={styles.input} name="relatedProducts" placeholder="Related Products / Add-ons" onChange={handleChange} />

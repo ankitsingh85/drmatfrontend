@@ -26,15 +26,17 @@ interface Product {
   manufacturerName: string;
   licenseNumber: string;
   packagingType: string;
+  taxPercent?: number;
   productImages: string[];
   productShortVideo: string;
-  howToUseVideo: string;
   benefits: string;
   certifications: string;
   gender: string;
   skinHairType: string;
   barcode: string;
-  productURL: string;
+  stockStatus?: string;
+  activeStatus?: boolean;
+  dermatologistRecommended?: boolean;
   createdAt: string;
 }
 
@@ -52,23 +54,6 @@ const ListOfProduct: React.FC = () => {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [editForm, setEditForm] = useState<Partial<Product>>({});
   const [isEditing, setIsEditing] = useState(false);
-
-  const premiumButtonStyle: React.CSSProperties = {
-    border: "1px solid #d6d6d6",
-    borderRadius: 10,
-    padding: "9px 14px",
-    background: "linear-gradient(180deg, #ffffff 0%, #f7f7f7 100%)",
-    fontSize: 14,
-    fontWeight: 600,
-    letterSpacing: 0.2,
-    boxShadow: "0 1px 2px rgba(0, 0, 0, 0.08)",
-    cursor: "pointer",
-  };
-
-  const premiumButtonDisabledStyle: React.CSSProperties = {
-    opacity: 0.5,
-    cursor: "not-allowed",
-  };
 
   /* ================= FETCH ================= */
   useEffect(() => {
@@ -271,7 +256,7 @@ const ListOfProduct: React.FC = () => {
 
   return (
     <div className={styles.container}>
-      <h2 className={styles.heading}>Product List</h2>
+      <h2 className={styles.heading}>List Of Products</h2>
 
       {/* CONTROLS */}
       <div className={styles.controls}>
@@ -282,12 +267,18 @@ const ListOfProduct: React.FC = () => {
           onChange={(e) => setSearch(e.target.value)}
         />
 
-        <select onChange={(e) => setSortBy(e.target.value as any)}>
+        <select
+          className={styles.filter}
+          onChange={(e) => setSortBy(e.target.value as any)}
+        >
           <option value="name">Sort by Name</option>
           <option value="price">Sort by Price</option>
         </select>
 
-        <select onChange={(e) => setFilterCategory(e.target.value)}>
+        <select
+          className={styles.filter}
+          onChange={(e) => setFilterCategory(e.target.value)}
+        >
           <option value="all">All Categories</option>
           {categories.map((c) => (
             <option key={c._id} value={c._id}>
@@ -297,6 +288,7 @@ const ListOfProduct: React.FC = () => {
         </select>
 
         <select
+          className={`${styles.filter} ${styles.pageFilter}`}
           value={itemsPerPage}
           onChange={(e) => setItemsPerPage(Number(e.target.value))}
         >
@@ -307,10 +299,18 @@ const ListOfProduct: React.FC = () => {
           ))}
         </select>
 
-        <button type="button" style={premiumButtonStyle} onClick={handleDownloadCSV}>
+        <button
+          type="button"
+          className={styles.premiumButton}
+          onClick={handleDownloadCSV}
+        >
           Download CSV
         </button>
-        <button type="button" style={premiumButtonStyle} onClick={handleDownloadPDF}>
+        <button
+          type="button"
+          className={styles.premiumButton}
+          onClick={handleDownloadPDF}
+        >
           Download PDF
         </button>
       </div>
@@ -373,10 +373,9 @@ const ListOfProduct: React.FC = () => {
         <div style={{ display: "flex", gap: 8 }}>
           <button
             type="button"
-            style={{
-              ...premiumButtonStyle,
-              ...(currentPage === 1 ? premiumButtonDisabledStyle : {}),
-            }}
+            className={`${styles.premiumButton} ${
+              currentPage === 1 ? styles.premiumButtonDisabled : ""
+            }`}
             onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
             disabled={currentPage === 1}
           >
@@ -387,10 +386,9 @@ const ListOfProduct: React.FC = () => {
           </span>
           <button
             type="button"
-            style={{
-              ...premiumButtonStyle,
-              ...(currentPage === totalPages ? premiumButtonDisabledStyle : {}),
-            }}
+            className={`${styles.premiumButton} ${
+              currentPage === totalPages ? styles.premiumButtonDisabled : ""
+            }`}
             onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
             disabled={currentPage === totalPages}
           >

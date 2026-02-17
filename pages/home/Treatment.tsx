@@ -74,7 +74,7 @@ const TreatmentStories = () => {
         const videoId = extractVideoId(short.videoUrl);
         if (!videoId) return;
 
-        playersRef.current[index] = new (window as any).YT.Player(
+        new (window as any).YT.Player(
           `yt-player-${index}`,
           {
             videoId,
@@ -86,12 +86,21 @@ const TreatmentStories = () => {
               fs: 0,
             },
             events: {
-              onReady: (event: any) => event.target.mute(),
+              onReady: (event: any) => {
+                playersRef.current[index] = event.target;
+                event.target.mute();
+              },
             },
           }
         );
       }
     });
+  };
+
+  const getPlayer = (index: number) => {
+    const player = playersRef.current[index];
+    if (!player || typeof player.playVideo !== "function") return null;
+    return player;
   };
 
   const extractVideoId = (url: string) => {
@@ -108,7 +117,7 @@ const TreatmentStories = () => {
     if (short.platform === "instagram") {
       videoRefs.current[index]?.play();
     } else {
-      playersRef.current[index]?.playVideo();
+      getPlayer(index)?.playVideo();
     }
   };
 
@@ -123,7 +132,7 @@ const TreatmentStories = () => {
         v.currentTime = 0;
       }
     } else {
-      playersRef.current[index]?.pauseVideo();
+      getPlayer(index)?.pauseVideo();
     }
   };
 
@@ -131,7 +140,11 @@ const TreatmentStories = () => {
     setIsMuted((prev) => {
       const next = !prev;
       videoRefs.current.forEach((v) => v && (v.muted = next));
-      playersRef.current.forEach((p) => (next ? p.mute() : p.unMute()));
+      playersRef.current.forEach((p) => {
+        if (!p || typeof p.mute !== "function" || typeof p.unMute !== "function") return;
+        if (next) p.mute();
+        else p.unMute();
+      });
       return next;
     });
   };

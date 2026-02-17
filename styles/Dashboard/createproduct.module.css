@@ -68,10 +68,15 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-width: 0;
 }
 
 .fullField {
   grid-column: 1 / -1;
+}
+
+.section > * {
+  min-width: 0;
 }
 
 /* ===== LABEL ===== */
@@ -94,6 +99,49 @@
 
 .readonlyInput {
   background: #f1f5f9;
+}
+
+/* ===== REACT QUILL ===== */
+.field :global(.ql-toolbar.ql-snow),
+.fullField :global(.ql-toolbar.ql-snow) {
+  border: 1px solid #cbd5f5;
+  border-radius: 16px 16px 0 0;
+  background: #fff;
+}
+
+.field :global(.ql-container.ql-snow),
+.fullField :global(.ql-container.ql-snow) {
+  border: 1px solid #cbd5f5;
+  border-top: 0;
+  border-radius: 0 0 16px 16px;
+  background: #fff;
+  min-height: 120px;
+}
+
+.field :global(.ql-editor),
+.fullField :global(.ql-editor) {
+  min-height: 100px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* Size controls for product editors */
+.quillCompact :global(.ql-container.ql-snow) {
+  height: 120px;
+  min-height: 120px;
+}
+
+.quillCompact :global(.ql-editor) {
+  min-height: 78px;
+}
+
+.quillLarge :global(.ql-container.ql-snow) {
+  height: 160px;
+  min-height: 160px;
+}
+
+.quillLarge :global(.ql-editor) {
+  min-height: 118px;
 }
 
 /* ===== SWITCH ===== */

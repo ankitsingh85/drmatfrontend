@@ -236,7 +236,7 @@ export default function ListOfAdmin() {
 
   return (
     <div className={styles.container}>
-      <h1 className={styles.heading}>Admin Directory</h1>
+      <h1 className={styles.heading}>List of Admin</h1>
 
       {/* 🔍 SEARCH & FILTER */}
       <div className={styles.toolbar}>
@@ -258,6 +258,7 @@ export default function ListOfAdmin() {
           <option value="manager">Manager</option>
         </select>
         <select
+          className={`${styles.filter} ${styles.pageFilter}`}
           value={itemsPerPage}
           onChange={(e) => setItemsPerPage(Number(e.target.value))}
         >
@@ -283,7 +284,6 @@ export default function ListOfAdmin() {
           <table className={styles.table}>
             <thead>
               <tr>
-                <th>Admin ID</th>
                 <th>Name</th>
                 <th>Email</th>
                 <th>Contact No.</th>
@@ -295,7 +295,6 @@ export default function ListOfAdmin() {
             <tbody>
               {paginatedAdmins.map((admin) => (
                 <tr key={admin._id}>
-                  <td className={styles.id}>{admin.empId}</td>
                   <td>{admin.name}</td>
                   <td>{admin.email}</td>
                   <td>{admin.phone}</td>

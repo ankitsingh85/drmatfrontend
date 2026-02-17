@@ -14,6 +14,7 @@ const CreateDoctor = () => {
     lastName: "",
     specialist: "",
     email: "",
+    phone: "",
     password: "",
     description: "",
   });
@@ -61,6 +62,7 @@ const CreateDoctor = () => {
           lastName: "",
           specialist: "",
           email: "",
+          phone: "",
           password: "",
           description: "",
         });
@@ -155,6 +157,18 @@ const CreateDoctor = () => {
               type="email"
               name="email"
               value={formData.email}
+              onChange={handleChange}
+              className={styles.input}
+              required
+            />
+          </div>
+
+          <div className={styles.field}>
+            <label className={styles.label}>Phone Number</label>
+            <input
+              type="tel"
+              name="phone"
+              value={formData.phone}
               onChange={handleChange}
               className={styles.input}
               required

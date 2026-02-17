@@ -42,6 +42,22 @@ export default function AdminLogin() {
     Cookies.set("token", data.token, { path: "/", sameSite: "lax" });
     Cookies.set("role", data.role.toLowerCase(), { path: "/", sameSite: "lax" });
 
+    // ✅ STORE DISPLAY NAME FOR DASHBOARD HEADER
+    const displayName =
+      data.admin?.name ||
+      data.admin?.fullName ||
+      data.user?.name ||
+      data.user?.fullName ||
+      data.name ||
+      data.fullName ||
+      data.username ||
+      formData.email.split("@")[0];
+
+    Cookies.set("adminName", displayName, {
+      path: "/",
+      sameSite: "lax",
+    });
+
     // ✅ REDIRECT
     if (data.role.toLowerCase() === "superadmin") {
       router.replace("/Dashboard");

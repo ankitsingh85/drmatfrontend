@@ -41,7 +41,7 @@ export default function CreateProduct() {
     mrpPrice: "",
     discountedPrice: "",
     discountPercent: "",
-    taxIncluded: true,
+    taxPercent: "",
 
     expiryDate: "",
     manufacturerName: "",
@@ -55,7 +55,6 @@ export default function CreateProduct() {
     rating: "", // read-only
     shippingTime: "", // read-only
     returnPolicy: "", // read-only
-    howToUseVideo: "",
     certifications: "",
 
     gender: "Unisex",
@@ -66,12 +65,8 @@ export default function CreateProduct() {
     stockStatus: "In Stock", // read-only
     reviews: "", // read-only
 
-    checkAvailability: true, // read-only
     dermatologistRecommended: false, // read-only
     activeStatus: true, // read-only
-
-    productURL: "",
-    buyNow: true, // read-only
   });
 
   /* ================= FETCH CATEGORIES ================= */
@@ -101,6 +96,14 @@ export default function CreateProduct() {
   }, []);
 
   /* ================= HANDLERS ================= */
+  const numericFields = new Set([
+    "netQuantity",
+    "mrpPrice",
+    "discountedPrice",
+    "discountPercent",
+    "taxPercent",
+  ]);
+
   const handleChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
@@ -108,11 +111,22 @@ export default function CreateProduct() {
   ) => {
     const { name, value, type } = e.target as HTMLInputElement;
     const checked = (e.target as HTMLInputElement).checked;
+    let nextValue: string | boolean = value;
+
+    if (numericFields.has(name)) {
+      nextValue = value.replace(/\D/g, "");
+    }
 
     setForm((prev) => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : value,
+      [name]: type === "checkbox" ? checked : nextValue,
     }));
+  };
+
+  const handleNumberKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (["e", "E", "+", "-", "."].includes(e.key)) {
+      e.preventDefault();
+    }
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -120,6 +134,7 @@ export default function CreateProduct() {
     if (!files) return;
 
     Array.from(files).forEach((file) => {
+      if (!/^image\/(jpeg|jpg|png|webp)$/i.test(file.type)) return;
       const reader = new FileReader();
       reader.onload = () => {
         setForm((prev) => ({
@@ -165,7 +180,7 @@ export default function CreateProduct() {
       mrpPrice: Number(form.mrpPrice),
       discountedPrice: Number(form.discountedPrice),
       discountPercent: Number(form.discountPercent),
-      taxIncluded: form.taxIncluded,
+      taxPercent: Number(form.taxPercent),
 
       expiryDate: form.expiryDate,
       manufacturerName: form.manufacturerName,
@@ -174,12 +189,13 @@ export default function CreateProduct() {
 
       productImages: form.productImages,
       productShortVideo: form.productShortVideo,
-      howToUseVideo: form.howToUseVideo,
 
       gender: form.gender,
       skinHairType: form.skinHairType,
       barcode: form.barcode,
-      productURL: form.productURL,
+      stockStatus: form.stockStatus,
+      activeStatus: form.activeStatus,
+      dermatologistRecommended: form.dermatologistRecommended,
     };
 
     console.log("✅ FINAL PRODUCT PAYLOAD", payload);
@@ -246,6 +262,7 @@ export default function CreateProduct() {
           <div className={styles.fullField}>
             <label className={styles.label}>Product Description</label>
             <ReactQuill
+              className={styles.quillLarge}
               value={form.description}
               onChange={(v) => setForm({ ...form, description: v })}
               modules={quillModules}
@@ -254,22 +271,42 @@ export default function CreateProduct() {
 
           <div className={styles.field}>
             <label className={styles.label}>Ingredients</label>
-            <input className={styles.input} name="ingredients" onChange={handleChange} />
+            <ReactQuill
+              className={styles.quillCompact}
+              value={form.ingredients}
+              onChange={(v) => setForm({ ...form, ingredients: v })}
+              modules={quillModules}
+            />
           </div>
 
           <div className={styles.field}>
             <label className={styles.label}>Target Concerns</label>
-            <input className={styles.input} name="targetConcerns" onChange={handleChange} />
+            <ReactQuill
+              className={styles.quillCompact}
+              value={form.targetConcerns}
+              onChange={(v) => setForm({ ...form, targetConcerns: v })}
+              modules={quillModules}
+            />
           </div>
 
           <div className={styles.field}>
             <label className={styles.label}>Usage Instructions</label>
-            <input className={styles.input} name="usageInstructions" onChange={handleChange} />
+            <ReactQuill
+              className={styles.quillCompact}
+              value={form.usageInstructions}
+              onChange={(v) => setForm({ ...form, usageInstructions: v })}
+              modules={quillModules}
+            />
           </div>
 
           <div className={styles.field}>
             <label className={styles.label}>Benefits</label>
-            <input className={styles.input} name="benefits" onChange={handleChange} />
+            <ReactQuill
+              className={styles.quillCompact}
+              value={form.benefits}
+              onChange={(v) => setForm({ ...form, benefits: v })}
+              modules={quillModules}
+            />
           </div>
 
           <div className={styles.field}>
@@ -282,15 +319,68 @@ export default function CreateProduct() {
         <div className={styles.section}>
           <h3 className={styles.sectionTitle}>Pricing</h3>
 
-          <input className={styles.input} name="netQuantity" placeholder="Net Quantity" onChange={handleChange} />
-          <input className={styles.input} name="mrpPrice" placeholder="MRP Price" onChange={handleChange} />
-          <input className={styles.input} name="discountedPrice" placeholder="Discounted Price" onChange={handleChange} />
-          <input className={styles.input} name="discountPercent" placeholder="Discount (%)" onChange={handleChange} />
-
-          <label className={styles.checkbox}>
-            <input type="checkbox" name="taxIncluded" checked={form.taxIncluded} onChange={handleChange} />
-            Tax Included
-          </label>
+          <input
+            type="number"
+            min="0"
+            step="1"
+            className={styles.input}
+            name="netQuantity"
+            value={form.netQuantity}
+            inputMode="numeric"
+            pattern="[0-9]*"
+            placeholder="Net Quantity"
+            onKeyDown={handleNumberKeyDown}
+            onChange={handleChange}
+          />
+          <input
+            type="number"
+            min="0"
+            step="1"
+            className={styles.input}
+            name="mrpPrice"
+            value={form.mrpPrice}
+            inputMode="numeric"
+            pattern="[0-9]*"
+            placeholder="MRP Price"
+            onKeyDown={handleNumberKeyDown}
+            onChange={handleChange}
+          />
+          <input
+            type="number"
+            min="0"
+            step="1"
+            className={styles.input}
+            name="discountedPrice"
+            value={form.discountedPrice}
+            inputMode="numeric"
+            pattern="[0-9]*"
+            placeholder="Discounted Price"
+            onKeyDown={handleNumberKeyDown}
+            onChange={handleChange}
+          />
+          <input
+            type="number"
+            min="0"
+            step="1"
+            className={styles.input}
+            name="discountPercent"
+            value={form.discountPercent}
+            inputMode="numeric"
+            pattern="[0-9]*"
+            placeholder="Discount (%)"
+            onKeyDown={handleNumberKeyDown}
+            onChange={handleChange}
+          />
+          <select
+            className={styles.select}
+            name="taxPercent"
+            value={form.taxPercent}
+            onChange={handleChange}
+          >
+            <option value="5">5%</option>
+            <option value="12">12%</option>
+            <option value="18">18%</option>
+          </select>
         </div>
 
         {/* ===== COMPLIANCE ===== */}
@@ -307,9 +397,14 @@ export default function CreateProduct() {
         <div className={styles.section}>
           <h3 className={styles.sectionTitle}>Media</h3>
 
-          <input type="file" multiple className={styles.fileInput} onChange={handleImageUpload} />
+          <input
+            type="file"
+            multiple
+            accept=".jpg,.jpeg,.png,image/jpeg,image/png,image/webp"
+            className={styles.fileInput}
+            onChange={handleImageUpload}
+          />
           <input className={styles.input} name="productShortVideo" placeholder="Product Short Video URL" onChange={handleChange} />
-          <input className={styles.input} name="howToUseVideo" placeholder="How to Use Video" onChange={handleChange} />
         </div>
 
         {/* ===== META ===== */}
@@ -324,23 +419,43 @@ export default function CreateProduct() {
 
           <input className={styles.input} name="skinHairType" placeholder="Skin / Hair Type" onChange={handleChange} />
           <input className={styles.input} name="barcode" placeholder="Barcode / SKU" onChange={handleChange} />
-          <input className={styles.input} name="productURL" placeholder="Product URL" onChange={handleChange} />
         </div>
 
-        {/* ===== META & READ ONLY ===== */}
+        {/* ===== PRODUCT STATUS ===== */}
         <div className={styles.section}>
-          <h3 className={styles.sectionTitle}>Meta & System Controlled</h3>
+          <h3 className={styles.sectionTitle}>Product Status</h3>
 
-          <input className={styles.input} placeholder="Rating" disabled />
-          <input className={styles.input} placeholder="Shipping Time" disabled />
-          <input className={styles.input} placeholder="Return Policy" disabled />
-          <textarea className={styles.input} placeholder="Reviews" disabled />
-
-          <label><input type="checkbox" disabled checked /> In Stock</label>
-          <label><input type="checkbox" disabled /> Check Availability</label>
-          <label><input type="checkbox" disabled /> Dermatologist Recommended</label>
-          <label><input type="checkbox" disabled checked /> Active</label>
-          <label><input type="checkbox" disabled checked /> Buy Now</label>
+          <label className={styles.checkbox}>
+            <input
+              type="checkbox"
+              checked={form.stockStatus === "In Stock"}
+              onChange={(e) =>
+                setForm((prev) => ({
+                  ...prev,
+                  stockStatus: e.target.checked ? "In Stock" : "Out of Stock",
+                }))
+              }
+            />
+            In Stock
+          </label>
+          <label className={styles.checkbox}>
+            <input
+              type="checkbox"
+              name="activeStatus"
+              checked={form.activeStatus}
+              onChange={handleChange}
+            />
+            Active
+          </label>
+          <label className={styles.checkbox}>
+            <input
+              type="checkbox"
+              name="dermatologistRecommended"
+              checked={form.dermatologistRecommended}
+              onChange={handleChange}
+            />
+            Dermatologist Recommended
+          </label>
         </div>
 
         <button className={styles.submitBtn}>Save Product</button>

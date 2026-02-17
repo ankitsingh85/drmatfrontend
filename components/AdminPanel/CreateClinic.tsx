@@ -2,8 +2,12 @@
 import { API_URL } from "@/config/api";
 
 import React, { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
 import styles from "@/styles/Dashboard/createclinic.module.css";
 import MobileNavbar from "../Layout/MobileNavbar";
+import "react-quill/dist/quill.snow.css";
+
+const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
 
 /* ================= TYPES ================= */
 interface Doctor {
@@ -28,6 +32,18 @@ const convertToBase64 = (file: File): Promise<string> =>
 
 export default function CreateClinic() {
   const [cuc] = useState(`CUC-${Date.now().toString().slice(-6)}`);
+  const [videoUrls, setVideoUrls] = useState("");
+
+  const quillModules = {
+    toolbar: [
+      [{ header: [1, 2, 3, false] }],
+      ["bold", "italic", "underline", "strike"],
+      [{ list: "ordered" }, { list: "bullet" }],
+      [{ color: [] }, { background: [] }],
+      ["link"],
+      ["clean"],
+    ],
+  };
 
   /* ================= CATEGORY STATE ================= */
   const [categories, setCategories] = useState<ClinicCategory[]>([]);
@@ -49,7 +65,7 @@ export default function CreateClinic() {
     /* 🔥 MEDIA (BASE64) */
     clinicLogo: "",
     bannerImage: "",
-    specialOfferImages: [] as string[],
+    specialOffers: [] as string[],
     rateCard: "",
     photos: [] as string[],
     videos: [] as string[],
@@ -78,29 +94,12 @@ export default function CreateClinic() {
     consultationFee: "",
     bookingMode: "",
 
-    clinicDescription: "",
-    ratings: "",
-    reviews: "",
-    replyReviews: "",
-    patientStories: "",
-    updates: "",
-
     instagram: "",
     linkedin: "",
     facebook: "",
 
-    billingPayments: "",
-    subscriptionPlan: "",
-    myLeads: "",
-    settings: "",
-    privacyPolicy: "",
-
     standardPlanLink: "",
     clinicStatus: "Open",
-    verified: false,
-    active: true,
-    leadsNotification: false,
-    logout: false,
   });
 
   /* ================= FETCH CLINIC CATEGORIES ================= */
@@ -138,9 +137,8 @@ export default function CreateClinic() {
       | "clinicLogo"
       | "bannerImage"
       | "rateCard"
-      | "specialOfferImages"
+      | "specialOffers"
       | "photos"
-      | "videos"
       | "certifications"
   ) => {
     const files = e.target.files;
@@ -198,6 +196,10 @@ export default function CreateClinic() {
     const payload = {
       cuc,
       ...form,
+      videos: videoUrls
+        .split(/\r?\n|,/)
+        .map((url) => url.trim())
+        .filter(Boolean),
       doctors,
     };
 
@@ -216,7 +218,7 @@ export default function CreateClinic() {
   return (
     <div className={styles.page}>
       <div className={styles.container}>
-        <h1 className={styles.heading}>Create Clinic Profile</h1>
+        <h1 className={styles.heading}>Create Clinic</h1>
 
         <form className={styles.form} onSubmit={handleSubmit}>
 
@@ -247,6 +249,7 @@ export default function CreateClinic() {
     <label>Clinic Logo</label>
     <input
       type="file"
+      accept=".jpg,.jpeg,.png,image/jpeg,image/png"
       className={styles.input}
       onChange={(e) => handleFileChange(e, "clinicLogo")}
     />
@@ -256,6 +259,7 @@ export default function CreateClinic() {
     <label>Banner Image</label>
     <input
       type="file"
+      accept=".jpg,.jpeg,.png,image/jpeg,image/png"
       className={styles.input}
       onChange={(e) => handleFileChange(e, "bannerImage")}
     />
@@ -266,8 +270,9 @@ export default function CreateClinic() {
     <input
       type="file"
       multiple
+      accept=".jpg,.jpeg,.png,image/jpeg,image/png"
       className={styles.input}
-      onChange={(e) => handleFileChange(e, "specialOfferImages")}
+      onChange={(e) => handleFileChange(e, "specialOffers")}
     />
   </div>
 
@@ -275,6 +280,7 @@ export default function CreateClinic() {
     <label>Rate Card / Catalogue</label>
     <input
       type="file"
+      accept=".jpg,.jpeg,.png,image/jpeg,image/png"
       className={styles.input}
       onChange={(e) => handleFileChange(e, "rateCard")}
     />
@@ -285,6 +291,7 @@ export default function CreateClinic() {
     <input
       type="file"
       multiple
+      accept=".jpg,.jpeg,.png,image/jpeg,image/png"
       className={styles.input}
       onChange={(e) => handleFileChange(e, "photos")}
     />
@@ -292,11 +299,11 @@ export default function CreateClinic() {
 
   <div className={styles.field}>
     <label>Videos</label>
-    <input
-      type="file"
-      multiple
-      className={styles.input}
-      onChange={(e) => handleFileChange(e, "videos")}
+    <textarea
+      className={styles.textarea}
+      placeholder="Add video URL(s), one per line"
+      value={videoUrls}
+      onChange={(e) => setVideoUrls(e.target.value)}
     />
   </div>
 
@@ -305,16 +312,12 @@ export default function CreateClinic() {
     <input
       type="file"
       multiple
+      accept=".jpg,.jpeg,.png,image/jpeg,image/png"
       className={styles.input}
       onChange={(e) => handleFileChange(e, "certifications")}
     />
   </div>
 </section>
-  {/* ================= 3 → 11 (UNCHANGED, PRESERVED) ================= */}
-          {/* LOCATION, LEGAL, SERVICES, PRICING, CONTENT, SOCIAL, BUSINESS, ADMIN */}
-          {/* Your original JSX remains exactly as-is here */}
-
-
            {/* 3. DOCTORS & EXPERTISE (UPDATED ONLY SECTION) */}
           <section className={styles.section}>
             <h2 className={styles.sectionTitle}>Doctors & Expertise</h2>
@@ -371,8 +374,29 @@ export default function CreateClinic() {
           <section className={styles.section}>
             <h2 className={styles.sectionTitle}>Services & Treatments</h2>
 
-            <textarea className={styles.textarea} name="treatmentsAvailable" placeholder="Treatments Available" onChange={handleChange} />
-            <textarea className={styles.textarea} name="availableServices" placeholder="Available Services" onChange={handleChange} />
+            <div className={styles.field}>
+              <label>Treatments Available</label>
+              <ReactQuill
+                theme="snow"
+                value={form.treatmentsAvailable}
+                onChange={(value) =>
+                  setForm((prev) => ({ ...prev, treatmentsAvailable: value }))
+                }
+                modules={quillModules}
+              />
+            </div>
+
+            <div className={styles.field}>
+              <label>Available Services</label>
+              <ReactQuill
+                theme="snow"
+                value={form.availableServices}
+                onChange={(value) =>
+                  setForm((prev) => ({ ...prev, availableServices: value }))
+                }
+                modules={quillModules}
+              />
+            </div>
           </section>
 
           {/* 7. PRICING & BOOKING */}
@@ -383,18 +407,6 @@ export default function CreateClinic() {
             <input className={styles.input} name="bookingMode" placeholder="Booking Mode" onChange={handleChange} />
           </section>
 
-          {/* 8. CONTENT & ENGAGEMENT */}
-          <section className={styles.section}>
-            <h2 className={styles.sectionTitle}>Content & Engagement</h2>
-
-            <textarea className={styles.textarea} name="clinicDescription" placeholder="Clinic Description" onChange={handleChange} />
-            <input className={styles.input} name="ratings" placeholder="Ratings" onChange={handleChange} />
-            <textarea className={styles.textarea} name="reviews" placeholder="Reviews" onChange={handleChange} />
-            <textarea className={styles.textarea} name="replyReviews" placeholder="Reply to Reviews" onChange={handleChange} />
-            <textarea className={styles.textarea} name="patientStories" placeholder="Patient Stories" onChange={handleChange} />
-            <textarea className={styles.textarea} name="updates" placeholder="Add Updates" onChange={handleChange} />
-          </section>
-
           {/* 9. SOCIAL */}
           <section className={styles.section}>
             <h2 className={styles.sectionTitle}>Social Presence</h2>
@@ -402,38 +414,6 @@ export default function CreateClinic() {
             <input className={styles.input} name="instagram" placeholder="Instagram" onChange={handleChange} />
             <input className={styles.input} name="linkedin" placeholder="LinkedIn" onChange={handleChange} />
             <input className={styles.input} name="facebook" placeholder="Facebook" onChange={handleChange} />
-          </section>
-
-          {/* 10. BUSINESS */}
-          <section className={styles.section}>
-            <h2 className={styles.sectionTitle}>Business & Subscription</h2>
-
-            <input className={styles.input} name="billingPayments" placeholder="Billing & Payments" onChange={handleChange} />
-            <input className={styles.input} name="subscriptionPlan" placeholder="Subscription Plan" onChange={handleChange} />
-            <input className={styles.input} name="myLeads" placeholder="My Leads" onChange={handleChange} />
-            <input className={styles.input} name="settings" placeholder="Settings" onChange={handleChange} />
-            <textarea className={styles.textarea} name="privacyPolicy" placeholder="Privacy Policy" onChange={handleChange} />
-          </section>
-
-          {/* 11. ADMIN */}
-          <section className={styles.section}>
-            <h2 className={styles.sectionTitle}>Admin & System</h2>
-
-            <label className={styles.checkbox}>
-              <input type="checkbox" name="verified" onChange={handleChange} /> Verified Badge
-            </label>
-
-            <label className={styles.checkbox}>
-              <input type="checkbox" name="active" defaultChecked onChange={handleChange} /> Active / Block by Admin
-            </label>
-
-            <label className={styles.checkbox}>
-              <input type="checkbox" name="leadsNotification" onChange={handleChange} /> Leads Notification
-            </label>
-
-            <label className={styles.checkbox}>
-              <input type="checkbox" name="logout" onChange={handleChange} /> Log out
-            </label>
           </section>
 
          <button className={styles.submitBtn}>Create Clinic</button>

@@ -1,12 +1,7 @@
 "use client";
 import { API_URL } from "@/config/api";
-
-
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import styles from "@/styles/Dashboard/createcliniccategory.module.css";
-
-// const API_URL =
-//   process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000/api";
 
 export default function CreateB2BCategory() {
   const [name, setName] = useState("");
@@ -15,7 +10,8 @@ export default function CreateB2BCategory() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  /* ================= IMAGE TO BASE64 ================= */
+  const imageInputRef = useRef<HTMLInputElement>(null);
+
   const convertToBase64 = (file: File): Promise<string> =>
     new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -24,7 +20,23 @@ export default function CreateB2BCategory() {
       reader.onerror = reject;
     });
 
-  /* ================= SUBMIT ================= */
+  const isAllowedImage = (file: File) =>
+    ["image/jpeg", "image/jpg", "image/png", "image/webp"].includes(file.type);
+
+  const handleImageSelect = (file: File) => {
+    if (!isAllowedImage(file)) {
+      setError("Image must be JPG, JPEG, PNG, or WEBP");
+      return;
+    }
+    if (file.size > 1024 * 1024) {
+      setError("Image must be less than or equal to 1MB");
+      return;
+    }
+    setError("");
+    setImage(file);
+    setPreview(URL.createObjectURL(file));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -43,7 +55,7 @@ export default function CreateB2BCategory() {
       setLoading(true);
       const imageUrl = await convertToBase64(image);
 
-      await fetch(`${API_URL}/b2b-categories`, {
+      const res = await fetch(`${API_URL}/b2b-categories`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -52,19 +64,22 @@ export default function CreateB2BCategory() {
         }),
       });
 
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to create category");
+
+      alert("B2B Category created successfully");
       setName("");
       setImage(null);
       setPreview(null);
-      alert("✅ B2B Category created successfully");
-    } catch (err) {
+      if (imageInputRef.current) imageInputRef.current.value = "";
+    } catch (err: any) {
       console.error(err);
-      setError("Failed to create B2B category");
+      setError(err.message || "Failed to create B2B category");
     } finally {
       setLoading(false);
     }
   };
 
-  /* ================= UI ================= */
   return (
     <div className={styles.container}>
       <h1 className={styles.heading}>Create B2B Category</h1>
@@ -72,8 +87,7 @@ export default function CreateB2BCategory() {
       {error && <div className={styles.error}>{error}</div>}
 
       <form className={styles.form} onSubmit={handleSubmit}>
-        {/* ===== BASIC INFO ===== */}
-        <div className={styles.section}>
+        <section className={styles.section}>
           <h3 className={styles.sectionTitle}>Category Information</h3>
 
           <div className={styles.field}>
@@ -86,52 +100,40 @@ export default function CreateB2BCategory() {
             />
           </div>
 
-          <div className={styles.field}>
+          <div className={styles.fullField}>
             <label className={styles.label}>Category Image</label>
 
             <div className={styles.uploadBox}>
               <button
                 type="button"
                 className={styles.uploadBtn}
-                onClick={() =>
-                  document.getElementById("b2bImageInput")?.click()
-                }
+                onClick={() => imageInputRef.current?.click()}
               >
                 Upload Image
               </button>
-
-              <span className={styles.uploadHint}>
-                PNG / JPG · Max 1MB
-              </span>
+              <span className={styles.uploadHint}>JPG/PNG/WEBP - Max 1MB</span>
             </div>
 
             <input
-              id="b2bImageInput"
+              ref={imageInputRef}
               type="file"
-              accept="image/*"
               hidden
+              accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
               onChange={(e) => {
                 const file = e.target.files?.[0];
-                if (file) {
-                  setImage(file);
-                  setPreview(URL.createObjectURL(file));
-                }
+                if (file) handleImageSelect(file);
               }}
             />
 
             {preview ? (
-              <img src={preview} className={styles.preview} />
+              <img src={preview} className={styles.preview} alt="B2B category preview" />
             ) : (
               <span className={styles.noImage}>No image selected</span>
             )}
           </div>
-        </div>
+        </section>
 
-        <button
-          className={styles.submitBtn}
-          type="submit"
-          disabled={loading}
-        >
+        <button className={styles.submitBtn} type="submit" disabled={loading}>
           {loading ? "Creating..." : "Create B2B Category"}
         </button>
       </form>
