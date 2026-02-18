@@ -32,6 +32,8 @@ type Clinic = {
   clinicLogo?: string;
   bannerImage?: string;
   photos?: string[];
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 function ListOfClinic() {
@@ -68,6 +70,20 @@ function ListOfClinic() {
     setCategories(data);
   };
 
+  const getClinicTimestamp = (clinic: Clinic) => {
+    const created = clinic.createdAt ? Date.parse(clinic.createdAt) : NaN;
+    if (!Number.isNaN(created)) return created;
+
+    const updated = clinic.updatedAt ? Date.parse(clinic.updatedAt) : NaN;
+    if (!Number.isNaN(updated)) return updated;
+
+    if (/^[a-f\d]{24}$/i.test(clinic._id)) {
+      return parseInt(clinic._id.substring(0, 8), 16) * 1000;
+    }
+
+    return 0;
+  };
+
   const filteredClinics = useMemo(() => {
     let data = [...clinics];
     const q = search.trim().toLowerCase();
@@ -83,6 +99,8 @@ function ListOfClinic() {
     if (filterCategory !== "all") {
       data = data.filter((c) => c.dermaCategory?._id === filterCategory);
     }
+
+    data.sort((a, b) => getClinicTimestamp(b) - getClinicTimestamp(a));
 
     return data;
   }, [clinics, search, filterCategory]);

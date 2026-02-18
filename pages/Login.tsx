@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { useRouter } from "next/router";
@@ -6,8 +6,9 @@ import Cookies from "js-cookie";
 import Image from "next/image";
 import Topbar from "@/components/Layout/Topbar";
 import styles from "@/styles/components/forms/MobileLogin.module.css";
-import illustration from "../public/form.png";
-import registerIllustration from "../public/register.png";
+import illustration from "../public/login.jpg";
+import registerIllustration from "../public/register.jpg";
+import otpIllustration from "../public/otp.jpg";
 import { API_URL } from "@/config/api";
 
 export default function Login() {
@@ -121,94 +122,101 @@ export default function Login() {
     <>
       <Topbar />
       <div className={styles.page}>
-        <div className={styles.card}>
-          {step !== "mobile" && (
-            <button className={styles.backBtn} onClick={() => setStep(step === "profile" ? "otp" : "mobile")}>
-              ←
-            </button>
-          )}
+        <div className={styles.splitCard}>
+          <div className={styles.imagePane}>
+            <Image
+              src={step === "otp" ? otpIllustration : step === "profile" ? registerIllustration : illustration}
+              alt="Login"
+              className={styles.heroImage}
+              priority
+            />
+          </div>
 
-          <Image
-            src={step === "profile" ? registerIllustration : illustration}
-            alt="Login"
-            className={styles.heroImage}
-          />
-
-          {step === "mobile" && (
-            <>
-              <h1 className={styles.title}>Sign in to continue</h1>
-              <p className={styles.subtitle}>Enter 10 digit mobile no.</p>
-
-              <form onSubmit={handleSendOtp}>
-                <div className={styles.mobileRow}>
-                  <span className={styles.countryCode}>+91</span>
-                  <input
-                    className={styles.mobileInput}
-                    placeholder="Mobile Number"
-                    value={mobile}
-                    maxLength={10}
-                    inputMode="numeric"
-                    autoFocus
-                    onChange={(e) => setMobile(e.target.value.replace(/\D/g, ""))}
-                  />
-                </div>
-
-                <button type="submit" className={styles.primaryBtn}>
-                  Get Verification Code
+          <div className={styles.formPane}>
+            <div className={styles.formCard}>
+              {step !== "mobile" && (
+                <button className={styles.backBtn} onClick={() => setStep(step === "profile" ? "otp" : "mobile")}>
+                  ←
                 </button>
-              </form>
-            </>
-          )}
+              )}
 
-          {step === "otp" && (
-            <>
-              <h2 className={styles.modalTitle}>Verify mobile number</h2>
-              <p className={styles.modalText}>Enter OTP (for now use 1234)</p>
-              <form onSubmit={handleConfirmOtp}>
-                <input
-                  className={styles.otpInput}
-                  maxLength={4}
-                  inputMode="numeric"
-                  placeholder="____"
-                  value={otp}
-                  autoFocus
-                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
-                />
-                <button type="submit" className={styles.primaryBtn} disabled={loading}>
-                  {loading ? "Please wait..." : "Confirm OTP"}
-                </button>
-              </form>
-            </>
-          )}
+              {step === "mobile" && (
+                <>
+                  <h1 className={styles.title}>Sign in to continue</h1>
+                  <p className={styles.subtitle}>Enter 10 digit mobile no.</p>
 
-          {step === "profile" && (
-            <>
-              <h2 className={styles.modalTitle}>Add Your Information</h2>
-              <form onSubmit={handleContinue}>
-                <input
-                  className={styles.textInput}
-                  placeholder="Full Name"
-                  value={name}
-                  autoFocus
-                  onChange={(e) => setName(e.target.value)}
-                />
-                <input
-                  className={styles.textInput}
-                  placeholder="Enter your email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-                <button type="submit" className={styles.primaryBtn} disabled={loading}>
-                  {loading ? "Please wait..." : "Continue"}
-                </button>
-              </form>
-            </>
-          )}
+                  <form onSubmit={handleSendOtp}>
+                    <div className={styles.mobileRow}>
+                      <span className={styles.countryCode}>+91</span>
+                      <input
+                        className={styles.mobileInput}
+                        placeholder="Mobile Number"
+                        value={mobile}
+                        maxLength={10}
+                        inputMode="numeric"
+                        autoFocus
+                        onChange={(e) => setMobile(e.target.value.replace(/\D/g, ""))}
+                      />
+                    </div>
 
-          <p className={styles.terms}>
-            By proceeding, you consent to share your information with Dr.Dermat and agree to privacy policy and terms of service.
-          </p>
+                    <button type="submit" className={styles.primaryBtn}>
+                      Get Verification Code
+                    </button>
+                  </form>
+                </>
+              )}
+
+              {step === "otp" && (
+                <>
+                  <h2 className={styles.modalTitle}>Verify mobile number</h2>
+                  <p className={styles.modalText}>Enter OTP (for now use 1234)</p>
+                  <form onSubmit={handleConfirmOtp}>
+                    <input
+                      className={styles.otpInput}
+                      maxLength={4}
+                      inputMode="numeric"
+                      placeholder="____"
+                      value={otp}
+                      autoFocus
+                      onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+                    />
+                    <button type="submit" className={styles.primaryBtn} disabled={loading}>
+                      {loading ? "Please wait..." : "Confirm OTP"}
+                    </button>
+                  </form>
+                </>
+              )}
+
+              {step === "profile" && (
+                <>
+                  <h2 className={styles.modalTitle}>Add Your Information</h2>
+                  <form onSubmit={handleContinue}>
+                    <input
+                      className={styles.textInput}
+                      placeholder="Full Name"
+                      value={name}
+                      autoFocus
+                      onChange={(e) => setName(e.target.value)}
+                    />
+                    <input
+                      className={styles.textInput}
+                      placeholder="Enter your email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                    />
+                    <button type="submit" className={styles.primaryBtn} disabled={loading}>
+                      {loading ? "Please wait..." : "Continue"}
+                    </button>
+                  </form>
+                </>
+              )}
+
+              <p className={styles.terms}>
+                By proceeding, you consent to share your information with Dr.Dermat and agree to privacy policy and terms of service.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </>
