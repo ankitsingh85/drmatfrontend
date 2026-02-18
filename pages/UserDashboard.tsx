@@ -5,12 +5,21 @@ import { useRouter } from "next/router";
 import Cookies from "js-cookie";
 import styles from "@/styles/userdashboard.module.css";
 import {
-  FiUsers,
-  FiUserPlus,
+  FiHome,
+  FiCalendar,
+  FiEdit2,
   FiLogOut,
   FiMenu,
   FiX,
-  FiClipboard,
+  FiFileText,
+  FiChevronRight,
+  FiCreditCard,
+  FiHelpCircle,
+  FiSettings,
+  FiStar,
+  FiActivity,
+  FiBookOpen,
+  FiUser,
 } from "react-icons/fi";
 import ServiceHistory from "@/components/UserPanel/ServiceHistory";
 import { API_URL } from "@/config/api";
@@ -26,24 +35,26 @@ import Prescription from "@/components/UserPanel/Prescription";
 interface User {
   name?: string;
   email?: string;
+  contactNo?: string;
+  profileImage?: string;
 }
-
-// const API_URL = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000/api";
 
 const UserDashboard: React.FC = () => {
   const router = useRouter();
-  const [activeSection, setActiveSection] = useState("dashboard");
+  const [activeSection, setActiveSection] = useState("orderhistory");
+  const [activeSectionTitle, setActiveSectionTitle] = useState("My Orders");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [user, setUser] = useState<User>({});
   const [loading, setLoading] = useState(true);
   const [hasProfile, setHasProfile] = useState(false);
 
-  // ✅ Fetch user info & profile check
   useEffect(() => {
     const token = Cookies.get("token");
     const username = Cookies.get("username");
     const email = Cookies.get("email");
+    const contactNo = Cookies.get("contactNo");
+    const profileImage = Cookies.get("profileImage");
 
     if (!token) {
       router.replace("/Login");
@@ -64,14 +75,13 @@ const UserDashboard: React.FC = () => {
         } else {
           setHasProfile(false);
         }
-      } catch (err) {
-        console.error("Error checking profile:", err);
+      } catch {
         setHasProfile(false);
       }
     };
 
     if (username && email) {
-      setUser({ name: username, email });
+      setUser({ name: username, email, contactNo: contactNo || "", profileImage: profileImage || "" });
       checkProfile(email);
       setLoading(false);
     } else {
@@ -82,13 +92,18 @@ const UserDashboard: React.FC = () => {
           });
           if (res.ok) {
             const data = await res.json();
-            setUser({ name: data.name, email: data.email });
+            setUser({
+              name: data.name,
+              email: data.email,
+              contactNo: data.contactNo,
+              profileImage: data.profileImage,
+            });
             Cookies.set("username", data.name || "");
             Cookies.set("email", data.email || "");
+            Cookies.set("contactNo", data.contactNo || "");
+            Cookies.set("profileImage", data.profileImage || "");
             checkProfile(data.email);
           }
-        } catch (err) {
-          console.error(err);
         } finally {
           setLoading(false);
         }
@@ -97,16 +112,16 @@ const UserDashboard: React.FC = () => {
     }
   }, [router]);
 
-  // ✅ Logout
   const handleLogout = () => {
     Cookies.remove("token");
     Cookies.remove("username");
     Cookies.remove("email");
     Cookies.remove("userId");
+    Cookies.remove("contactNo");
+    Cookies.remove("profileImage");
     router.replace("/Login");
   };
 
-  // ✅ Responsive sidebar
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
     handleResize();
@@ -117,6 +132,51 @@ const UserDashboard: React.FC = () => {
   useEffect(() => {
     document.body.style.overflow = sidebarOpen && isMobile ? "hidden" : "auto";
   }, [sidebarOpen, isMobile]);
+
+  const menuItems = [
+    { id: "orderhistory", label: "My Orders", icon: <FiHome /> },
+    { id: "labtest", label: "My Lab Test", icon: <FiCalendar /> },
+    { id: "testbooking", label: "Test Booking", icon: <FiEdit2 /> },
+    { id: "appointmenthistory", label: "Orders", icon: <FiActivity /> },
+    { id: "servicehistory", label: "My Consultation", icon: <FiUser /> },
+    { id: "medicalrecords", label: "Medical Records", icon: <FiFileText /> },
+    { id: "payments", label: "Manage Payment Methods", icon: <FiCreditCard /> },
+    { id: "health", label: "Read About Health", icon: <FiBookOpen /> },
+    { id: "helpcenter", label: "Help Center", icon: <FiHelpCircle /> },
+    { id: "settings", label: "Settings", icon: <FiSettings /> },
+    { id: "rating", label: "Like Us? Give us 5 Stars", icon: <FiStar /> },
+    { id: "prescription", label: "Prescription", icon: <FiFileText /> },
+  ];
+
+  const renderSection = () => {
+    if (activeSection === "userprofile") {
+      return (
+        <UserProfile
+          showFormInitially={true}
+          userEmail={user.email || ""}
+          onProfileSaved={(updatedUser) => {
+            setHasProfile(true);
+            if (!updatedUser) return;
+            setUser((prev) => ({
+              ...prev,
+              ...updatedUser,
+            }));
+          }}
+        />
+      );
+    }
+    if (activeSection === "orderhistory") return <OrderHistory />;
+    if (activeSection === "appointmenthistory") return <AppointmentHistory />;
+    if (activeSection === "servicehistory") return <ServiceHistory />;
+    if (activeSection === "prescription") return <Prescription />;
+
+    return (
+      <div className={styles.comingSoonCard}>
+        <h3>{activeSectionTitle}</h3>
+        <p>This section is coming soon.</p>
+      </div>
+    );
+  };
 
   if (loading) {
     return (
@@ -133,10 +193,7 @@ const UserDashboard: React.FC = () => {
 
       {isMobile && (
         <div className={styles.mobileTopbar}>
-          <button
-            className={styles.menuToggle}
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-          >
+          <button className={styles.menuToggle} onClick={() => setSidebarOpen(!sidebarOpen)}>
             {sidebarOpen ? <FiX size={22} /> : <FiMenu size={22} />}
           </button>
         </div>
@@ -144,103 +201,52 @@ const UserDashboard: React.FC = () => {
 
       <div className={styles.wrapper}>
         <div className={styles.mainArea}>
-          {/* Sidebar */}
           <aside
             className={`${styles.sidebar} ${
-              isMobile
-                ? sidebarOpen
-                  ? styles.sidebarMobile
-                  : styles.sidebarHidden
-                : ""
+              isMobile ? (sidebarOpen ? styles.sidebarMobile : styles.sidebarHidden) : ""
             }`}
           >
-            <p className={styles.sectionTitle}>Menu</p>
+            <div className={styles.sidebarProfile}>
+              <div className={styles.avatarCircle}>
+                {user.profileImage ? (
+                  <img src={user.profileImage} alt="User" className={styles.avatarImage} />
+                ) : (
+                  user.name?.slice(0, 1).toUpperCase() || "U"
+                )}
+              </div>
+              <div className={styles.profileMeta}>
+                <p className={styles.profileName}>{user.name || "Jane Doe"}</p>
+                <p className={styles.profilePhone}>{user.contactNo ? `+91 ${user.contactNo}` : user.email}</p>
+              </div>
+            </div>
+
+            <button
+              className={styles.editProfileBtn}
+              onClick={() => {
+                setActiveSection("userprofile");
+                setActiveSectionTitle("Edit Profile");
+                setSidebarOpen(false);
+              }}
+            >
+              Edit Profile
+            </button>
+
             <ul className={styles.menu}>
-              <li
-                onClick={() => {
-                  setActiveSection("dashboard");
-                  setSidebarOpen(false);
-                }}
-                className={`${styles.menuItem} ${
-                  activeSection === "dashboard" ? styles.active : ""
-                }`}
-              >
-                <FiUsers className={styles.icon} />
-                <span className={styles.label}>Dashboard</span>
-              </li>
-
-              <p className={styles.sectionTitle}>List</p>
-
-              <li
-                onClick={() => {
-                  setActiveSection("userprofile");
-                  setSidebarOpen(false);
-                }}
-                className={`${styles.menuItem} ${
-                  activeSection === "userprofile" ? styles.active : ""
-                }`}
-              >
-                <FiUserPlus className={styles.icon} />
-                <span className={styles.label}>User Profile</span>
-              </li>
-
-              <li
-                onClick={() => {
-                  setActiveSection("orderhistory");
-                  setSidebarOpen(false);
-                }}
-                className={`${styles.menuItem} ${
-                  activeSection === "orderhistory" ? styles.active : ""
-                }`}
-              >
-                <FiClipboard className={styles.icon} />
-                <span className={styles.label}>Order History</span>
-              </li>
-
-              <li
-                onClick={() => {
-                  setActiveSection("appointmenthistory");
-                  setSidebarOpen(false);
-                }}
-                className={`${styles.menuItem} ${
-                  activeSection === "appointmenthistory" ? styles.active : ""
-                }`}
-              >
-                <FiClipboard className={styles.icon} />
-                <span className={styles.label}>Appointment History</span>
-              </li>
-
-
-
-<li
-  onClick={() => {
-    setActiveSection("servicehistory");
-    setSidebarOpen(false);
-  }}
-  className={`${styles.menuItem} ${
-    activeSection === "servicehistory" ? styles.active : ""
-  }`}
->
-  <FiClipboard className={styles.icon} />
-  <span className={styles.label}>Service History</span>
-</li>
-
-
-<li
-  onClick={() => {
-    setActiveSection("prescription");
-    setSidebarOpen(false);
-  }}
-  className={`${styles.menuItem} ${
-    activeSection === "prescription" ? styles.active : ""
-  }`}
->
-  <FiClipboard className={styles.icon} />
-  <span className={styles.label}>Prescription</span>
-</li>
-
-
-
+              {menuItems.map((item) => (
+                <li
+                  key={item.id}
+                  onClick={() => {
+                    setActiveSection(item.id);
+                    setActiveSectionTitle(item.label);
+                    setSidebarOpen(false);
+                  }}
+                  className={`${styles.menuItem} ${activeSection === item.id ? styles.active : ""}`}
+                >
+                  <span className={styles.icon}>{item.icon}</span>
+                  <span className={styles.label}>{item.label}</span>
+                  <FiChevronRight className={styles.chevron} />
+                </li>
+              ))}
             </ul>
 
             <button className={styles.logoutButton} onClick={handleLogout}>
@@ -249,41 +255,7 @@ const UserDashboard: React.FC = () => {
             </button>
           </aside>
 
-          {/* Main Content */}
-          <div className={styles.mainContent}>
-            {activeSection === "dashboard" && (
-              <div className={styles.welcomeBox}>
-                <h2>Welcome, {user.name || "User"} 👋</h2>
-
-                {/* If profile not filled */}
-                {!hasProfile && (
-                  <p className={styles.fillDetails}>
-                    It looks like you haven’t filled your profile details yet.{" "}
-                    <button
-                      className={styles.linkButton}
-                      onClick={() => setActiveSection("userprofile")}
-                    >
-                      Click here to fill your details
-                    </button>
-                  </p>
-                )}
-              </div>
-            )}
-
-            {activeSection === "userprofile" && (
-              <UserProfile
-                showFormInitially={!hasProfile}
-                userEmail={user.email || ""}
-                onProfileSaved={() => setHasProfile(true)} // ✅ update dashboard
-              />
-            )}
-
-            {activeSection === "orderhistory" && <OrderHistory />}
-            {activeSection === "appointmenthistory" && <AppointmentHistory />}
-            {activeSection === "servicehistory" && <ServiceHistory />}
-{activeSection === "prescription" && <Prescription />}
-
-          </div>
+          <div className={styles.mainContent}>{renderSection()}</div>
         </div>
       </div>
 

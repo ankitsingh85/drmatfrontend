@@ -33,7 +33,7 @@
 }
 
 .navLink {
- font-size: 13px;
+ font-size: 14px;
     font-weight: 600;
     color: #41444c;
     text-decoration: none;
@@ -93,6 +93,19 @@
   font-size: 14px;
   font-weight: 400;
   color: #1a2238;
+}
+
+.userIconBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #1a2238;
+  cursor: pointer;
 }
 
 .cartInfo {

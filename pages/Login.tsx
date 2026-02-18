@@ -5,45 +5,111 @@ import { useRouter } from "next/router";
 import Cookies from "js-cookie";
 import Image from "next/image";
 import Topbar from "@/components/Layout/Topbar";
-import Footer from "@/components/Layout/Footer";
-import styles from "@/styles/components/forms/ModularForm.module.css";
+import styles from "@/styles/components/forms/MobileLogin.module.css";
 import illustration from "../public/form.png";
+import registerIllustration from "../public/register.png";
 import { API_URL } from "@/config/api";
 
 export default function Login() {
-  const router = useRouter();
-
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-  });
-
-  const [rememberMe, setRememberMe] = useState(false);
+  useRouter();
+  const [mobile, setMobile] = useState("");
+  const [otp, setOtp] = useState("");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [step, setStep] = useState<"mobile" | "otp" | "profile">("mobile");
   const [loading, setLoading] = useState(false);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  const completeLogin = (data: any, fallbackMobile: string) => {
+    Cookies.set("token", data.token);
+    Cookies.set("email", data.user.email || "");
+    Cookies.set("username", data.user.name || "");
+    Cookies.set("contactNo", data.user.contactNo || fallbackMobile);
+
+    window.location.replace("/home");
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+  const validateMobile = () => {
+    const normalized = mobile.replace(/\D/g, "");
+    if (normalized.length !== 10) {
+      alert("Please enter a valid 10 digit mobile number");
+      return null;
+    }
+    return normalized;
+  };
 
+  const handleSendOtp = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!validateMobile()) return;
+    setOtp("");
+    setStep("otp");
+  };
+
+  const handleConfirmOtp = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (otp !== "1234") {
+      alert("Invalid OTP. Use 1234");
+      return;
+    }
+
+    const normalizedMobile = validateMobile();
+    if (!normalizedMobile) return;
+
+    setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/auth/user/login`, {
+      const res = await fetch(`${API_URL}/auth/user/mobile-login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          contactNo: normalizedMobile,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        completeLogin(data, normalizedMobile);
+        return;
+      }
+
+      if (data?.message === "Name and email are required") {
+        setStep("profile");
+        return;
+      }
+
+      throw new Error(data?.message || "Login failed");
+    } catch (err: any) {
+      alert(err.message || "Login failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleContinue = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    const normalizedMobile = validateMobile();
+    if (!normalizedMobile) return;
+
+    if (!name.trim() || !email.trim()) {
+      alert("Name and email are required");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/auth/user/mobile-login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contactNo: normalizedMobile,
+          name: name.trim(),
+          email: email.trim(),
+        }),
       });
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Login failed");
 
-      Cookies.set("token", data.token, { expires: rememberMe ? 7 : undefined });
-      Cookies.set("email", data.user.email, { expires: rememberMe ? 7 : undefined });
-      Cookies.set("username", data.user.name, { expires: rememberMe ? 7 : undefined });
-
-      router.push("/UserDashboard");
+      completeLogin(data, normalizedMobile);
     } catch (err: any) {
       alert(err.message || "Login failed");
     } finally {
@@ -54,47 +120,97 @@ export default function Login() {
   return (
     <>
       <Topbar />
-      <div className={styles.container}>
-        <form onSubmit={handleSubmit} className={styles.form}>
-          <Image src={illustration} alt="Login" className={styles.image} />
+      <div className={styles.page}>
+        <div className={styles.card}>
+          {step !== "mobile" && (
+            <button className={styles.backBtn} onClick={() => setStep(step === "profile" ? "otp" : "mobile")}>
+              ←
+            </button>
+          )}
 
-          <h1 className={styles.head}>Login</h1>
-
-          <input
-            type="email"
-            name="email"
-            placeholder="Email"
-            value={formData.email}
-            onChange={handleChange}
-            required
-            className={styles.input}
+          <Image
+            src={step === "profile" ? registerIllustration : illustration}
+            alt="Login"
+            className={styles.heroImage}
           />
 
-          <input
-            type="password"
-            name="password"
-            placeholder="Password"
-            value={formData.password}
-            onChange={handleChange}
-            required
-            className={styles.input}
-          />
+          {step === "mobile" && (
+            <>
+              <h1 className={styles.title}>Sign in to continue</h1>
+              <p className={styles.subtitle}>Enter 10 digit mobile no.</p>
 
-          <label className={styles.checkboxRow}>
-            <input
-              type="checkbox"
-              checked={rememberMe}
-              onChange={(e) => setRememberMe(e.target.checked)}
-            />
-            Remember Me
-          </label>
+              <form onSubmit={handleSendOtp}>
+                <div className={styles.mobileRow}>
+                  <span className={styles.countryCode}>+91</span>
+                  <input
+                    className={styles.mobileInput}
+                    placeholder="Mobile Number"
+                    value={mobile}
+                    maxLength={10}
+                    inputMode="numeric"
+                    autoFocus
+                    onChange={(e) => setMobile(e.target.value.replace(/\D/g, ""))}
+                  />
+                </div>
 
-          <button type="submit" disabled={loading} className={styles.button}>
-            {loading ? "Logging in..." : "Login"}
-          </button>
-        </form>
+                <button type="submit" className={styles.primaryBtn}>
+                  Get Verification Code
+                </button>
+              </form>
+            </>
+          )}
+
+          {step === "otp" && (
+            <>
+              <h2 className={styles.modalTitle}>Verify mobile number</h2>
+              <p className={styles.modalText}>Enter OTP (for now use 1234)</p>
+              <form onSubmit={handleConfirmOtp}>
+                <input
+                  className={styles.otpInput}
+                  maxLength={4}
+                  inputMode="numeric"
+                  placeholder="____"
+                  value={otp}
+                  autoFocus
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+                />
+                <button type="submit" className={styles.primaryBtn} disabled={loading}>
+                  {loading ? "Please wait..." : "Confirm OTP"}
+                </button>
+              </form>
+            </>
+          )}
+
+          {step === "profile" && (
+            <>
+              <h2 className={styles.modalTitle}>Add Your Information</h2>
+              <form onSubmit={handleContinue}>
+                <input
+                  className={styles.textInput}
+                  placeholder="Full Name"
+                  value={name}
+                  autoFocus
+                  onChange={(e) => setName(e.target.value)}
+                />
+                <input
+                  className={styles.textInput}
+                  placeholder="Enter your email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+                <button type="submit" className={styles.primaryBtn} disabled={loading}>
+                  {loading ? "Please wait..." : "Continue"}
+                </button>
+              </form>
+            </>
+          )}
+
+          <p className={styles.terms}>
+            By proceeding, you consent to share your information with Dr.Dermat and agree to privacy policy and terms of service.
+          </p>
+        </div>
       </div>
-      <Footer />
     </>
   );
 }

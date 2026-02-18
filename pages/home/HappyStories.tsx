@@ -16,7 +16,6 @@ interface Short {
 
 const HappyStories = () => {
   const [shorts, setShorts] = useState<Short[]>([]);
-  const [current, setCurrent] = useState(0);
   const [isMuted, setIsMuted] = useState(true);
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -76,22 +75,6 @@ const HappyStories = () => {
     }
   }, [shorts, isMuted]);
 
-  // ✅ Auto-scroll every 5 seconds
-  useEffect(() => {
-    if (!shorts.length) return;
-    const interval = setInterval(() => {
-      setCurrent((prev) => {
-        const next = (prev + 1) % shorts.length;
-        containerRef.current?.scrollTo({
-          left: next * (containerRef.current?.offsetWidth ?? 0),
-          behavior: "smooth",
-        });
-        return next;
-      });
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [shorts]);
-
   // ✅ Toggle mute
   const toggleMute = () => {
     setIsMuted((prev) => !prev);
@@ -115,19 +98,27 @@ const HappyStories = () => {
     });
   };
 
+  // ✅ Arrow scroll like Treatment
+  const scroll = (dir: "left" | "right") => {
+    if (!containerRef.current) return;
+    containerRef.current.scrollBy({
+      left: dir === "left" ? -260 : 260,
+      behavior: "smooth",
+    });
+  };
+
   if (!shorts.length)
     return <p style={{ textAlign: "center" }}>No shorts available</p>;
 
   return (
     <div className={styles.wrapper}>
+      <button className={`${styles.arrow} ${styles.left}`} onClick={() => scroll("left")}>
+        ‹
+      </button>
+
       <div className={styles.slider} ref={containerRef}>
         {shorts.map((short, index) => (
-          <div
-            key={short._id}
-            className={`${styles.card} ${
-              index === current ? styles.active : styles.inactive
-            }`}
-          >
+          <div key={short._id} className={styles.card}>
             <div
               className={styles.videoWrapper}
               onMouseEnter={() =>
@@ -168,21 +159,9 @@ const HappyStories = () => {
         ))}
       </div>
 
-      <div className={styles.dots}>
-        {shorts.map((_, i) => (
-          <span
-            key={i}
-            className={`${styles.dot} ${i === current ? styles.activeDot : ""}`}
-            onClick={() => {
-              setCurrent(i);
-              containerRef.current?.scrollTo({
-                left: i * (containerRef.current?.offsetWidth ?? 0),
-                behavior: "smooth",
-              });
-            }}
-          />
-        ))}
-      </div>
+      <button className={`${styles.arrow} ${styles.right}`} onClick={() => scroll("right")}>
+        ›
+      </button>
     </div>
   );
 };

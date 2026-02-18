@@ -402,6 +402,7 @@ export default function CreateB2BProduct() {
             <option value="5">5%</option>
             <option value="12">12%</option>
             <option value="18">18%</option>
+            <option value="28">28%</option>
           </select>
 
           <select className={styles.select} name="taxIncluded" value={String(form.taxIncluded)} onChange={handleChange}>
