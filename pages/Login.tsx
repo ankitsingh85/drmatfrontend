@@ -23,12 +23,19 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
 
   const completeLogin = (data: any, fallbackMobile: string) => {
-    Cookies.set("token", data.token);
-    Cookies.set("email", data.user.email || "");
-    Cookies.set("username", data.user.name || "");
-    Cookies.set("contactNo", data.user.contactNo || fallbackMobile);
+    const cookieOptions = {
+      path: "/",
+      sameSite: "lax" as const,
+      secure: typeof window !== "undefined" && window.location.protocol === "https:",
+    };
+
+    Cookies.set("token", data.token, cookieOptions);
+    Cookies.set("email", data.user.email || "", cookieOptions);
+    Cookies.set("username", data.user.name || "", cookieOptions);
+    Cookies.set("contactNo", data.user.contactNo || fallbackMobile, cookieOptions);
+    Cookies.set("role", "user", cookieOptions);
     const userId = String(data.user?.id || data.user?._id || "");
-    Cookies.set("userId", userId);
+    Cookies.set("userId", userId, cookieOptions);
     localStorage.setItem("userId", userId);
 
     window.dispatchEvent(new CustomEvent("user-logged-in"));

@@ -27,12 +27,12 @@ const normalizeImage = (img: string | undefined | null, apiUrl: string): string 
 };
 
 export const TopbarProfileProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Always start with null to match server render (avoid hydration mismatch)
+  // Hydrate from cookies first so login state is visible immediately after redirect.
   const [state, setState] = React.useState<TopbarProfileState>({
-    username: null,
-    profileImage: null,
-    email: null,
-    contactNo: null,
+    username: Cookies.get("username") || null,
+    profileImage: Cookies.get("profileImage") || null,
+    email: Cookies.get("email") || null,
+    contactNo: Cookies.get("contactNo") || null,
   });
 
   const refetchProfile = useCallback(async () => {
