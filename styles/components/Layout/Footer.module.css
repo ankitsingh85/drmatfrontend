@@ -18,8 +18,9 @@ margin-top: 1rem;;
 
 .logo {
   background-color: white;
-  width: 150px;
+  width: 100px;
   margin-bottom: 10px;
+  height:80px;
 }
 
 .description {
