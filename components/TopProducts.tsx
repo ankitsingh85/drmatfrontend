@@ -65,7 +65,7 @@ const TopProducts: React.FC = () => {
             name: p!.productName,
             company: p!.brandName,
             price: Number(p!.mrpPrice || 0),
-            discountPrice: Number(p!.discountedPrice || p!.mrpPrice || 0),
+            discountPrice: Number(p!.discountedPrice || 0),
             images: p!.productImages || [],
           }));
 
@@ -84,20 +84,22 @@ const TopProducts: React.FC = () => {
   const handleAddToCart = (e: React.MouseEvent, product: Product) => {
     e.stopPropagation();
 
-    const price = product.price;
-    const discountPrice = product.discountPrice ?? price;
-    const hasDiscount = discountPrice < price;
+    const rawPrice = product.price;
+    const rawDiscount = product.discountPrice ?? rawPrice;
+    const originalPrice = Math.max(rawPrice, rawDiscount);
+    const salePrice = Math.min(rawPrice, rawDiscount);
+    const hasDiscount = salePrice < originalPrice && originalPrice > 0;
     const discountPercent = hasDiscount
-      ? Math.round(((price - discountPrice) / price) * 100)
+      ? Math.round(((originalPrice - salePrice) / originalPrice) * 100)
       : 0;
 
     addToCart({
       id: product.id,
       name: product.name,
-      price: discountPrice,
-      mrp: price,
+      price: salePrice,
+      mrp: originalPrice,
       discount: hasDiscount ? `${discountPercent}% OFF` : undefined,
-      discountPrice,
+    
       company: product.company,
       image: product.images?.[0],
     });
@@ -115,11 +117,13 @@ const TopProducts: React.FC = () => {
 
       <div className={styles.grid}>
         {products.map((product, idx) => {
-          const price = product.price;
-          const discount = product.discountPrice ?? price;
-          const hasDiscount = discount < price && price > 0;
+          const rawPrice = product.price;
+          const rawDiscount = product.discountPrice ?? rawPrice;
+          const originalPrice = Math.max(rawPrice, rawDiscount);
+          const salePrice = Math.min(rawPrice, rawDiscount);
+          const hasDiscount = salePrice < originalPrice && originalPrice > 0;
           const discountPercent = hasDiscount
-            ? Math.round(((price - discount) / price) * 100)
+            ? Math.round(((originalPrice - salePrice) / originalPrice) * 100)
             : 0;
 
           return (
@@ -164,11 +168,11 @@ const TopProducts: React.FC = () => {
               <div className={styles.priceRow}>
                 {hasDiscount ? (
                   <>
-                    <span className={styles.discountPrice}>₹{discount}</span>
-                    <span className={styles.originalPrice}>₹{price}</span>
+                    <span className={styles.discountPrice}>₹{salePrice}</span>
+                    <span className={styles.originalPrice}>₹{originalPrice}</span>
                   </>
                 ) : (
-                  <span className={styles.discountPrice}>₹{price}</span>
+                  <span className={styles.discountPrice}>₹{originalPrice}</span>
                 )}
               </div>
 

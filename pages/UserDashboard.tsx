@@ -21,16 +21,25 @@ import {
   FiBookOpen,
   FiUser,
 } from "react-icons/fi";
+
 import ServiceHistory from "@/components/UserPanel/ServiceHistory";
-import { API_URL } from "@/config/api";
+import OrderHistory from "@/components/UserPanel/OrderHistory";
+import AppointmentHistory from "@/components/UserPanel/AppointmentHistory";
+import Prescription from "@/components/UserPanel/Prescription";
+import UserProfile from "@/components/UserPanel/UserProfile";
 
 import Topbar from "@/components/Layout/Topbar";
 import Footer from "@/components/Layout/Footer";
 import MobileNavbar from "@/components/Layout/MobileNavbar";
-import UserProfile from "@/components/UserPanel/UserProfile";
-import OrderHistory from "@/components/UserPanel/OrderHistory";
-import AppointmentHistory from "@/components/UserPanel/AppointmentHistory";
-import Prescription from "@/components/UserPanel/Prescription";
+import { API_URL } from "@/config/api";
+
+const normalizeProfileImage = (img?: string | null) => {
+  if (!img) return null;
+  if (/^data:image\//i.test(img)) return img;
+  if (/^https?:\/\//i.test(img)) return img;
+  if (img.startsWith("/")) return `${API_URL}${img}`;
+  return `${API_URL}/${img}`;
+};
 
 interface User {
   name?: string;
@@ -41,87 +50,74 @@ interface User {
 
 const UserDashboard: React.FC = () => {
   const router = useRouter();
+
   const [activeSection, setActiveSection] = useState("orderhistory");
   const [activeSectionTitle, setActiveSectionTitle] = useState("My Orders");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [user, setUser] = useState<User>({});
   const [loading, setLoading] = useState(true);
-  const [hasProfile, setHasProfile] = useState(false);
+  const [profileKey, setProfileKey] = useState(0);
 
+  /* ================= FETCH USER ================= */
   useEffect(() => {
     const token = Cookies.get("token");
-    const username = Cookies.get("username");
-    const email = Cookies.get("email");
-    const contactNo = Cookies.get("contactNo");
-    const profileImage = Cookies.get("profileImage");
-
     if (!token) {
       router.replace("/Login");
       return;
     }
 
-    const checkProfile = async (userEmail: string) => {
-      try {
-        const res = await fetch(`${API_URL}/userprofile/${userEmail}`);
-        if (res.ok) {
-          const data = await res.json();
-          if (data && data._id) {
-            setHasProfile(true);
-            Cookies.set("userId", data._id);
-          } else {
-            setHasProfile(false);
-          }
-        } else {
-          setHasProfile(false);
-        }
-      } catch {
-        setHasProfile(false);
-      }
-    };
+    const fetchUser = async () => {
+  try {
+    const res = await fetch(`${API_URL}/users/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
 
-    if (username && email) {
-      setUser({ name: username, email, contactNo: contactNo || "", profileImage: profileImage || "" });
-      checkProfile(email);
+    if (!res.ok) {
+      // 🔐 token expired or invalid
+      if (res.status === 401 || res.status === 403) {
+        Cookies.remove("token");
+        router.replace("/Login");
+        return;
+      }
+
+      console.error("Failed to load user:", res.status);
       setLoading(false);
-    } else {
-      const fetchFromToken = async () => {
-        try {
-          const res = await fetch(`${API_URL}/users/me`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          if (res.ok) {
-            const data = await res.json();
-            setUser({
-              name: data.name,
-              email: data.email,
-              contactNo: data.contactNo,
-              profileImage: data.profileImage,
-            });
-            Cookies.set("username", data.name || "");
-            Cookies.set("email", data.email || "");
-            Cookies.set("contactNo", data.contactNo || "");
-            Cookies.set("profileImage", data.profileImage || "");
-            checkProfile(data.email);
-          }
-        } finally {
-          setLoading(false);
-        }
-      };
-      fetchFromToken();
+      return;
     }
+
+    const data = await res.json();
+
+    setUser({
+      name: data.name,
+      email: data.email,
+      contactNo: data.contactNo,
+      profileImage: normalizeProfileImage(data.profileImage) || data.profileImage || undefined,
+    });
+
+    Cookies.set("username", data.name || "");
+    Cookies.set("email", data.email || "");
+    Cookies.set("contactNo", data.contactNo || "");
+  } catch (err) {
+    console.error("User fetch error:", err);
+  } finally {
+    setLoading(false);
+  }
+};
+
+    fetchUser();
   }, [router]);
 
+  /* ================= LOGOUT ================= */
   const handleLogout = () => {
     Cookies.remove("token");
     Cookies.remove("username");
     Cookies.remove("email");
-    Cookies.remove("userId");
     Cookies.remove("contactNo");
-    Cookies.remove("profileImage");
     router.replace("/Login");
   };
 
+  /* ================= RESPONSIVE ================= */
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
     handleResize();
@@ -130,9 +126,11 @@ const UserDashboard: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    document.body.style.overflow = sidebarOpen && isMobile ? "hidden" : "auto";
+    document.body.style.overflow =
+      sidebarOpen && isMobile ? "hidden" : "auto";
   }, [sidebarOpen, isMobile]);
 
+  /* ================= MENU ================= */
   const menuItems = [
     { id: "orderhistory", label: "My Orders", icon: <FiHome /> },
     { id: "labtest", label: "My Lab Test", icon: <FiCalendar /> },
@@ -148,23 +146,21 @@ const UserDashboard: React.FC = () => {
     { id: "prescription", label: "Prescription", icon: <FiFileText /> },
   ];
 
+  /* ================= CONTENT ================= */
   const renderSection = () => {
     if (activeSection === "userprofile") {
       return (
         <UserProfile
-          showFormInitially={true}
+          key={profileKey} // 🔥 ALWAYS REMOUNT
           userEmail={user.email || ""}
           onProfileSaved={(updatedUser) => {
-            setHasProfile(true);
             if (!updatedUser) return;
-            setUser((prev) => ({
-              ...prev,
-              ...updatedUser,
-            }));
+            setUser((prev) => ({ ...prev, ...updatedUser }));
           }}
         />
       );
     }
+
     if (activeSection === "orderhistory") return <OrderHistory />;
     if (activeSection === "appointmenthistory") return <AppointmentHistory />;
     if (activeSection === "servicehistory") return <ServiceHistory />;
@@ -187,13 +183,17 @@ const UserDashboard: React.FC = () => {
     );
   }
 
+  /* ================= UI ================= */
   return (
     <>
       <Topbar hideHamburgerOnMobile />
 
       {isMobile && (
         <div className={styles.mobileTopbar}>
-          <button className={styles.menuToggle} onClick={() => setSidebarOpen(!sidebarOpen)}>
+          <button
+            className={styles.menuToggle}
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+          >
             {sidebarOpen ? <FiX size={22} /> : <FiMenu size={22} />}
           </button>
         </div>
@@ -203,20 +203,31 @@ const UserDashboard: React.FC = () => {
         <div className={styles.mainArea}>
           <aside
             className={`${styles.sidebar} ${
-              isMobile ? (sidebarOpen ? styles.sidebarMobile : styles.sidebarHidden) : ""
+              isMobile
+                ? sidebarOpen
+                  ? styles.sidebarMobile
+                  : styles.sidebarHidden
+                : ""
             }`}
           >
+            {/* ===== PROFILE ===== */}
             <div className={styles.sidebarProfile}>
               <div className={styles.avatarCircle}>
                 {user.profileImage ? (
-                  <img src={user.profileImage} alt="User" className={styles.avatarImage} />
+                  <img
+                    src={user.profileImage}
+                    className={styles.avatarImage}
+                    alt="Profile"
+                  />
                 ) : (
-                  user.name?.slice(0, 1).toUpperCase() || "U"
+                  user.name?.charAt(0).toUpperCase() || "U"
                 )}
               </div>
               <div className={styles.profileMeta}>
-                <p className={styles.profileName}>{user.name || "Jane Doe"}</p>
-                <p className={styles.profilePhone}>{user.contactNo ? `+91 ${user.contactNo}` : user.email}</p>
+                <p className={styles.profileName}>{user.name}</p>
+                <p className={styles.profilePhone}>
+                  {user.contactNo || user.email}
+                </p>
               </div>
             </div>
 
@@ -225,6 +236,7 @@ const UserDashboard: React.FC = () => {
               onClick={() => {
                 setActiveSection("userprofile");
                 setActiveSectionTitle("Edit Profile");
+                setProfileKey((k) => k + 1); // 🔥 ALWAYS OPENS
                 setSidebarOpen(false);
               }}
             >
@@ -240,7 +252,9 @@ const UserDashboard: React.FC = () => {
                     setActiveSectionTitle(item.label);
                     setSidebarOpen(false);
                   }}
-                  className={`${styles.menuItem} ${activeSection === item.id ? styles.active : ""}`}
+                  className={`${styles.menuItem} ${
+                    activeSection === item.id ? styles.active : ""
+                  }`}
                 >
                   <span className={styles.icon}>{item.icon}</span>
                   <span className={styles.label}>{item.label}</span>

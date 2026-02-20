@@ -23,6 +23,7 @@ interface IUserProfile {
   email: string;
   name: string;
   addresses: Address[];
+  profileImage?: string;
 }
 
 // const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000/api";
@@ -38,46 +39,98 @@ const AddressPage: React.FC = () => {
   const [editAddress, setEditAddress] = useState<Address>({ type: "Home", address: "" });
   const [newAddress, setNewAddress] = useState<Address>({ type: "Home", address: "" });
 
+  const normalizeProfileImage = (img?: string) => {
+    if (!img) return "";
+    if (img.startsWith("data:image/")) return img;
+    if (img.startsWith("http")) return img;
+    return `data:image/jpeg;base64,${img}`;
+  };
+
   useEffect(() => {
     const email = Cookies.get("email");
-    if (!email) return;
+    const token = Cookies.get("token");
+    if (!email || !token) {
+      router.replace("/Login?next=/home/Address");
+      return;
+    }
 
     const fetchUser = async () => {
       try {
-        const res = await fetch(`${API_URL}/userprofile/${email}`);
+        const res = await fetch(`${API_URL}/users/by-email/${encodeURIComponent(email)}`);
         if (res.ok) {
-          const data: IUserProfile = await res.json();
-          setUser(data);
-          if (data.addresses.length) setSelectedAddressIndex(0);
+          const data = await res.json();
+          const addresses = data.addresses || [];
+          setUser({
+            _id: data._id,
+            email: data.email,
+            name: data.name,
+            addresses,
+            profileImage: data.profileImage,
+          });
+          if (addresses.length) setSelectedAddressIndex(0);
+        } else {
+          router.replace("/Login?next=/home/Address");
         }
       } catch (err) {
         console.error(err);
+        router.replace("/Login?next=/home/Address");
       }
     };
 
     fetchUser();
-  }, []);
+  }, [router]);
 
-  if (!user) return <p className={styles.message}>Please log in to select address.</p>;
-  if (cartItems.length === 0) return <p className={styles.message}>Your cart is empty.</p>;
+  if (!user) return <p className={styles.message}>Loading...</p>;
+  if (cartItems.length === 0) {
+    router.replace("/home/Cart");
+    return <p className={styles.message}>Your cart is empty. Redirecting...</p>;
+  }
 
-  const handleAddAddress = () => {
-    setUser((prev) => prev ? { ...prev, addresses: [...prev.addresses, newAddress] } : null);
-    setNewAddress({ type: "Home", address: "" });
-    setShowAddModal(false);
+  const saveAddressesToBackend = async (addresses: Address[]) => {
+    if (!user?._id) return;
+    try {
+      await fetch(`${API_URL}/users/${user._id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: user.name,
+          email: user.email,
+          addresses,
+        }),
+      });
+    } catch (err) {
+      console.error("Failed to save address:", err);
+    }
   };
 
-  const handleEditAddress = () => {
+  const handleAddAddress = async () => {
+    if (!newAddress.address.trim()) return;
+    const updatedAddresses = [...(user?.addresses || []), newAddress];
+    setUser((prev) => (prev ? { ...prev, addresses: updatedAddresses } : null));
+    setNewAddress({ type: "Home", address: "" });
+    setShowAddModal(false);
+    await saveAddressesToBackend(updatedAddresses);
+  };
+
+  const handleEditAddress = async () => {
     if (!user) return;
     const updatedAddresses = [...user.addresses];
     updatedAddresses[selectedAddressIndex] = editAddress;
     setUser({ ...user, addresses: updatedAddresses });
     setShowEditModal(false);
+    await saveAddressesToBackend(updatedAddresses);
   };
 
   const handleProceedPayment = () => {
-    if (!user) return;
+    if (!user || !user.addresses.length) {
+      alert("Please add at least one delivery address.");
+      return;
+    }
     const selectedAddress = user.addresses[selectedAddressIndex];
+    if (!selectedAddress) {
+      alert("Please select a delivery address.");
+      return;
+    }
 
     router.push({
       pathname: "/home/PaymentPage",
@@ -91,7 +144,7 @@ const AddressPage: React.FC = () => {
   const totalPrice = cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
 
   return (
-    <>
+    <div className={styles.page}>
       {/* Topbar with steps */}
       <div className={styles.header}>
         <div className={styles.logo}>
@@ -119,7 +172,15 @@ const AddressPage: React.FC = () => {
         {/* Left Section */}
         <div className={styles.left}>
           <div className={styles.userCard}>
-            <FaUserCircle className={styles.avatar} />
+            {user.profileImage ? (
+              <img
+                src={normalizeProfileImage(user.profileImage)}
+                alt={user.name}
+                className={styles.avatarImage}
+              />
+            ) : (
+              <FaUserCircle className={styles.avatar} />
+            )}
             <div className={styles.userInfo}>
               <div className={styles.username}>{user.name}</div>
               <div className={styles.secureLogin}><BsShieldCheck /> You are securely logged in</div>
@@ -211,7 +272,7 @@ const AddressPage: React.FC = () => {
       )}
 
       <MobileNavbar />
-    </>
+    </div>
   );
 };
 

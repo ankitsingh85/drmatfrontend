@@ -13,7 +13,7 @@ interface IUserForm {
   email: string;
   contactNo: string;
   address: string;
-  profileImage: string;
+  profileImage: string; // ✅ base64
 }
 
 interface UserProfileProps {
@@ -26,6 +26,8 @@ interface UserProfileProps {
     profileImage?: string;
   }) => void;
 }
+
+const MAX_IMAGE_SIZE = 200 * 1024; // 200KB
 
 const UserProfile: React.FC<UserProfileProps> = ({
   showFormInitially = false,
@@ -47,6 +49,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
 
   const email = userEmail || Cookies.get("email") || "";
 
+  /* ================= FETCH USER ================= */
   useEffect(() => {
     if (!email) {
       router.replace("/Login");
@@ -55,7 +58,9 @@ const UserProfile: React.FC<UserProfileProps> = ({
 
     const fetchUser = async () => {
       try {
-        const res = await fetch(`${API_URL}/users/by-email/${encodeURIComponent(email)}`);
+        const res = await fetch(
+          `${API_URL}/users/by-email/${encodeURIComponent(email)}`
+        );
         if (!res.ok) throw new Error("User not found");
 
         const data = await res.json();
@@ -69,10 +74,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
           profileImage: data.profileImage || "",
         });
       } catch {
-        setForm((prev) => ({
-          ...prev,
-          email,
-        }));
+        setForm((prev) => ({ ...prev, email }));
       } finally {
         setLoading(false);
       }
@@ -85,31 +87,59 @@ const UserProfile: React.FC<UserProfileProps> = ({
     setShowForm(showFormInitially);
   }, [showFormInitially]);
 
-  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  /* ================= HANDLE CHANGE ================= */
+  const handleChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target;
 
-    if (name === "profileImage" && "files" in e.target && e.target.files?.[0]) {
+    /* ===== IMAGE TO BASE64 ===== */
+    if (
+      name === "profileImage" &&
+      e.target instanceof HTMLInputElement &&
+      e.target.files?.[0]
+    ) {
+      const file = e.target.files[0];
+
+      if (!file.type.startsWith("image/")) {
+        alert("Only image files allowed");
+        return;
+      }
+
+      if (file.size > MAX_IMAGE_SIZE) {
+        alert("Image must be less than 200KB");
+        return;
+      }
+
       const reader = new FileReader();
-      reader.onload = () => {
-        setForm((prev) => ({ ...prev, profileImage: reader.result as string }));
+      reader.onloadend = () => {
+        setForm((prev) => ({
+          ...prev,
+          profileImage: reader.result as string,
+        }));
       };
-      reader.readAsDataURL(e.target.files[0]);
+      reader.readAsDataURL(file);
       return;
     }
 
+    /* ===== PHONE NUMBER ===== */
     if (name === "contactNo") {
-      setForm((prev) => ({ ...prev, [name]: value.replace(/\D/g, "").slice(0, 10) }));
+      setForm((prev) => ({
+        ...prev,
+        contactNo: value.replace(/\D/g, "").slice(0, 10),
+      }));
       return;
     }
 
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
+  /* ================= SUBMIT ================= */
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
     if (!form._id) {
-      alert("User ID not found for update");
+      alert("User ID not found");
       return;
     }
 
@@ -133,25 +163,27 @@ const UserProfile: React.FC<UserProfileProps> = ({
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Failed to update profile");
+      if (!res.ok) throw new Error(data.message || "Update failed");
 
-      setForm((prev) => ({
-        ...prev,
-        ...data.user,
-      }));
-
+      /* ===== SYNC COOKIES (TOPBAR + DASHBOARD) ===== */
       Cookies.set("username", data.user.name || "");
       Cookies.set("email", data.user.email || "");
       Cookies.set("contactNo", data.user.contactNo || "");
-      Cookies.set("profileImage", data.user.profileImage || "");
+      // profileImage: do NOT store in cookies (base64 too large)
 
+      setForm((prev) => ({ ...prev, ...data.user }));
+
+      /* ===== NOTIFY TOPBAR TO REFETCH PROFILE ===== */
+      window.dispatchEvent(new CustomEvent("profile-updated"));
       setShowForm(false);
+
       onProfileSaved?.({
-        name: data.user?.name,
-        email: data.user?.email,
-        contactNo: data.user?.contactNo,
-        profileImage: data.user?.profileImage,
+        name: data.user.name,
+        email: data.user.email,
+        contactNo: data.user.contactNo,
+        profileImage: data.user.profileImage,
       });
+
       alert("Profile updated successfully");
     } catch (err: any) {
       alert(err.message || "Failed to update profile");
@@ -162,6 +194,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
 
   if (loading) return <p className={styles.message}>Loading profile...</p>;
 
+  /* ================= UI ================= */
   return (
     <div className={styles.container}>
       <div className={styles.headerRow}>
@@ -181,41 +214,25 @@ const UserProfile: React.FC<UserProfileProps> = ({
           <div className={styles.formGrid}>
             <div className={styles.field}>
               <label>Patient ID</label>
-              <input value={form.patientId || ""} disabled className={styles.readOnly} />
+              <input value={form.patientId || ""} disabled />
             </div>
 
             <div className={styles.field}>
               <label>Full Name</label>
-              <input
-                name="name"
-                value={form.name}
-                onChange={handleChange}
-                placeholder="Enter full name"
-                required
-              />
+              <input name="name" value={form.name} onChange={handleChange} />
             </div>
 
             <div className={styles.field}>
               <label>Email</label>
-              <input
-                name="email"
-                type="email"
-                value={form.email}
-                onChange={handleChange}
-                placeholder="Enter email"
-                required
-              />
+              <input name="email" value={form.email} onChange={handleChange} />
             </div>
 
             <div className={styles.field}>
-              <label>Mobile Number</label>
+              <label>Mobile</label>
               <input
                 name="contactNo"
                 value={form.contactNo}
                 onChange={handleChange}
-                placeholder="10 digit mobile number"
-                maxLength={10}
-                inputMode="numeric"
               />
             </div>
 
@@ -227,6 +244,19 @@ const UserProfile: React.FC<UserProfileProps> = ({
                 accept="image/*"
                 onChange={handleChange}
               />
+              {form.profileImage && (
+                <img
+                  src={form.profileImage}
+                  alt="Preview"
+                  style={{
+                    width: 90,
+                    height: 90,
+                    borderRadius: "50%",
+                    marginTop: 8,
+                    objectFit: "cover",
+                  }}
+                />
+              )}
             </div>
 
             <div className={`${styles.field} ${styles.fullWidth}`}>
@@ -235,31 +265,47 @@ const UserProfile: React.FC<UserProfileProps> = ({
                 name="address"
                 value={form.address}
                 onChange={handleChange}
-                placeholder="Enter complete address"
                 rows={4}
               />
             </div>
           </div>
 
           <div className={styles.actions}>
-            <button type="button" className={styles.secondaryBtn} onClick={() => setShowForm(false)}>
+            <button
+              type="button"
+              className={styles.secondaryBtn}
+              onClick={() => setShowForm(false)}
+            >
               Cancel
             </button>
-            <button type="submit" className={styles.primaryBtn} disabled={saving}>
+            <button
+              type="submit"
+              className={styles.primaryBtn}
+              disabled={saving}
+            >
               {saving ? "Saving..." : "Save Changes"}
             </button>
           </div>
         </form>
       ) : (
         <div className={styles.summaryCard}>
-          <div className={styles.summaryRow}><span>Name</span><strong>{form.name || "-"}</strong></div>
-          <div className={styles.summaryRow}><span>Email</span><strong>{form.email || "-"}</strong></div>
-          <div className={styles.summaryRow}><span>Mobile</span><strong>{form.contactNo || "-"}</strong></div>
-          <div className={styles.summaryRow}><span>Address</span><strong>{form.address || "-"}</strong></div>
           <div className={styles.summaryRow}>
-            <span>Profile Image</span>
-            <strong>{form.profileImage ? "Uploaded" : "-"}</strong>
+            <span>Name</span>
+            <strong>{form.name}</strong>
           </div>
+          <div className={styles.summaryRow}>
+            <span>Email</span>
+            <strong>{form.email}</strong>
+          </div>
+          <div className={styles.summaryRow}>
+            <span>Mobile</span>
+            <strong>{form.contactNo || "-"}</strong>
+          </div>
+          <div className={styles.summaryRow}>
+            <span>Address</span>
+            <strong>{form.address || "-"}</strong>
+          </div>
+         
         </div>
       )}
     </div>

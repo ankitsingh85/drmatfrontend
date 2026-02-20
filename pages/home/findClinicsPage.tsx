@@ -200,11 +200,13 @@ const FindClinicsPage: React.FC = () => {
                   /* ✅ REQUIRED BY ClinicCard */
                   name: clinic.clinicName,
 
-                  /* 🔥 IMAGE FIX (THIS WAS MISSING) */
-                  image:
-                    getImage(clinic.clinicLogo) ||
-                    getImage(clinic.bannerImage) ||
-                    getImage(clinic.photos?.[0]),
+                  /* 🔥 USE ONLY PHOTOS FOR FIND CLINICS SLIDER */
+                  image: getImage(clinic.photos?.[0]),
+                  images: [
+                    ...(clinic.photos?.map((p) => getImage(p)) || []),
+                  ].filter((img): img is string => Boolean(img)),
+                  clinicLogo: undefined,
+                  bannerImage: undefined,
                 }}
               />
             ))

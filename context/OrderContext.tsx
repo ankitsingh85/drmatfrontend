@@ -44,7 +44,21 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({
     total: number,
     address: { type: string; address: string }
   ) => {
-    const userId = Cookies.get("userId") || localStorage.getItem("userId");
+    let userId = Cookies.get("userId") || localStorage.getItem("userId");
+    if (!userId) {
+      const token = Cookies.get("token");
+      if (!token) throw new Error("Please log in to place an order");
+      const res = await fetch(`${API_URL}/users/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Please log in to place an order");
+      const data = await res.json();
+      const resolvedId = data._id || data.id;
+      if (!resolvedId) throw new Error("User not logged in");
+      userId = resolvedId;
+      Cookies.set("userId", resolvedId);
+      localStorage.setItem("userId", resolvedId);
+    }
     if (!userId) throw new Error("User not logged in");
 
     try {

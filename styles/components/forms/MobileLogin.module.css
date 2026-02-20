@@ -1,29 +1,35 @@
 ﻿.page {
-  min-height: 100vh;
+  /* fit exactly in viewport minus topbar so page never produces vertical scrollbar */
+  height: calc(100vh - var(--topbar-height));
+  min-height: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 28px;
-  background: #ececef;
+  padding: 0;
+  background: #ffffff;
+  overflow: hidden;
 }
 
 .splitCard {
-  width: min(1060px, 100%);
+  width: 100%;
+  max-width: none;
   min-height: 630px;
   display: grid;
   grid-template-columns: 1fr 1fr;
   background: #ffffff;
-  border-radius: 10px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+  border-radius: 0;
+  box-shadow: none;
   overflow: hidden;
 }
 
 .imagePane {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 48px 36px;
-  background: #ffffff;
+display: flex;
+    align-items: center;
+    padding: 36px 72px;
+    background: #ffffff;
+    align-content: space-around;
+    justify-content: flex-end; 
+    height: 85vh; 
 }
 
 .heroImage {
@@ -35,20 +41,21 @@
 }
 
 .formPane {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 36px 34px;
-  background: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: left;
+    padding: 36px 92px;
+    background: #ffffff;
+    height: 85vh;
 }
 
 .formCard {
-  position: relative;
-  width: 100%;
-  max-width: 360px;
-  min-height: 480px;
-  background: transparent;
-  padding: 12px 0;
+      position: relative;
+    width: 100%;
+    max-width: 360px;
+    min-height: 480px;
+    background: transparent;
+    padding: 12px 0;
 }
 
 .title,
@@ -133,6 +140,7 @@
   font-size: 22px;
   font-weight: 500;
   cursor: pointer;
+  margin-left: 3.5rem;
 }
 
 .primaryBtn:disabled {

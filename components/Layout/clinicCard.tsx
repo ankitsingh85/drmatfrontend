@@ -79,6 +79,14 @@ const ClinicCard: React.FC<ClinicCardProps> = ({ clinic }) => {
     router.push(`/clinics/${clinic._id}`);
   };
 
+  const handleThumbnailClick = (
+    e: React.MouseEvent<HTMLButtonElement>,
+    index: number
+  ) => {
+    e.stopPropagation();
+    setCurrentImageIndex(index);
+  };
+
   return (
     <div
       className={styles.card}
@@ -89,28 +97,66 @@ const ClinicCard: React.FC<ClinicCardProps> = ({ clinic }) => {
     >
       {/* ================= IMAGE ================= */}
       <div className={styles.leftSection}>
-        <div className={styles.imageWrapper}>
-          <img
-            src={images[currentImageIndex]}
-            alt={clinic.name || "Clinic"}
-            className={styles.image}
-            loading="lazy"
-            onError={(e) => {
-              (e.currentTarget as HTMLImageElement).src =
-                "/placeholder-clinic.jpg";
-            }}
-          />
-
+        <div className={styles.mediaPanel}>
           {images.length > 1 && (
-            <>
-              <button className={styles.prevBtn} onClick={handlePrev}>
-                <ChevronLeft size={22} />
-              </button>
-              <button className={styles.nextBtn} onClick={handleNext}>
-                <ChevronRight size={22} />
-              </button>
-            </>
+            <div className={styles.thumbnailRail}>
+              {images.map((img, index) => (
+                <button
+                  key={`${clinic._id}-${index}`}
+                  type="button"
+                  className={`${styles.thumbnailBtn} ${
+                    index === currentImageIndex ? styles.activeThumb : ""
+                  }`}
+                  onClick={(e) => handleThumbnailClick(e, index)}
+                  aria-label={`View clinic image ${index + 1}`}
+                >
+                  <img
+                    src={img}
+                    alt={`${clinic.name || "Clinic"} thumbnail ${index + 1}`}
+                    className={styles.thumbnailImg}
+                    loading="lazy"
+                  />
+                </button>
+              ))}
+            </div>
           )}
+
+          <div className={styles.imageWrapper}>
+            <img
+              src={images[currentImageIndex]}
+              alt={clinic.name || "Clinic"}
+              className={styles.image}
+              loading="lazy"
+              onError={(e) => {
+                (e.currentTarget as HTMLImageElement).src =
+                  "/placeholder-clinic.jpg";
+              }}
+            />
+
+            {images.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  className={styles.prevBtn}
+                  onClick={handlePrev}
+                  aria-label="Previous clinic image"
+                >
+                  <ChevronLeft size={20} />
+                </button>
+                <button
+                  type="button"
+                  className={styles.nextBtn}
+                  onClick={handleNext}
+                  aria-label="Next clinic image"
+                >
+                  <ChevronRight size={20} />
+                </button>
+                <span className={styles.imageCounter}>
+                  {currentImageIndex + 1}/{images.length}
+                </span>
+              </>
+            )}
+          </div>
         </div>
       </div>
 

@@ -7,6 +7,7 @@ import AnimatedCursor from "react-animated-cursor";
 import { CartProvider } from "@/context/CartContext";
 import { UserProvider } from "@/context/UserContext";
 import { OrderProvider } from "@/context/OrderContext";
+import { TopbarProfileProvider } from "@/context/TopbarProfileContext";
 
 // Global Loader
 import { LoaderProvider } from "@/components/global/LoderProvider";
@@ -27,10 +28,11 @@ export default function App({ Component, pageProps }: AppProps) {
 
   return (
     <UserProvider>
-      <CartProvider>
-        <OrderProvider>
-          <LoaderProvider>
-            <Component {...pageProps} />
+      <TopbarProfileProvider>
+        <CartProvider>
+          <OrderProvider>
+            <LoaderProvider>
+              <Component {...pageProps} />
 
             {/* Optional cursor */}
             {/* {isDesktop && (
@@ -43,9 +45,10 @@ export default function App({ Component, pageProps }: AppProps) {
                 outerScale={2}
               />
             )} */}
-          </LoaderProvider>
-        </OrderProvider>
-      </CartProvider>
+            </LoaderProvider>
+          </OrderProvider>
+        </CartProvider>
+      </TopbarProfileProvider>
     </UserProvider>
   );
 }

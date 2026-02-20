@@ -1,15 +1,16 @@
 "use client";
+
 import { API_URL } from "@/config/api";
 import { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import Image from "next/image";
 import Cookies from "js-cookie";
-import { FiEye, FiEyeOff } from "react-icons/fi";
+import { FiEye, FiEyeOff, FiUser } from "react-icons/fi";
 import styles from "@/styles/adminlogin.module.css";
 
 export default function AdminLogin() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const nextPath = searchParams.get("next");
 
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
@@ -21,103 +22,140 @@ export default function AdminLogin() {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setError("");
-  setLoading(true);
+    e.preventDefault();
+    setError("");
+    setLoading(true);
 
-  try {
-    const res = await fetch(`${API_URL}/auth/admin/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(formData),
-    });
+    try {
+      const res = await fetch(`${API_URL}/auth/admin/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
 
-    const data = await res.json();
-    console.log("Login response:", data);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Login failed");
+      if (!data.token) throw new Error("Token missing from server");
 
-    if (!res.ok) throw new Error(data.message || "Login failed");
-    if (!data.token) throw new Error("Token missing from server");
+      Cookies.set("token", data.token, { path: "/", sameSite: "lax" });
+      Cookies.set("role", data.role.toLowerCase(), { path: "/", sameSite: "lax" });
 
-    // ✅ STORE TOKEN
-    Cookies.set("token", data.token, { path: "/", sameSite: "lax" });
-    Cookies.set("role", data.role.toLowerCase(), { path: "/", sameSite: "lax" });
+      const displayName =
+        data.admin?.name ||
+        data.admin?.fullName ||
+        data.user?.name ||
+        data.user?.fullName ||
+        data.name ||
+        data.fullName ||
+        data.username ||
+        formData.email.split("@")[0];
 
-    // ✅ STORE DISPLAY NAME FOR DASHBOARD HEADER
-    const displayName =
-      data.admin?.name ||
-      data.admin?.fullName ||
-      data.user?.name ||
-      data.user?.fullName ||
-      data.name ||
-      data.fullName ||
-      data.username ||
-      formData.email.split("@")[0];
+      Cookies.set("adminName", displayName, { path: "/", sameSite: "lax" });
 
-    Cookies.set("adminName", displayName, {
-      path: "/",
-      sameSite: "lax",
-    });
-
-    // ✅ REDIRECT
-    if (data.role.toLowerCase() === "superadmin") {
-      router.replace("/Dashboard");
-    } else if (data.role.toLowerCase() === "admin") {
-      router.replace("/adminDashboard");
-    } else {
-      router.replace("/adminlogin");
+      if (data.role.toLowerCase() === "superadmin") {
+        router.replace("/Dashboard");
+      } else if (data.role.toLowerCase() === "admin") {
+        router.replace("/adminDashboard");
+      } else {
+        router.replace("/adminlogin");
+      }
+    } catch (err: any) {
+      setError(err.message || "Something went wrong");
+    } finally {
+      setLoading(false);
     }
-  } catch (err: any) {
-    setError(err.message || "Something went wrong");
-  } finally {
-    setLoading(false);
-  }
-};
-
+  };
 
   return (
-    <div className={styles.container}>
-      <div className={styles.card}>
-        <h2 className={styles.heading}>Admin Login</h2>
-
-        <form onSubmit={handleSubmit} className={styles.form}>
-          {/* Email */}
-          <input
-            type="email"
-            name="email"
-            placeholder="Enter Email"
-            value={formData.email}
-            onChange={handleChange}
-            required
-            className={styles.input}
+    <div className={styles.page}>
+      <div className={styles.logoTop}>
+        <Link href="/home" className={styles.logoLink} aria-label="Go to home page">
+          <Image
+            src="/logo.jpeg"
+            alt="Website logo"
+            width={170}
+            height={52}
+            className={styles.websiteLogo}
+            priority
+            unoptimized
           />
+        </Link>
+      </div>
 
-          {/* Password */}
-          <div className={styles.passwordWrapper}>
-            <input
-              type={showPassword ? "text" : "password"}
-              name="password"
-              placeholder="Enter Password"
-              value={formData.password}
-              onChange={handleChange}
-              required
-              className={styles.input}
+      <div className={styles.splitCard}>
+        {/* Left: Image */}
+        <div className={styles.imagePane}>
+          <div className={styles.imageWrap}>
+            <Image
+              src="/login.jpg"
+              alt="Admin login"
+              fill
+              className={styles.heroImage}
+              priority
+              sizes="(max-width: 900px) 100vw, 50vw"
+              unoptimized
             />
-            <span
-              className={styles.eyeIcon}
-              onClick={() => setShowPassword((v) => !v)}
-            >
-              {showPassword ? <FiEyeOff /> : <FiEye />}
-            </span>
           </div>
+        </div>
 
-          {/* Error */}
-          {error && <p className={styles.error}>{error}</p>}
+        {/* Right: Form */}
+        <div className={styles.formPane}>
+          <div className={styles.formCard}>
+            <h2 className={styles.title}>
+              <span className={styles.titleUnderline}>Login</span> as a Admin User
+            </h2>
 
-          {/* Submit */}
-          <button type="submit" disabled={loading} className={styles.button}>
-            {loading ? "Logging in..." : "Login"}
-          </button>
-        </form>
+            <form onSubmit={handleSubmit} className={styles.form}>
+              {/* Email */}
+              <div className={styles.inputWrapper}>
+                <input
+                  type="email"
+                  name="email"
+                  placeholder="Enter Email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  required
+                  className={styles.input}
+                />
+                <span className={styles.inputIcon} aria-hidden>
+                  <FiUser size={18} />
+                </span>
+              </div>
+
+              {/* Password */}
+              <div className={styles.inputWrapper}>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  placeholder="Enter Password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  required
+                  className={styles.input}
+                />
+                <span
+                  className={styles.inputIcon}
+                  onClick={() => setShowPassword((v) => !v)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => e.key === "Enter" && setShowPassword((v) => !v)}
+                >
+                  {showPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}
+                </span>
+              </div>
+
+              {error && <p className={styles.error}>{error}</p>}
+
+              <button type="submit" disabled={loading} className={styles.button}>
+                {loading ? "Logging in..." : "LOGIN"}
+              </button>
+            </form>
+
+            <Link href="/home" className={styles.homeLink}>
+              get back to home page?
+            </Link>
+          </div>
+        </div>
       </div>
     </div>
   );

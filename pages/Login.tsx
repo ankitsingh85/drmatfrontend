@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import { useRouter } from "next/router";
@@ -12,7 +12,9 @@ import otpIllustration from "../public/otp.jpg";
 import { API_URL } from "@/config/api";
 
 export default function Login() {
-  useRouter();
+  const router = useRouter();
+  const nextPath = (router.query?.next as string) || "/home";
+
   const [mobile, setMobile] = useState("");
   const [otp, setOtp] = useState("");
   const [name, setName] = useState("");
@@ -25,8 +27,12 @@ export default function Login() {
     Cookies.set("email", data.user.email || "");
     Cookies.set("username", data.user.name || "");
     Cookies.set("contactNo", data.user.contactNo || fallbackMobile);
+    const userId = String(data.user?.id || data.user?._id || "");
+    Cookies.set("userId", userId);
+    localStorage.setItem("userId", userId);
 
-    window.location.replace("/home");
+    window.dispatchEvent(new CustomEvent("user-logged-in"));
+    window.location.replace(nextPath.startsWith("/") ? nextPath : `/${nextPath}`);
   };
 
   const validateMobile = () => {

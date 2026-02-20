@@ -10,6 +10,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
 import MobileNavbar from "@/components/Layout/MobileNavbar";
+import Topbar from "@/components/Layout/Topbar";
 import { API_URL } from "@/config/api";
 
 interface IUserProfile {
@@ -31,42 +32,47 @@ const CartPage: React.FC = () => {
   const email = Cookies.get("email");
   const token = Cookies.get("token");
 
-  // ✅ Move login redirect logic inside useEffect
   useEffect(() => {
     if (!email || !token) {
-      clearCart && clearCart();
-      router.replace("/Login");
+      // Don't clear cart — preserve items. Redirect to Login with return URL.
+      router.replace("/Login?next=/home/Cart");
+      setLoading(false);
       return;
     }
 
     const fetchUser = async () => {
       try {
-        const res = await fetch(`${API_URL}/userprofile/${email}`);
+        const res = await fetch(`${API_URL}/users/by-email/${encodeURIComponent(email)}`);
         if (res.ok) {
-          const data: IUserProfile = await res.json();
-          setUser(data);
+          const data = await res.json();
+          setUser({
+            _id: data._id,
+            email: data.email,
+            name: data.name,
+            addresses: data.addresses || [],
+          });
+          Cookies.set("userId", data._id);
+          localStorage.setItem("userId", data._id);
         } else {
-          clearCart && clearCart();
           Cookies.remove("email");
           Cookies.remove("userId");
           Cookies.remove("token");
           localStorage.removeItem("userId");
-          router.replace("/Login");
+          router.replace("/Login?next=/home/Cart");
         }
       } catch (err) {
         console.error(err);
-        clearCart && clearCart();
-        router.replace("/Login");
+        router.replace("/Login?next=/home/Cart");
       } finally {
         setLoading(false);
       }
     };
 
     fetchUser();
-  }, [email, token, router, clearCart]);
+  }, [email, token, router]);
 
   if (loading) return <p className={styles.message}>Loading...</p>;
-  if (!user) return null;
+  if (!user) return null; // redirecting to Login
 
   const totalMRP = cartItems.reduce(
     (acc, item) => acc + (item.mrp ?? item.price) * item.quantity,
@@ -80,6 +86,7 @@ const CartPage: React.FC = () => {
 
   return (
     <>
+      <Topbar />
       {/* Header */}
       <div className={styles.header}>
         <Image

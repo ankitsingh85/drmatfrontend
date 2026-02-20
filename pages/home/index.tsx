@@ -178,7 +178,7 @@ const Index = () => {
             Top Products
           </h1>
           {<TopProducts />}
-          <Link href="/product-listing">
+          {/* <Link href="/product-listing">
             <h5
               style={{
                 textAlign: "center",
@@ -188,7 +188,7 @@ const Index = () => {
             >
               Show More
             </h5>
-          </Link>
+          </Link> */}
           <div
             style={{
               padding: "0px 0px",

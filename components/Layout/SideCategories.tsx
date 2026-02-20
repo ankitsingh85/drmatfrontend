@@ -42,7 +42,7 @@ const SideCategories: React.FC<SideCategoriesProps> = ({
             onClick={() => onCategorySelect(cat._id)}
           >
             <img src={cat.imageUrl} alt={cat.name} className={styles.image} />
-            {/* Removed category name */}
+            <div className={styles.label}>{cat.name}</div>
           </div>
         ))}
       </div>

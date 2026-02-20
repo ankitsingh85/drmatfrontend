@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import Image from "next/image";
+import Cookies from "js-cookie";
 import styles from "@/styles/user/paymentpage.module.css";
 import { useCart } from "@/context/CartContext";
 import { useOrder } from "@/context/OrderContext";
@@ -48,9 +49,12 @@ const PaymentPage: React.FC = () => {
   };
 
   useEffect(() => {
-    // Prevent accessing payment page without cart
+    if (!Cookies.get("token")) {
+      router.replace("/Login?next=/home/Address");
+      return;
+    }
     if (cartItems.length === 0 && !paymentSuccess) {
-      router.push("/cart");
+      router.push("/home/Cart");
     }
   }, [cartItems, paymentSuccess, router]);
 

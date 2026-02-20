@@ -14,9 +14,14 @@ import { useCart } from "@/context/CartContext";
 interface Clinic {
   _id: string;
   name: string;
+  clinicName?: string;
   description?: string;
   address?: string;
   images?: string[];
+  clinicLogo?: string;
+  bannerImage?: string;
+  photos?: string[];
+  contactNumber?: string;
   mobile?: string;
   whatsapp?: string;
   mapLink?: string;
@@ -44,6 +49,7 @@ interface Category {
 const ClinicDetailPage = () => {
   const router = useRouter();
   const { clinicId } = router.query;
+  const clinicIdValue = Array.isArray(clinicId) ? clinicId[0] : clinicId;
 
   const { cartItems, addToCart } = useCart();
 
@@ -52,24 +58,45 @@ const ClinicDetailPage = () => {
   const [loadingClinic, setLoadingClinic] = useState(true);
   const [loadingServices, setLoadingServices] = useState(true);
   const [activeTab, setActiveTab] = useState<"Details" | "Services" | "Reviews">("Details");
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [activeCategory, setActiveCategory] = useState<string>("All");
   const [categories, setCategories] = useState<Category[]>([]);
+
+  const getImage = (img?: string) => {
+    if (!img) return undefined;
+    if (img.startsWith("data:")) return img;
+    return img;
+  };
 
   // const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000/api";
 
   // Fetch clinic details
   useEffect(() => {
-    if (!clinicId) return;
+    if (!clinicIdValue) return;
     const fetchClinic = async () => {
       setLoadingClinic(true);
       try {
-        const res = await fetch(`${API_URL}/clinics/${clinicId}`);
+        const res = await fetch(`${API_URL}/clinics/${clinicIdValue}`);
         if (!res.ok) throw new Error("Failed to fetch clinic details");
         const data: Clinic = await res.json();
-        setClinic(data);
-        setSelectedImage(data.images?.[0] || null);
+        const normalizedImages = [
+          getImage(data.clinicLogo),
+          getImage(data.bannerImage),
+          ...(data.photos?.map((img) => getImage(img)) || []),
+          ...(data.images?.map((img) => getImage(img)) || []),
+        ].filter((img): img is string => Boolean(img));
+
+        const normalizedClinic: Clinic = {
+          ...data,
+          name: data.name || data.clinicName || "Clinic",
+          images:
+            normalizedImages.length > 0
+              ? Array.from(new Set(normalizedImages))
+              : ["/placeholder-clinic.jpg"],
+          mobile: data.mobile || data.contactNumber,
+        };
+
+        setClinic(normalizedClinic);
       } catch (err: any) {
         setError(err.message || "Error loading clinic");
       } finally {
@@ -77,19 +104,19 @@ const ClinicDetailPage = () => {
       }
     };
     fetchClinic();
-  }, [clinicId, API_URL]);
+  }, [clinicIdValue]);
 
   // Fetch services for this clinic
   useEffect(() => {
-    if (!clinicId) return;
+    if (!clinicIdValue) return;
     const fetchServices = async () => {
       setLoadingServices(true);
       try {
-        const res = await fetch(`${API_URL}/services?clinic=${clinicId}`);
+        const res = await fetch(`${API_URL}/services?clinic=${clinicIdValue}`);
         if (!res.ok) throw new Error("Failed to fetch services");
         const data: Service[] = await res.json();
 
-        const clinicServices = data.filter((s) => s.clinic === clinicId);
+        const clinicServices = data.filter((s) => s.clinic === clinicIdValue);
         setServices(clinicServices);
 
         // Generate categories from services
@@ -115,7 +142,7 @@ const ClinicDetailPage = () => {
       }
     };
     fetchServices();
-  }, [clinicId, API_URL]);
+  }, [clinicIdValue]);
 
   const filteredServices =
     activeCategory === "All"
@@ -133,18 +160,6 @@ const ClinicDetailPage = () => {
 
         {/* Top Section */}
         <div className={styles.topSection}>
-          <div className={styles.imageSection}>
-            {(clinic.images || []).map((img, idx) => (
-              <img
-                key={idx}
-                src={img.startsWith("data") ? img : `data:image/jpeg;base64,${img}`}
-                onClick={() => setSelectedImage(img)}
-                className={`${styles.sideImage} ${selectedImage === img ? styles.active : ""}`}
-                alt={clinic.name}
-              />
-            ))}
-          </div>
-
           <div className={styles.clinicCardSection}>
             <ClinicCard clinic={clinic} />
           </div>

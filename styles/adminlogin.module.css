@@ -1,26 +1,101 @@
-.container {
+.page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  background: #ffffff;
+  overflow: hidden;
+  padding: 20px 14px;
+}
+
+.logoTop {
+  width: 100%;
   display: flex;
   justify-content: center;
+}
+
+.logoLink {
+  display: inline-flex;
   align-items: center;
-  min-height: 100vh;
-  background: linear-gradient(135deg, #2c3e50, #3498db);
-  padding: 1rem;
+  justify-content: center;
 }
 
-.card {
-  background: #fff;
-  padding: 2rem;
-  border-radius: 1rem;
-  box-shadow: 0px 8px 20px rgba(0, 0, 0, 0.15);
+.websiteLogo {
+  width: auto;
+  height: 96px;
+  object-fit: contain;
+}
+
+.splitCard {
   width: 100%;
-  max-width: 400px;
-  text-align: center;
+  max-width: 1100px;
+  min-height: 580px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: #ffffff;
+  overflow: hidden;
 }
 
-.heading {
-  font-size: 1.8rem;
-  margin-bottom: 1.5rem;
-  color: #2c3e50;
+/* ===== LEFT: IMAGE ===== */
+.imagePane {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  background: #ffffff;
+  position: relative;
+}
+
+.imageWrap {
+  position: relative;
+  width: 100%;
+  max-width: 380px;
+  aspect-ratio: 1;
+}
+
+.heroImage {
+  object-fit: contain;
+  border-radius: 10px;
+}
+
+/* ===== RIGHT: FORM ===== */
+.formPane {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 48px;
+  background: #ffffff;
+}
+
+.formCard {
+  width: 100%;
+  max-width: 340px;
+}
+
+.title {
+  margin: 0 0 28px;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1a2238;
+  letter-spacing: -0.02em;
+}
+
+.titleUnderline {
+  position: relative;
+  display: inline-block;
+}
+
+.titleUnderline::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -4px;
+  width: 100%;
+  height: 3px;
+  background: #0a4b83;
+  border-radius: 2px;
 }
 
 .form {
@@ -29,67 +104,133 @@
   gap: 1rem;
 }
 
-.input {
-  padding: 0.75rem;
-  border: 1px solid #ccc;
-  border-radius: 0.5rem;
-  font-size: 1rem;
-  outline: none;
-  transition: border 0.3s;
-  width: 100%;
-}
-
-.input:focus {
-  border-color: #3498db;
-}
-
-.passwordWrapper {
+.inputWrapper {
   position: relative;
 }
 
-.eyeIcon {
+.input {
+  width: 100%;
+  padding: 14px 44px 14px 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.2s;
+  background: #ffffff;
+}
+
+.input:focus {
+  border-color: #0a4b83;
+}
+
+.input::placeholder {
+  color: #9ca3af;
+}
+
+.inputIcon {
   position: absolute;
   top: 50%;
-  right: 12px;
+  right: 14px;
   transform: translateY(-50%);
-  font-size: 1.2rem;
-  color: #555;
+  color: #9ca3af;
+  pointer-events: none;
+}
+
+.inputWrapper .inputIcon[role="button"] {
+  pointer-events: auto;
   cursor: pointer;
 }
 
-.rememberRow {
-  display: flex;
-  justify-content: flex-start;
-  align-items: center;
-  font-size: 0.9rem;
-  color: #2c3e50;
-}
-
-.rememberLabel input {
-  margin-right: 0.5rem;
+.inputWrapper .inputIcon[role="button"]:hover {
+  color: #0a4b83;
 }
 
 .button {
-  padding: 0.75rem;
-  background: #3498db;
-  color: #fff;
+  padding: 14px 24px;
+  background: #0a4b83;
+  color: #ffffff;
   font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
   border: none;
-  border-radius: 0.5rem;
+  border-radius: 10px;
   cursor: pointer;
-  transition: background 0.3s;
-}
-
-.button:disabled {
-  background: #7f8c8d;
-  cursor: not-allowed;
+  transition: background 0.2s, transform 0.15s;
+  margin-top: 0.5rem;
 }
 
 .button:hover:not(:disabled) {
-  background: #2980b9;
+  background: #0d5a9e;
+}
+
+.button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.button:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
 }
 
 .error {
-  color: red;
-  font-size: 0.9rem;
+  color: #dc2626;
+  font-size: 0.875rem;
+}
+
+.homeLink {
+  display: inline-block;
+  margin-top: 20px;
+  font-size: 0.875rem;
+  color: #0a4b83;
+  text-decoration: underline;
+  transition: color 0.2s;
+  margin-left: 6rem;
+}
+
+.homeLink:hover {
+  color: #0d5a9e;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 900px) {
+  .splitCard {
+    grid-template-columns: 1fr;
+    min-height: auto;
+  }
+
+  .imagePane {
+    padding: 32px 24px;
+  }
+
+  .imageWrap {
+    max-width: 280px;
+  }
+
+  .formPane {
+    padding: 32px 24px 40px;
+  }
+
+  .title {
+    font-size: 1.35rem;
+  }
+
+  .websiteLogo {
+    height: 58px;
+  }
+}
+
+@media (max-width: 480px) {
+  .page {
+    padding: 12px;
+  }
+
+  .websiteLogo {
+    height: 50px;
+  }
+
+  .imagePane,
+  .formPane {
+    padding: 24px 20px;
+  }
 }

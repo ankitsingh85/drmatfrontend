@@ -1,12 +1,14 @@
+// ...existing code...
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import styles from "@/styles/components/Layout/Topbar.module.css";
 import Image from "next/image";
 import { useRouter, usePathname } from "next/navigation";
-import { ShoppingCart, MapPin, Menu, CircleUser } from "lucide-react";
+import { ShoppingCart, MapPin, Menu, User, LogOut } from "lucide-react";
 import { useCart } from "@/context/CartContext";
+import { useTopbarProfile } from "@/context/TopbarProfileContext";
 import Cookies from "js-cookie";
 
 interface TopbarProps {
@@ -17,26 +19,29 @@ const Topbar: React.FC<TopbarProps> = ({ hideHamburgerOnMobile }) => {
   const router = useRouter();
   const pathname = usePathname();
   const { cartItems, clearCart } = useCart();
+  const profile = useTopbarProfile();
   const cartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [location, setLocation] = useState<string>("");
-  const [username, setUsername] = useState<string | null>(null);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const userBtnRef = useRef<HTMLButtonElement | null>(null);
 
-  // Load username
+  const username = profile?.username ?? null;
+  const profileImage = profile?.profileImage ?? null;
+  const email = profile?.email ?? null;
+  const contactNo = profile?.contactNo ?? null;
+
   useEffect(() => {
-    const storedUsername = Cookies.get("username");
     const storedLocation = Cookies.get("location");
-    if (storedUsername) setUsername(storedUsername);
     if (storedLocation) setLocation(storedLocation);
   }, []);
 
-  // Hide on dashboards
   const isDashboard =
-    pathname.startsWith("/ClinicDashboard") ||
-    pathname.startsWith("/DoctorDashboard") ||
-    pathname.startsWith("/AdminDashboard") ||
-    pathname.includes("Dashboard");
+    pathname?.startsWith("/ClinicDashboard") ||
+    pathname?.startsWith("/DoctorDashboard") ||
+    pathname?.startsWith("/AdminDashboard") ||
+    pathname?.includes("Dashboard");
 
   const handleClickCart = () => {
     router.push("/home/Cart");
@@ -47,7 +52,6 @@ const Topbar: React.FC<TopbarProps> = ({ hideHamburgerOnMobile }) => {
       if (!silent) alert("Geolocation not supported");
       return;
     }
-
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
@@ -56,14 +60,12 @@ const Topbar: React.FC<TopbarProps> = ({ hideHamburgerOnMobile }) => {
             `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`
           );
           const data = await res.json();
-
           const city =
             data?.address?.city ||
             data?.address?.town ||
             data?.address?.village;
           const state = data?.address?.state;
           const finalLocation = `${city || "Unknown"}, ${state || ""}`.trim();
-
           setLocation(finalLocation);
           Cookies.set("location", finalLocation, { expires: 7 });
         } catch {
@@ -90,133 +92,176 @@ const Topbar: React.FC<TopbarProps> = ({ hideHamburgerOnMobile }) => {
     Cookies.remove("userId");
     Cookies.remove("location");
     Cookies.remove("contactNo");
+    Cookies.remove("profileImage");
 
     localStorage.removeItem("userId");
     clearCart && clearCart();
+    profile?.clearProfile();
 
-    setUsername(null);
     setLocation("");
     router.replace("/Login");
   };
 
   return (
-    <div className={styles.topbar}>
-      {/* LEFT SECTION */}
-      <div className={styles.leftSection}>
-        <Image
-          className={styles.logo}
-          src="/logo.jpeg"
-          alt="Logo"
-          width={120}
-          height={30}
-          onClick={() => router.push("/home")}
-        />
+    <>
+      <div className={styles.topbar}>
+        {/* LEFT SECTION */}
+        <div className={styles.leftSection}>
+          <Image
+            className={styles.logo}
+            src="/logo.jpeg"
+            alt="Logo"
+            width={120}
+            height={30}
+            onClick={() => router.push("/home")}
+          />
 
-        <div
-          className={`${styles.hamburger} ${
-            hideHamburgerOnMobile ? styles.hideOnMobile : ""
-          }`}
-          onClick={() => setMenuOpen(!menuOpen)}
-        >
-          <Menu size={26} />
+          <div
+            className={`${styles.hamburger} ${
+              hideHamburgerOnMobile ? styles.hideOnMobile : ""
+            }`}
+            onClick={() => setMenuOpen(!menuOpen)}
+          >
+            <Menu size={26} />
+          </div>
+
+          <nav className={`${styles.navLinks} ${menuOpen ? styles.open : ""}`}>
+            <Link href="/home" className={styles.navLink}>Home</Link>
+            <Link href="/home/findClinicsPage" className={styles.navLink}>Book Appointment</Link>
+            <Link href="/user/profile" className={styles.navLink}>Care Plan</Link>
+            <Link href="/home/findClinicsPage" className={styles.navLink}>Find Derma Clinic</Link>
+            <Link href="/video-consultation" className={styles.navLink}>Book Video Consultation</Link>
+            <Link href="/plans" className={styles.navLink}>Buy Treatment Plan</Link>
+            <Link href="/products" className={styles.navLink}>Buy Products</Link>
+            <Link href="/quiz/ques1" className={styles.navLink}>Online Test</Link>
+
+          </nav>
         </div>
 
-        {/* NAV LINKS */}
-        <nav className={`${styles.navLinks} ${menuOpen ? styles.open : ""}`}>
-          {/* EXISTING */}
-          <Link href="/home" className={styles.navLink}>
-            Home
-          </Link>
-
-          <Link href="/home/findClinicsPage" className={styles.navLink}>
-            Book Appointment
-          </Link>
-
-
-          <Link href="/user/profile" className={styles.navLink}>
-            Care Plan
-          </Link>
-
-          {/* 🔥 NEWLY ADDED (NO REPLACEMENT) */}
-          <Link href="/home/findClinicsPage" className={styles.navLink}>
-            Find Derma Clinic
-          </Link>
-
-          <Link href="/video-consultation" className={styles.navLink}>
-            Book Video Consultation
-          </Link>
-
-          <Link href="/plans" className={styles.navLink}>
-            Buy Treatment Plan
-          </Link>
-
-          <Link href="/products" className={styles.navLink}>
-            Buy Products
-          </Link>
-
-          <Link href="/quiz/ques1" className={styles.navLink}>
-            Online Test
-          </Link>
-
-          
-          <Link href="/quiz/ques1" className={styles.navLink}>
-           Track Your Result
-          </Link>
-
-        </nav>
-      </div>
-
-      {/* RIGHT SECTION */}
-      <div className={styles.rightSection}>
-        {isDashboard ? (
-          username ? (
-            <button className={styles.logoutBtn} onClick={handleLogout}>
-              Logout
-            </button>
-          ) : (
-            <div className={styles.authLinks}>
-              <Link href="/Login">Login</Link>
-            </div>
-          )
-        ) : (
-          <>
-            <div className={styles.location} onClick={() => fetchLocation(false)}>
-              <MapPin size={18} />
-              {location && (
-                <span className={styles.locationText}>{location}</span>
-              )}
-            </div>
-
-            {username ? (
-              <div className={styles.userSection}>
-                <button
-                  className={styles.userIconBtn}
-                  onClick={() => router.push("/UserDashboard")}
-                  aria-label="Open user dashboard"
-                >
-                  <CircleUser size={22} />
-                </button>
-                <button className={styles.logoutBtn} onClick={handleLogout}>
-                  Logout
-                </button>
-              </div>
+        {/* RIGHT SECTION */}
+        <div className={styles.rightSection}>
+          {isDashboard ? (
+            username ? (
+              <button className={styles.logoutBtn} onClick={handleLogout}>Logout</button>
             ) : (
-              <div className={styles.authLinks}>
-                <Link href="/Login">Login</Link>
+              <div className={styles.authLinks}><Link href="/Login">Login</Link></div>
+            )
+          ) : (
+            <>
+              <div className={styles.location} onClick={() => fetchLocation(false)}>
+                <MapPin size={18} />
+                {location && <span className={styles.locationText}>{location}</span>}
               </div>
-            )}
 
-            <div className={styles.cartInfo} onClick={handleClickCart}>
-              <ShoppingCart size={18} />
-              {cartCount > 0 && (
-                <span className={styles.cartBadge}>{cartCount}</span>
+              {username ? (
+                // userSection is position:relative in CSS so popover can be absolutely positioned under the avatar
+                <div className={styles.userSection} style={{ position: "relative" }}>
+                  <button
+                    ref={userBtnRef}
+                    className={styles.userIconBtn}
+                    onClick={() => setProfileOpen((s) => !s)}
+                    aria-label="Open user profile"
+                    title={username}
+                    style={{ padding: 0, border: "none", background: "transparent" }}
+                  >
+                    {profileImage ? (
+                      <img
+                        src={profileImage}
+                        alt={username}
+                        style={{
+                          width: 36,
+                          height: 36,
+                          borderRadius: "50%",
+                          objectFit: "cover",
+                        }}
+                      />
+                    ) : (
+                      <div
+                        style={{
+                          width: 36,
+                          height: 36,
+                          borderRadius: "50%",
+                          background: "#e6eef8",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          color: "#0a4b83",
+                          fontWeight: 700,
+                        }}
+                      >
+                        {username.slice(0, 1).toUpperCase()}
+                      </div>
+                    )}
+                  </button>
+
+                  {/* Vertical profile dropdown – enhanced design */}
+                  {profileOpen && (
+                    <div
+                      className={styles.profileDropdown}
+                      role="dialog"
+                      aria-modal="false"
+                      onMouseLeave={() => setProfileOpen(false)}
+                    >
+                      <div className={styles.profileDropdownHeader}>
+                        <div className={styles.profileAvatarWrap}>
+                          {profileImage ? (
+                            <img
+                              src={profileImage}
+                              alt={username || "User"}
+                              className={styles.profileAvatar}
+                            />
+                          ) : (
+                            <div className={styles.profileAvatarPlaceholder}>
+                              {username?.slice(0, 1).toUpperCase() || "U"}
+                            </div>
+                          )}
+                        </div>
+                        <h3 className={styles.profileDropdownName}>{username}</h3>
+                        <p className={styles.profileDropdownContact}>
+                          {contactNo ? `+91 ${contactNo}` : email || "—"}
+                        </p>
+                      </div>
+
+                      <div className={styles.profileDropdownDivider} />
+
+                      <div className={styles.profileDropdownActions}>
+                        <button
+                          className={styles.profileActionBtn}
+                          onClick={() => {
+                            setProfileOpen(false);
+                            router.push("/UserDashboard");
+                          }}
+                        >
+                          <User size={18} />
+                          <span>View Profile</span>
+                        </button>
+
+                        <button
+                          className={`${styles.profileActionBtn} ${styles.profileActionLogout}`}
+                          onClick={handleLogout}
+                        >
+                          <LogOut size={18} />
+                          <span>Logout</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className={styles.authLinks}><Link href="/Login">Login</Link></div>
               )}
-            </div>
-          </>
-        )}
+
+              <div className={styles.cartInfo} onClick={handleClickCart}>
+                <ShoppingCart size={18} />
+                {cartCount > 0 && <span className={styles.cartBadge}>{cartCount}</span>}
+              </div>
+            </>
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 
 export default Topbar;
+// ...existing code...
