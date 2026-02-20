@@ -27,13 +27,27 @@ const normalizeImage = (img: string | undefined | null, apiUrl: string): string 
 };
 
 export const TopbarProfileProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Hydrate from cookies first so login state is visible immediately after redirect.
+  // Keep initial state SSR-safe to avoid hydration mismatch.
   const [state, setState] = React.useState<TopbarProfileState>({
-    username: Cookies.get("username") || null,
-    profileImage: Cookies.get("profileImage") || null,
-    email: Cookies.get("email") || null,
-    contactNo: Cookies.get("contactNo") || null,
+    username: null,
+    profileImage: null,
+    email: null,
+    contactNo: null,
   });
+
+  useEffect(() => {
+    const username = Cookies.get("username") || null;
+    const email = Cookies.get("email") || null;
+    const contactNo = Cookies.get("contactNo") || null;
+    const rawProfileImage = Cookies.get("profileImage") || null;
+
+    setState({
+      username,
+      email,
+      contactNo,
+      profileImage: normalizeImage(rawProfileImage, API_URL),
+    });
+  }, []);
 
   const refetchProfile = useCallback(async () => {
     const token = Cookies.get("token");
@@ -49,11 +63,19 @@ export const TopbarProfileProvider: React.FC<{ children: React.ReactNode }> = ({
         Cookies.set("username", data.name || "");
         Cookies.set("email", data.email || "");
         Cookies.set("contactNo", data.contactNo || "");
+        const normalizedProfile = data.profileImage
+          ? normalizeImage(data.profileImage, API_URL)
+          : null;
+        if (normalizedProfile) {
+          Cookies.set("profileImage", normalizedProfile);
+        } else {
+          Cookies.remove("profileImage");
+        }
         setState({
           username: data.name || null,
           email: data.email || null,
           contactNo: data.contactNo || null,
-          profileImage: data.profileImage ? normalizeImage(data.profileImage, API_URL) : null,
+          profileImage: normalizedProfile,
         });
       }
     } catch {

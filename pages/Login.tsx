@@ -22,6 +22,14 @@ export default function Login() {
   const [step, setStep] = useState<"mobile" | "otp" | "profile">("mobile");
   const [loading, setLoading] = useState(false);
 
+  const normalizeImage = (img?: string | null) => {
+    if (!img) return null;
+    if (/^data:image\//i.test(img)) return img;
+    if (/^https?:\/\//i.test(img)) return img;
+    if (img.startsWith("/")) return `${API_URL}${img}`;
+    return `${API_URL}/${img}`;
+  };
+
   const completeLogin = (data: any, fallbackMobile: string) => {
     const cookieOptions = {
       path: "/",
@@ -34,6 +42,12 @@ export default function Login() {
     Cookies.set("username", data.user.name || "", cookieOptions);
     Cookies.set("contactNo", data.user.contactNo || fallbackMobile, cookieOptions);
     Cookies.set("role", "user", cookieOptions);
+    const normalizedProfileImage = normalizeImage(data.user?.profileImage);
+    if (normalizedProfileImage) {
+      Cookies.set("profileImage", normalizedProfileImage, cookieOptions);
+    } else {
+      Cookies.remove("profileImage");
+    }
     const userId = String(data.user?.id || data.user?._id || "");
     Cookies.set("userId", userId, cookieOptions);
     localStorage.setItem("userId", userId);
