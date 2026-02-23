@@ -14,11 +14,23 @@ interface JwtPayload {
   id: string;
 }
 
-// const API_URL =
-  // process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000/api";
+interface Clinic {
+  _id: string;
+  clinicName: string;
+}
+
+interface ServiceCategory {
+  _id: string;
+  name: string;
+}
 
 export default function CreateTreatmentPlan() {
-  const [clinicId, setClinicId] = useState<string | null>(null);
+  const [defaultClinicId, setDefaultClinicId] = useState<string | null>(null);
+  const [selectedClinicId, setSelectedClinicId] = useState("");
+  const [clinics, setClinics] = useState<Clinic[]>([]);
+  const [serviceCategories, setServiceCategories] = useState<ServiceCategory[]>(
+    []
+  );
 
   /* Core */
   const [tuc] = useState(`TUC-${Date.now().toString().slice(-6)}`);
@@ -54,7 +66,7 @@ export default function CreateTreatmentPlan() {
 
   /* Meta */
   const [gender, setGender] = useState("Unisex");
-  const [paymentOptions, setPaymentOptions] = useState<string[]>([]);
+  const [paymentOption, setPaymentOption] = useState("Cash");
   const [promoCode, setPromoCode] = useState("");
 
   /* Admin Controls */
@@ -72,9 +84,62 @@ export default function CreateTreatmentPlan() {
     const token = Cookies.get("token");
     if (token) {
       const decoded = jwtDecode<JwtPayload>(token);
-      setClinicId(decoded.id);
+      setDefaultClinicId(decoded.id);
+      setSelectedClinicId(decoded.id);
     }
   }, []);
+
+  useEffect(() => {
+    const fetchClinics = async () => {
+      try {
+        const res = await fetch(`${API_URL}/clinics`);
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setClinics(data);
+          if (data.length > 0) {
+            setSelectedClinicId((prev) => prev || data[0]._id);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch clinics", error);
+      }
+    };
+
+    fetchClinics();
+  }, []);
+
+  useEffect(() => {
+    const fetchServiceCategories = async () => {
+      try {
+        const res = await fetch(`${API_URL}/service-categories`);
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setServiceCategories(data);
+          setServiceCategory((prev) => prev || data[0]?.name || "");
+        }
+      } catch (error) {
+        console.error("Failed to fetch service categories", error);
+      }
+    };
+
+    fetchServiceCategories();
+  }, []);
+
+  const handleFileChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    type: "treatmentImages" | "beforeAfterImages" | "categoryIcons"
+  ) => {
+    const files = Array.from(e.target.files || []);
+    if (type === "treatmentImages") {
+      setTreatmentImages(files);
+      return;
+    }
+    if (type === "beforeAfterImages") {
+      setBeforeAfterImages(files);
+      return;
+    }
+    setCategoryIcons(files);
+  };
 
   const quillModules = useMemo(
     () => ({
@@ -90,45 +155,52 @@ export default function CreateTreatmentPlan() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!clinicId) return;
+    const finalClinicId = selectedClinicId || defaultClinicId;
+    if (!finalClinicId) {
+      setNotification("Please select a clinic before submitting.");
+      return;
+    }
 
-    const payload = {
-      tuc,
-      treatmentName,
-      clinic: clinicId,
-      description,
-      shortReelUrl,
-      serviceCategory,
-      mrp,
-      offerPrice,
-      pricePerSession,
-      discountPercent,
-      sessions,
-      duration,
-      validity,
-      technologyUsed,
-      instructions,
-      disclaimer,
-      inclusions,
-      exclusions,
-      gender,
-      paymentOptions,
-      promoCode,
-      addToCart,
-      isActive,
-      rating,
-      reviews,
-      patientFeedback,
-    };
+    const formData = new FormData();
+
+    formData.append("tuc", tuc);
+    formData.append("treatmentName", treatmentName);
+    formData.append("clinic", finalClinicId);
+    formData.append("description", description);
+    formData.append("shortReelUrl", shortReelUrl);
+    formData.append("serviceCategory", serviceCategory);
+    formData.append("mrp", mrp);
+    formData.append("offerPrice", offerPrice);
+    formData.append("pricePerSession", pricePerSession);
+    formData.append("discountPercent", discountPercent);
+    formData.append("sessions", sessions);
+    formData.append("duration", duration);
+    formData.append("validity", validity);
+    formData.append("technologyUsed", technologyUsed);
+    formData.append("instructions", instructions);
+    formData.append("disclaimer", disclaimer);
+    formData.append("inclusions", inclusions);
+    formData.append("exclusions", exclusions);
+    formData.append("gender", gender);
+    formData.append("paymentOption", paymentOption);
+    formData.append("promoCode", promoCode);
+    formData.append("addToCart", String(addToCart));
+    formData.append("isActive", String(isActive));
+    formData.append("rating", rating);
+    formData.append("reviews", reviews);
+    formData.append("patientFeedback", patientFeedback);
+
+    treatmentImages.forEach((file) => formData.append("treatmentImages", file));
+    beforeAfterImages.forEach((file) => formData.append("beforeAfterImages", file));
+    categoryIcons.forEach((file) => formData.append("categoryIcons", file));
 
     const res = await fetch(`${API_URL}/treatment-plans`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: formData,
     });
 
     setNotification(
-      res.ok ? "✅ Treatment Plan Created Successfully" : "❌ Failed to Create"
+      res.ok ? "Treatment plan created successfully" : "Failed to create treatment plan"
     );
   };
 
@@ -160,6 +232,23 @@ export default function CreateTreatmentPlan() {
             />
           </div>
 
+          <div className={styles.field}>
+            <label>Select Clinic</label>
+            <select
+              className={styles.select}
+              value={selectedClinicId}
+              onChange={(e) => setSelectedClinicId(e.target.value)}
+              required
+            >
+              <option value="">Select clinic</option>
+              {clinics.map((clinic) => (
+                <option key={clinic._id} value={clinic._id}>
+                  {clinic.clinicName}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <div className={styles.fullField}>
             <label>Plan Description</label>
             <ReactQuill
@@ -185,12 +274,22 @@ export default function CreateTreatmentPlan() {
 
           <div className={styles.field}>
             <label>Treatment Images</label>
-            <input type="file" multiple className={styles.fileInput} />
+            <input
+              type="file"
+              multiple
+              className={styles.fileInput}
+              onChange={(e) => handleFileChange(e, "treatmentImages")}
+            />
           </div>
 
           <div className={styles.field}>
             <label>Before / After Images</label>
-            <input type="file" multiple className={styles.fileInput} />
+            <input
+              type="file"
+              multiple
+              className={styles.fileInput}
+              onChange={(e) => handleFileChange(e, "beforeAfterImages")}
+            />
           </div>
         </section>
 
@@ -200,15 +299,29 @@ export default function CreateTreatmentPlan() {
 
           <div className={styles.field}>
             <label>Treatment Category</label>
-            <input
+            <select
               className={styles.input}
+              value={serviceCategory}
               onChange={(e) => setServiceCategory(e.target.value)}
-            />
+              required
+            >
+              <option value="">Select service category</option>
+              {serviceCategories.map((category) => (
+                <option key={category._id} value={category.name}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className={styles.field}>
             <label>Category Icon Images</label>
-            <input type="file" multiple className={styles.fileInput} />
+            <input
+              type="file"
+              multiple
+              className={styles.fileInput}
+              onChange={(e) => handleFileChange(e, "categoryIcons")}
+            />
           </div>
         </section>
 
@@ -290,18 +403,15 @@ export default function CreateTreatmentPlan() {
           <div className={styles.field}>
             <label>Payment Options</label>
             <select
-              multiple
               className={styles.select}
-              onChange={(e) =>
-                setPaymentOptions(
-                  Array.from(e.target.selectedOptions, (o) => o.value)
-                )
-              }
+              value={paymentOption}
+              onChange={(e) => setPaymentOption(e.target.value)}
             >
               <option>Cash</option>
               <option>UPI</option>
               <option>Card</option>
               <option>EMI</option>
+              <option>Net Banking</option>
             </select>
           </div>
 

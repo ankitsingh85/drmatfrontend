@@ -58,11 +58,12 @@ import {
   FiChevronRight,
 } from "react-icons/fi";
 
+import CreateB2BCategory from "@/components/AdminPanel/CreateB2BCategory";
+import ListofB2BCategory from "@/components/AdminPanel/ListofB2BCategory";
+import ListOfTreatment from "@/components/AdminPanel/ListOfTreatment";
 import Topbar from "@/components/Layout/Topbar";
 import Footer from "@/components/Layout/Footer";
 import MobileNavbar from "@/components/Layout/MobileNavbar";
-import CreateB2BCategory from "@/components/AdminPanel/CreateB2BCategory";
-import ListofB2BCategory from "@/components/AdminPanel/ListofB2BCategory";
 
 type JwtPayload = { id: string; role: string; exp: number };
 type BasicItem = { _id?: string; name?: string; createdAt?: string };
@@ -156,6 +157,44 @@ export default function SuperAdminDashboard() {
     setActiveSection(section);
     setSidebarOpen(false);
   };
+
+  const menuSections = [
+    { key: "ADMIN", create: "createAdmin", list: "listOfAdmin" },
+    { key: "USER", create: "createUser", list: "listOfUser" },
+    { key: "DOCTOR", create: "createDoctor", list: "listOfDoctor" },
+    {
+      key: "CLINIC CATEGORY",
+      create: "createClinicCategory",
+      list: "listOfClinicCategory",
+    },
+    { key: "CLINIC", create: "createClinic", list: "listOfClinic" },
+    {
+      key: "PRODUCT CATEGORY",
+      create: "createProductCategory",
+      list: "listOfProductCategory",
+    },
+    { key: "PRODUCT", create: "createProduct", list: "listOfProduct" },
+    {
+      key: "B2B PRODUCT CATEGORY",
+      create: "createB2BProductCategory",
+      list: "listOfB2BProductCategory",
+    },
+    {
+      key: "B2B PRODUCT",
+      create: "createB2Bproduct",
+      list: "listOfB2Bproduct",
+    },
+    {
+      key: "SERVICE CATEGORY",
+      create: "createServiceCategory",
+      list: "listOfServiceCategory",
+    },
+    {
+      key: "TREATMENT PLANS",
+      create: "createTreatment",
+      list: "listOfTreatment",
+    },
+  ];
 
   const fetchDashboardSummary = async () => {
     setSummaryLoading(true);
@@ -331,43 +370,7 @@ export default function SuperAdminDashboard() {
             <FiUsers /> Dashboard
           </li>
 
-          {[
-            { key: "ADMIN", create: "createAdmin", list: "listOfAdmin" },
-            { key: "USER", create: "createUser", list: "listOfUser" },
-
-            { key: "DOCTOR", create: "createDoctor", list: "listOfDoctor" },
-            {
-              key: "CLINIC CATEGORY",
-              create: "createClinicCategory",
-              list: "listOfClinicCategory",
-            },
-
-            { key: "CLINIC", create: "createClinic", list: "listOfClinic" },
-            
-            {
-              key: "PRODUCT CATEGORY",
-              create: "createProductCategory",
-              list: "listOfProductCategory",
-            },
-            { key: "PRODUCT", create: "createProduct", list: "listOfProduct" },
-            
-{
-              key: "B2B PRODUCT CATEGORY",
-              create: "createB2BProductCategory",
-              list: "listOfB2BProductCategory",
-            },
-
-            {
-              key: "B2B PRODUCT",
-              create: "createB2Bproduct",
-              list: "listOfB2Bproduct",
-            },
-            {
-              key: "SERVICE CATEGORY",
-              create: "createServiceCategory",
-              list: "listOfServiceCategory",
-            },
-          ].map((cat) => (
+          {menuSections.map((cat) => (
             <div key={cat.key}>
               <li
                 className={styles.menuItem}
@@ -646,6 +649,7 @@ export default function SuperAdminDashboard() {
           {activeSection === "listOfServiceCategory" && (
             <ListOfServiceCategory />
           )}
+          {activeSection === "listOfTreatment" && <ListOfTreatment />}
           {activeSection === "listOfTopProduct" && <ListOfTopProduct />}
           {activeSection === "offerupdate" && <UpdateOffer />}
           {activeSection === "latestshorts" && <LatestShorts />}
