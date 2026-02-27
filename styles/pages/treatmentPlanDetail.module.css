@@ -1,0 +1,295 @@
+.page {
+  background: #f5f7fb;
+  padding: 22px 14px 34px;
+}
+
+.card {
+  max-width: 1020px;
+  margin: 0 auto;
+  background: #fff;
+  border: 1px solid #e3e8f0;
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.state {
+  min-height: 50vh;
+  display: grid;
+  place-items: center;
+  font-size: 1rem;
+  color: #364152;
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 18px;
+  border-bottom: 1px solid #e8edf5;
+  padding-bottom: 18px;
+}
+
+.heroImage {
+  width: 100%;
+  height: 220px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: #f2f6fb;
+}
+
+.heroContent h1 {
+  margin: 0 0 8px;
+  font-size: 2rem;
+  color: #0f172a;
+}
+
+.alias {
+  margin: 0 0 12px;
+  color: #1f2937;
+  font-size: 1.05rem;
+}
+
+.badges {
+  display: grid;
+  gap: 8px;
+}
+
+.badges p {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #1f2937;
+  font-size: 1.1rem;
+}
+
+.badges svg {
+  color: #2e7d32;
+}
+
+.priceRow {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #e8edf5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.mainPrice {
+  margin: 0;
+  font-size: 2.1rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.cutPrice {
+  margin: 4px 0 0;
+  font-size: 0.95rem;
+  color: #94a3b8;
+  text-decoration: line-through;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+}
+
+.secondaryBtn,
+.primaryBtn {
+  border-radius: 8px;
+  padding: 12px 18px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid transparent;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.secondaryBtn {
+  background: #fff;
+  color: #0284c7;
+  border-color: #0284c7;
+}
+
+.secondaryBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.primaryBtn {
+  background: #0ea5e9;
+  color: #fff;
+}
+
+.partner {
+  border-bottom: 1px solid #e8edf5;
+  padding: 18px 0;
+}
+
+.partner h3 {
+  margin: 0 0 10px;
+  font-size: 1.6rem;
+}
+
+.partnerRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.partnerName {
+  margin: 0 0 8px;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.partnerText {
+  margin: 0;
+  color: #1f2937;
+  font-size: 1.05rem;
+  line-height: 1.55;
+}
+
+.partnerLogo {
+  width: 96px;
+  height: 62px;
+  border: 1px solid #d8e0eb;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  color: #0284c7;
+  font-weight: 800;
+}
+
+.features {
+  border-bottom: 1px solid #e8edf5;
+  padding: 18px 0;
+  display: grid;
+  gap: 14px;
+}
+
+.featureItem {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.featureItem span {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #eef2ff;
+  color: #334155;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.featureItem h4 {
+  margin: 0 0 2px;
+  font-size: 1.1rem;
+}
+
+.featureItem p {
+  margin: 0;
+  color: #1f2937;
+  font-size: 1rem;
+}
+
+.accordion {
+  padding: 8px 0 0;
+}
+
+.accordionItem {
+  border-bottom: 1px solid #e8edf5;
+}
+
+.accordionHead {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  padding: 16px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 1.45rem;
+  font-weight: 700;
+  color: #1e293b;
+  cursor: pointer;
+  text-align: left;
+}
+
+.accordionBody {
+  margin: 0 0 14px;
+  color: #334155;
+  font-size: 1rem;
+  line-height: 1.55;
+}
+
+.chevron {
+  transition: transform 0.2s ease;
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+@media (max-width: 900px) {
+  .hero {
+    grid-template-columns: 1fr;
+  }
+
+  .heroImage {
+    height: 210px;
+  }
+
+  .priceRow {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 640px) {
+  .page {
+    padding: 10px 8px 20px;
+  }
+
+  .card {
+    padding: 10px;
+  }
+
+  .heroContent h1 {
+    font-size: 1.45rem;
+  }
+
+  .alias,
+  .badges p,
+  .partnerText,
+  .featureItem p {
+    font-size: 0.92rem;
+  }
+
+  .mainPrice {
+    font-size: 1.65rem;
+  }
+
+  .actions {
+    width: 100%;
+  }
+
+  .secondaryBtn,
+  .primaryBtn {
+    flex: 1;
+    justify-content: center;
+    font-size: 0.92rem;
+    padding: 10px 12px;
+  }
+
+  .accordionHead {
+    font-size: 1rem;
+  }
+}

@@ -31,6 +31,7 @@ const ProductCategory: React.FC<ProductCategoryProps> = ({
   const router = useRouter();
   const [categories, setCategories] = useState<Category[]>([]);
   const [exploreImage, setExploreImage] = useState<string | null>(null);
+  const [exploreCategoryName, setExploreCategoryName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Convert base64 or fallback image
@@ -59,12 +60,15 @@ const ProductCategory: React.FC<ProductCategoryProps> = ({
           exploreImage: cat.exploreImage,
         }));
 
-        // First 7 categories for grid
+        // Only first 7 categories for grid (8th tile is reserved for exploration tile - NOT a category)
         setCategories(formatted.slice(0, 7));
 
-        // Find explore image (any category with exploreImage)
+        // Find explore image for the 8th tile (navigation only, NOT a category)
         const exploreCat = data.find((cat: any) => cat.exploreImage);
-        if (exploreCat?.exploreImage) setExploreImage(exploreCat.exploreImage);
+        if (exploreCat?.exploreImage) {
+          setExploreImage(exploreCat.exploreImage);
+          setExploreCategoryName(exploreCat.name);
+        }
 
       } catch (err) {
         if ((err as any).name !== "AbortError") {
@@ -98,44 +102,43 @@ const ProductCategory: React.FC<ProductCategoryProps> = ({
       <h2 className={styles.clinicTitle}>{title}</h2>
 
       <div className={styles.gridContainer}>
-        {/* Render first 7 categories */}
+        {/* Render first 7 categories only */}
         {categories.map((category) => (
           <div
             key={category.id}
-            className={styles.categoryCard}
+            className={styles.categoryWrapper}
             onClick={() => handleCategoryClick(category)}
-            style={{
-              cursor: "pointer",
-              backgroundColor: textBg || "#D9EBFD",
-              border: border || "none",
-            }}
+            style={{ cursor: "pointer" }}
           >
-            <img
-              src={getValidImage(category.imageUrl)}
-              alt={category.name}
-              className={styles.categoryImg}
-            />
-            <p className={styles.categoryName}>{category.name}</p>
+            <div
+              className={styles.categoryCard}
+              style={{ backgroundColor: textBg || undefined, ...(border ? { border } : {}) }}
+            >
+              <img
+                src={getValidImage(category.imageUrl)}
+                alt={category.name}
+                className={styles.categoryImg}
+              />
+            </div>
+            <p className={styles.categoryLabel}>{category.name}</p>
           </div>
         ))}
 
-        {/* Explore Image as 8th tile */}
+        {/* 8th Tile: Exploration tile (NOT a category) - Navigation only to product list page */}
         {exploreImage && (
           <div
-            className={styles.categoryCard}
+            className={styles.categoryWrapper}
             onClick={handleExploreClick}
-            style={{
-              cursor: "pointer",
-              backgroundColor: "#E9F5FF",
-              border: border || "none",
-            }}
+            style={{ cursor: "pointer" }}
           >
-            <img
-              src={getValidImage(exploreImage)}
-              alt="Explore More"
-              className={styles.categoryImg}
-            />
-            <p className={styles.categoryName}>Explore More</p>
+            <div className={`${styles.categoryCard} ${styles.exploreCard}`} style={{ border: "1px solid #999" }}>
+              <img
+                src={getValidImage(exploreImage)}
+                alt={exploreCategoryName || "Explore More"}
+                className={styles.categoryImg}
+              />
+            </div>
+            <p className={styles.categoryLabel}>{exploreCategoryName || "Explore More"}</p>
           </div>
         )}
       </div>

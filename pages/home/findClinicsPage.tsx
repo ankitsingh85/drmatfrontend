@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter } from "next/router";
 import ClinicCard from "@/components/Layout/clinicCard";
 import SideCategories from "@/components/Layout/SideCategories";
 import styles from "@/styles/pages/findClinicsPage.module.css";
@@ -40,8 +40,11 @@ interface Clinic {
 }
 
 const FindClinicsPage: React.FC = () => {
-  const searchParams = useSearchParams();
-  const categoryQuery = searchParams.get("category");
+  const router = useRouter();
+  const categoryQuery = useMemo(() => {
+    const value = router.query.category;
+    return Array.isArray(value) ? value[0] : value || null;
+  }, [router.query.category]);
 
   const [clinics, setClinics] = useState<Clinic[]>([]);
   const [categories, setCategories] = useState<ClinicCategory[]>([]);
@@ -52,7 +55,7 @@ const FindClinicsPage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [clinicError, setClinicError] = useState("");
 
   /* ================= BASE64 SAFE IMAGE ================= */
   const getImage = (img?: string) => {
@@ -65,11 +68,13 @@ const FindClinicsPage: React.FC = () => {
   const fetchCategories = async () => {
     try {
       const res = await fetch(`${API_URL}/clinic-categories`);
+      if (!res.ok) throw new Error("Failed to load categories");
       const data = await res.json();
-      setCategories(data);
+      setCategories(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error(err);
-      setError("Failed to load categories");
+      // Do not block clinic listing if categories fail
+      setCategories([]);
     }
   };
 
@@ -77,12 +82,14 @@ const FindClinicsPage: React.FC = () => {
   const fetchClinics = async () => {
     try {
       setLoading(true);
+      setClinicError("");
       const res = await fetch(`${API_URL}/clinics`);
+      if (!res.ok) throw new Error("Failed to load clinics");
       const data = await res.json();
-      setClinics(data);
+      setClinics(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error(err);
-      setError("Failed to load clinics");
+      setClinicError("Failed to load clinics");
     } finally {
       setLoading(false);
     }
@@ -178,7 +185,7 @@ const FindClinicsPage: React.FC = () => {
                   setSearch(e.target.value);
                   setCurrentPage(1);
                 }}
-              />
+              />  
               <button className={styles.searchButton}>🔍</button>
             </div>
           </div>
@@ -186,8 +193,8 @@ const FindClinicsPage: React.FC = () => {
           {/* ================= STATES ================= */}
           {loading ? (
             <p className={styles.status}>Loading clinics…</p>
-          ) : error ? (
-            <p className={styles.error}>{error}</p>
+          ) : clinicError ? (
+            <p className={styles.error}>{clinicError}</p>
           ) : paginatedClinics.length === 0 ? (
             <p className={styles.status}>No clinics found.</p>
           ) : (

@@ -28,6 +28,8 @@ interface Product {
 }
 
 const MAX_TOP_PRODUCTS = 17;
+const TOP_PRODUCTS_CACHE_KEY = "top-products-cache-v1";
+const TOP_PRODUCTS_CACHE_TTL_MS = 5 * 60 * 1000;
 
 const TopProducts: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -37,6 +39,24 @@ const TopProducts: React.FC = () => {
 
   const router = useRouter();
   const { addToCart } = useCart();
+
+  const normalizeProducts = (data: unknown): Product[] => {
+    const arrayData = Array.isArray(data)
+      ? (data as (AdminProduct | null)[])
+      : [];
+
+    return arrayData
+      .filter((item): item is AdminProduct => Boolean(item && item._id))
+      .slice(0, MAX_TOP_PRODUCTS)
+      .map((p) => ({
+        id: p._id,
+        name: p.productName,
+        company: p.brandName,
+        price: Number(p.mrpPrice || 0),
+        discountPrice: Number(p.discountedPrice || 0),
+        images: p.productImages || [],
+      }));
+  };
 
   /* ================= IMAGE HANDLER ================= */
   const getImage = (img?: string) => {
@@ -48,30 +68,51 @@ const TopProducts: React.FC = () => {
   /* ================= FETCH TOP PRODUCTS ================= */
   useEffect(() => {
     const fetchTopProducts = async () => {
+      let hasFreshCache = false;
+
       try {
-        setLoading(true);
+        const cached = localStorage.getItem(TOP_PRODUCTS_CACHE_KEY);
+        if (cached) {
+          const parsed = JSON.parse(cached) as {
+            ts: number;
+            products: Product[];
+          };
+          if (
+            parsed &&
+            Array.isArray(parsed.products) &&
+            Date.now() - parsed.ts < TOP_PRODUCTS_CACHE_TTL_MS
+          ) {
+            setProducts(parsed.products);
+            hasFreshCache = true;
+          }
+        }
+      } catch {
+        // ignore cache read errors
+      }
+
+      try {
+        if (!hasFreshCache) setLoading(true);
+        setError(null);
 
         const res = await fetch(`${API_URL}/top-products`);
         if (!res.ok) throw new Error("Failed to fetch top products");
 
-        const data: (AdminProduct | null)[] = await res.json();
-
-        /* 🔥 NORMALIZE DATA */
-        const normalized: Product[] = data
-          .filter(Boolean)
-          .slice(0, MAX_TOP_PRODUCTS)
-          .map((p) => ({
-            id: p!._id,
-            name: p!.productName,
-            company: p!.brandName,
-            price: Number(p!.mrpPrice || 0),
-            discountPrice: Number(p!.discountedPrice || 0),
-            images: p!.productImages || [],
-          }));
-
+        const data = await res.json();
+        const normalized = normalizeProducts(data);
         setProducts(normalized);
+
+        try {
+          localStorage.setItem(
+            TOP_PRODUCTS_CACHE_KEY,
+            JSON.stringify({ ts: Date.now(), products: normalized })
+          );
+        } catch {
+          // ignore cache write errors
+        }
       } catch (err: any) {
-        setError(err.message || "Failed to load top products");
+        if (!hasFreshCache) {
+          setError(err.message || "Failed to load top products");
+        }
       } finally {
         setLoading(false);
       }
@@ -112,7 +153,7 @@ const TopProducts: React.FC = () => {
 
   return (
     <div className={styles.container}>
-      {loading && <p>Loading...</p>}
+      {loading && products.length === 0 && <p>Loading...</p>}
       {error && <p className={styles.error}>{error}</p>}
 
       <div className={styles.grid}>
@@ -130,7 +171,7 @@ const TopProducts: React.FC = () => {
             <div
               key={product.id}
               className={styles.card}
-              onClick={() => router.push(`/product/${product.id}`)}
+              onClick={() => router.push(`/product-detail/${product.id}`)}
               onMouseEnter={() => setHoveredIndex(idx)}
               onMouseLeave={() => setHoveredIndex(null)}
             >
@@ -139,6 +180,8 @@ const TopProducts: React.FC = () => {
                   src={getImage(product.images?.[0])}
                   className={styles.image}
                   alt={product.name}
+                  loading="lazy"
+                  decoding="async"
                 />
 
                 {hasDiscount && (

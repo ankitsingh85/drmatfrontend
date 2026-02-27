@@ -797,6 +797,824 @@
 .icon {
   font-size: 1rem;
 }
+
+/* Isolated V2 styles to avoid conflicts with legacy duplicate selectors */
+.servicesTabPanel {
+  margin-top: 12px;
+}
+
+.servicesShowcaseV2 {
+  width: 100%;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 16px 18px;
+}
+
+.servicesColumnsV2 {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 22px;
+}
+
+.servicesColumnV2 {
+  min-width: 0;
+}
+
+.servicesGroupTitleV2 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.groupTickV2 {
+  margin-right: 6px;
+}
+
+.servicesLinksV2 {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+}
+
+.serviceLinkLikeV2 {
+  color: #1f2937;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  font-size: 0.96rem;
+  line-height: 1.4;
+}
+
+.moreCountV2 {
+  color: #2563eb;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.servicesEmptyV2 {
+  margin: 0;
+  color: #9ca3af;
+  font-size: 0.9rem;
+}
+
+.servicesActionsV2 {
+  margin-top: 16px;
+  display: flex;
+  justify-content: center;
+}
+
+.viewAllButtonV2 {
+  border: 1px solid #2563eb;
+  background: #fff;
+  color: #2563eb;
+  border-radius: 6px;
+  padding: 8px 22px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.viewAllButtonV2:hover {
+  background: #eff6ff;
+}
+
+.doctorsTabPanel {
+  width: 100%;
+  padding: 4px 0 10px;
+}
+
+.doctorsHeadingV2 {
+  margin: 0 0 14px;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.doctorsGridV2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 18px;
+}
+
+.doctorCardV2 {
+  max-width: 280px;
+}
+
+.doctorImageV2 {
+  width: 100%;
+  aspect-ratio: 1.25 / 1;
+  object-fit: cover;
+  border-radius: 14px;
+  margin-bottom: 10px;
+  display: block;
+}
+
+.doctorNameV2 {
+  margin: 0 0 4px;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.doctorSpecializationV2 {
+  margin: 0 0 7px;
+  color: #6b7280;
+  font-size: 0.95rem;
+}
+
+.doctorRatingV2 {
+  margin: 0;
+  font-size: 1rem;
+  color: #111827;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.ratingStarV2 {
+  color: #f97316;
+  line-height: 1;
+}
+
+@media (max-width: 1024px) {
+  .servicesColumnsV2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .servicesColumnsV2 {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .servicesShowcaseV2 {
+    padding: 12px;
+  }
+}
+
+/* Services showcase layout (Treatment / Therapy / Tests / Management) */
+.servicesShowcase {
+  width: 100%;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 16px 18px;
+}
+
+.servicesColumns {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 22px;
+}
+
+.servicesColumn {
+  min-width: 0;
+}
+
+.servicesGroupTitle {
+  margin: 0 0 8px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.servicesLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+}
+
+.serviceLinkLike {
+  color: #1f2937;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  font-size: 0.96rem;
+  line-height: 1.4;
+}
+
+.moreCount {
+  color: #2563eb;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.servicesEmpty {
+  margin: 0;
+  color: #9ca3af;
+  font-size: 0.9rem;
+}
+
+.servicesActions {
+  margin-top: 16px;
+  display: flex;
+  justify-content: center;
+}
+
+.viewAllButton {
+  border: 1px solid #2563eb;
+  background: #fff;
+  color: #2563eb;
+  border-radius: 6px;
+  padding: 8px 22px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.viewAllButton:hover {
+  background: #eff6ff;
+}
+
+@media (max-width: 1024px) {
+  .servicesColumns {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .servicesColumns {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .servicesShowcase {
+    padding: 12px;
+  }
+}
+
+/* Services list-only layout (no cards/images) */
+.serviceListContainer {
+  width: 100%;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 16px 18px;
+}
+
+.serviceListTitle {
+  margin: 0 0 10px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.serviceList {
+  margin: 0;
+  padding-left: 0;
+  display: grid;
+  gap: 10px;
+  list-style: none;
+}
+
+.serviceListItem {
+  position: relative;
+  padding: 10px 12px 10px 34px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #f9fafb;
+  color: #111827;
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.serviceListItem::before {
+  content: "";
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+/* Doctors tab */
+.doctorsSection {
+  width: 100%;
+  padding: 4px 0 10px;
+}
+
+.doctorsHeading {
+  margin: 0 0 14px;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.doctorsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 18px;
+}
+
+.doctorCard {
+  max-width: 280px;
+}
+
+.doctorImage {
+  width: 100%;
+  aspect-ratio: 1.25 / 1;
+  object-fit: cover;
+  border-radius: 14px;
+  margin-bottom: 10px;
+  display: block;
+}
+
+.doctorName {
+  margin: 0 0 4px;
+  font-size: 1.9rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.doctorSpecialization {
+  margin: 0 0 7px;
+  color: #6b7280;
+  font-size: 1.45rem;
+}
+
+.doctorRating {
+  margin: 0;
+  font-size: 2rem;
+  color: #111827;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.ratingStar {
+  color: #f97316;
+  line-height: 1;
+}
+
+@media (max-width: 640px) {
+  .doctorsHeading {
+    font-size: 1.25rem;
+  }
+
+  .doctorName {
+    font-size: 1.08rem;
+  }
+
+  .doctorSpecialization {
+    font-size: 0.92rem;
+  }
+
+  .doctorRating {
+    font-size: 1.05rem;
+  }
+}
+
+/* Compact treatment plan cards (reference style with image) */
+.servicesSection {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 14px;
+  align-items: start;
+}
+
+.sidebar {
+  padding: 10px;
+  border-radius: 12px;
+}
+
+.categoryHeading {
+  font-size: 0.82rem;
+  margin-bottom: 8px;
+}
+
+.categoryButton {
+  min-height: 36px;
+  padding: 7px 9px;
+  font-size: 0.8rem;
+}
+
+.categoryImage {
+  width: 20px;
+  height: 20px;
+}
+
+.servicesContent {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(185px, 1fr));
+  gap: 10px;
+}
+
+.planCard {
+  border: 1px solid #d1d9e6;
+  border-radius: 12px;
+  background: #fff;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 268px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.planCard:hover {
+  border-color: #9cb8dd;
+  box-shadow: 0 8px 20px rgba(21, 94, 149, 0.12);
+  transform: translateY(-2px);
+}
+
+.planImageWrap {
+  height: 108px;
+  background: #f3f6fb;
+  border-bottom: 1px solid #e3ebf7;
+}
+
+.planImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.planBody {
+  padding: 10px 12px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.planNameRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.planName {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #18253a;
+  line-height: 1.35;
+}
+
+.planAmount {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+  color: #128240;
+  white-space: nowrap;
+}
+
+.planHint {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: #5e6b7d;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.planCategory {
+  margin: 0;
+  width: fit-content;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #e8f1ff;
+  color: #1e4ea8;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.planPrice {
+  margin: 0;
+  font-size: 0.78rem;
+  color: #64748b;
+  min-height: 18px;
+}
+
+.planOriginalPrice {
+  text-decoration: line-through;
+  color: #97a3b5;
+  margin-right: 6px;
+}
+
+.planDiscountedPrice {
+  color: #0f9f58;
+  font-weight: 700;
+}
+
+.planAction {
+  border: 0;
+  border-top: 1px solid #e3ebf7;
+  border-radius: 0;
+  width: 100%;
+  padding: 10px 8px;
+  background: #ffffff;
+  color: #0ea5e9;
+  font-size: 0.92rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: background 0.16s ease, color 0.16s ease;
+}
+
+.planAction:hover {
+  background: #f3f9ff;
+}
+
+.planAction:disabled {
+  color: #93a0b4;
+  background: #f4f7fb;
+  cursor: not-allowed;
+}
+
+@media (max-width: 1024px) {
+  .servicesSection {
+    grid-template-columns: 1fr;
+  }
+
+  .servicesContent {
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .servicesContent {
+    grid-template-columns: 1fr;
+  }
+
+  .planCard {
+    min-height: 0;
+  }
+}
+
+/* Enhanced Treatment Plans UI */
+.servicesSection {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 18px;
+  align-items: start;
+  margin: 10px 0 28px;
+}
+
+.sidebar {
+  position: sticky;
+  top: 90px;
+  width: 100%;
+  padding: 12px;
+  background: linear-gradient(180deg, #f8fbff 0%, #eff6ff 100%);
+  border: 1px solid #d9e6f7;
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(21, 94, 149, 0.08);
+}
+
+.categoryHeading {
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #1e3a5f;
+  margin-bottom: 10px;
+}
+
+.categoryList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 520px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.categoryList::-webkit-scrollbar {
+  width: 4px;
+}
+
+.categoryList::-webkit-scrollbar-thumb {
+  background: #bfd5ef;
+  border-radius: 999px;
+}
+
+.categoryButton {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 10px;
+  margin: 0;
+  background: #fff;
+  border: 1px solid #d7e5f5;
+  border-radius: 10px;
+  text-align: left;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: #1f334d;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.categoryButton:hover {
+  border-color: #9ec2ea;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(30, 91, 153, 0.1);
+}
+
+.activeCategory {
+  background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);
+  color: #fff;
+  border-color: #1d4ed8;
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.3);
+}
+
+.categoryImage {
+  width: 24px;
+  height: 24px;
+  object-fit: cover;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.servicesContent {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+  gap: 16px;
+}
+
+.serviceCard {
+  display: flex;
+  flex-direction: column;
+  min-height: 390px;
+  border: 1px solid #d9e5f5;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
+  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+}
+
+.serviceCard:hover {
+  transform: translateY(-4px);
+  border-color: #afc9ea;
+  box-shadow: 0 16px 30px rgba(30, 64, 175, 0.14);
+}
+
+.serviceImage {
+  width: 100%;
+  height: 182px;
+  object-fit: cover;
+  background: #f1f5f9;
+  border-bottom: 1px solid #e6eef8;
+}
+
+.serviceText {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  padding: 12px 14px 10px;
+}
+
+.serviceText h4 {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.35;
+  color: #13253b;
+}
+
+.descriptionHtml {
+  margin: 0;
+  color: #425466;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.descriptionHtml p {
+  margin: 0;
+}
+
+.descriptionHtml ul,
+.descriptionHtml ol {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.categories {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  margin: 0;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: #1e40af;
+  background: #e9f1ff;
+}
+
+.price {
+  margin-top: auto;
+  margin-bottom: 0;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.originalPrice {
+  color: #94a3b8;
+  text-decoration: line-through;
+  margin-right: 7px;
+  font-weight: 500;
+}
+
+.discountedPrice {
+  color: #0f9f58;
+  font-weight: 800;
+}
+
+.addToCart {
+  width: 100%;
+  margin-top: auto;
+  border: 0;
+  border-top: 1px solid #dde7f5;
+  border-radius: 0;
+  padding: 12px 14px;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, #1e40af 0%, #1d4ed8 100%);
+  cursor: pointer;
+  transition: transform 0.16s ease, filter 0.16s ease, opacity 0.16s ease;
+}
+
+.addToCart:hover {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+}
+
+.addToCart:disabled {
+  background: #c2cedf;
+  color: #5c6c83;
+  cursor: not-allowed;
+  transform: none;
+  filter: none;
+}
+
+@media (max-width: 1024px) {
+  .servicesSection {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .sidebar {
+    position: static;
+    padding: 10px;
+  }
+
+  .categoryList {
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+    max-height: none;
+    padding-bottom: 4px;
+  }
+
+  .categoryButton {
+    width: auto;
+    min-width: max-content;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 640px) {
+  .servicesContent {
+    grid-template-columns: 1fr;
+  }
+
+  .serviceCard {
+    min-height: 0;
+  }
+
+  .serviceImage {
+    height: 170px;
+  }
+}
 /* Service Card */
 .serviceCard {
   display: flex;

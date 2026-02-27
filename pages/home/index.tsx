@@ -21,6 +21,7 @@ import Offer3 from "./Offer3";
 import Offer4 from "./Offer4";
 
 import Treatment from "./Treatment";
+import TreatmentPlans from "./TreatmentPlans";
 import HappyStories from "./HappyStories";
 import Link from "next/link";
 import TopProducts from "@/components/TopProducts";
@@ -228,12 +229,11 @@ const Index = () => {
           />
         </div>
 
-        <ClinicCategories
-          title="Find The Best Treatment Plans"
-          backgroundColor="white"
-          textBg="#D9EBFD"
-          border="2px solid #D9EBFD"
-        />
+        <TreatmentPlans />
+
+        <div style={{ padding: "8px 0 18px", backgroundColor: "#ffffff" }}>
+         
+        </div>
       </div>
 
       <div

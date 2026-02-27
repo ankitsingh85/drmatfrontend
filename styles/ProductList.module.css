@@ -766,6 +766,94 @@ ease;
     padding: 5px;
   }
 }
+
+/* Final sidebar overrides */
+.sidebarCard {
+  height: auto;
+  min-height: 138px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  padding: 8px;
+}
+
+.sidebarImage {
+  width: 100%;
+  height: 92px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.sidebarName {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.2;
+  font-weight: 600;
+  text-align: center;
+  color: #333;
+  word-break: break-word;
+}
+
+@media (max-width: 480px) {
+  .sidebarCard {
+    min-height: 130px;
+  }
+
+  .sidebarImage {
+    width: 88px;
+    height: 72px;
+  }
+
+  .sidebarName {
+    font-size: 11px;
+  }
+}
+
+/* Final sidebar overrides */
+.sidebarCard {
+  height: auto;
+  min-height: 138px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  padding: 8px;
+}
+
+.sidebarImage {
+  width: 100%;
+  height: 92px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.sidebarName {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.2;
+  font-weight: 600;
+  text-align: center;
+  color: #333;
+  word-break: break-word;
+}
+
+@media (max-width: 480px) {
+  .sidebarCard {
+    min-height: 130px;
+  }
+
+  .sidebarImage {
+    width: 88px;
+    height: 72px;
+  }
+
+  .sidebarName {
+    font-size: 11px;
+  }
+}
 /* ================== MOBILE VIEW: ≤ 480px ================== */
 @media (max-width: 480px) {
 
@@ -1018,5 +1106,49 @@ ease;
 
   .shopSection {
     padding: 5px;
+  }
+}
+
+/* Final sidebar overrides (appended) */
+.sidebarCard {
+  height: auto;
+  min-height: 138px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  padding: 8px;
+}
+
+.sidebarImage {
+  width: 100%;
+  height: 92px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.sidebarName {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.2;
+  font-weight: 600;
+  text-align: center;
+  color: #333;
+  word-break: break-word;
+}
+
+@media (max-width: 480px) {
+  .sidebarCard {
+    min-height: 130px;
+  }
+
+  .sidebarImage {
+    width: 88px;
+    height: 72px;
+  }
+
+  .sidebarName {
+    font-size: 11px;
   }
 }

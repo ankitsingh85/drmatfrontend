@@ -102,7 +102,7 @@ export default function AdminLogin() {
         <div className={styles.formPane}>
           <div className={styles.formCard}>
             <h2 className={styles.title}>
-              <span className={styles.titleUnderline}>Login</span> as a Admin User
+              <span className={styles.titleUnderline}>Login</span> as a Admin 
             </h2>
 
             <form onSubmit={handleSubmit} className={styles.form}>

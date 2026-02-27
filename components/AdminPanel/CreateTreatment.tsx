@@ -38,13 +38,12 @@ export default function CreateTreatmentPlan() {
   const [description, setDescription] = useState("");
 
   /* Media */
-  const [treatmentImages, setTreatmentImages] = useState<File[]>([]);
-  const [beforeAfterImages, setBeforeAfterImages] = useState<File[]>([]);
+  const [treatmentImages, setTreatmentImages] = useState<string[]>([]);
+  const [beforeAfterImages, setBeforeAfterImages] = useState<string[]>([]);
   const [shortReelUrl, setShortReelUrl] = useState("");
 
   /* Category */
   const [serviceCategory, setServiceCategory] = useState("");
-  const [categoryIcons, setCategoryIcons] = useState<File[]>([]);
 
   /* Pricing */
   const [mrp, setMrp] = useState("");
@@ -125,20 +124,32 @@ export default function CreateTreatmentPlan() {
     fetchServiceCategories();
   }, []);
 
-  const handleFileChange = (
+  const fileToBase64 = (file: File) =>
+    new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === "string") {
+          resolve(reader.result);
+          return;
+        }
+        reject(new Error("Invalid file data"));
+      };
+      reader.onerror = () => reject(new Error("Failed to read file"));
+      reader.readAsDataURL(file);
+    });
+
+  const handleFileChange = async (
     e: React.ChangeEvent<HTMLInputElement>,
-    type: "treatmentImages" | "beforeAfterImages" | "categoryIcons"
+    type: "treatmentImages" | "beforeAfterImages"
   ) => {
     const files = Array.from(e.target.files || []);
+    const base64Images = await Promise.all(files.map(fileToBase64));
+
     if (type === "treatmentImages") {
-      setTreatmentImages(files);
+      setTreatmentImages(base64Images);
       return;
     }
-    if (type === "beforeAfterImages") {
-      setBeforeAfterImages(files);
-      return;
-    }
-    setCategoryIcons(files);
+    setBeforeAfterImages(base64Images);
   };
 
   const quillModules = useMemo(
@@ -161,42 +172,42 @@ export default function CreateTreatmentPlan() {
       return;
     }
 
-    const formData = new FormData();
-
-    formData.append("tuc", tuc);
-    formData.append("treatmentName", treatmentName);
-    formData.append("clinic", finalClinicId);
-    formData.append("description", description);
-    formData.append("shortReelUrl", shortReelUrl);
-    formData.append("serviceCategory", serviceCategory);
-    formData.append("mrp", mrp);
-    formData.append("offerPrice", offerPrice);
-    formData.append("pricePerSession", pricePerSession);
-    formData.append("discountPercent", discountPercent);
-    formData.append("sessions", sessions);
-    formData.append("duration", duration);
-    formData.append("validity", validity);
-    formData.append("technologyUsed", technologyUsed);
-    formData.append("instructions", instructions);
-    formData.append("disclaimer", disclaimer);
-    formData.append("inclusions", inclusions);
-    formData.append("exclusions", exclusions);
-    formData.append("gender", gender);
-    formData.append("paymentOption", paymentOption);
-    formData.append("promoCode", promoCode);
-    formData.append("addToCart", String(addToCart));
-    formData.append("isActive", String(isActive));
-    formData.append("rating", rating);
-    formData.append("reviews", reviews);
-    formData.append("patientFeedback", patientFeedback);
-
-    treatmentImages.forEach((file) => formData.append("treatmentImages", file));
-    beforeAfterImages.forEach((file) => formData.append("beforeAfterImages", file));
-    categoryIcons.forEach((file) => formData.append("categoryIcons", file));
+    const payload = {
+      tuc,
+      treatmentName,
+      clinic: finalClinicId,
+      description,
+      shortReelUrl,
+      serviceCategory,
+      mrp,
+      offerPrice,
+      pricePerSession,
+      discountPercent,
+      sessions,
+      duration,
+      validity,
+      technologyUsed,
+      instructions,
+      disclaimer,
+      inclusions,
+      exclusions,
+      gender,
+      paymentOption,
+      promoCode,
+      addToCart,
+      isActive,
+      rating,
+      reviews,
+      patientFeedback,
+      treatmentImages,
+      beforeAfterImages,
+      categoryIcons: [],
+    };
 
     const res = await fetch(`${API_URL}/treatment-plans`, {
       method: "POST",
-      body: formData,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
     });
 
     setNotification(
@@ -312,16 +323,6 @@ export default function CreateTreatmentPlan() {
                 </option>
               ))}
             </select>
-          </div>
-
-          <div className={styles.field}>
-            <label>Category Icon Images</label>
-            <input
-              type="file"
-              multiple
-              className={styles.fileInput}
-              onChange={(e) => handleFileChange(e, "categoryIcons")}
-            />
           </div>
         </section>
 

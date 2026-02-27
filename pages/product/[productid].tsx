@@ -31,6 +31,24 @@ interface Product {
   reviews: Review[];
 }
 
+interface ApiProduct {
+  _id?: string;
+  name?: string;
+  productName?: string;
+  description?: string;
+  category?: string;
+  company?: string;
+  brandName?: string;
+  price?: number;
+  mrpPrice?: number;
+  discountPrice?: number;
+  discountedPrice?: number;
+  quantity?: number;
+  images?: string[];
+  productImages?: string[];
+  reviews?: Review[];
+}
+
 export default function ProductDetail() {
   const router = useRouter();
   const { productid } = router.query;
@@ -52,14 +70,32 @@ export default function ProductDetail() {
   const [newRating, setNewRating] = useState(0);
 // const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000/api";
 
+  const normalizeProduct = (raw: ApiProduct): Product => ({
+    _id: String(raw._id || ""),
+    name: raw.name || raw.productName || "",
+    description: raw.description,
+    category: raw.category,
+    company: raw.company || raw.brandName,
+    price: Number(raw.price ?? raw.mrpPrice ?? 0),
+    discountPrice: Number(
+      raw.discountPrice ?? raw.discountedPrice ?? raw.price ?? raw.mrpPrice ?? 0
+    ),
+    quantity: raw.quantity,
+    images: raw.images || raw.productImages || [],
+    reviews: Array.isArray(raw.reviews) ? raw.reviews : [],
+  });
+
   // Fetch product with reviews
   useEffect(() => {
-    if (!productid) return;
+    const id = Array.isArray(productid) ? productid[0] : productid;
+    if (!id) return;
+
     const fetchProduct = async () => {
       try {
-        const res = await axios.get(`${API_URL}/products/${productid}`);
-        setProduct(res.data);
-        setMainImage(res.data.images?.[0] || null);
+        const res = await axios.get(`${API_URL}/products/${id}`);
+        const normalized = normalizeProduct(res.data as ApiProduct);
+        setProduct(normalized);
+        setMainImage(normalized.images?.[0] || null);
       } catch (err) {
         console.error("Error fetching product:", err);
       } finally {
@@ -81,14 +117,16 @@ export default function ProductDetail() {
   };
 
   const handleReviewSubmit = async () => {
-    if (!newComment.trim() || newRating === 0 || !productid) return;
+    const id = Array.isArray(productid) ? productid[0] : productid;
+    if (!newComment.trim() || newRating === 0 || !id) return;
     try {
-      const res = await axios.post(`${API_URL}/products/${productid}/reviews`, {
+      const res = await axios.post(`${API_URL}/products/${id}/reviews`, {
         rating: newRating,
         comment: newComment,
         user: "Guest User", // Replace with logged-in user if available
       });
-      setProduct((prev) => (prev ? { ...prev, reviews: res.data } : null));
+      const normalized = normalizeProduct(res.data as ApiProduct);
+      setProduct(normalized);
       setNewComment("");
       setNewRating(0);
     } catch (err) {

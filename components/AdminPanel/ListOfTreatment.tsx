@@ -91,6 +91,13 @@ const ListOfTreatment = () => {
     setCurrentPage(1);
   }, [search, filterClinic, filterPayment, itemsPerPage]);
 
+  const stripHtml = (value?: string) =>
+    (value || "")
+      .replace(/<[^>]*>/g, " ")
+      .replace(/&nbsp;/gi, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
   const handleDownloadCSV = () => {
     const rows = [
       [
@@ -111,7 +118,7 @@ const ListOfTreatment = () => {
         treatment.paymentOption || "",
         treatment.mrp ?? "",
         treatment.offerPrice ?? "",
-        treatment.description || "",
+        stripHtml(treatment.description) || "",
       ]),
     ];
 
@@ -162,7 +169,7 @@ const ListOfTreatment = () => {
           <td>${escapeHtml(treatment.paymentOption || "-")}</td>
           <td>${escapeHtml(String(treatment.mrp ?? "-"))}</td>
           <td>${escapeHtml(String(treatment.offerPrice ?? "-"))}</td>
-          <td>${escapeHtml(treatment.description || "-")}</td>
+          <td>${escapeHtml(stripHtml(treatment.description) || "-")}</td>
         </tr>`
       )
       .join("");
@@ -357,7 +364,7 @@ const ListOfTreatment = () => {
                 <td>{treatment.paymentOption || "-"}</td>
                 <td>{treatment.mrp ?? "-"}</td>
                 <td>{treatment.offerPrice ?? "-"}</td>
-                <td>{treatment.description}</td>
+                <td>{stripHtml(treatment.description) || "-"}</td>
                 <td>
                   {editingTreatment?._id === treatment._id ? (
                     <>
