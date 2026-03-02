@@ -2,6 +2,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import styles from "@/styles/Dashboard/listofcategory.module.css";
 import { API_URL } from "@/config/api";
+import { FiEdit2, FiTrash2 } from "react-icons/fi";
+import editStyles from "@/styles/Dashboard/createUser.module.css";
 
 interface Treatment {
   _id: string;
@@ -20,6 +22,16 @@ interface Treatment {
     | string;
 }
 
+interface TreatmentEditForm {
+  treatmentName: string;
+  clinicId: string;
+  serviceCategory: string;
+  paymentOption: string;
+  mrp: string;
+  offerPrice: string;
+  description: string;
+}
+
 const ListOfTreatment = () => {
   const [treatments, setTreatments] = useState<Treatment[]>([]);
   const [search, setSearch] = useState("");
@@ -28,7 +40,15 @@ const ListOfTreatment = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [editingTreatment, setEditingTreatment] = useState<Treatment | null>(null);
-  const [editName, setEditName] = useState("");
+  const [editForm, setEditForm] = useState<TreatmentEditForm>({
+    treatmentName: "",
+    clinicId: "",
+    serviceCategory: "",
+    paymentOption: "",
+    mrp: "",
+    offerPrice: "",
+    description: "",
+  });
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -231,29 +251,102 @@ const ListOfTreatment = () => {
   };
 
   const handleEdit = (treatment: Treatment) => {
+    const clinicId =
+      typeof treatment.clinic === "object"
+        ? treatment.clinic?._id || ""
+        : typeof treatment.clinic === "string"
+        ? treatment.clinic
+        : "";
+
     setEditingTreatment(treatment);
-    setEditName(treatment.treatmentName);
+    setEditForm({
+      treatmentName: treatment.treatmentName || "",
+      clinicId,
+      serviceCategory: treatment.serviceCategory || "",
+      paymentOption: treatment.paymentOption || "",
+      mrp: treatment.mrp != null ? String(treatment.mrp) : "",
+      offerPrice: treatment.offerPrice != null ? String(treatment.offerPrice) : "",
+      description: treatment.description || "",
+    });
+    setError("");
   };
 
   const handleUpdate = async () => {
     if (!editingTreatment) return;
+    if (!editForm.treatmentName.trim()) {
+      setError("Treatment name is required");
+      return;
+    }
+
+    const parsedMrp =
+      editForm.mrp.trim() === "" ? undefined : Number(editForm.mrp);
+    const parsedOffer =
+      editForm.offerPrice.trim() === "" ? undefined : Number(editForm.offerPrice);
+
+    if (
+      (parsedMrp !== undefined && Number.isNaN(parsedMrp)) ||
+      (parsedOffer !== undefined && Number.isNaN(parsedOffer))
+    ) {
+      setError("MRP and Offer Price must be valid numbers");
+      return;
+    }
+
+    const payload = {
+      treatmentName: editForm.treatmentName.trim(),
+      clinic: editForm.clinicId || undefined,
+      serviceCategory: editForm.serviceCategory.trim(),
+      paymentOption: editForm.paymentOption.trim(),
+      mrp: parsedMrp,
+      offerPrice: parsedOffer,
+      description: editForm.description,
+    };
+
     try {
       const res = await fetch(
         `${API_URL}/treatment-plans/${editingTreatment._id}`,
         {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ treatmentName: editName }),
+        body: JSON.stringify(payload),
         }
       );
       if (res.ok) {
+        const clinicMatch = clinicOptions.find((c) => c.id === payload.clinic);
         setTreatments(
           treatments.map((t) =>
-            t._id === editingTreatment._id ? { ...t, treatmentName: editName } : t
+            t._id === editingTreatment._id
+              ? {
+                  ...t,
+                  treatmentName: payload.treatmentName,
+                  serviceCategory: payload.serviceCategory || undefined,
+                  paymentOption: payload.paymentOption || undefined,
+                  mrp: payload.mrp,
+                  offerPrice: payload.offerPrice,
+                  description: payload.description,
+                  clinic: payload.clinic
+                    ? {
+                        _id: payload.clinic,
+                        clinicName:
+                          clinicMatch?.name ||
+                          (typeof t.clinic === "object"
+                            ? t.clinic?.clinicName || "-"
+                            : "-"),
+                      }
+                    : t.clinic,
+                }
+              : t
           )
         );
         setEditingTreatment(null);
-        setEditName("");
+        setEditForm({
+          treatmentName: "",
+          clinicId: "",
+          serviceCategory: "",
+          paymentOption: "",
+          mrp: "",
+          offerPrice: "",
+          description: "",
+        });
       } else {
         setError("Failed to update treatment");
       }
@@ -298,7 +391,7 @@ const ListOfTreatment = () => {
           <option value="EMI">EMI</option>
           <option value="Net Banking">Net Banking</option>
         </select>
-        <select
+        {/* <select
           value={itemsPerPage}
           onChange={(e) => setItemsPerPage(Number(e.target.value))}
           className={`${styles.filter} ${styles.pageFilter}`}
@@ -307,7 +400,7 @@ const ListOfTreatment = () => {
           <option value={10}>10 per page</option>
           <option value={20}>20 per page</option>
           <option value={50}>50 per page</option>
-        </select>
+        </select> */}
         <button
           type="button"
           className={styles.premiumButton}
@@ -343,18 +436,7 @@ const ListOfTreatment = () => {
           <tbody>
             {paginatedTreatments.map((treatment) => (
               <tr key={treatment._id}>
-                <td>
-                  {editingTreatment?._id === treatment._id ? (
-                    <input
-                      type="text"
-                      value={editName}
-                      onChange={(e) => setEditName(e.target.value)}
-                      className={styles.editInput}
-                    />
-                  ) : (
-                    treatment.treatmentName
-                  )}
-                </td>
+                <td>{treatment.treatmentName}</td>
                 <td>
                   {typeof treatment.clinic === "object"
                     ? treatment.clinic?.clinicName
@@ -366,34 +448,24 @@ const ListOfTreatment = () => {
                 <td>{treatment.offerPrice ?? "-"}</td>
                 <td>{stripHtml(treatment.description) || "-"}</td>
                 <td>
-                  {editingTreatment?._id === treatment._id ? (
-                    <>
-                      <button onClick={handleUpdate} className={styles.saveBtn}>
-                        Save
-                      </button>
-                      <button
-                        onClick={() => setEditingTreatment(null)}
-                        className={styles.cancelBtn}
-                      >
-                        Cancel
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <button
-                        onClick={() => handleEdit(treatment)}
-                        className={styles.editBtn}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(treatment._id)}
-                        className={styles.deleteBtn}
-                      >
-                        Delete
-                      </button>
-                    </>
-                  )}
+                  <>
+                    <button
+                      onClick={() => handleEdit(treatment)}
+                      className={styles.editBtn}
+                      title="Edit treatment"
+                      aria-label="Edit treatment"
+                    >
+                      <FiEdit2 />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(treatment._id)}
+                      className={styles.deleteBtn}
+                      title="Delete treatment"
+                      aria-label="Delete treatment"
+                    >
+                      <FiTrash2 />
+                    </button>
+                  </>
                 </td>
               </tr>
             ))}
@@ -445,6 +517,162 @@ const ListOfTreatment = () => {
           </button>
         </div>
       </div>
+
+      {editingTreatment && (
+        <div className={editStyles.container} style={{ marginTop: 40 }}>
+          <h1 className={editStyles.heading}>Edit Treatment</h1>
+
+          <form
+            className={editStyles.form}
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleUpdate();
+            }}
+          >
+            <div className={editStyles.section}>
+              <h2 className={editStyles.sectionTitle}>Treatment Information</h2>
+
+              <div className={editStyles.field}>
+                <label className={editStyles.label}>Treatment Name</label>
+                <input
+                  type="text"
+                  value={editForm.treatmentName}
+                  onChange={(e) =>
+                    setEditForm((prev) => ({
+                      ...prev,
+                      treatmentName: e.target.value,
+                    }))
+                  }
+                  className={editStyles.input}
+                  placeholder="Treatment name"
+                />
+              </div>
+
+              <div className={editStyles.field}>
+                <label className={editStyles.label}>Clinic</label>
+                <select
+                  value={editForm.clinicId}
+                  onChange={(e) =>
+                    setEditForm((prev) => ({ ...prev, clinicId: e.target.value }))
+                  }
+                  className={editStyles.select}
+                >
+                  <option value="">Select clinic</option>
+                  {clinicOptions.map((clinic) => (
+                    <option key={clinic.id} value={clinic.id}>
+                      {clinic.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className={editStyles.field}>
+                <label className={editStyles.label}>Category</label>
+                <input
+                  type="text"
+                  value={editForm.serviceCategory}
+                  onChange={(e) =>
+                    setEditForm((prev) => ({
+                      ...prev,
+                      serviceCategory: e.target.value,
+                    }))
+                  }
+                  className={editStyles.input}
+                  placeholder="Service category"
+                />
+              </div>
+
+              <div className={editStyles.field}>
+                <label className={editStyles.label}>Payment Option</label>
+                <select
+                  value={editForm.paymentOption}
+                  onChange={(e) =>
+                    setEditForm((prev) => ({
+                      ...prev,
+                      paymentOption: e.target.value,
+                    }))
+                  }
+                  className={editStyles.select}
+                >
+                  <option value="">Select payment option</option>
+                  <option value="Cash">Cash</option>
+                  <option value="UPI">UPI</option>
+                  <option value="Card">Card</option>
+                  <option value="EMI">EMI</option>
+                  <option value="Net Banking">Net Banking</option>
+                </select>
+              </div>
+
+              <div className={editStyles.field}>
+                <label className={editStyles.label}>MRP</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={editForm.mrp}
+                  onChange={(e) =>
+                    setEditForm((prev) => ({ ...prev, mrp: e.target.value }))
+                  }
+                  className={editStyles.input}
+                  placeholder="MRP"
+                />
+              </div>
+
+              <div className={editStyles.field}>
+                <label className={editStyles.label}>Offer Price</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={editForm.offerPrice}
+                  onChange={(e) =>
+                    setEditForm((prev) => ({ ...prev, offerPrice: e.target.value }))
+                  }
+                  className={editStyles.input}
+                  placeholder="Offer price"
+                />
+              </div>
+
+              <div className={editStyles.fullField}>
+                <label className={editStyles.label}>Description</label>
+                <textarea
+                  value={editForm.description}
+                  onChange={(e) =>
+                    setEditForm((prev) => ({
+                      ...prev,
+                      description: e.target.value,
+                    }))
+                  }
+                  className={editStyles.textarea}
+                  placeholder="Treatment description"
+                />
+              </div>
+            </div>
+
+            <div style={{ display: "flex", gap: 12 }}>
+              <button type="submit" className={editStyles.submitBtn}>
+                Update Treatment
+              </button>
+              <button
+                type="button"
+                className={editStyles.submitBtn}
+                onClick={() => {
+                  setEditingTreatment(null);
+                  setEditForm({
+                    treatmentName: "",
+                    clinicId: "",
+                    serviceCategory: "",
+                    paymentOption: "",
+                    mrp: "",
+                    offerPrice: "",
+                    description: "",
+                  });
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 };

@@ -63,6 +63,7 @@
 }
 
 .field input,
+.field select,
 .field textarea {
   border: 1px solid #d0d5dd;
   border-radius: 10px;
@@ -73,6 +74,7 @@
 }
 
 .field input:focus,
+.field select:focus,
 .field textarea:focus {
   outline: none;
   border-color: #1570ef;

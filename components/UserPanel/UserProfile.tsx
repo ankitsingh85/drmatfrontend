@@ -6,14 +6,36 @@ import { useRouter } from "next/navigation";
 import styles from "@/styles/adminpanel/userprofile.module.css";
 import { API_URL } from "@/config/api";
 
+interface IUserAddress {
+  type: string;
+  address?: string;
+  fullName?: string;
+  mobileNo?: string;
+  houseNo?: string;
+  street?: string;
+  localArea?: string;
+  pincode?: string;
+  district?: string;
+  state?: string;
+}
+
 interface IUserForm {
   _id?: string;
   patientId?: string;
   name: string;
   email: string;
   contactNo: string;
-  address: string;
-  profileImage: string; // ✅ base64
+  profileImage: string;
+  addresses: IUserAddress[];
+  addressType: string;
+  addressName: string;
+  addressMobile: string;
+  houseNo: string;
+  street: string;
+  localArea: string;
+  pincode: string;
+  district: string;
+  state: string;
 }
 
 interface UserProfileProps {
@@ -27,7 +49,51 @@ interface UserProfileProps {
   }) => void;
 }
 
-const MAX_IMAGE_SIZE = 200 * 1024; // 200KB
+
+const MAX_IMAGE_SIZE = 200 * 1024;
+
+const emptyAddress: IUserAddress = {
+  type: "Home",
+  address: "",
+  fullName: "",
+  mobileNo: "",
+  houseNo: "",
+  street: "",
+  localArea: "",
+  pincode: "",
+  district: "",
+  state: "",
+};
+
+const formatAddressText = (addr: IUserAddress) => {
+  const parts = [
+    addr.houseNo,
+    addr.street,
+    addr.localArea,
+    addr.district,
+    addr.state,
+    addr.pincode,
+  ]
+    .map((v) => (v || "").trim())
+    .filter(Boolean);
+  return parts.join(", ");
+};
+
+const normalizeAddress = (addr: any): IUserAddress => {
+  if (!addr || typeof addr !== "object") return { ...emptyAddress };
+  return {
+    type: addr.type || "Home",
+    address: addr.address || "",
+    fullName: addr.fullName || "",
+    mobileNo: addr.mobileNo || "",
+    houseNo: addr.houseNo || "",
+    street: addr.street || "",
+    localArea: addr.localArea || (typeof addr.address === "string" ? addr.address : ""),
+    pincode: addr.pincode || "",
+    district: addr.district || "",
+    state: addr.state || "",
+  };
+};
 
 const UserProfile: React.FC<UserProfileProps> = ({
   showFormInitially = false,
@@ -43,13 +109,38 @@ const UserProfile: React.FC<UserProfileProps> = ({
     name: "",
     email: "",
     contactNo: "",
-    address: "",
     profileImage: "",
+    addresses: [],
+    addressType: "Home",
+    addressName: "",
+    addressMobile: "",
+    houseNo: "",
+    street: "",
+    localArea: "",
+    pincode: "",
+    district: "",
+    state: "",
   });
 
   const email = userEmail || Cookies.get("email") || "";
 
-  /* ================= FETCH USER ================= */
+  const fetchPincodeMeta = async (pincode: string) => {
+    if (pincode.length !== 6) return;
+    try {
+      const res = await fetch(`https://api.postalpincode.in/pincode/${pincode}`);
+      const data = await res.json();
+      const office = data?.[0]?.PostOffice?.[0];
+      if (!office) return;
+      setForm((prev) => ({
+        ...prev,
+        district: office.District || prev.district,
+        state: office.State || prev.state,
+      }));
+    } catch {
+      // Ignore lookup failures and allow manual fill.
+    }
+  };
+
   useEffect(() => {
     if (!email) {
       router.replace("/Login");
@@ -64,14 +155,28 @@ const UserProfile: React.FC<UserProfileProps> = ({
         if (!res.ok) throw new Error("User not found");
 
         const data = await res.json();
+        const addresses = Array.isArray(data.addresses)
+          ? data.addresses.map(normalizeAddress)
+          : [];
+        const primary = addresses[0] || normalizeAddress({ address: data.address || "" });
+
         setForm({
           _id: data._id,
           patientId: data.patientId,
           name: data.name || "",
           email: data.email || email,
           contactNo: data.contactNo || "",
-          address: data.address || "",
           profileImage: data.profileImage || "",
+          addresses,
+          addressType: primary.type || "Home",
+          addressName: primary.fullName || data.name || "",
+          addressMobile: primary.mobileNo || data.contactNo || "",
+          houseNo: primary.houseNo || "",
+          street: primary.street || "",
+          localArea: primary.localArea || "",
+          pincode: primary.pincode || "",
+          district: primary.district || "",
+          state: primary.state || "",
         });
       } catch {
         setForm((prev) => ({ ...prev, email }));
@@ -87,13 +192,11 @@ const UserProfile: React.FC<UserProfileProps> = ({
     setShowForm(showFormInitially);
   }, [showFormInitially]);
 
-  /* ================= HANDLE CHANGE ================= */
   const handleChange = (
-    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
 
-    /* ===== IMAGE TO BASE64 ===== */
     if (
       name === "profileImage" &&
       e.target instanceof HTMLInputElement &&
@@ -122,19 +225,24 @@ const UserProfile: React.FC<UserProfileProps> = ({
       return;
     }
 
-    /* ===== PHONE NUMBER ===== */
-    if (name === "contactNo") {
+    if (name === "contactNo" || name === "addressMobile") {
       setForm((prev) => ({
         ...prev,
-        contactNo: value.replace(/\D/g, "").slice(0, 10),
+        [name]: value.replace(/\D/g, "").slice(0, 10),
       }));
+      return;
+    }
+
+    if (name === "pincode") {
+      const pin = value.replace(/\D/g, "").slice(0, 6);
+      setForm((prev) => ({ ...prev, pincode: pin }));
+      fetchPincodeMeta(pin);
       return;
     }
 
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  /* ================= SUBMIT ================= */
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
@@ -148,6 +256,24 @@ const UserProfile: React.FC<UserProfileProps> = ({
       return;
     }
 
+    const primaryAddress: IUserAddress = {
+      type: form.addressType || "Home",
+      fullName: form.addressName.trim(),
+      mobileNo: form.addressMobile.trim(),
+      houseNo: form.houseNo.trim(),
+      street: form.street.trim(),
+      localArea: form.localArea.trim(),
+      pincode: form.pincode.trim(),
+      district: form.district.trim(),
+      state: form.state.trim(),
+    };
+    primaryAddress.address = formatAddressText(primaryAddress);
+
+    const existing = Array.isArray(form.addresses) ? [...form.addresses] : [];
+    const addresses = existing.length
+      ? [primaryAddress, ...existing.slice(1)]
+      : [primaryAddress];
+
     setSaving(true);
     try {
       const res = await fetch(`${API_URL}/users/${form._id}`, {
@@ -157,23 +283,25 @@ const UserProfile: React.FC<UserProfileProps> = ({
           name: form.name.trim(),
           email: form.email.trim(),
           contactNo: form.contactNo.trim(),
-          address: form.address.trim(),
           profileImage: form.profileImage,
+          addresses,
+          address: primaryAddress.address,
         }),
       });
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Update failed");
 
-      /* ===== SYNC COOKIES (TOPBAR + DASHBOARD) ===== */
       Cookies.set("username", data.user.name || "");
       Cookies.set("email", data.user.email || "");
       Cookies.set("contactNo", data.user.contactNo || "");
-      // profileImage: do NOT store in cookies (base64 too large)
 
-      setForm((prev) => ({ ...prev, ...data.user }));
+      setForm((prev) => ({
+        ...prev,
+        ...data.user,
+        addresses,
+      }));
 
-      /* ===== NOTIFY TOPBAR TO REFETCH PROFILE ===== */
       window.dispatchEvent(new CustomEvent("profile-updated"));
       setShowForm(false);
 
@@ -194,7 +322,16 @@ const UserProfile: React.FC<UserProfileProps> = ({
 
   if (loading) return <p className={styles.message}>Loading profile...</p>;
 
-  /* ================= UI ================= */
+  const previewAddress = formatAddressText({
+    type: form.addressType || "Home",
+    houseNo: form.houseNo,
+    street: form.street,
+    localArea: form.localArea,
+    pincode: form.pincode,
+    district: form.district,
+    state: form.state,
+  });
+
   return (
     <div className={styles.container}>
       <div className={styles.headerRow}>
@@ -259,14 +396,65 @@ const UserProfile: React.FC<UserProfileProps> = ({
               )}
             </div>
 
-            <div className={`${styles.field} ${styles.fullWidth}`}>
-              <label>Address</label>
-              <textarea
-                name="address"
-                value={form.address}
+            <div className={styles.field}>
+              <label>Address Type</label>
+              <select name="addressType" value={form.addressType} onChange={handleChange}>
+                <option value="Home">Home</option>
+                <option value="Work">Work</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            <div className={styles.field}>
+              <label>Address Full Name</label>
+              <input
+                name="addressName"
+                value={form.addressName}
                 onChange={handleChange}
-                rows={4}
               />
+            </div>
+
+            <div className={styles.field}>
+              <label>Address Mobile</label>
+              <input
+                name="addressMobile"
+                value={form.addressMobile}
+                onChange={handleChange}
+              />
+            </div>
+
+            <div className={styles.field}>
+              <label>House No</label>
+              <input name="houseNo" value={form.houseNo} onChange={handleChange} />
+            </div>
+
+            <div className={styles.field}>
+              <label>Street</label>
+              <input name="street" value={form.street} onChange={handleChange} />
+            </div>
+
+            <div className={styles.field}>
+              <label>Local Area</label>
+              <input
+                name="localArea"
+                value={form.localArea}
+                onChange={handleChange}
+              />
+            </div>
+
+            <div className={styles.field}>
+              <label>Pincode</label>
+              <input name="pincode" value={form.pincode} onChange={handleChange} />
+            </div>
+
+            <div className={styles.field}>
+              <label>District</label>
+              <input name="district" value={form.district} onChange={handleChange} />
+            </div>
+
+            <div className={styles.field}>
+              <label>State</label>
+              <input name="state" value={form.state} onChange={handleChange} />
             </div>
           </div>
 
@@ -302,10 +490,17 @@ const UserProfile: React.FC<UserProfileProps> = ({
             <strong>{form.contactNo || "-"}</strong>
           </div>
           <div className={styles.summaryRow}>
-            <span>Address</span>
-            <strong>{form.address || "-"}</strong>
+            <span>Address Name</span>
+            <strong>{form.addressName || "-"}</strong>
           </div>
-         
+          <div className={styles.summaryRow}>
+            <span>Address Mobile</span>
+            <strong>{form.addressMobile || "-"}</strong>
+          </div>
+          <div className={styles.summaryRow}>
+            <span>Address</span>
+            <strong>{previewAddress || "-"}</strong>
+          </div>
         </div>
       )}
     </div>

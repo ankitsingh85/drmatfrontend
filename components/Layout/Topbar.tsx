@@ -18,7 +18,7 @@ interface TopbarProps {
 const Topbar: React.FC<TopbarProps> = ({ hideHamburgerOnMobile }) => {
   const router = useRouter();
   const pathname = usePathname();
-  const { cartItems, clearCart } = useCart();
+  const { cartItems } = useCart();
   const profile = useTopbarProfile();
   const cartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
 
@@ -95,10 +95,10 @@ const Topbar: React.FC<TopbarProps> = ({ hideHamburgerOnMobile }) => {
     Cookies.remove("profileImage");
 
     localStorage.removeItem("userId");
-    clearCart && clearCart();
     profile?.clearProfile();
 
     setLocation("");
+    window.dispatchEvent(new CustomEvent("user-logged-out"));
     router.replace("/Login");
   };
 

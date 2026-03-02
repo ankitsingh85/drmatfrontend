@@ -1,7 +1,7 @@
 .featuredSection {
   position: relative;
-  width: 100%;
-  padding: 20px 0;
+  width: 97%;
+  padding: 16px 0;
   overflow: hidden;
 }
 
@@ -9,7 +9,9 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 20px;
+  gap: 10px;
+  margin-left: 45px;
+  margin-right: 5px;
 }
 
 .imageContainer {

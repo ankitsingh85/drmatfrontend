@@ -157,7 +157,7 @@ const Index = () => {
             flexWrap: "wrap",
           }}
         >
-          <Offer3/>
+          <Offer/>
         </div>
 
 
@@ -205,7 +205,7 @@ const Index = () => {
                 fontSize: "26px",
               }}
             >
-              Offer2
+              Offer3
             </h2>
             <div
               style={{
@@ -215,7 +215,7 @@ const Index = () => {
                 flexWrap: "nowrap",
               }}
             >
-              <Offer></Offer>
+              <Offer3/>
             </div>
           </div>
         </div>
@@ -251,8 +251,7 @@ const Index = () => {
             fontSize: "26px",
           }}
         >
-          Offer 3
-        </h2>
+          Latest Offer        </h2>
         <div
           style={{
             display: "flex",

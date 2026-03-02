@@ -30,7 +30,7 @@ import CreateTestResult from "@/components/AdminPanel/CreateTestResult";
 import CreateOnlineDoctor from "@/components/AdminPanel/CreateOnlineDoctor";
 import CreateB2BProduct from "@/components/AdminPanel/CreateB2BProduct";
 import CreateSupport from "@/components/AdminPanel/CreateSupport";
-import UserOrderHistory from "@/components/AdminPanel/UserOrderHistory";
+// import UserOrderHistory from "@/components/AdminPanel/UserOrderHistory";
 
 import CreateUser from "@/components/AdminPanel/CreateUser";
 import ListOfUser from "@/components/AdminPanel/ListOfUser";
@@ -428,9 +428,7 @@ export default function SuperAdminDashboard() {
               <li onClick={() => handleSectionChange("treatmentshorts")}>
                 Treatment Shorts
               </li>
-              <li onClick={() => handleSectionChange("userorderhistory")}>
-                User Order History
-              </li>
+              
             </ul>
           )}
         </aside>
@@ -655,7 +653,7 @@ export default function SuperAdminDashboard() {
           {activeSection === "latestshorts" && <LatestShorts />}
           {activeSection === "latestofferupdate" && <LatestUpdateOffer />}
           {activeSection === "treatmentshorts" && <TreatmentShorts />}
-          {activeSection === "userorderhistory" && <UserOrderHistory />}
+          {/* {activeSection === "userorderhistory" && <UserOrderHistory />} */}
           {activeSection === "createPatient" && <CreatePatient />}
           {activeSection === "createTestResult" && <CreateTestResult />}
           {activeSection === "createOnlineDoctor" && <CreateOnlineDoctor />}

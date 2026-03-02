@@ -198,6 +198,12 @@
   cursor: pointer;
 }
 
+.wishlistSection {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+}
+
 /* Right section styles */
 .pinRow {
   display: flex;

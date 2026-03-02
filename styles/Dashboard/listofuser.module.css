@@ -157,3 +157,550 @@
   font-weight: 800;
   cursor: pointer;
 }
+
+.userViewModal {
+  background: #ffffff;
+  width: min(980px, 96vw);
+  max-height: 90vh;
+  overflow-y: auto;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 20px 60px rgba(2, 6, 23, 0.3);
+}
+
+.userViewHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.userViewHeader h2 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.closeBtn {
+  border: 1px solid #d6d6d6;
+  border-radius: 10px;
+  padding: 10px 14px;
+  background: #fff;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.userInfoGrid {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 18px;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 16px;
+  background: #f8fafc;
+}
+
+.userImageWrap {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.userImage {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #e2e8f0;
+}
+
+.userImageFallback {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #dbeafe;
+  color: #1e3a8a;
+  font-size: 32px;
+  font-weight: 800;
+}
+
+.userInfoRows p {
+  margin: 0 0 8px;
+  color: #1e293b;
+}
+
+.userOrdersSection {
+  margin-top: 20px;
+}
+
+.userOrdersSection h3 {
+  margin: 0 0 12px;
+  font-size: 20px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.userOrdersList {
+  display: grid;
+  gap: 12px;
+}
+
+.userOrderCard {
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 12px 14px;
+  background: #fff;
+}
+
+.userOrderCard p {
+  margin: 0 0 7px;
+  color: #334155;
+}
+
+.orderItems {
+  margin: 0;
+  padding-left: 18px;
+  color: #0f172a;
+}
+
+.orderItems li {
+  margin-bottom: 4px;
+}
+
+.detailTopBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.backBtn {
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #0f172a;
+  font-weight: 700;
+  padding: 10px 14px;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.heroSection {
+  border: 1px solid #e2e8f0;
+  border-radius: 22px;
+  padding: 20px;
+  background: linear-gradient(135deg, #f8fbff 0%, #eef6ff 100%);
+  margin-bottom: 18px;
+}
+
+.heroProfile {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.heroAvatar {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #dbeafe;
+}
+
+.heroAvatarFallback {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #dbeafe;
+  color: #1d4ed8;
+  font-size: 32px;
+  font-weight: 800;
+}
+
+.heroPatientId {
+  margin: 0;
+  font-size: 13px;
+  color: #475569;
+}
+
+.heroName {
+  margin: 4px 0;
+  font-size: 28px;
+  color: #0f172a;
+}
+
+.heroEmail {
+  margin: 0;
+  font-size: 14px;
+  color: #475569;
+}
+
+.heroStats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.statCard {
+  border: 1px solid #dbeafe;
+  border-radius: 14px;
+  background: #fff;
+  padding: 14px;
+}
+
+.statCard p {
+  margin: 0 0 8px;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.statCard strong {
+  font-size: 20px;
+  color: #0f172a;
+}
+
+.detailsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(280px, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.infoCard {
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  background: #fff;
+  padding: 16px;
+}
+
+.infoCard h3 {
+  margin: 0 0 12px;
+  font-size: 18px;
+  color: #0f172a;
+}
+
+.infoCard p {
+  display: grid;
+  grid-template-columns: 130px 1fr;
+  gap: 10px;
+  margin: 0 0 10px;
+  color: #1e293b;
+}
+
+.infoCard p span {
+  color: #64748b;
+  font-weight: 600;
+}
+
+.ordersSection {
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 16px;
+  background: #fff;
+}
+
+.tabSection {
+  display: block;
+}
+
+.tabSidebar {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 8px;
+  border: 1px solid #d9e1ea;
+  border-radius: 16px;
+  background: #fff;
+  margin-bottom: 14px;
+}
+
+.tabBtn {
+  flex: 0 0 auto;
+  border: 0;
+  background: #f8fafc;
+  cursor: pointer;
+  padding: 10px 14px;
+  font-size: 14px;
+  color: #334155;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.tabBtnActive {
+  background: #e2ebf7;
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.tabLeft {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.tabContent {
+  min-width: 0;
+}
+
+.ordersHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  gap: 10px;
+}
+
+.ordersHeader h3 {
+  margin: 0;
+  font-size: 22px;
+  color: #0f172a;
+}
+
+.ordersHeader p {
+  margin: 0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.emptyState {
+  margin: 0;
+  padding: 18px;
+  text-align: center;
+  border: 1px dashed #cbd5e1;
+  border-radius: 12px;
+  color: #64748b;
+}
+
+.ordersGrid {
+  display: grid;
+  gap: 12px;
+}
+
+.ordersTableWrap {
+  overflow-x: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+}
+
+.ordersTable {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 920px;
+}
+
+.ordersTable th {
+  text-align: left;
+  font-size: 13px;
+  color: #334155;
+  font-weight: 800;
+  background: #f8fafc;
+  padding: 12px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.ordersTable td {
+  font-size: 14px;
+  color: #1e293b;
+  padding: 12px;
+  border-bottom: 1px solid #eef2f7;
+  vertical-align: middle;
+}
+
+.ordersTable tbody tr:hover {
+  background: #f8fbff;
+}
+
+.rowActionBtn {
+  border: 1px solid #d1d5db;
+  background: #fff;
+  border-radius: 6px;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+}
+
+.emptyTab {
+  border: 1px dashed #cbd5e1;
+  border-radius: 16px;
+  padding: 28px;
+  text-align: center;
+  background: #fff;
+}
+
+.emptyTab h3 {
+  margin: 0 0 8px;
+  color: #0f172a;
+}
+
+.emptyTab p {
+  margin: 0;
+  color: #64748b;
+}
+
+.orderCard {
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 14px;
+  background: #f8fafc;
+}
+
+.orderCardTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.orderLabel {
+  margin: 0;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.orderValue {
+  margin: 4px 0 0;
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 700;
+  word-break: break-all;
+}
+
+.statusPill {
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid transparent;
+}
+
+.pending {
+  color: #92400e;
+  background: #fef3c7;
+  border-color: #fcd34d;
+}
+
+.shipped {
+  color: #1e3a8a;
+  background: #dbeafe;
+  border-color: #93c5fd;
+}
+
+.delivered {
+  color: #166534;
+  background: #dcfce7;
+  border-color: #86efac;
+}
+
+.cancelled {
+  color: #991b1b;
+  background: #fee2e2;
+  border-color: #fca5a5;
+}
+
+.paid {
+  color: #065f46;
+  background: #ccfbf1;
+  border-color: #5eead4;
+}
+
+.orderMetaGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(180px, 1fr));
+  gap: 8px 16px;
+  margin-bottom: 12px;
+}
+
+.orderMetaGrid p {
+  margin: 0;
+  display: grid;
+  gap: 2px;
+  color: #1e293b;
+}
+
+.orderMetaGrid p span {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.fullRow {
+  grid-column: 1 / -1;
+}
+
+.orderItemsWrap h4 {
+  margin: 0 0 8px;
+  color: #0f172a;
+  font-size: 15px;
+}
+
+.orderItems li {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+@media (max-width: 700px) {
+  .container {
+    padding: 20px;
+    margin: 20px auto;
+  }
+
+  .userInfoGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .userImageWrap {
+    justify-content: flex-start;
+  }
+
+  .detailTopBar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .heroProfile {
+    align-items: flex-start;
+  }
+
+  .heroStats {
+    grid-template-columns: 1fr;
+  }
+
+  .detailsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .infoCard p {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+
+  .orderMetaGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .orderItems li {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .tabSection {
+    display: block;
+  }
+
+  .tabBtn {
+    padding: 10px 12px;
+  }
+}

@@ -5,6 +5,16 @@ import React, { useEffect, useMemo, useState } from "react";
 import { API_URL } from "@/config/api";
 import styles from "@/styles/Dashboard/listofuser.module.css";
 import editStyles from "@/styles/Dashboard/createUser.module.css";
+import {
+  FiActivity,
+  FiCalendar,
+  FiCreditCard,
+  FiEdit3,
+  FiEye,
+  FiFileText,
+  FiHome,
+  FiUser,
+} from "react-icons/fi";
 
 interface User {
   _id: string;
@@ -13,25 +23,63 @@ interface User {
   email: string;
   contactNo?: string;
   address?: string;
+  profileImage?: string;
   createdAt: string;
 }
+
+interface OrderItem {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+}
+
+interface OrderUser {
+  _id?: string;
+  email?: string;
+}
+
+interface Order {
+  _id: string;
+  userId: string | OrderUser;
+  totalAmount: number;
+  paymentStatus?: string;
+  status?: string;
+  paymentMethod?: string;
+  address?: { type?: string; address?: string };
+  products: OrderItem[];
+  createdAt: string;
+}
+
+type UserDetailTab =
+  | "my_orders"
+  | "my_lab_test"
+  | "test_booking"
+  | "orders"
+  | "my_consultation"
+  | "medical_records"
+  | "payment_methods";
 
 export default function ListOfUser() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
 
-  /* SEARCH & FILTER */
   const [search, setSearch] = useState("");
   const [dateFilter, setDateFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
-  /* EDIT STATE */
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [editForm, setEditForm] = useState<
-    Partial<User & { password?: string }>
-  >({});
+  const [editForm, setEditForm] = useState<Partial<User & { password?: string }>>(
+    {}
+  );
+
+  const [viewingUser, setViewingUser] = useState<User | null>(null);
+  const [viewOrders, setViewOrders] = useState<Order[]>([]);
+  const [viewLoading, setViewLoading] = useState(false);
+  const [viewError, setViewError] = useState("");
+  const [activeDetailTab, setActiveDetailTab] = useState<UserDetailTab>("orders");
 
   useEffect(() => {
     fetchUsers();
@@ -44,7 +92,6 @@ export default function ListOfUser() {
     setLoading(false);
   };
 
-  /* FILTER */
   const filteredUsers = useMemo(() => {
     let data = [...users];
 
@@ -179,14 +226,12 @@ export default function ListOfUser() {
     printable.print();
   };
 
-  /* DELETE */
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this user?")) return;
     await fetch(`${API_URL}/users/${id}`, { method: "DELETE" });
     fetchUsers();
   };
 
-  /* EDIT */
   const handleEdit = (user: User) => {
     setEditingUser(user);
     setEditForm({
@@ -194,7 +239,7 @@ export default function ListOfUser() {
       email: user.email,
       contactNo: user.contactNo || "",
       address: user.address || "",
-      password: "", // 🔒 never prefill
+      password: "",
     });
     setIsEditing(true);
   };
@@ -216,7 +261,6 @@ export default function ListOfUser() {
       address: editForm.address,
     };
 
-    // ✅ optional password update
     if (editForm.password && editForm.password.trim() !== "") {
       payload.password = editForm.password;
     }
@@ -227,7 +271,7 @@ export default function ListOfUser() {
       body: JSON.stringify(payload),
     });
 
-    alert("✅ User updated successfully");
+    alert("User updated successfully");
     setIsEditing(false);
     setEditingUser(null);
     setEditForm({});
@@ -240,13 +284,314 @@ export default function ListOfUser() {
     setEditForm({});
   };
 
-  if (loading) return <p className={styles.loading}>Loading users…</p>;
+  const handleView = async (user: User) => {
+    setActiveDetailTab("orders");
+    setViewingUser(user);
+    setViewOrders([]);
+    setViewError("");
+    setViewLoading(true);
+
+    try {
+      const [userRes, orderRes] = await Promise.all([
+        fetch(`${API_URL}/users/by-email/${encodeURIComponent(user.email)}`),
+        fetch(`${API_URL}/orders/all`),
+      ]);
+
+      if (userRes.ok) {
+        const freshUser = await userRes.json();
+        setViewingUser((prev) => ({ ...(prev || user), ...freshUser }));
+      }
+
+      if (!orderRes.ok) {
+        const orderData = await orderRes.json().catch(() => ({}));
+        throw new Error(orderData.message || "Failed to fetch orders");
+      }
+
+      const allOrders: Order[] = await orderRes.json();
+      const filtered = allOrders
+        .filter((o) => {
+          const orderUserId =
+            typeof o.userId === "string" ? o.userId : o.userId?._id;
+          const orderEmail =
+            typeof o.userId === "string" ? "" : o.userId?.email || "";
+          return orderUserId === user._id || orderEmail === user.email;
+        })
+        .sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+
+      setViewOrders(filtered);
+    } catch (err: any) {
+      setViewError(err.message || "Failed to load user details");
+    } finally {
+      setViewLoading(false);
+    }
+  };
+
+  const closeView = () => {
+    setViewingUser(null);
+    setViewOrders([]);
+    setViewError("");
+    setViewLoading(false);
+    setActiveDetailTab("orders");
+  };
+
+  if (loading) return <p className={styles.loading}>Loading users...</p>;
+
+  if (viewingUser) {
+    const totalSpent = viewOrders.reduce(
+      (sum, order) => sum + Number(order.totalAmount || 0),
+      0
+    );
+
+    return (
+      <div className={styles.container}>
+        <div className={styles.detailTopBar}>
+          <button type="button" className={styles.backBtn} onClick={closeView}>
+            Back to Users
+          </button>
+          <h1 className={styles.heading}>User Details</h1>
+        </div>
+
+        <section className={styles.heroSection}>
+          <div className={styles.heroProfile}>
+            {viewingUser.profileImage ? (
+              <img
+                src={viewingUser.profileImage}
+                alt={viewingUser.name}
+                className={styles.heroAvatar}
+              />
+            ) : (
+              <div className={styles.heroAvatarFallback}>
+                {viewingUser.name?.charAt(0)?.toUpperCase() || "U"}
+              </div>
+            )}
+            <div>
+              <p className={styles.heroPatientId}>{viewingUser.patientId || "-"}</p>
+              <h2 className={styles.heroName}>{viewingUser.name || "-"}</h2>
+              <p className={styles.heroEmail}>{viewingUser.email || "-"}</p>
+            </div>
+          </div>
+
+          <div className={styles.heroStats}>
+            <div className={styles.statCard}>
+              <p>Total Orders</p>
+              <strong>{viewOrders.length}</strong>
+            </div>
+            <div className={styles.statCard}>
+              <p>Total Spent</p>
+              <strong>Rs. {totalSpent.toLocaleString("en-IN")}</strong>
+            </div>
+            <div className={styles.statCard}>
+              <p>Member Since</p>
+              <strong>
+                {viewingUser.createdAt
+                  ? new Date(viewingUser.createdAt).toLocaleDateString("en-IN")
+                  : "-"}
+              </strong>
+            </div>
+          </div>
+        </section>
+
+        <section className={styles.detailsGrid}>
+          <article className={styles.infoCard}>
+            <h3>Contact Information</h3>
+            <p><span>Mobile</span>{viewingUser.contactNo || "-"}</p>
+            <p><span>Email</span>{viewingUser.email || "-"}</p>
+            <p><span>Address</span>{viewingUser.address || "-"}</p>
+          </article>
+
+          <article className={styles.infoCard}>
+            <h3>Account Information</h3>
+            <p><span>Patient ID</span>{viewingUser.patientId || "-"}</p>
+            <p><span>User ID</span>{viewingUser._id || "-"}</p>
+            <p>
+              <span>Created At</span>
+              {viewingUser.createdAt
+                ? new Date(viewingUser.createdAt).toLocaleString("en-IN")
+                : "-"}
+            </p>
+          </article>
+        </section>
+
+        <section className={styles.tabSection}>
+          <div className={styles.tabSidebar}>
+           
+            <button
+              className={`${styles.tabBtn} ${
+                activeDetailTab === "my_lab_test" ? styles.tabBtnActive : ""
+              }`}
+              onClick={() => setActiveDetailTab("my_lab_test")}
+              type="button"
+            >
+              <span className={styles.tabLeft}>
+                <FiCalendar />
+                Lab Test
+              </span>
+            </button>
+            <button
+              className={`${styles.tabBtn} ${
+                activeDetailTab === "test_booking" ? styles.tabBtnActive : ""
+              }`}
+              onClick={() => setActiveDetailTab("test_booking")}
+              type="button"
+            >
+              <span className={styles.tabLeft}>
+                <FiEdit3 />
+                Test Booking
+              </span>
+            </button>
+            <button
+              className={`${styles.tabBtn} ${
+                activeDetailTab === "orders" ? styles.tabBtnActive : ""
+              }`}
+              onClick={() => setActiveDetailTab("orders")}
+              type="button"
+            >
+              <span className={styles.tabLeft}>
+                <FiActivity />
+                Orders
+              </span>
+            </button>
+            <button
+              className={`${styles.tabBtn} ${
+                activeDetailTab === "my_consultation" ? styles.tabBtnActive : ""
+              }`}
+              onClick={() => setActiveDetailTab("my_consultation")}
+              type="button"
+            >
+              <span className={styles.tabLeft}>
+                <FiUser />
+                Consultation
+              </span>
+            </button>
+            <button
+              className={`${styles.tabBtn} ${
+                activeDetailTab === "medical_records" ? styles.tabBtnActive : ""
+              }`}
+              onClick={() => setActiveDetailTab("medical_records")}
+              type="button"
+            >
+              <span className={styles.tabLeft}>
+                <FiFileText />
+                Medical Records
+              </span>
+            </button>
+            <button
+              className={`${styles.tabBtn} ${
+                activeDetailTab === "payment_methods" ? styles.tabBtnActive : ""
+              }`}
+              onClick={() => setActiveDetailTab("payment_methods")}
+              type="button"
+            >
+              <span className={styles.tabLeft}>
+                <FiCreditCard />
+                Manage Payment Methods
+              </span>
+            </button>
+          </div>
+
+          <div className={styles.tabContent}>
+            {activeDetailTab === "orders" ? (
+              <div className={styles.ordersSection}>
+                <div className={styles.ordersHeader}>
+                  <h3>Orders</h3>
+                  <p>{viewLoading ? "Loading..." : `${viewOrders.length} orders found`}</p>
+                </div>
+
+                {viewLoading && <p className={styles.emptyState}>Loading orders...</p>}
+                {!viewLoading && viewError && (
+                  <p className={styles.emptyState}>{viewError}</p>
+                )}
+                {!viewLoading && !viewError && viewOrders.length === 0 && (
+                  <p className={styles.emptyState}>No orders found for this user.</p>
+                )}
+
+                {!viewLoading && !viewError && viewOrders.length > 0 && (
+                  <div className={styles.ordersTableWrap}>
+                    <table className={styles.ordersTable}>
+                      <thead>
+                        <tr>
+                          <th>Order ID</th>
+                          <th>Customer Name</th>
+                          <th>Orders</th>
+                          <th>Order Date</th>
+                          <th>Price</th>
+                          <th>Order Status</th>
+                          <th>Payment Method</th>
+                          <th>Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {viewOrders.map((order) => {
+                          const statusText =
+                            order.status || order.paymentStatus || "Pending";
+                          const statusClass =
+                            styles[statusText.toLowerCase()] || styles.pending;
+                          const firstProduct = order.products?.[0];
+                          const otherCount =
+                            order.products && order.products.length > 1
+                              ? ` +${order.products.length - 1} more`
+                              : "";
+
+                          return (
+                            <tr key={order._id}>
+                              <td>{order._id.slice(-8).toUpperCase()}</td>
+                              <td>{viewingUser.name || "-"}</td>
+                              <td>
+                                {firstProduct
+                                  ? `${firstProduct.name}${otherCount}`
+                                  : "No items"}
+                              </td>
+                              <td>
+                                {new Date(order.createdAt)
+                                  .toLocaleDateString("en-GB")
+                                  .replace(/\//g, ".")}
+                              </td>
+                              <td>
+                                Rs. {Number(order.totalAmount || 0).toLocaleString("en-IN")}
+                              </td>
+                              <td>
+                                <span className={`${styles.statusPill} ${statusClass}`}>
+                                  {statusText}
+                                </span>
+                              </td>
+                              <td>{order.paymentMethod || "N/A"}</td>
+                              <td>
+                                <button className={styles.rowActionBtn} type="button">
+                                  ✎
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className={styles.emptyTab}>
+                <h3>
+                  {activeDetailTab
+                    .split("_")
+                    .map((p) => p[0].toUpperCase() + p.slice(1))
+                    .join(" ")}
+                </h3>
+                <p>No data available yet for this section.</p>
+              </div>
+            )}
+          </div>
+        </section>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.container}>
       <h1 className={styles.heading}>Users</h1>
 
-      {/* CONTROLS */}
       <div className={styles.toolbar}>
         <input
           className={styles.search}
@@ -291,7 +636,6 @@ export default function ListOfUser() {
         </button>
       </div>
 
-      {/* TABLE (UNCHANGED) */}
       <div className={styles.tableWrap}>
         <table className={styles.table}>
           <thead className={styles.tableHead}>
@@ -316,8 +660,13 @@ export default function ListOfUser() {
                 <td className={styles.actions}>
                   <button
                     className={styles.actionBtn}
-                    onClick={() => handleEdit(u)}
+                    onClick={() => handleView(u)}
+                    title="View user details"
+                    aria-label={`View ${u.name}`}
                   >
+                    <FiEye />
+                  </button>
+                  <button className={styles.actionBtn} onClick={() => handleEdit(u)}>
                     ✏️
                   </button>
                   <button
@@ -337,6 +686,7 @@ export default function ListOfUser() {
           </tbody>
         </table>
       </div>
+
       <div
         style={{
           marginTop: 12,
@@ -377,7 +727,6 @@ export default function ListOfUser() {
         </div>
       </div>
 
-      {/* INLINE EDIT FORM */}
       {isEditing && editingUser && (
         <div className={editStyles.container} style={{ marginTop: 40 }}>
           <h1 className={editStyles.heading}>Edit User</h1>

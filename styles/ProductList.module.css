@@ -195,6 +195,31 @@
   background-color: #0e3859;
 }
 
+.productActionsRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.wishlistBtn {
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  border: 1px solid #d1d5db;
+  background: #fff;
+  color: #334155;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.wishlistBtn:hover {
+  color: #155e95;
+  border-color: #155e95;
+}
+
 /* === SIDEBAR WRAPPER === */
 .layoutWrapper {
   display: flex;
@@ -781,7 +806,7 @@ ease;
 
 .sidebarImage {
   width: 100%;
-  height: 92px;
+  height: 110px;
   object-fit: cover;
   border-radius: 8px;
 }
@@ -825,7 +850,7 @@ ease;
 
 .sidebarImage {
   width: 100%;
-  height: 92px;
+  height: 110px;
   object-fit: cover;
   border-radius: 8px;
 }
@@ -1123,7 +1148,7 @@ ease;
 
 .sidebarImage {
   width: 100%;
-  height: 92px;
+  height: 110px;
   object-fit: cover;
   border-radius: 8px;
 }

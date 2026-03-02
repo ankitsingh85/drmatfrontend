@@ -5,9 +5,8 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import styles from "@/styles/topproducts.module.css";
 import { useCart } from "@/context/CartContext";
-import { FaCartPlus, FaHeart, FaSearch, FaArrowRight } from "react-icons/fa";
+import { FaArrowRight, FaHeart, FaRegHeart } from "react-icons/fa";
 
-/* ================= ADMIN PRODUCT SHAPE ================= */
 interface AdminProduct {
   _id: string;
   productName: string;
@@ -17,7 +16,6 @@ interface AdminProduct {
   productImages?: string[];
 }
 
-/* ================= FRONTEND PRODUCT SHAPE ================= */
 interface Product {
   id: string;
   name: string;
@@ -35,10 +33,9 @@ const TopProducts: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
   const router = useRouter();
-  const { addToCart } = useCart();
+  const { addToCart, cartItems, toggleWishlist, wishlistItems } = useCart();
 
   const normalizeProducts = (data: unknown): Product[] => {
     const arrayData = Array.isArray(data)
@@ -58,14 +55,12 @@ const TopProducts: React.FC = () => {
       }));
   };
 
-  /* ================= IMAGE HANDLER ================= */
   const getImage = (img?: string) => {
     if (!img) return "/product1.png";
     if (img.startsWith("data:")) return img;
     return img;
   };
 
-  /* ================= FETCH TOP PRODUCTS ================= */
   useEffect(() => {
     const fetchTopProducts = async () => {
       let hasFreshCache = false;
@@ -121,9 +116,14 @@ const TopProducts: React.FC = () => {
     fetchTopProducts();
   }, []);
 
-  /* ================= CART ================= */
   const handleAddToCart = (e: React.MouseEvent, product: Product) => {
     e.stopPropagation();
+
+    const alreadyInCart = cartItems.some((item) => item.id === product.id);
+    if (alreadyInCart) {
+      router.push("/home/Cart");
+      return;
+    }
 
     const rawPrice = product.price;
     const rawDiscount = product.discountPrice ?? rawPrice;
@@ -140,15 +140,31 @@ const TopProducts: React.FC = () => {
       price: salePrice,
       mrp: originalPrice,
       discount: hasDiscount ? `${discountPercent}% OFF` : undefined,
-    
       company: product.company,
       image: product.images?.[0],
     });
   };
 
-  const handleBuyNow = (e: React.MouseEvent, product: Product) => {
+  const handleWishlistClick = (e: React.MouseEvent, product: Product) => {
     e.stopPropagation();
-    router.push(`/checkout?product=${product.id}`);
+    const rawPrice = product.price;
+    const rawDiscount = product.discountPrice ?? rawPrice;
+    const originalPrice = Math.max(rawPrice, rawDiscount);
+    const salePrice = Math.min(rawPrice, rawDiscount);
+    const hasDiscount = salePrice < originalPrice && originalPrice > 0;
+    const discountPercent = hasDiscount
+      ? Math.round(((originalPrice - salePrice) / originalPrice) * 100)
+      : 0;
+
+    toggleWishlist({
+      id: product.id,
+      name: product.name,
+      price: salePrice,
+      mrp: originalPrice,
+      discount: hasDiscount ? `${discountPercent}% OFF` : undefined,
+      company: product.company,
+      image: product.images?.[0],
+    });
   };
 
   return (
@@ -157,7 +173,7 @@ const TopProducts: React.FC = () => {
       {error && <p className={styles.error}>{error}</p>}
 
       <div className={styles.grid}>
-        {products.map((product, idx) => {
+        {products.map((product) => {
           const rawPrice = product.price;
           const rawDiscount = product.discountPrice ?? rawPrice;
           const originalPrice = Math.max(rawPrice, rawDiscount);
@@ -166,16 +182,15 @@ const TopProducts: React.FC = () => {
           const discountPercent = hasDiscount
             ? Math.round(((originalPrice - salePrice) / originalPrice) * 100)
             : 0;
+          const inWishlist = wishlistItems.some((item) => item.id === product.id);
 
           return (
             <div
               key={product.id}
               className={styles.card}
               onClick={() => router.push(`/product-detail/${product.id}`)}
-              onMouseEnter={() => setHoveredIndex(idx)}
-              onMouseLeave={() => setHoveredIndex(null)}
             >
-              <div className={styles.imageWrapper}>
+              <div className={styles.imageBlock}>
                 <img
                   src={getImage(product.images?.[0])}
                   className={styles.image}
@@ -183,67 +198,56 @@ const TopProducts: React.FC = () => {
                   loading="lazy"
                   decoding="async"
                 />
-
                 {hasDiscount && (
-                  <span className={styles.badge}>-{discountPercent}%</span>
+                  <span className={styles.badge}>Save {discountPercent}%</span>
                 )}
+              </div>
 
-                {hoveredIndex === idx && (
-                  <div className={styles.overlay}>
-                    <div className={styles.iconContainer}>
-                      <FaCartPlus
-                        className={styles.icon}
-                        onClick={(e) => handleAddToCart(e, product)}
-                      />
-                      <FaHeart className={styles.icon} />
-                      <FaSearch className={styles.icon} />
-                    </div>
+              <div className={styles.content}>
+                <h3 className={styles.name}>{product.name}</h3>
+                {product.company && <p className={styles.company}>{product.company}</p>}
+
+                <div className={styles.metaRow}>
+                  <div className={styles.priceGroup}>
+                    <span className={styles.discountPrice}>Rs. {salePrice.toFixed(0)}</span>
+                    {hasDiscount && (
+                      <span className={styles.originalPrice}>
+                        Rs. {originalPrice.toFixed(0)}
+                      </span>
+                    )}
                   </div>
-                )}
-              </div>
+                  <span className={styles.unit}>1 piece</span>
+                </div>
 
-              <h3 className={styles.name}>{product.name}</h3>
+                <div className={styles.actions}>
+                  <button
+                    className={styles.addToCart}
+                    onClick={(e) => handleAddToCart(e, product)}
+                  >
+                    {cartItems.some((item) => item.id === product.id)
+                      ? "Go to Cart"
+                      : "Add to Cart"}
+                  </button>
 
-              {product.company && (
-                <p className={styles.company}>{product.company}</p>
-              )}
-
-              <div className={styles.priceRow}>
-                {hasDiscount ? (
-                  <>
-                    <span className={styles.discountPrice}>₹{salePrice}</span>
-                    <span className={styles.originalPrice}>₹{originalPrice}</span>
-                  </>
-                ) : (
-                  <span className={styles.discountPrice}>₹{originalPrice}</span>
-                )}
-              </div>
-
-              <div className={styles.actions}>
-                <button
-                  className={styles.addToCart}
-                  onClick={(e) => handleAddToCart(e, product)}
-                >
-                  Add to Cart
-                </button>
-                <button
-                  className={styles.buyNow}
-                  onClick={(e) => handleBuyNow(e, product)}
-                >
-                  Buy Now
-                </button>
+                  <button
+                    className={styles.wishlist}
+                    aria-label="Add to wishlist"
+                    onClick={(e) => handleWishlistClick(e, product)}
+                  >
+                    {inWishlist ? <FaHeart /> : <FaRegHeart />}
+                  </button>
+                </div>
               </div>
             </div>
           );
         })}
 
-        {/* 🔥 SHOW MORE */}
         <div
           className={`${styles.card} ${styles.showMore}`}
           onClick={() => router.push("/products")}
         >
-          <FaArrowRight size={32} />
-          <span>Show More</span>
+          <FaArrowRight size={24} />
+          <span className={styles.showMoreText}>Show More</span>
         </div>
       </div>
     </div>

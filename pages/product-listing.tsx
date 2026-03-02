@@ -9,6 +9,7 @@ import Topbar from "@/components/Layout/Topbar";
 import Footer from "@/components/Layout/Footer";
 import MobileNavbar from "@/components/Layout/MobileNavbar";
 import { useCart } from "@/context/CartContext";
+import { FaHeart, FaRegHeart } from "react-icons/fa";
 
 interface Category {
   _id: string;
@@ -39,7 +40,7 @@ interface StoredCategory {
 
 const ProductListingPage: React.FC = () => {
   const router = useRouter();
-  const { addToCart } = useCart();
+  const { addToCart, cartItems, toggleWishlist, wishlistItems } = useCart();
 
   const [products, setProducts] = useState<ProductWithCategory[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -286,6 +287,8 @@ const ProductListingPage: React.FC = () => {
                   const price = Number(product.mrpPrice) || 0;
                   const discount = Number(product.discountedPrice) || price;
                   const hasDiscount = discount < price;
+                  const inCart = cartItems.some((item) => item.id === product._id);
+                  const inWishlist = wishlistItems.some((item) => item.id === product._id);
 
                   return (
                     <div
@@ -324,26 +327,55 @@ const ProductListingPage: React.FC = () => {
                           )}
                         </div>
 
-                        <button
-                          className={styles.productButton}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            addToCart({
-                              id: product._id,
-                              name: product.productName,
-                              price: discount,
-                              mrp: price,
-                              discount: hasDiscount
-                                ? `${Math.round(((price - discount) / price) * 100)}% OFF`
-                                : undefined,
-                              discountPrice: discount,
-                              company: product.brandName,
-                              image: product.productImages?.[0],
-                            });
-                          }}
-                        >
-                          Add to Cart
-                        </button>
+                        <div className={styles.productActionsRow}>
+                          <button
+                            className={styles.productButton}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (inCart) {
+                                router.push("/home/Cart");
+                                return;
+                              }
+                              addToCart({
+                                id: product._id,
+                                name: product.productName,
+                                price: discount,
+                                mrp: price,
+                                discount: hasDiscount
+                                  ? `${Math.round(((price - discount) / price) * 100)}% OFF`
+                                  : undefined,
+                                discountPrice: discount,
+                                company: product.brandName,
+                                image: product.productImages?.[0],
+                              });
+                            }}
+                          >
+                            {inCart ? "Go to Cart" : "Add to Cart"}
+                          </button>
+
+                          <button
+                            className={styles.wishlistBtn}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleWishlist({
+                                id: product._id,
+                                name: product.productName,
+                                price: discount,
+                                mrp: price,
+                                discount: hasDiscount
+                                  ? `${Math.round(((price - discount) / price) * 100)}% OFF`
+                                  : undefined,
+                                discountPrice: discount,
+                                company: product.brandName,
+                                image: product.productImages?.[0],
+                              });
+                            }}
+                            aria-label="Toggle wishlist"
+                            title="Toggle wishlist"
+                          >
+                            {inWishlist ? <FaHeart /> : <FaRegHeart />}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   );

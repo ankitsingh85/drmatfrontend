@@ -31,13 +31,13 @@ const ProductCategory: React.FC<ProductCategoryProps> = ({
   const router = useRouter();
   const [categories, setCategories] = useState<Category[]>([]);
   const [exploreImage, setExploreImage] = useState<string | null>(null);
-  const [exploreCategoryName, setExploreCategoryName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Convert base64 or fallback image
   const getValidImage = (img?: string) => {
     if (!img) return productImg.src;
     if (img.startsWith("data:")) return img;
+    if (img.startsWith("http://") || img.startsWith("https://") || img.startsWith("/")) return img;
     return `data:image/jpeg;base64,${img}`;
   };
 
@@ -63,11 +63,14 @@ const ProductCategory: React.FC<ProductCategoryProps> = ({
         // Only first 7 categories for grid (8th tile is reserved for exploration tile - NOT a category)
         setCategories(formatted.slice(0, 7));
 
-        // Find explore image for the 8th tile (navigation only, NOT a category)
-        const exploreCat = data.find((cat: any) => cat.exploreImage);
-        if (exploreCat?.exploreImage) {
-          setExploreImage(exploreCat.exploreImage);
-          setExploreCategoryName(exploreCat.name);
+        // Use clinic categories explore image so this tile matches clinic category design
+        const clinicRes = await fetch(`${API_URL}/clinic-categories`, { signal: ac.signal });
+        if (clinicRes.ok) {
+          const clinicData: Array<{ exploreImage?: string }> = await clinicRes.json();
+          const clinicExplore = clinicData.find((c) => c.exploreImage);
+          if (clinicExplore?.exploreImage) {
+            setExploreImage(clinicExplore.exploreImage);
+          }
         }
 
       } catch (err) {
@@ -89,7 +92,9 @@ const ProductCategory: React.FC<ProductCategoryProps> = ({
   };
 
   const handleExploreClick = () => {
-    router.push("/ProductCategoryList");
+    localStorage.removeItem("selectedCategory");
+    localStorage.removeItem("selectedCategoryId");
+    router.push("/product-listing");
   };
 
   if (loading) return <p>Loading categories...</p>;
@@ -125,22 +130,20 @@ const ProductCategory: React.FC<ProductCategoryProps> = ({
         ))}
 
         {/* 8th Tile: Exploration tile (NOT a category) - Navigation only to product list page */}
-        {exploreImage && (
-          <div
-            className={styles.categoryWrapper}
-            onClick={handleExploreClick}
-            style={{ cursor: "pointer" }}
-          >
-            <div className={`${styles.categoryCard} ${styles.exploreCard}`} style={{ border: "1px solid #999" }}>
-              <img
-                src={getValidImage(exploreImage)}
-                alt={exploreCategoryName || "Explore More"}
-                className={styles.categoryImg}
-              />
-            </div>
-            <p className={styles.categoryLabel}>{exploreCategoryName || "Explore More"}</p>
+        <div
+          className={styles.categoryWrapper}
+          onClick={handleExploreClick}
+          style={{ cursor: "pointer" }}
+        >
+          <div className={`${styles.categoryCard} ${styles.exploreCard}`} style={{ border: "1px solid #999" }}>
+            <img
+              src={getValidImage(exploreImage || undefined)}
+              alt="Explore More"
+              className={styles.categoryImg}
+            />
           </div>
-        )}
+          <p className={styles.categoryLabel}>Explore More</p>
+        </div>
       </div>
     </div>
   );

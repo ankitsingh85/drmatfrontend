@@ -25,7 +25,15 @@ interface IUserProfile {
 
 const CartPage: React.FC = () => {
   const router = useRouter();
-  const { cartItems, removeFromCart, updateQuantity, clearCart } = useCart();
+  const {
+    cartItems,
+    removeFromCart,
+    updateQuantity,
+    addToWishlist,
+    wishlistItems,
+    removeFromWishlist,
+    addToCart,
+  } = useCart();
   const [user, setUser] = useState<IUserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -176,7 +184,22 @@ const CartPage: React.FC = () => {
                     className={styles.icon}
                     onClick={() => removeFromCart(item.id)}
                   />
-                  <FiHeart className={styles.icon} />
+                  <FiHeart
+                    className={styles.icon}
+                    onClick={() => {
+                      addToWishlist({
+                        id: item.id,
+                        name: item.name,
+                        price: item.price,
+                        mrp: item.mrp,
+                        discount: item.discount,
+                        discountPrice: item.discountPrice,
+                        company: item.company,
+                        image: item.image,
+                      });
+                      removeFromCart(item.id);
+                    }}
+                  />
                 </div>
               </div>
             ))
@@ -186,6 +209,66 @@ const CartPage: React.FC = () => {
             onClick={() => router.push("/home")}
           >
             Continue Shopping
+          </div>
+
+          <div className={styles.wishlistSection}>
+            <h3 className={styles.title}>Wishlist ({wishlistItems.length})</h3>
+            {wishlistItems.length === 0 ? (
+              <p className={styles.message}>No products in wishlist.</p>
+            ) : (
+              wishlistItems.map((item) => {
+                const inCart = cartItems.some((c) => c.id === item.id);
+                return (
+                  <div key={`wish-${item.id}`} className={styles.card}>
+                    <Image
+                      src={item.image ?? "/product1.png"}
+                      alt={item.name}
+                      width={100}
+                      height={100}
+                    />
+                    <div className={styles.details}>
+                      <div className={styles.name}>{item.name}</div>
+                      <div className={styles.priceRow}>
+                        <span className={styles.price}>₹{item.price}</span>
+                        {item.discount && (
+                          <span className={styles.discount}>{item.discount}</span>
+                        )}
+                      </div>
+                      <div className={styles.qtyRow}>
+                        <button
+                          className={styles.payBtn}
+                          style={{ marginBottom: 0, padding: "8px 14px", width: "auto" }}
+                          onClick={() => {
+                            if (inCart) {
+                              router.push("/home/Cart");
+                              return;
+                            }
+                            addToCart({
+                              id: item.id,
+                              name: item.name,
+                              price: item.price,
+                              mrp: item.mrp,
+                              discount: item.discount,
+                              discountPrice: item.discountPrice,
+                              company: item.company,
+                              image: item.image,
+                            });
+                          }}
+                        >
+                          {inCart ? "Go to Cart" : "Add to Cart"}
+                        </button>
+                      </div>
+                    </div>
+                    <div className={styles.actions}>
+                      <FaTrashAlt
+                        className={styles.icon}
+                        onClick={() => removeFromWishlist(item.id)}
+                      />
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
 
