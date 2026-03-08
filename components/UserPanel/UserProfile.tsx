@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, ChangeEvent, FormEvent } from "react";
+import React, { ChangeEvent, FormEvent, useCallback, useEffect, useState } from "react";
 import Cookies from "js-cookie";
 import { useRouter } from "next/navigation";
 import styles from "@/styles/adminpanel/userprofile.module.css";
@@ -49,8 +49,9 @@ interface UserProfileProps {
   }) => void;
 }
 
-
 const MAX_IMAGE_SIZE = 200 * 1024;
+const ADDRESS_TYPES = ["Home", "Work", "Office"] as const;
+type AddressType = (typeof ADDRESS_TYPES)[number];
 
 const emptyAddress: IUserAddress = {
   type: "Home",
@@ -63,6 +64,11 @@ const emptyAddress: IUserAddress = {
   pincode: "",
   district: "",
   state: "",
+};
+
+const sanitizeAddressType = (value?: string): AddressType => {
+  if (value === "Work" || value === "Office") return value;
+  return "Home";
 };
 
 const formatAddressText = (addr: IUserAddress) => {
@@ -79,21 +85,58 @@ const formatAddressText = (addr: IUserAddress) => {
   return parts.join(", ");
 };
 
+const parseLegacyAddress = (value?: string) => {
+  const source = (value || "").trim();
+  if (!source) return {};
+  const parts = source
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  const parsed: Partial<IUserAddress> = {};
+  if (parts[0]) parsed.houseNo = parts[0];
+  if (parts[1]) parsed.street = parts[1];
+  if (parts[2]) parsed.localArea = parts[2];
+  if (parts[3]) parsed.district = parts[3];
+  if (parts[4]) parsed.state = parts[4];
+  if (parts[5]) parsed.pincode = parts[5].replace(/\D/g, "").slice(0, 6);
+  if (!parsed.pincode) {
+    const pincodeMatch = source.match(/\b\d{6}\b/);
+    if (pincodeMatch) parsed.pincode = pincodeMatch[0];
+  }
+  return parsed;
+};
+
 const normalizeAddress = (addr: any): IUserAddress => {
   if (!addr || typeof addr !== "object") return { ...emptyAddress };
+  const legacy = parseLegacyAddress(addr.address);
   return {
-    type: addr.type || "Home",
+    type: sanitizeAddressType(addr.type),
     address: addr.address || "",
     fullName: addr.fullName || "",
     mobileNo: addr.mobileNo || "",
-    houseNo: addr.houseNo || "",
-    street: addr.street || "",
-    localArea: addr.localArea || (typeof addr.address === "string" ? addr.address : ""),
-    pincode: addr.pincode || "",
-    district: addr.district || "",
-    state: addr.state || "",
+    houseNo: addr.houseNo || legacy.houseNo || "",
+    street: addr.street || legacy.street || "",
+    localArea: addr.localArea || legacy.localArea || "",
+    pincode: addr.pincode || legacy.pincode || "",
+    district: addr.district || legacy.district || "",
+    state: addr.state || legacy.state || "",
   };
 };
+
+const toBackendAddress = (addr: IUserAddress): IUserAddress => ({
+  ...addr,
+  type: sanitizeAddressType(addr.type),
+  fullName: (addr.fullName || "").trim(),
+  mobileNo: (addr.mobileNo || "").replace(/\D/g, "").slice(0, 10),
+  houseNo: (addr.houseNo || "").trim(),
+  street: (addr.street || "").trim(),
+  localArea: (addr.localArea || "").trim(),
+  pincode: (addr.pincode || "").replace(/\D/g, "").slice(0, 6),
+  district: (addr.district || "").trim(),
+  state: (addr.state || "").trim(),
+  address: formatAddressText(addr),
+});
 
 const UserProfile: React.FC<UserProfileProps> = ({
   showFormInitially = false,
@@ -141,52 +184,59 @@ const UserProfile: React.FC<UserProfileProps> = ({
     }
   };
 
-  useEffect(() => {
+  const fetchUser = useCallback(async () => {
     if (!email) {
       router.replace("/Login");
       return;
     }
 
-    const fetchUser = async () => {
-      try {
-        const res = await fetch(
-          `${API_URL}/users/by-email/${encodeURIComponent(email)}`
-        );
-        if (!res.ok) throw new Error("User not found");
+    try {
+      setLoading(true);
+      const res = await fetch(`${API_URL}/users/by-email/${encodeURIComponent(email)}`);
+      if (!res.ok) throw new Error("User not found");
 
-        const data = await res.json();
-        const addresses = Array.isArray(data.addresses)
-          ? data.addresses.map(normalizeAddress)
-          : [];
-        const primary = addresses[0] || normalizeAddress({ address: data.address || "" });
+      const data = await res.json();
+      const addresses = Array.isArray(data.addresses) ? data.addresses.map(normalizeAddress) : [];
+      const primary = addresses[0] || normalizeAddress({ address: data.address || "" });
 
-        setForm({
-          _id: data._id,
-          patientId: data.patientId,
-          name: data.name || "",
-          email: data.email || email,
-          contactNo: data.contactNo || "",
-          profileImage: data.profileImage || "",
-          addresses,
-          addressType: primary.type || "Home",
-          addressName: primary.fullName || data.name || "",
-          addressMobile: primary.mobileNo || data.contactNo || "",
-          houseNo: primary.houseNo || "",
-          street: primary.street || "",
-          localArea: primary.localArea || "",
-          pincode: primary.pincode || "",
-          district: primary.district || "",
-          state: primary.state || "",
-        });
-      } catch {
-        setForm((prev) => ({ ...prev, email }));
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchUser();
+      setForm({
+        _id: data._id,
+        patientId: data.patientId,
+        name: data.name || "",
+        email: data.email || email,
+        contactNo: data.contactNo || "",
+        profileImage: data.profileImage || "",
+        addresses,
+        addressType: sanitizeAddressType(primary.type),
+        addressName: primary.fullName || data.name || "",
+        addressMobile: primary.mobileNo || data.contactNo || "",
+        houseNo: primary.houseNo || "",
+        street: primary.street || "",
+        localArea: primary.localArea || "",
+        pincode: primary.pincode || "",
+        district: primary.district || "",
+        state: primary.state || "",
+      });
+    } catch {
+      setForm((prev) => ({ ...prev, email }));
+    } finally {
+      setLoading(false);
+    }
   }, [email, router]);
+
+  useEffect(() => {
+    fetchUser();
+  }, [fetchUser]);
+
+  useEffect(() => {
+    const handleAddressUpdated = () => {
+      fetchUser();
+    };
+    window.addEventListener("addresses-updated", handleAddressUpdated);
+    return () => {
+      window.removeEventListener("addresses-updated", handleAddressUpdated);
+    };
+  }, [fetchUser]);
 
   useEffect(() => {
     setShowForm(showFormInitially);
@@ -197,11 +247,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
   ) => {
     const { name, value } = e.target;
 
-    if (
-      name === "profileImage" &&
-      e.target instanceof HTMLInputElement &&
-      e.target.files?.[0]
-    ) {
+    if (name === "profileImage" && e.target instanceof HTMLInputElement && e.target.files?.[0]) {
       const file = e.target.files[0];
 
       if (!file.type.startsWith("image/")) {
@@ -240,6 +286,11 @@ const UserProfile: React.FC<UserProfileProps> = ({
       return;
     }
 
+    if (name === "addressType") {
+      setForm((prev) => ({ ...prev, addressType: sanitizeAddressType(value) }));
+      return;
+    }
+
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
@@ -256,7 +307,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
       return;
     }
 
-    const primaryAddress: IUserAddress = {
+    const primaryAddress: IUserAddress = toBackendAddress({
       type: form.addressType || "Home",
       fullName: form.addressName.trim(),
       mobileNo: form.addressMobile.trim(),
@@ -266,13 +317,10 @@ const UserProfile: React.FC<UserProfileProps> = ({
       pincode: form.pincode.trim(),
       district: form.district.trim(),
       state: form.state.trim(),
-    };
-    primaryAddress.address = formatAddressText(primaryAddress);
+    });
 
     const existing = Array.isArray(form.addresses) ? [...form.addresses] : [];
-    const addresses = existing.length
-      ? [primaryAddress, ...existing.slice(1)]
-      : [primaryAddress];
+    const addresses = existing.length ? [primaryAddress, ...existing.slice(1)] : [primaryAddress];
 
     setSaving(true);
     try {
@@ -303,6 +351,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
       }));
 
       window.dispatchEvent(new CustomEvent("profile-updated"));
+      window.dispatchEvent(new CustomEvent("addresses-updated"));
       setShowForm(false);
 
       onProfileSaved?.({
@@ -366,21 +415,12 @@ const UserProfile: React.FC<UserProfileProps> = ({
 
             <div className={styles.field}>
               <label>Mobile</label>
-              <input
-                name="contactNo"
-                value={form.contactNo}
-                onChange={handleChange}
-              />
+              <input name="contactNo" value={form.contactNo} onChange={handleChange} />
             </div>
 
             <div className={styles.field}>
               <label>Profile Picture</label>
-              <input
-                name="profileImage"
-                type="file"
-                accept="image/*"
-                onChange={handleChange}
-              />
+              <input name="profileImage" type="file" accept="image/*" onChange={handleChange} />
               {form.profileImage && (
                 <img
                   src={form.profileImage}
@@ -399,28 +439,22 @@ const UserProfile: React.FC<UserProfileProps> = ({
             <div className={styles.field}>
               <label>Address Type</label>
               <select name="addressType" value={form.addressType} onChange={handleChange}>
-                <option value="Home">Home</option>
-                <option value="Work">Work</option>
-                <option value="Other">Other</option>
+                {ADDRESS_TYPES.map((type) => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
+                ))}
               </select>
             </div>
 
             <div className={styles.field}>
               <label>Address Full Name</label>
-              <input
-                name="addressName"
-                value={form.addressName}
-                onChange={handleChange}
-              />
+              <input name="addressName" value={form.addressName} onChange={handleChange} />
             </div>
 
             <div className={styles.field}>
               <label>Address Mobile</label>
-              <input
-                name="addressMobile"
-                value={form.addressMobile}
-                onChange={handleChange}
-              />
+              <input name="addressMobile" value={form.addressMobile} onChange={handleChange} />
             </div>
 
             <div className={styles.field}>
@@ -435,11 +469,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
 
             <div className={styles.field}>
               <label>Local Area</label>
-              <input
-                name="localArea"
-                value={form.localArea}
-                onChange={handleChange}
-              />
+              <input name="localArea" value={form.localArea} onChange={handleChange} />
             </div>
 
             <div className={styles.field}>
@@ -459,18 +489,10 @@ const UserProfile: React.FC<UserProfileProps> = ({
           </div>
 
           <div className={styles.actions}>
-            <button
-              type="button"
-              className={styles.secondaryBtn}
-              onClick={() => setShowForm(false)}
-            >
+            <button type="button" className={styles.secondaryBtn} onClick={() => setShowForm(false)}>
               Cancel
             </button>
-            <button
-              type="submit"
-              className={styles.primaryBtn}
-              disabled={saving}
-            >
+            <button type="submit" className={styles.primaryBtn} disabled={saving}>
               {saving ? "Saving..." : "Save Changes"}
             </button>
           </div>
@@ -501,6 +523,18 @@ const UserProfile: React.FC<UserProfileProps> = ({
             <span>Address</span>
             <strong>{previewAddress || "-"}</strong>
           </div>
+          {form.addresses.length > 0 && (
+            <div className={styles.summaryRow}>
+              <span>Saved Addresses</span>
+              <strong style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {form.addresses.map((addr, idx) => (
+                  <span key={idx}>
+                    [{sanitizeAddressType(addr.type)}] {formatAddressText(normalizeAddress(addr)) || "-"}
+                  </span>
+                ))}
+              </strong>
+            </div>
+          )}
         </div>
       )}
     </div>

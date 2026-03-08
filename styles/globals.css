@@ -33,6 +33,10 @@ body {
   overflow-x: hidden;
 }
 
+html {
+  color-scheme: light;
+}
+
 body {
   color: var(--color9);
   background: var(--background);
@@ -54,7 +58,7 @@ a {
 
 @media (prefers-color-scheme: dark) {
   html {
-    color-scheme: dark;
+    color-scheme: light;
   }
 }
 /* --- NProgress style --- */

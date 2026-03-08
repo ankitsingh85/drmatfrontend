@@ -346,6 +346,7 @@
 
 .modalBody {
   padding: 1rem 1.2rem 1.2rem;
+  color: #0f1c2e;
 }
 
 .modalGrid {
@@ -373,7 +374,17 @@
   border-radius: 10px;
   border: 1px solid #d1d5db;
   background: #fff;
+  color: #0f1c2e;
   transition: border 0.2s ease, box-shadow 0.2s ease;
+}
+
+.modalBody input::placeholder {
+  color: #64748b;
+  opacity: 1;
+}
+
+.modalBody select option {
+  color: #0f1c2e;
 }
 
 .modalBody input:focus,

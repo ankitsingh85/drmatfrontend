@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useCallback } from "react";
+import React, { createContext, useCallback, useContext, useEffect } from "react";
 import Cookies from "js-cookie";
 import { API_URL } from "@/config/api";
 
@@ -17,6 +17,7 @@ interface TopbarProfileContextType extends TopbarProfileState {
 }
 
 const TopbarProfileContext = createContext<TopbarProfileContextType | undefined>(undefined);
+const PROFILE_IMAGE_STORAGE_KEY = "profileImage";
 
 const normalizeImage = (img: string | undefined | null, apiUrl: string): string | null => {
   if (!img) return null;
@@ -26,8 +27,33 @@ const normalizeImage = (img: string | undefined | null, apiUrl: string): string 
   return `${apiUrl}/${img}`;
 };
 
+const readStoredProfileImage = (): string | null => {
+  try {
+    return localStorage.getItem(PROFILE_IMAGE_STORAGE_KEY) || Cookies.get("profileImage") || null;
+  } catch {
+    return Cookies.get("profileImage") || null;
+  }
+};
+
+const writeStoredProfileImage = (value: string | null) => {
+  try {
+    if (value) {
+      localStorage.setItem(PROFILE_IMAGE_STORAGE_KEY, value);
+    } else {
+      localStorage.removeItem(PROFILE_IMAGE_STORAGE_KEY);
+    }
+  } catch {
+    // Ignore localStorage failures.
+  }
+
+  if (value && !/^data:image\//i.test(value)) {
+    Cookies.set("profileImage", value);
+  } else {
+    Cookies.remove("profileImage");
+  }
+};
+
 export const TopbarProfileProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Keep initial state SSR-safe to avoid hydration mismatch.
   const [state, setState] = React.useState<TopbarProfileState>({
     username: null,
     profileImage: null,
@@ -35,11 +61,11 @@ export const TopbarProfileProvider: React.FC<{ children: React.ReactNode }> = ({
     contactNo: null,
   });
 
-  useEffect(() => {
+  const syncFromStorage = useCallback(() => {
     const username = Cookies.get("username") || null;
     const email = Cookies.get("email") || null;
     const contactNo = Cookies.get("contactNo") || null;
-    const rawProfileImage = Cookies.get("profileImage") || null;
+    const rawProfileImage = readStoredProfileImage();
 
     setState({
       username,
@@ -48,6 +74,10 @@ export const TopbarProfileProvider: React.FC<{ children: React.ReactNode }> = ({
       profileImage: normalizeImage(rawProfileImage, API_URL),
     });
   }, []);
+
+  useEffect(() => {
+    syncFromStorage();
+  }, [syncFromStorage]);
 
   const refetchProfile = useCallback(async () => {
     const token = Cookies.get("token");
@@ -59,27 +89,23 @@ export const TopbarProfileProvider: React.FC<{ children: React.ReactNode }> = ({
       });
       if (!res.ok) return;
       const data = await res.json();
-      if (data) {
-        Cookies.set("username", data.name || "");
-        Cookies.set("email", data.email || "");
-        Cookies.set("contactNo", data.contactNo || "");
-        const normalizedProfile = data.profileImage
-          ? normalizeImage(data.profileImage, API_URL)
-          : null;
-        if (normalizedProfile) {
-          Cookies.set("profileImage", normalizedProfile);
-        } else {
-          Cookies.remove("profileImage");
-        }
-        setState({
-          username: data.name || null,
-          email: data.email || null,
-          contactNo: data.contactNo || null,
-          profileImage: normalizedProfile,
-        });
-      }
+      if (!data) return;
+
+      Cookies.set("username", data.name || "");
+      Cookies.set("email", data.email || "");
+      Cookies.set("contactNo", data.contactNo || "");
+
+      const normalizedProfile = data.profileImage ? normalizeImage(data.profileImage, API_URL) : null;
+      writeStoredProfileImage(normalizedProfile);
+
+      setState({
+        username: data.name || null,
+        email: data.email || null,
+        contactNo: data.contactNo || null,
+        profileImage: normalizedProfile,
+      });
     } catch {
-      // ignore
+      // Ignore API failures and keep existing state.
     }
   }, []);
 
@@ -88,17 +114,26 @@ export const TopbarProfileProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [refetchProfile]);
 
   useEffect(() => {
-    const onProfileUpdated = () => refetchProfile();
-    const onUserLoggedIn = () => refetchProfile();
+    const onProfileUpdated = () => {
+      syncFromStorage();
+      refetchProfile();
+    };
+    const onUserLoggedIn = () => {
+      syncFromStorage();
+      refetchProfile();
+    };
+
     window.addEventListener("profile-updated", onProfileUpdated);
     window.addEventListener("user-logged-in", onUserLoggedIn);
+
     return () => {
       window.removeEventListener("profile-updated", onProfileUpdated);
       window.removeEventListener("user-logged-in", onUserLoggedIn);
     };
-  }, [refetchProfile]);
+  }, [refetchProfile, syncFromStorage]);
 
   const clearProfile = useCallback(() => {
+    writeStoredProfileImage(null);
     setState({
       username: null,
       profileImage: null,
@@ -107,14 +142,14 @@ export const TopbarProfileProvider: React.FC<{ children: React.ReactNode }> = ({
     });
   }, []);
 
-  const value: TopbarProfileContextType = {
-    ...state,
-    refetchProfile,
-    clearProfile,
-  };
-
   return (
-    <TopbarProfileContext.Provider value={value}>
+    <TopbarProfileContext.Provider
+      value={{
+        ...state,
+        refetchProfile,
+        clearProfile,
+      }}
+    >
       {children}
     </TopbarProfileContext.Provider>
   );

@@ -45,8 +45,10 @@ export default function Login() {
     const normalizedProfileImage = normalizeImage(data.user?.profileImage);
     if (normalizedProfileImage) {
       Cookies.set("profileImage", normalizedProfileImage, cookieOptions);
+      localStorage.setItem("profileImage", normalizedProfileImage);
     } else {
       Cookies.remove("profileImage");
+      localStorage.removeItem("profileImage");
     }
     const userId = String(data.user?.id || data.user?._id || "");
     Cookies.set("userId", userId, cookieOptions);

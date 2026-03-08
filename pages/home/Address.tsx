@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import styles from "@/styles/user/Address.module.css";
 import { useRouter } from "next/router";
 import Cookies from "js-cookie";
@@ -37,6 +37,9 @@ interface IUserProfile {
   profileImage?: string;
 }
 
+const ADDRESS_TYPES = ["Home", "Work", "Office"] as const;
+type AddressType = (typeof ADDRESS_TYPES)[number];
+
 const emptyAddress: Address = {
   type: "Home",
   address: "",
@@ -48,6 +51,11 @@ const emptyAddress: Address = {
   pincode: "",
   district: "",
   state: "",
+};
+
+const sanitizeAddressType = (value?: string): AddressType => {
+  if (value === "Work" || value === "Office") return value;
+  return "Home";
 };
 
 const formatAddressText = (addr: Address) => {
@@ -64,25 +72,58 @@ const formatAddressText = (addr: Address) => {
   return parts.join(", ");
 };
 
+const parseLegacyAddress = (value?: string) => {
+  const source = (value || "").trim();
+  if (!source) return {};
+  const parts = source
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  const parsed: Partial<Address> = {};
+  if (parts[0]) parsed.houseNo = parts[0];
+  if (parts[1]) parsed.street = parts[1];
+  if (parts[2]) parsed.localArea = parts[2];
+  if (parts[3]) parsed.district = parts[3];
+  if (parts[4]) parsed.state = parts[4];
+  if (parts[5]) parsed.pincode = parts[5].replace(/\D/g, "").slice(0, 6);
+  if (!parsed.pincode) {
+    const pincodeMatch = source.match(/\b\d{6}\b/);
+    if (pincodeMatch) parsed.pincode = pincodeMatch[0];
+  }
+  return parsed;
+};
+
 const normalizeAddress = (addr: any): Address => {
   if (!addr || typeof addr !== "object") return { ...emptyAddress };
-  const structured: Address = {
-    type: addr.type || "Home",
+  const legacy = parseLegacyAddress(addr.address);
+  return {
+    type: sanitizeAddressType(addr.type),
     address: addr.address || "",
     fullName: addr.fullName || "",
     mobileNo: addr.mobileNo || "",
-    houseNo: addr.houseNo || "",
-    street: addr.street || "",
-    localArea: addr.localArea || "",
-    pincode: addr.pincode || "",
-    district: addr.district || "",
-    state: addr.state || "",
+    houseNo: addr.houseNo || legacy.houseNo || "",
+    street: addr.street || legacy.street || "",
+    localArea: addr.localArea || legacy.localArea || "",
+    pincode: addr.pincode || legacy.pincode || "",
+    district: addr.district || legacy.district || "",
+    state: addr.state || legacy.state || "",
   };
-  if (!structured.localArea && structured.address) {
-    structured.localArea = structured.address;
-  }
-  return structured;
 };
+
+const toBackendAddress = (addr: Address): Address => ({
+  ...addr,
+  type: sanitizeAddressType(addr.type),
+  fullName: (addr.fullName || "").trim(),
+  mobileNo: (addr.mobileNo || "").replace(/\D/g, "").slice(0, 10),
+  houseNo: (addr.houseNo || "").trim(),
+  street: (addr.street || "").trim(),
+  localArea: (addr.localArea || "").trim(),
+  pincode: (addr.pincode || "").replace(/\D/g, "").slice(0, 6),
+  district: (addr.district || "").trim(),
+  state: (addr.state || "").trim(),
+  address: formatAddressText(addr),
+});
 
 const AddressPage: React.FC = () => {
   const router = useRouter();
@@ -92,8 +133,10 @@ const AddressPage: React.FC = () => {
   const [selectedAddressIndex, setSelectedAddressIndex] = useState(0);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [editingAddressIndex, setEditingAddressIndex] = useState<number | null>(null);
   const [editAddress, setEditAddress] = useState<Address>({ ...emptyAddress });
   const [newAddress, setNewAddress] = useState<Address>({ ...emptyAddress });
+  const [isLoadingUser, setIsLoadingUser] = useState(true);
 
   const normalizeProfileImage = (img?: string) => {
     if (!img) return "";
@@ -102,10 +145,7 @@ const AddressPage: React.FC = () => {
     return `data:image/jpeg;base64,${img}`;
   };
 
-  const fetchPincodeMeta = async (
-    pincode: string,
-    mode: "new" | "edit"
-  ) => {
+  const fetchPincodeMeta = async (pincode: string, mode: "new" | "edit") => {
     if (pincode.length !== 6) return;
     try {
       const res = await fetch(`https://api.postalpincode.in/pincode/${pincode}`);
@@ -123,7 +163,7 @@ const AddressPage: React.FC = () => {
     }
   };
 
-  useEffect(() => {
+  const fetchUser = useCallback(async () => {
     const email = Cookies.get("email");
     const token = Cookies.get("token");
     if (!email || !token) {
@@ -131,62 +171,81 @@ const AddressPage: React.FC = () => {
       return;
     }
 
-    const fetchUser = async () => {
-      try {
-        const res = await fetch(`${API_URL}/users/by-email/${encodeURIComponent(email)}`);
-        if (res.ok) {
-          const data = await res.json();
-          const rawAddresses = Array.isArray(data.addresses) ? data.addresses : [];
-          const addresses = rawAddresses.length
-            ? rawAddresses.map(normalizeAddress)
-            : [];
-          setUser({
-            _id: data._id,
-            email: data.email,
-            name: data.name,
-            addresses,
-            profileImage: data.profileImage,
-          });
-          setSelectedAddressIndex(0);
-        } else {
-          router.replace("/Login?next=/home/Address");
-        }
-      } catch {
+    try {
+      setIsLoadingUser(true);
+      const res = await fetch(`${API_URL}/users/by-email/${encodeURIComponent(email)}`);
+      if (res.ok) {
+        const data = await res.json();
+        const rawAddresses = Array.isArray(data.addresses) ? data.addresses : [];
+        const addresses = rawAddresses.length ? rawAddresses.map(normalizeAddress) : [];
+        setUser({
+          _id: data._id,
+          email: data.email,
+          name: data.name,
+          addresses,
+          profileImage: data.profileImage,
+        });
+        setSelectedAddressIndex((prev) => Math.min(prev, Math.max(0, addresses.length - 1)));
+      } else {
         router.replace("/Login?next=/home/Address");
       }
-    };
-
-    fetchUser();
+    } catch {
+      router.replace("/Login?next=/home/Address");
+    } finally {
+      setIsLoadingUser(false);
+    }
   }, [router]);
 
-  if (!user) return <p className={styles.message}>Loading...</p>;
+  useEffect(() => {
+    fetchUser();
+  }, [fetchUser]);
+
+  useEffect(() => {
+    if (!showEditModal || editingAddressIndex === null || !user?.addresses?.length) return;
+    const current = user.addresses[editingAddressIndex];
+    if (current) {
+      setEditAddress(normalizeAddress(current));
+    }
+  }, [showEditModal, editingAddressIndex, user]);
+
+  useEffect(() => {
+    const handleAddressUpdated = () => {
+      fetchUser();
+    };
+    window.addEventListener("addresses-updated", handleAddressUpdated);
+    window.addEventListener("profile-updated", handleAddressUpdated);
+    return () => {
+      window.removeEventListener("addresses-updated", handleAddressUpdated);
+      window.removeEventListener("profile-updated", handleAddressUpdated);
+    };
+  }, [fetchUser]);
+
+  if (isLoadingUser || !user) return <p className={styles.message}>Loading...</p>;
   if (cartItems.length === 0) {
     router.replace("/home/Cart");
     return <p className={styles.message}>Your cart is empty. Redirecting...</p>;
   }
 
-  const saveAddressesToBackend = async (
-    addresses: Address[],
-    selectedIndex?: number
-  ) => {
+  const saveAddressesToBackend = async (addresses: Address[], selectedIndex?: number) => {
     if (!user?._id) return;
     const effectiveSelected = selectedIndex ?? selectedAddressIndex;
     try {
-      await fetch(`${API_URL}/users/${user._id}`, {
+      const payloadAddresses = addresses.map(toBackendAddress);
+      const res = await fetch(`${API_URL}/users/${user._id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: user.name,
           email: user.email,
-          addresses: addresses.map((addr) => ({
-            ...addr,
-            address: formatAddressText(addr),
-          })),
+          addresses: payloadAddresses,
           address: formatAddressText(
             addresses[effectiveSelected] || addresses[0] || emptyAddress
           ),
         }),
       });
+      if (res.ok) {
+        window.dispatchEvent(new CustomEvent("addresses-updated"));
+      }
     } catch (err) {
       console.error("Failed to save address:", err);
     }
@@ -219,7 +278,7 @@ const AddressPage: React.FC = () => {
 
   const handleAddAddress = async () => {
     if (!validateAddress(newAddress)) return;
-    const payload = { ...newAddress, address: formatAddressText(newAddress) };
+    const payload = toBackendAddress(newAddress);
     const updatedAddresses = [...(user?.addresses || []), payload];
     const nextIndex = updatedAddresses.length - 1;
     setUser((prev) => (prev ? { ...prev, addresses: updatedAddresses } : null));
@@ -233,13 +292,20 @@ const AddressPage: React.FC = () => {
     if (!user) return;
     if (!validateAddress(editAddress)) return;
     const updatedAddresses = [...user.addresses];
-    updatedAddresses[selectedAddressIndex] = {
-      ...editAddress,
-      address: formatAddressText(editAddress),
-    };
+    updatedAddresses[selectedAddressIndex] = toBackendAddress(editAddress);
     setUser({ ...user, addresses: updatedAddresses });
     setShowEditModal(false);
+    setEditingAddressIndex(null);
     await saveAddressesToBackend(updatedAddresses, selectedAddressIndex);
+  };
+
+  const handleOpenEditModal = (index: number) => {
+    const selected = user?.addresses?.[index];
+    if (!selected) return;
+    setSelectedAddressIndex(index);
+    setEditingAddressIndex(index);
+    setEditAddress(normalizeAddress(selected));
+    setShowEditModal(true);
   };
 
   const handleProceedPayment = () => {
@@ -267,10 +333,7 @@ const AddressPage: React.FC = () => {
     0
   );
 
-  const offerTotal = cartItems.reduce(
-    (acc, item) => acc + item.price * item.quantity,
-    0
-  );
+  const offerTotal = cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
 
   const totalDiscount = Math.max(0, subtotalMrp - offerTotal);
   const deliveryFee = offerTotal >= 499 ? 0 : 49;
@@ -290,17 +353,23 @@ const AddressPage: React.FC = () => {
         </div>
         <div className={styles.steps}>
           <div className={styles.step}>
-            <div className={styles.circleFilled}><FaShoppingCart /></div>
+            <div className={styles.circleFilled}>
+              <FaShoppingCart />
+            </div>
             <div className={styles.labelActive}>Cart</div>
           </div>
           <div className={styles.line}></div>
           <div className={styles.step}>
-            <div className={styles.circleOutlined}><FaCreditCard /></div>
+            <div className={styles.circleOutlined}>
+              <FaCreditCard />
+            </div>
             <div className={styles.labelActive}>Address</div>
           </div>
           <div className={styles.line}></div>
           <div className={styles.step}>
-            <div className={styles.circleGrey}><FaCreditCard /></div>
+            <div className={styles.circleGrey}>
+              <FaCreditCard />
+            </div>
             <div className={styles.labelDisabled}>Payment</div>
           </div>
         </div>
@@ -320,7 +389,9 @@ const AddressPage: React.FC = () => {
             )}
             <div className={styles.userInfo}>
               <div className={styles.username}>{user.name}</div>
-              <div className={styles.secureLogin}><BsShieldCheck /> You are securely logged in</div>
+              <div className={styles.secureLogin}>
+                <BsShieldCheck /> You are securely logged in
+              </div>
             </div>
             <div className={styles.phone}>Email: {user.email}</div>
           </div>
@@ -328,7 +399,9 @@ const AddressPage: React.FC = () => {
           <div className={styles.addressBox}>
             <div className={styles.addressHeader}>
               <h3>Delivery Address</h3>
-              <span className={styles.addLink} onClick={() => setShowAddModal(true)}>+ Add Address</span>
+              <span className={styles.addLink} onClick={() => setShowAddModal(true)}>
+                + Add Address
+              </span>
             </div>
 
             {user.addresses.map((addr, index) => {
@@ -357,14 +430,12 @@ const AddressPage: React.FC = () => {
                     </div>
                     <MdOutlineEdit
                       className={styles.editIcon}
-                      onClick={() => {
-                        setSelectedAddressIndex(index);
-                        setEditAddress(normalizeAddress(addr));
-                        setShowEditModal(true);
-                      }}
+                      onClick={() => handleOpenEditModal(index)}
                     />
                   </div>
-                  <div className={styles.tagRow}><strong>{addr.type || "Home"}</strong></div>
+                  <div className={styles.tagRow}>
+                    <strong>{sanitizeAddressType(addr.type)}</strong>
+                  </div>
                 </div>
               );
             })}
@@ -375,7 +446,9 @@ const AddressPage: React.FC = () => {
           <h3 className={styles.summaryTitle}>Order Summary ({cartItems.length} items)</h3>
           {cartItems.map((item) => (
             <div key={item.id} className={styles.summaryRow}>
-              <span>{item.name} x {item.quantity}</span>
+              <span>
+                {item.name} x {item.quantity}
+              </span>
               <span>Rs. {(item.price * item.quantity).toLocaleString("en-IN")}</span>
             </div>
           ))}
@@ -388,7 +461,9 @@ const AddressPage: React.FC = () => {
             <span>Offer Price</span>
             <span>Rs. {offerTotal.toLocaleString("en-IN")}</span>
           </div>
-          <div className={styles.savingsNote}>You save Rs. {totalDiscount.toLocaleString("en-IN")}</div>
+          <div className={styles.savingsNote}>
+            You save Rs. {totalDiscount.toLocaleString("en-IN")}
+          </div>
           <div className={styles.summaryRow}>
             <span>Delivery Fee</span>
             <span>{deliveryFee === 0 ? "FREE" : `Rs. ${deliveryFee}`}</span>
@@ -479,11 +554,15 @@ const AddressPage: React.FC = () => {
                   <label>Address Type</label>
                   <select
                     value={newAddress.type || "Home"}
-                    onChange={(e) => setNewAddress((p) => ({ ...p, type: e.target.value }))}
+                    onChange={(e) =>
+                      setNewAddress((p) => ({ ...p, type: sanitizeAddressType(e.target.value) }))
+                    }
                   >
-                    <option value="Home">Home</option>
-                    <option value="Work">Work</option>
-                    <option value="Other">Other</option>
+                    {ADDRESS_TYPES.map((type) => (
+                      <option key={type} value={type}>
+                        {type}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -537,7 +616,9 @@ const AddressPage: React.FC = () => {
                   <label>Local Area</label>
                   <input
                     value={editAddress.localArea || ""}
-                    onChange={(e) => setEditAddress((p) => ({ ...p, localArea: e.target.value }))}
+                    onChange={(e) =>
+                      setEditAddress((p) => ({ ...p, localArea: e.target.value }))
+                    }
                   />
                 </div>
                 <div>
@@ -569,17 +650,27 @@ const AddressPage: React.FC = () => {
                   <label>Address Type</label>
                   <select
                     value={editAddress.type || "Home"}
-                    onChange={(e) => setEditAddress((p) => ({ ...p, type: e.target.value }))}
+                    onChange={(e) =>
+                      setEditAddress((p) => ({ ...p, type: sanitizeAddressType(e.target.value) }))
+                    }
                   >
-                    <option value="Home">Home</option>
-                    <option value="Work">Work</option>
-                    <option value="Other">Other</option>
+                    {ADDRESS_TYPES.map((type) => (
+                      <option key={type} value={type}>
+                        {type}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
               <button onClick={handleEditAddress}>Save Changes</button>
             </div>
-            <IoClose className={styles.closeBtn} onClick={() => setShowEditModal(false)} />
+            <IoClose
+              className={styles.closeBtn}
+              onClick={() => {
+                setShowEditModal(false);
+                setEditingAddressIndex(null);
+              }}
+            />
           </div>
         </div>
       )}

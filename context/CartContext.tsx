@@ -55,6 +55,33 @@ const normalizeItems = (items: any[]): CartItem[] =>
       quantity: Math.max(1, Number(it.quantity || 1)),
     }));
 
+const toCompactItems = (items: CartItem[]): CartItem[] =>
+  items.map(({ id, name, price, mrp, discount, discountPrice, quantity }) => ({
+    id,
+    name,
+    price,
+    mrp,
+    discount,
+    discountPrice,
+    quantity,
+  }));
+
+const safeSetStorageItems = (key: string, items: CartItem[]) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(items));
+    return;
+  } catch (error) {
+    // Quota can be exceeded by large optional fields (for example image data).
+    if (!(error instanceof DOMException) || error.name !== "QuotaExceededError") return;
+  }
+
+  try {
+    localStorage.setItem(key, JSON.stringify(toCompactItems(items)));
+  } catch {
+    // Ignore storage failures and keep in-memory state.
+  }
+};
+
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [wishlistItems, setWishlistItems] = useState<CartItem[]>([]);
@@ -131,8 +158,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         if (backendCart.length || backendWishlist.length) {
           setCartItems(backendCart);
           setWishlistItems(backendWishlist);
-          localStorage.setItem(cartStorageKey, JSON.stringify(backendCart));
-          localStorage.setItem(wishlistStorageKey, JSON.stringify(backendWishlist));
+          safeSetStorageItems(cartStorageKey, backendCart);
+          safeSetStorageItems(wishlistStorageKey, backendWishlist);
         }
       } catch {
         // Ignore hydrate failures and continue with local state.
@@ -143,8 +170,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   }, [identityKey, userEmail, cartStorageKey, wishlistStorageKey]);
 
   useEffect(() => {
-    localStorage.setItem(cartStorageKey, JSON.stringify(cartItems));
-    localStorage.setItem(wishlistStorageKey, JSON.stringify(wishlistItems));
+    safeSetStorageItems(cartStorageKey, cartItems);
+    safeSetStorageItems(wishlistStorageKey, wishlistItems);
     persistBackend(cartItems, wishlistItems);
   }, [cartItems, wishlistItems, cartStorageKey, wishlistStorageKey]);
 

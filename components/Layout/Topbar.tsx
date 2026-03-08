@@ -95,6 +95,7 @@ const Topbar: React.FC<TopbarProps> = ({ hideHamburgerOnMobile }) => {
     Cookies.remove("profileImage");
 
     localStorage.removeItem("userId");
+    localStorage.removeItem("profileImage");
     profile?.clearProfile();
 
     setLocation("");
