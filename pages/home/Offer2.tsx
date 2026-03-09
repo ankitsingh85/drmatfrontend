@@ -10,14 +10,21 @@ interface Offer {
 }
 
 // const API_BASE =
-//   process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000/api";
+//   process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000/ap";
 
-const VISIBLE = 3;
 const AUTO_DELAY = 3000;
 
 const OfferComponent = () => {
+  const getVisibleCount = () => {
+    if (typeof window === "undefined") return 3;
+    if (window.innerWidth <= 640) return 1;
+    if (window.innerWidth <= 1024) return 2;
+    return 3;
+  };
+
+  const [visibleCount, setVisibleCount] = useState(3);
   const [slides, setSlides] = useState<Offer[]>([]);
-  const [index, setIndex] = useState(VISIBLE); // start after clones
+  const [index, setIndex] = useState(3); // start after clones
   const [isPlaying, setIsPlaying] = useState(true);
   const [enableTransition, setEnableTransition] = useState(true);
 
@@ -28,13 +35,24 @@ const OfferComponent = () => {
   /* ================= FETCH ================= */
   const fetchOffers = async () => {
     try {
-      const res = await fetch(`${API_URL}/offers`);
+      const res = await fetch(`${API_URL}/offer2`);
       const data: Offer[] = await res.json();
       setSlides(data);
     } catch (err) {
       console.error(err);
     }
   };
+
+  useEffect(() => {
+    const handleResize = () => setVisibleCount(getVisibleCount());
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  useEffect(() => {
+    setIndex(visibleCount);
+  }, [visibleCount, slides.length]);
 
   useEffect(() => {
     fetchOffers();
@@ -48,39 +66,40 @@ const OfferComponent = () => {
 
   /* ================= CLONED SLIDES ================= */
   const extendedSlides = [
-    ...slides.slice(-VISIBLE),
+    ...slides.slice(-visibleCount),
     ...slides,
-    ...slides.slice(0, VISIBLE),
+    ...slides.slice(0, visibleCount),
   ];
 
   /* ================= AUTOPLAY ================= */
-  const startAuto = () => {
-    stopAuto();
-    autoRef.current = setInterval(() => {
-      setIndex((prev) => prev + 1);
-    }, AUTO_DELAY);
-    setIsPlaying(true);
+  const clearAuto = () => {
+    if (autoRef.current) clearInterval(autoRef.current);
+    autoRef.current = null;
   };
 
   const stopAuto = () => {
-    if (autoRef.current) clearInterval(autoRef.current);
-    autoRef.current = null;
+    clearAuto();
     setIsPlaying(false);
   };
 
   useEffect(() => {
-    if (slides.length > VISIBLE && isPlaying) startAuto();
-    return () => stopAuto();
-  }, [slides, isPlaying]);
+    clearAuto();
+    if (slides.length > visibleCount && isPlaying) {
+      autoRef.current = setInterval(() => {
+        setIndex((prev) => prev + 1);
+      }, AUTO_DELAY);
+    }
+    return () => clearAuto();
+  }, [slides.length, isPlaying, visibleCount]);
 
   /* ================= LOOP FIX ================= */
   useEffect(() => {
     if (!sliderRef.current) return;
 
-    if (index === slides.length + VISIBLE) {
+    if (index === slides.length + visibleCount) {
       setTimeout(() => {
         setEnableTransition(false);
-        setIndex(VISIBLE);
+        setIndex(visibleCount);
       }, 600);
     }
 
@@ -92,7 +111,7 @@ const OfferComponent = () => {
     }
 
     setTimeout(() => setEnableTransition(true), 650);
-  }, [index, slides.length]);
+  }, [index, slides.length, visibleCount]);
 
   /* ================= CONTROLS ================= */
   const next = () => {
@@ -106,7 +125,7 @@ const OfferComponent = () => {
   };
 
   const togglePlay = () => {
-    isPlaying ? stopAuto() : startAuto();
+    setIsPlaying((prev) => !prev);
   };
 
   if (slides.length === 0) {
@@ -131,12 +150,16 @@ const OfferComponent = () => {
           ref={sliderRef}
           className={styles.slider}
           style={{
-            transform: `translateX(-${index * (100 / VISIBLE)}%)`,
+            transform: `translateX(-${index * (100 / visibleCount)}%)`,
             transition: enableTransition ? "transform 0.6s ease" : "none",
           }}
         >
           {extendedSlides.map((slide, i) => (
-            <div className={styles.slide} key={`${slide._id}-${i}`}>
+            <div
+              className={styles.slide}
+              key={`${slide._id}-${i}`}
+              style={{ flex: `0 0 calc(100% / ${visibleCount})` }}
+            >
               <img src={slide.imageBase64} alt="Offer" />
             </div>
           ))}
@@ -149,7 +172,7 @@ const OfferComponent = () => {
           <div
             className={styles.progress}
             style={{
-              width: `${((index - VISIBLE + 1) / slides.length) * 100}%`,
+              width: `${((index - visibleCount + 1) / slides.length) * 100}%`,
             }}
           />
         </div>

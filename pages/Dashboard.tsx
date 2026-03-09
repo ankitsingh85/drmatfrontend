@@ -20,8 +20,10 @@ import ListOfProduct from "@/components/AdminPanel/ListOfProduct";
 import CreateServiceCategory from "@/components/AdminPanel/CreateServiceCategory";
 import ListOfServiceCategory from "@/components/AdminPanel/ListOfServiceCategory";
 import ListOfTopProduct from "@/components/AdminPanel/ListOfTopProduct";
-import UpdateOffer from "@/components/AdminPanel/UpdateOffer";
-import LatestUpdateOffer from "@/components/AdminPanel/LatestUpdateOffer";
+import Offer1 from "@/components/AdminPanel/ListofOffer1";
+import Offer2 from "@/components/AdminPanel/ListofOffer2";
+import Offer3 from "@/components/AdminPanel/ListofOffer3";
+import Offer4 from "@/components/AdminPanel/ListofOffer4";
 import LatestShorts from "@/components/AdminPanel/LatestShorts";
 import TreatmentShorts from "@/components/AdminPanel/TreatmentShorts";
 import CreateTreatment from "@/components/AdminPanel/CreateTreatment";
@@ -185,7 +187,7 @@ export default function SuperAdminDashboard() {
       list: "listOfB2Bproduct",
     },
     {
-      key: "SERVICE CATEGORY",
+      key: "Treatment CATEGORY",
       create: "createServiceCategory",
       list: "listOfServiceCategory",
     },
@@ -416,14 +418,20 @@ export default function SuperAdminDashboard() {
               <li onClick={() => handleSectionChange("listOfTopProduct")}>
                 List Top Product
               </li>
-              <li onClick={() => handleSectionChange("offerupdate")}>
-                Offer Update
+              <li onClick={() => handleSectionChange("offer1")}>
+                Offer 1
+              </li>
+              <li onClick={() => handleSectionChange("offer2")}>
+                Offer 2
+              </li>
+              <li onClick={() => handleSectionChange("offer3")}>
+                Offer 3
+              </li>
+              <li onClick={() => handleSectionChange("offer4")}>
+                Offer 4
               </li>
               <li onClick={() => handleSectionChange("latestshorts")}>
                 Latest Shorts
-              </li>
-              <li onClick={() => handleSectionChange("latestofferupdate")}>
-                Latest Offer Update
               </li>
               <li onClick={() => handleSectionChange("treatmentshorts")}>
                 Treatment Shorts
@@ -649,9 +657,11 @@ export default function SuperAdminDashboard() {
           )}
           {activeSection === "listOfTreatment" && <ListOfTreatment />}
           {activeSection === "listOfTopProduct" && <ListOfTopProduct />}
-          {activeSection === "offerupdate" && <UpdateOffer />}
+          {activeSection === "offer1" && <Offer1 />}
+          {activeSection === "offer2" && <Offer2 />}
+          {activeSection === "offer3" && <Offer3 />}
+          {activeSection === "offer4" && <Offer4 />}
           {activeSection === "latestshorts" && <LatestShorts />}
-          {activeSection === "latestofferupdate" && <LatestUpdateOffer />}
           {activeSection === "treatmentshorts" && <TreatmentShorts />}
           {/* {activeSection === "userorderhistory" && <UserOrderHistory />} */}
           {activeSection === "createPatient" && <CreatePatient />}

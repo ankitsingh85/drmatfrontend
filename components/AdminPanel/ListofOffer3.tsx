@@ -1,11 +1,12 @@
 "use client";
+// Synced: Offer 3 is wired to backend /offer3 APIs.
 
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import styles from "@/styles/UpdateOffer.module.css";
 import { API_URL } from "@/config/api";
 
-interface LatestOffer {
+interface Offer {
   _id: string;
   imageBase64: string;
 }
@@ -21,18 +22,14 @@ const MAX_SIZE_MB = 5;
 const REQUIRED_WIDTH = 1600;
 const REQUIRED_HEIGHT = 350;
 
-// ✅ Use environment variable for API base
-// const API_URL = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000/api";
-
-const LatestUpdateOffer = () => {
-  const [offers, setOffers] = useState<LatestOffer[]>([]);
+const ListofOffer3 = () => {
+  const [offers, setOffers] = useState<Offer[]>([]);
   const [previewFiles, setPreviewFiles] = useState<PreviewFile[]>([]);
   const [errorMessage, setErrorMessage] = useState<string>("");
 
-  // Fetch all offers
   const fetchOffers = async () => {
     try {
-      const res = await axios.get(`${API_URL}/latest-offers`);
+      const res = await axios.get(`${API_URL}/offer3`);
       setOffers(res.data);
     } catch (err) {
       console.error("Fetch offers error:", err);
@@ -43,7 +40,6 @@ const LatestUpdateOffer = () => {
     fetchOffers();
   }, []);
 
-  // Validate image (size + dimensions)
   const validateImage = (file: File): Promise<PreviewFile> => {
     return new Promise((resolve) => {
       if (file.size > MAX_SIZE_MB * 1024 * 1024) {
@@ -69,7 +65,7 @@ const LatestUpdateOffer = () => {
               file,
               base64,
               valid: false,
-              error: `Must be ${REQUIRED_WIDTH}×${REQUIRED_HEIGHT}px (got ${img.width}×${img.height})`,
+              error: `Must be ${REQUIRED_WIDTH}x${REQUIRED_HEIGHT}px (got ${img.width}x${img.height})`,
             });
           } else {
             resolve({ file, base64, valid: true });
@@ -97,7 +93,6 @@ const LatestUpdateOffer = () => {
     });
   };
 
-  // Handle file selection
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     setErrorMessage("");
     if (!e.target.files) return;
@@ -113,18 +108,17 @@ const LatestUpdateOffer = () => {
     setPreviewFiles(previews);
   };
 
-  // Upload valid images
   const handleUpload = async () => {
     const validFiles = previewFiles.filter((p) => p.valid);
 
     if (validFiles.length === 0) {
-      setErrorMessage("⚠️ No valid images selected to upload.");
+      setErrorMessage("No valid images selected to upload.");
       return;
     }
 
-    for (let preview of validFiles) {
+    for (const preview of validFiles) {
       try {
-        await axios.post(`${API_URL}/latest-offers`, {
+        await axios.post(`${API_URL}/offer3`, {
           imageBase64: preview.base64,
         });
       } catch (err) {
@@ -132,44 +126,40 @@ const LatestUpdateOffer = () => {
       }
     }
 
-    // Refresh and clear previews
     await fetchOffers();
     setPreviewFiles([]);
   };
 
-  // Delete offer
   const handleDelete = async (id: string) => {
     try {
-      await axios.delete(`${API_URL}/latest-offers/${id}`);
+      await axios.delete(`${API_URL}/offer3/${id}`);
       fetchOffers();
     } catch (err) {
       console.error("Delete error:", err);
     }
   };
 
-  // Update existing offer image (same behaviour as your UpdateOffer: prompt for Base64/URL)
   const handleUpdate = (id: string) => {
     const file = prompt("Enter image URL/Base64 string for update:")?.trim();
     if (!file) return;
 
     axios
-      .put(`${API_URL}/latest-offers/${id}`, { imageBase64: file })
+      .put(`${API_URL}/offer3/${id}`, { imageBase64: file })
       .then(() => fetchOffers())
       .catch((err) => console.error("Update error:", err));
   };
 
   return (
     <div className={styles.container}>
-      <h1>Manage Latest Offers</h1>
+      <h1>Offer 3</h1>
 
-      {/* Upload Instructions */}
       <div className={styles.instructions}>
-        <p>📌 Please upload images with the following requirements:</p>
+        <p>Please upload images with the following requirements:</p>
         <ul>
-          <li>✅ Width: <strong>{REQUIRED_WIDTH}px</strong></li>
-          <li>✅ Height: <strong>{REQUIRED_HEIGHT}px</strong></li>
-          <li>✅ Max Size: <strong>{MAX_SIZE_MB} MB</strong></li>
-          <li>⚠️ Other sizes will be rejected.</li>
+          <li>Width: <strong>{REQUIRED_WIDTH}px</strong></li>
+          <li>Height: <strong>{REQUIRED_HEIGHT}px</strong></li>
+          <li>Max Size: <strong>{MAX_SIZE_MB} MB</strong></li>
+          <li>Other sizes will be rejected.</li>
         </ul>
       </div>
 
@@ -182,7 +172,6 @@ const LatestUpdateOffer = () => {
 
       {errorMessage && <p className={styles.error}>{errorMessage}</p>}
 
-      {/* Preview Selected Images */}
       {previewFiles.length > 0 && (
         <div className={styles.previewGrid}>
           {previewFiles.map((preview, idx) => (
@@ -203,7 +192,6 @@ const LatestUpdateOffer = () => {
         </div>
       )}
 
-      {/* Existing Offers */}
       <div className={styles.offersGrid}>
         {offers.map((offer) => (
           <div key={offer._id} className={styles.offerCard}>
@@ -223,4 +211,4 @@ const LatestUpdateOffer = () => {
   );
 };
 
-export default LatestUpdateOffer;
+export default ListofOffer3;

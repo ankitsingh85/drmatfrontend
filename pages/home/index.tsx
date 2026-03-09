@@ -15,9 +15,9 @@ import ProductCard from "@/components/Layout/ProductCard";
 import ClinicCategories from "@/components/homePage/categories";
 import OfferCard from "@/components/homePage/offerCard";
 import FeaturedSection from "@/components/Layout/FeaturedSection";
-import Offer from "./Offer";
-import LatestOffer from "./LatestOffer";
+import Offer1 from "./Offer1";
 import Offer3 from "./Offer3";
+import Offer2 from "./Offer2";
 import Offer4 from "./Offer4";
 
 import Treatment from "./Treatment";
@@ -157,7 +157,7 @@ const Index = () => {
             flexWrap: "wrap",
           }}
         >
-          <Offer/>
+          <Offer1/>
         </div>
 
 
@@ -205,7 +205,7 @@ const Index = () => {
                 fontSize: "26px",
               }}
             >
-              Offer3
+              Offer2
             </h2>
             <div
               style={{
@@ -215,7 +215,7 @@ const Index = () => {
                 flexWrap: "nowrap",
               }}
             >
-              <Offer3/>
+              <Offer2/>
             </div>
           </div>
         </div>
@@ -251,7 +251,7 @@ const Index = () => {
             fontSize: "26px",
           }}
         >
-          Latest Offer        </h2>
+          Offer3        </h2>
         <div
           style={{
             display: "flex",
@@ -260,22 +260,9 @@ const Index = () => {
             flexWrap: "wrap",
           }}
         >
-          <LatestOffer />
+          <Offer3 />
         </div>
-
-
-
-
-
-
-
       </div>
-
-
-
-
-
-
       <div
         style={{
           padding: "10px 20px",
@@ -305,8 +292,6 @@ const Index = () => {
           <Treatment />
         </div>
       </div>
-
-
 <h2
           style={{
             textAlign: "center",
@@ -315,7 +300,7 @@ const Index = () => {
             fontSize: "26px",
           }}
         >
-          Offer 4
+          Offer4
         </h2>
         <div
           style={{
@@ -327,8 +312,6 @@ const Index = () => {
         >
           <Offer4/>
         </div>
-
-
       <div
         style={{
           padding: "10px 20px",

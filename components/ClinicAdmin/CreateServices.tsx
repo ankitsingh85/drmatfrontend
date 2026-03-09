@@ -199,7 +199,7 @@ export default function CreateTreatmentPlan() {
           <h2 className={styles.sectionTitle}>Category</h2>
 
           <div className={styles.field}>
-            <label>Service Category</label>
+            <label>Treatment Category</label>
             <input
               className={styles.input}
               onChange={(e) => setServiceCategory(e.target.value)}
