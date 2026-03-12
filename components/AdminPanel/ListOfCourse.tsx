@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { FaEdit, FaEye, FaFileExcel, FaFilePdf, FaTrash } from "react-icons/fa";
 import styles from "@/styles/Dashboard/listofcategory.module.css";
+import createStyles from "@/styles/Dashboard/createcategory.module.css";
 import { API_URL } from "@/config/api";
 
 interface Course {
@@ -50,15 +51,34 @@ type EditFormData = {
   startDate: string;
   endDate: string;
   registrationDeadline: string;
+  certificationProvided: string;
+  affiliationAccreditation: string;
   feesInr: string;
+  applyDiscountVoucher: boolean;
   netFeesInr: string;
+  discountsOffers: string;
   location: string;
+  maximumSeatsBatchSize: string;
   currentAvailability: string;
   trainerInstructorName: string;
   trainerExperience: string;
   languageOfDelivery: string;
+  curriculumTopicsCovered: string;
+  refundCancellationPolicy: string;
+  postCourseSupport: string;
+  contactForQueries: string;
   targetAudience: string;
 };
+
+const courseTypeOptions = [
+  "Certificate Course",
+  "Diploma Course",
+  "Fellowship Program",
+  "Masterclass",
+];
+
+const certificationOptions = ["Yes", "No"];
+const languageOptions = ["English", "Hindi", "Bilingual"];
 
 const createEditFormData = (course: Course): EditFormData => ({
   courseName: course.courseName || "",
@@ -71,19 +91,31 @@ const createEditFormData = (course: Course): EditFormData => ({
   registrationDeadline: course.registrationDeadline
     ? String(course.registrationDeadline).slice(0, 10)
     : "",
+  certificationProvided: course.certificationProvided || "",
+  affiliationAccreditation: course.affiliationAccreditation || "",
   feesInr:
     course.feesInr === undefined || course.feesInr === null
       ? ""
       : String(course.feesInr),
+  applyDiscountVoucher: Boolean(course.applyDiscountVoucher),
   netFeesInr:
     course.netFeesInr === undefined || course.netFeesInr === null
       ? ""
       : String(course.netFeesInr),
+  discountsOffers: course.discountsOffers || "",
   location: course.location || "",
+  maximumSeatsBatchSize:
+    course.maximumSeatsBatchSize === undefined || course.maximumSeatsBatchSize === null
+      ? ""
+      : String(course.maximumSeatsBatchSize),
   currentAvailability: course.currentAvailability || "",
   trainerInstructorName: course.trainerInstructorName || "",
   trainerExperience: course.trainerExperience || "",
   languageOfDelivery: course.languageOfDelivery || "",
+  curriculumTopicsCovered: course.curriculumTopicsCovered || "",
+  refundCancellationPolicy: course.refundCancellationPolicy || "",
+  postCourseSupport: course.postCourseSupport || "",
+  contactForQueries: course.contactForQueries || "",
   targetAudience: Array.isArray(course.targetAudience)
     ? course.targetAudience.join(", ")
     : "",
@@ -106,6 +138,7 @@ const ListOfCourse = () => {
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [editFormData, setEditFormData] = useState<EditFormData | null>(null);
   const [saving, setSaving] = useState(false);
+  const editSectionRef = useRef<HTMLDivElement | null>(null);
 
   const fetchCourses = async () => {
     try {
@@ -174,6 +207,9 @@ const ListOfCourse = () => {
     setEditingCourse(course);
     setEditFormData(createEditFormData(course));
     setError("");
+    setTimeout(() => {
+      editSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
   };
 
   const closeEditModal = () => {
@@ -208,13 +244,22 @@ const ListOfCourse = () => {
         startDate: editFormData.startDate,
         endDate: editFormData.endDate,
         registrationDeadline: editFormData.registrationDeadline,
+        certificationProvided: editFormData.certificationProvided,
+        affiliationAccreditation: editFormData.affiliationAccreditation.trim(),
         feesInr: editFormData.feesInr,
+        applyDiscountVoucher: editFormData.applyDiscountVoucher,
         netFeesInr: editFormData.netFeesInr,
+        discountsOffers: editFormData.discountsOffers.trim(),
         location: editFormData.location.trim(),
+        maximumSeatsBatchSize: editFormData.maximumSeatsBatchSize,
         currentAvailability: editFormData.currentAvailability.trim(),
         trainerInstructorName: editFormData.trainerInstructorName.trim(),
         trainerExperience: editFormData.trainerExperience.trim(),
         languageOfDelivery: editFormData.languageOfDelivery.trim(),
+        curriculumTopicsCovered: editFormData.curriculumTopicsCovered.trim(),
+        refundCancellationPolicy: editFormData.refundCancellationPolicy.trim(),
+        postCourseSupport: editFormData.postCourseSupport.trim(),
+        contactForQueries: editFormData.contactForQueries.trim(),
         targetAudience: editFormData.targetAudience
           .split(",")
           .map((item) => item.trim())
@@ -670,89 +715,142 @@ const ListOfCourse = () => {
       )}
 
       {editingCourse && editFormData && (
-        <div className={styles.modalOverlay}>
-          <div
-            className={`${styles.modal} ${styles.wideModal}`}
-            style={{ width: "min(1120px, 96vw)" }}
-          >
-            <h3>Edit Course</h3>
-            {error && <p className={styles.error}>{error}</p>}
-            <form onSubmit={handleUpdate}>
-              <div className={styles.formGrid}>
-                <div>
-                  <label>Course Name</label>
+        <div ref={editSectionRef} className={createStyles.container} style={{ maxWidth: "100%", marginTop: 32 }}>
+          <h1 className={createStyles.heading}>Edit Course</h1>
+          {error && <p className={createStyles.error}>{error}</p>}
+
+          <form className={createStyles.form} onSubmit={handleUpdate}>
+            <section className={createStyles.section}>
+              <h2 className={createStyles.sectionTitle}>Course Details</h2>
+
+              <div className={createStyles.fieldGrid}>
+                <div className={createStyles.field}>
+                  <label className={createStyles.label}>Course Name</label>
                   <input
+                    className={createStyles.input}
                     type="text"
                     value={editFormData.courseName}
                     onChange={(e) => handleEditChange("courseName", e.target.value)}
                     required
                   />
                 </div>
-                <div>
-                  <label>Course Code</label>
+
+                <div className={createStyles.field}>
+                  <label className={createStyles.label}>Course Code</label>
                   <input
+                    className={`${createStyles.input} ${createStyles.readOnlyInput}`}
                     type="text"
                     value={editingCourse.courseUniqueCode}
-                    disabled
+                    readOnly
                   />
                 </div>
-                <div>
-                  <label>Course Type</label>
-                  <input
-                    type="text"
+
+                <div className={createStyles.field}>
+                  <label className={createStyles.label}>Course Type</label>
+                  <select
+                    className={createStyles.input}
                     value={editFormData.courseType}
                     onChange={(e) => handleEditChange("courseType", e.target.value)}
-                  />
+                  >
+                    <option value="">Select course type</option>
+                    {courseTypeOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-                <div>
-                  <label>Institute Name</label>
+
+                <div className={createStyles.field}>
+                  <label className={createStyles.label}>Certification Provided</label>
+                  <select
+                    className={createStyles.input}
+                    value={editFormData.certificationProvided}
+                    onChange={(e) =>
+                      handleEditChange("certificationProvided", e.target.value)
+                    }
+                  >
+                    <option value="">Select option</option>
+                    {certificationOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className={createStyles.field}>
+                  <label className={createStyles.label}>Institute Name</label>
                   <input
+                    className={createStyles.input}
                     type="text"
                     value={editFormData.instituteName}
-                    onChange={(e) =>
-                      handleEditChange("instituteName", e.target.value)
-                    }
+                    onChange={(e) => handleEditChange("instituteName", e.target.value)}
                   />
                 </div>
-                <div>
-                  <label>Course Duration</label>
+
+                <div className={createStyles.field}>
+                  <label className={createStyles.label}>Course Duration</label>
                   <input
+                    className={createStyles.input}
                     type="text"
                     value={editFormData.courseDuration}
-                    onChange={(e) =>
-                      handleEditChange("courseDuration", e.target.value)
-                    }
+                    onChange={(e) => handleEditChange("courseDuration", e.target.value)}
                   />
                 </div>
-                <div>
-                  <label>Mode Of Training</label>
+
+                <div className={createStyles.field}>
+                  <label className={createStyles.label}>Mode Of Training</label>
                   <input
+                    className={createStyles.input}
                     type="text"
                     value={editFormData.modeOfTraining}
-                    onChange={(e) =>
-                      handleEditChange("modeOfTraining", e.target.value)
-                    }
+                    onChange={(e) => handleEditChange("modeOfTraining", e.target.value)}
                   />
                 </div>
-                <div>
-                  <label>Start Date</label>
+
+                <div className={createStyles.field}>
+                  <label className={createStyles.label}>Language Of Delivery</label>
+                  <select
+                    className={createStyles.input}
+                    value={editFormData.languageOfDelivery}
+                    onChange={(e) =>
+                      handleEditChange("languageOfDelivery", e.target.value)
+                    }
+                  >
+                    <option value="">Select language</option>
+                    {languageOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className={createStyles.field}>
+                  <label className={createStyles.label}>Start Date</label>
                   <input
+                    className={createStyles.input}
                     type="date"
                     value={editFormData.startDate}
                     onChange={(e) => handleEditChange("startDate", e.target.value)}
                   />
                 </div>
-                <div>
-                  <label>End Date</label>
+
+                <div className={createStyles.field}>
+                  <label className={createStyles.label}>End Date</label>
                   <input
+                    className={createStyles.input}
                     type="date"
                     value={editFormData.endDate}
                     onChange={(e) => handleEditChange("endDate", e.target.value)}
                   />
                 </div>
-                <div>
-                  <label>Registration Deadline</label>
+
+                <div className={createStyles.field}>
+                  <label className={createStyles.label}>Registration Deadline</label>
                   <input
+                    className={createStyles.input}
                     type="date"
                     value={editFormData.registrationDeadline}
                     onChange={(e) =>
@@ -760,37 +858,46 @@ const ListOfCourse = () => {
                     }
                   />
                 </div>
-                <div>
-                  <label>Fees</label>
+
+                <div className={createStyles.field}>
+                  <label className={createStyles.label}>Fees (INR)</label>
                   <input
-                    type="text"
+                    className={createStyles.input}
+                    type="number"
+                    min="0"
                     value={editFormData.feesInr}
                     onChange={(e) => handleEditChange("feesInr", e.target.value)}
                   />
                 </div>
-                <div>
-                  <label>Net Fees</label>
+
+                <div className={createStyles.field}>
+                  <label className={createStyles.label}>Net Fees (INR)</label>
                   <input
-                    type="text"
+                    className={createStyles.input}
+                    type="number"
+                    min="0"
                     value={editFormData.netFeesInr}
+                    onChange={(e) => handleEditChange("netFeesInr", e.target.value)}
+                  />
+                </div>
+
+                <div className={createStyles.field}>
+                  <label className={createStyles.label}>Maximum Seats / Batch Size</label>
+                  <input
+                    className={createStyles.input}
+                    type="number"
+                    min="0"
+                    value={editFormData.maximumSeatsBatchSize}
                     onChange={(e) =>
-                      handleEditChange("netFeesInr", e.target.value)
+                      handleEditChange("maximumSeatsBatchSize", e.target.value)
                     }
                   />
                 </div>
-                <div>
-                  <label>Language</label>
+
+                <div className={createStyles.field}>
+                  <label className={createStyles.label}>Current Availability</label>
                   <input
-                    type="text"
-                    value={editFormData.languageOfDelivery}
-                    onChange={(e) =>
-                      handleEditChange("languageOfDelivery", e.target.value)
-                    }
-                  />
-                </div>
-                <div>
-                  <label>Availability</label>
-                  <input
+                    className={createStyles.input}
                     type="text"
                     value={editFormData.currentAvailability}
                     onChange={(e) =>
@@ -798,17 +905,21 @@ const ListOfCourse = () => {
                     }
                   />
                 </div>
-                <div>
-                  <label>Location</label>
+
+                <div className={createStyles.field}>
+                  <label className={createStyles.label}>Location</label>
                   <input
+                    className={createStyles.input}
                     type="text"
                     value={editFormData.location}
                     onChange={(e) => handleEditChange("location", e.target.value)}
                   />
                 </div>
-                <div>
-                  <label>Trainer Name</label>
+
+                <div className={createStyles.field}>
+                  <label className={createStyles.label}>Trainer / Instructor Name</label>
                   <input
+                    className={createStyles.input}
                     type="text"
                     value={editFormData.trainerInstructorName}
                     onChange={(e) =>
@@ -816,9 +927,11 @@ const ListOfCourse = () => {
                     }
                   />
                 </div>
-                <div>
-                  <label>Trainer Experience</label>
+
+                <div className={createStyles.field}>
+                  <label className={createStyles.label}>Trainer Experience</label>
                   <input
+                    className={createStyles.input}
                     type="text"
                     value={editFormData.trainerExperience}
                     onChange={(e) =>
@@ -826,36 +939,124 @@ const ListOfCourse = () => {
                     }
                   />
                 </div>
-                <div className={styles.fullSpan}>
-                  <label>Target Audience</label>
+
+                <div className={createStyles.field}>
+                  <label className={createStyles.label}>Apply Discount Voucher</label>
+                  <label className={createStyles.checkboxRow}>
+                    <input
+                      type="checkbox"
+                      checked={editFormData.applyDiscountVoucher}
+                      onChange={(e) =>
+                        setEditFormData((prev) =>
+                          prev
+                            ? {
+                                ...prev,
+                                applyDiscountVoucher: e.target.checked,
+                              }
+                            : prev
+                        )
+                      }
+                    />
+                    Enable discount voucher for this course
+                  </label>
+                </div>
+
+                <div className={createStyles.fullField}>
+                  <label className={createStyles.label}>Target Audience</label>
                   <textarea
+                    className={createStyles.input}
+                    rows={4}
                     value={editFormData.targetAudience}
-                    onChange={(e) =>
-                      handleEditChange("targetAudience", e.target.value)
-                    }
+                    onChange={(e) => handleEditChange("targetAudience", e.target.value)}
                     placeholder="Comma separated audience values"
                   />
                 </div>
-              </div>
 
-              <div className={styles.modalActions}>
-                <button
-                  type="button"
-                  className={styles.cancelBtn}
-                  onClick={closeEditModal}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className={styles.saveBtn}
-                  disabled={saving}
-                >
-                  {saving ? "Saving..." : "Save Changes"}
-                </button>
+                <div className={createStyles.fullField}>
+                  <label className={createStyles.label}>Curriculum / Topics Covered</label>
+                  <textarea
+                    className={createStyles.input}
+                    rows={5}
+                    value={editFormData.curriculumTopicsCovered}
+                    onChange={(e) =>
+                      handleEditChange("curriculumTopicsCovered", e.target.value)
+                    }
+                  />
+                </div>
+
+                <div className={createStyles.fullField}>
+                  <label className={createStyles.label}>Affiliation / Accreditation</label>
+                  <textarea
+                    className={createStyles.input}
+                    rows={4}
+                    value={editFormData.affiliationAccreditation}
+                    onChange={(e) =>
+                      handleEditChange("affiliationAccreditation", e.target.value)
+                    }
+                  />
+                </div>
+
+                <div className={createStyles.fullField}>
+                  <label className={createStyles.label}>Discounts / Offers</label>
+                  <textarea
+                    className={createStyles.input}
+                    rows={4}
+                    value={editFormData.discountsOffers}
+                    onChange={(e) => handleEditChange("discountsOffers", e.target.value)}
+                  />
+                </div>
+
+                <div className={createStyles.fullField}>
+                  <label className={createStyles.label}>Refund / Cancellation Policy</label>
+                  <textarea
+                    className={createStyles.input}
+                    rows={4}
+                    value={editFormData.refundCancellationPolicy}
+                    onChange={(e) =>
+                      handleEditChange("refundCancellationPolicy", e.target.value)
+                    }
+                  />
+                </div>
+
+                <div className={createStyles.fullField}>
+                  <label className={createStyles.label}>Post-Course Support</label>
+                  <textarea
+                    className={createStyles.input}
+                    rows={4}
+                    value={editFormData.postCourseSupport}
+                    onChange={(e) => handleEditChange("postCourseSupport", e.target.value)}
+                  />
+                </div>
+
+                <div className={createStyles.fullField}>
+                  <label className={createStyles.label}>Contact For Queries</label>
+                  <textarea
+                    className={createStyles.input}
+                    rows={4}
+                    value={editFormData.contactForQueries}
+                    onChange={(e) => handleEditChange("contactForQueries", e.target.value)}
+                  />
+                </div>
               </div>
-            </form>
-          </div>
+            </section>
+
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+              <button
+                type="submit"
+                className={createStyles.submitBtn}
+                disabled={saving}
+              >
+                {saving ? "Saving..." : "Save Changes"}
+              </button>
+              <button
+                type="button"
+                className={styles.cancelBtn}
+                onClick={closeEditModal}
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
         </div>
       )}
     </div>

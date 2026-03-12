@@ -24,9 +24,10 @@ import Treatment from "./Treatment";
 import TreatmentPlans from "./TreatmentPlans";
 import HappyStories from "./HappyStories";
 import Link from "next/link";
-import TopProducts from "@/components/TopProducts";
+import TopProducts from "@/components/Layout/TopProducts";
 import ProductCategory from "@/components/homePage/productCategories";
 import FullPageLoader from "@/components/common/FullPageLoader";
+import CourseListing from "@/components/Layout/CourseListing";
 
 const Index = () => {
   const router = useRouter();
@@ -347,7 +348,35 @@ const Index = () => {
           <HappyStories />
         </div>
       </div>
-
+<div
+        style={{
+          padding: "10px 20px",
+          backgroundColor: "#ffffff",
+          marginTop: "-40px",
+        }}
+      >
+        <h2
+          style={{
+            textAlign: "center",
+            marginBottom: "14px",
+            marginTop: "32px",
+            fontWeight: "700",
+            fontSize: "26px",
+          }}
+        >
+          {/* Courses */}
+        </h2>
+        <div
+          style={{
+            display: "flex",
+            gap: "20px",
+            justifyContent: "center",
+            flexWrap: "wrap",
+          }}
+        >
+          {/* <CourseListing/> */}
+        </div>
+      </div>
       <Footer />
     </>
   );

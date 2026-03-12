@@ -6,7 +6,7 @@ import Link from "next/link";
 import styles from "@/styles/components/Layout/Topbar.module.css";
 import Image from "next/image";
 import { useRouter, usePathname } from "next/navigation";
-import { ShoppingCart, MapPin, Menu, User, LogOut } from "lucide-react";
+import { ShoppingCart, MapPin, Menu, User, LogOut, ChevronDown } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useTopbarProfile } from "@/context/TopbarProfileContext";
 import Cookies from "js-cookie";
@@ -25,7 +25,9 @@ const Topbar: React.FC<TopbarProps> = ({ hideHamburgerOnMobile }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [location, setLocation] = useState<string>("");
   const [profileOpen, setProfileOpen] = useState(false);
+  const [loginOpen, setLoginOpen] = useState(false);
   const userBtnRef = useRef<HTMLButtonElement | null>(null);
+  const loginRef = useRef<HTMLDivElement | null>(null);
 
   const username = profile?.username ?? null;
   const profileImage = profile?.profileImage ?? null;
@@ -85,6 +87,27 @@ const Topbar: React.FC<TopbarProps> = ({ hideHamburgerOnMobile }) => {
     fetchLocation(true);
   }, [username, location]);
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+
+      if (loginRef.current && !loginRef.current.contains(target)) {
+        setLoginOpen(false);
+      }
+
+      if (
+        userBtnRef.current &&
+        !userBtnRef.current.contains(target) &&
+        !(target instanceof Element && target.closest(`.${styles.profileDropdown}`))
+      ) {
+        setProfileOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [styles.profileDropdown]);
+
   const handleLogout = () => {
     Cookies.remove("token");
     Cookies.remove("username");
@@ -102,6 +125,44 @@ const Topbar: React.FC<TopbarProps> = ({ hideHamburgerOnMobile }) => {
     window.dispatchEvent(new CustomEvent("user-logged-out"));
     router.replace("/Login");
   };
+
+  const renderLoginOptions = () => (
+    <div className={styles.loginMenu} ref={loginRef}>
+      <button
+        type="button"
+        className={styles.loginTrigger}
+        onClick={() => setLoginOpen((prev) => !prev)}
+      >
+        <span>Login</span>
+        <ChevronDown size={16} className={loginOpen ? styles.loginChevronOpen : ""} />
+      </button>
+
+      {loginOpen && (
+        <div className={styles.loginDropdown}>
+          <button
+            type="button"
+            className={styles.loginOption}
+            onClick={() => {
+              setLoginOpen(false);
+              router.push("/Login");
+            }}
+          >
+            Login as User
+          </button>
+          <button
+            type="button"
+            className={styles.loginOption}
+            onClick={() => {
+              setLoginOpen(false);
+              router.push("/cliniclogin");
+            }}
+          >
+            Login as Clinic
+          </button>
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <>
@@ -145,7 +206,7 @@ const Topbar: React.FC<TopbarProps> = ({ hideHamburgerOnMobile }) => {
             username ? (
               <button className={styles.logoutBtn} onClick={handleLogout}>Logout</button>
             ) : (
-              <div className={styles.authLinks}><Link href="/Login">Login</Link></div>
+              renderLoginOptions()
             )
           ) : (
             <>
@@ -249,7 +310,7 @@ const Topbar: React.FC<TopbarProps> = ({ hideHamburgerOnMobile }) => {
                   )}
                 </div>
               ) : (
-                <div className={styles.authLinks}><Link href="/Login">Login</Link></div>
+                renderLoginOptions()
               )}
 
               <div className={styles.cartInfo} onClick={handleClickCart}>

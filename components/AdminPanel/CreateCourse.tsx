@@ -90,12 +90,12 @@ const courseTypeOptions = [
   "Masterclass",
 ];
 
+const certificationOptions = ["Yes", "No"];
 const languageOptions = ["English", "Hindi", "Bilingual"];
 const dateFields = ["startDate", "endDate", "registrationDeadline"] as const;
 
 const textAreaFields: Array<
   | "curriculumTopicsCovered"
-  | "certificationProvided"
   | "affiliationAccreditation"
   | "discountsOffers"
   | "refundCancellationPolicy"
@@ -103,7 +103,6 @@ const textAreaFields: Array<
   | "contactForQueries"
 > = [
   "curriculumTopicsCovered",
-  "certificationProvided",
   "affiliationAccreditation",
   "discountsOffers",
   "refundCancellationPolicy",
@@ -496,6 +495,26 @@ const CreateCourse = () => {
               </select>
             </div>
 
+            <div className={styles.field}>
+              <label className={styles.label}>
+                {fieldLabels.certificationProvided}
+              </label>
+              <select
+                className={styles.input}
+                value={formData.certificationProvided}
+                onChange={(e) =>
+                  handleChange("certificationProvided", e.target.value)
+                }
+              >
+                <option value="">Select option</option>
+                {certificationOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             {renderInput("instituteName")}
             {renderInput("courseDuration")}
             {renderInput("modeOfTraining")}
@@ -548,7 +567,6 @@ const CreateCourse = () => {
 
             {renderInput("discountsOffers")}
             {renderInput("curriculumTopicsCovered")}
-            {renderInput("certificationProvided")}
             {renderInput("affiliationAccreditation")}
             {renderInput("courseDemoVideo")}
             {renderInput("refundCancellationPolicy")}
