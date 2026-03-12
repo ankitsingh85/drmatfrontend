@@ -838,6 +838,20 @@
   gap: 4px 8px;
 }
 
+.servicesBulletListV2 {
+  margin: 0;
+  padding-left: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.serviceBulletItemV2 {
+  color: #1f2937;
+  font-size: 0.96rem;
+  line-height: 1.5;
+}
+
 .serviceLinkLikeV2 {
   color: #1f2937;
   text-decoration: underline;

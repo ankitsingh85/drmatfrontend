@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import styles from "@/styles/pages/cliniccategorylist.module.css";
 import Topbar from "@/components/Layout/Topbar";
 import Footer from "@/components/Layout/Footer";
+import FullPageLoader from "@/components/common/FullPageLoader";
 
 interface ClinicCategory {
   _id: string;
@@ -37,12 +38,11 @@ const ClinicCategoryList: React.FC = () => {
   return (
     <>
       <Topbar />
+      {loading && <FullPageLoader />}
       <div className={styles.container}>
         <h1 className={styles.heading}>Clinic Categories</h1>
 
-        {loading ? (
-          <p className={styles.loading}>Loading clinic categories...</p>
-        ) : (
+        {loading ? null : (
           <>
             {error && <p className={styles.error}>{error}</p>}
 

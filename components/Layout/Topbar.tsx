@@ -133,7 +133,7 @@ const Topbar: React.FC<TopbarProps> = ({ hideHamburgerOnMobile }) => {
             <Link href="/home/findClinicsPage" className={styles.navLink}>Find Derma Clinic</Link>
             <Link href="/video-consultation" className={styles.navLink}>Book Video Consultation</Link>
             <Link href="/plans" className={styles.navLink}>Buy Treatment Plan</Link>
-            <Link href="/products" className={styles.navLink}>Buy Products</Link>
+            <Link href="/product-listing" className={styles.navLink}>Buy Products</Link>
             <Link href="/quiz/ques1" className={styles.navLink}>Online Test</Link>
 
           </nav>

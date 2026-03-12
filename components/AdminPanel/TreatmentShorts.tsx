@@ -8,6 +8,7 @@ interface Short {
   _id: string;
   platform: "youtube" | "instagram";
   videoUrl: string;
+  title?: string;
 }
 
 // ✅ Use environment variable for API base URL
@@ -17,6 +18,7 @@ const TreatmentShorts: React.FC = () => {
   const [shorts, setShorts] = useState<Short[]>([]);
   const [platform, setPlatform] = useState<"youtube" | "instagram">("youtube");
   const [videoUrl, setVideoUrl] = useState("");
+  const [title, setTitle] = useState("");
 
   // ✅ Fetch shorts
   const fetchShorts = async () => {
@@ -40,8 +42,10 @@ const TreatmentShorts: React.FC = () => {
       await axios.post(`${API_URL}/treatment-shorts`, {
         platform,
         videoUrl,
+        title,
       });
       setVideoUrl("");
+      setTitle("");
       fetchShorts();
     } catch (err) {
       console.error("Failed to add treatment short", err);
@@ -60,14 +64,17 @@ const TreatmentShorts: React.FC = () => {
   };
 
   // ✅ Update short
-  const handleUpdate = async (id: string) => {
+  const handleUpdate = async (short: Short) => {
     const newUrl = prompt("Enter new video URL:")?.trim();
     if (!newUrl) return;
+    const newTitle = prompt("Enter reel text / title:", short.title || "");
+    if (newTitle === null) return;
 
     try {
-      await axios.put(`${API_URL}/treatment-shorts/${id}`, {
+      await axios.put(`${API_URL}/treatment-shorts/${short._id}`, {
         platform: newUrl.includes("instagram") ? "instagram" : "youtube",
         videoUrl: newUrl,
+        title: newTitle.trim(),
       });
       fetchShorts();
     } catch (err) {
@@ -99,6 +106,14 @@ const TreatmentShorts: React.FC = () => {
           className={styles.input}
         />
 
+        <input
+          type="text"
+          placeholder="Enter text to show above the reel"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          className={styles.input}
+        />
+
         <button onClick={handleAddShort} className={styles.addBtn}>
           Add Short
         </button>
@@ -108,6 +123,7 @@ const TreatmentShorts: React.FC = () => {
       <div className={styles.grid}>
         {shorts.map((short) => (
           <div key={short._id} className={styles.card}>
+            {short.title && <p className={styles.cardTitle}>{short.title}</p>}
             {short.platform === "youtube" ? (
               <iframe
                 width="100%"
@@ -130,7 +146,7 @@ const TreatmentShorts: React.FC = () => {
 
             <div className={styles.actions}>
               <button
-                onClick={() => handleUpdate(short._id)}
+                onClick={() => handleUpdate(short)}
                 className={styles.updateBtn}
               >
                 Update

@@ -23,6 +23,8 @@
 /* ===== TOOLBAR ===== */
 .toolbar {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 16px;
   margin-bottom: 24px;
 }
@@ -48,6 +50,9 @@
 }
 
 .premiumButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   border: 1px solid #d6d6d6;
   border-radius: 10px;
   padding: 15px 14px;
@@ -175,6 +180,35 @@
   box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
 }
 
+.iconBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: none;
+  border-radius: 999px;
+  background: #e2e8f0;
+  color: #0f172a;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.iconBtn:hover {
+  transform: translateY(-2px);
+  background: #cbd5e1;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.12);
+}
+
+.iconDeleteBtn {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.iconDeleteBtn:hover {
+  background: #fecaca;
+}
+
 /* ===== MODAL ===== */
 .modalOverlay {
   position: fixed;
@@ -205,6 +239,12 @@
   color: #020617;
 }
 
+.wideModal {
+  width: min(920px, 95vw);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
 /* ===== FORM ===== */
 .modal form label {
   display: block;
@@ -217,7 +257,9 @@
 }
 
 .modal form input[type="text"],
-.modal form input[type="file"] {
+.modal form input[type="file"],
+.modal form input[type="date"],
+.modal form textarea {
   width: 100%;
   margin-bottom: 18px;
   padding: 14px 16px;
@@ -231,7 +273,9 @@
 }
 
 .modal form input[type="text"]:focus,
-.modal form input[type="file"]:focus {
+.modal form input[type="file"]:focus,
+.modal form input[type="date"]:focus,
+.modal form textarea:focus {
   border-color: #4f46e5;
   box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
   background: white;
@@ -240,6 +284,81 @@
 
 .modal form input[type="text"]::placeholder {
   color: #cbd5e1;
+}
+
+.modal form textarea {
+  min-height: 110px;
+  resize: vertical;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 18px;
+}
+
+.detailsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.detailsGrid strong {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #475569;
+  letter-spacing: 0.3px;
+}
+
+.detailsGrid p {
+  margin: 0;
+  color: #0f172a;
+  line-height: 1.6;
+}
+
+.fullSpan {
+  grid-column: 1 / -1;
+}
+
+.richContent {
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  background: linear-gradient(180deg, #ffffff, #f8fafc);
+  color: #0f172a;
+}
+
+.richContent p:first-child {
+  margin-top: 0;
+}
+
+.richContent p:last-child {
+  margin-bottom: 0;
+}
+
+.linkList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.detailLink {
+  display: inline-flex;
+  align-items: center;
+  padding: 9px 14px;
+  border-radius: 999px;
+  background: #dbeafe;
+  color: #1d4ed8;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.detailLink:hover {
+  background: #bfdbfe;
 }
 
 /* ===== IMAGE PREVIEW ===== */
@@ -370,6 +489,11 @@
     width: 95%;
     max-width: 100%;
     padding: 24px;
+  }
+
+  .formGrid,
+  .detailsGrid {
+    grid-template-columns: 1fr;
   }
 
   .modalActions {

@@ -2,12 +2,13 @@
 
 import { API_URL } from "@/config/api";
 import { useRouter } from "next/router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import styles from "@/styles/pages/clinicDetailPage.module.css";
 import ClinicCard from "@/components/Layout/clinicCard";
 import Footer from "@/components/Layout/Footer";
 import Ratings from "@/components/Layout/Reviews";
 import Topbar from "@/components/Layout/Topbar";
+import FullPageLoader from "@/components/common/FullPageLoader";
 
 interface Clinic {
   _id: string;
@@ -54,7 +55,6 @@ const ClinicDetailPage = () => {
     "Details" | "Services" | "Doctors" | "Reviews"
   >("Details");
   const [error, setError] = useState("");
-  const [showAllServices, setShowAllServices] = useState(false);
 
   const getImage = (img?: string) => {
     if (!img) return undefined;
@@ -136,35 +136,7 @@ const ClinicDetailPage = () => {
     fetchClinic();
   }, [clinicIdValue, apiBaseUrl]);
 
-  useEffect(() => {
-    setShowAllServices(false);
-  }, [clinicIdValue]);
-
-  const groupedServices = useMemo(() => {
-    const groups: Record<string, ClinicService[]> = {
-      Treatment: [],
-      Therapy: [],
-      Tests: [],
-      Management: [],
-    };
-
-    const detectGroup = (name: string) => {
-      const v = name.toLowerCase();
-      if (/test|scan|profile|blood|diagnostic|lab/.test(v)) return "Tests";
-      if (/therapy|physio|massage|rehab|laser/.test(v)) return "Therapy";
-      if (/manage|management|control|care|follow/.test(v)) return "Management";
-      return "Treatment";
-    };
-
-    services.forEach((service) => {
-      const key = detectGroup(service.name);
-      groups[key].push(service);
-    });
-
-    return groups;
-  }, [services]);
-
-  if (loadingClinic) return <div className={styles.loading}>Loading clinic info...</div>;
+  if (loadingClinic) return <FullPageLoader />;
   if (error) return <div className={styles.error}>{error}</div>;
   if (!clinic) return <div className={styles.error}>Clinic not found.</div>;
 
@@ -208,45 +180,13 @@ const ClinicDetailPage = () => {
               ) : services.length === 0 ? (
                 <p>No services available.</p>
               ) : (
-                <>
-                  <div className={styles.servicesColumnsV2}>
-                    {Object.entries(groupedServices).map(([groupName, items]) => {
-                      const visibleItems = showAllServices ? items : items.slice(0, 2);
-                      const extraCount = Math.max(0, items.length - visibleItems.length);
-
-                      return (
-                        <div key={groupName} className={styles.servicesColumnV2}>
-                          <h4 className={styles.servicesGroupTitleV2}>
-                            <span className={styles.groupTickV2}>+</span> {groupName}
-                          </h4>
-                          {visibleItems.length === 0 ? (
-                            <p className={styles.servicesEmptyV2}>No services</p>
-                          ) : (
-                            <div className={styles.servicesLinksV2}>
-                              {visibleItems.map((service) => (
-                                <span key={service.id} className={styles.serviceLinkLikeV2}>
-                                  {service.name}
-                                </span>
-                              ))}
-                              {!showAllServices && extraCount > 0 && (
-                                <span className={styles.moreCountV2}>+{extraCount}</span>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <div className={styles.servicesActionsV2}>
-                    <button
-                      type="button"
-                      className={styles.viewAllButtonV2}
-                      onClick={() => setShowAllServices((prev) => !prev)}
-                    >
-                      {showAllServices ? "View less" : "View all"}
-                    </button>
-                  </div>
-                </>
+                <ul className={styles.servicesBulletListV2}>
+                  {services.map((service) => (
+                    <li key={service.id} className={styles.serviceBulletItemV2}>
+                      {service.name}
+                    </li>
+                  ))}
+                </ul>
               )}
             </div>
           </section>
@@ -273,9 +213,7 @@ const ClinicDetailPage = () => {
                     <p className={styles.doctorSpecializationV2}>
                       {doctor.specialization || "Doctor"}
                     </p>
-                    <p className={styles.doctorRatingV2}>
-                      <strong>2.8</strong> <span className={styles.ratingStarV2}>★</span>
-                    </p>
+                   
                   </article>
                 ))}
               </div>

@@ -147,7 +147,7 @@ const Index = () => {
             fontSize: "26px",
           }}
         >
-           Offer1
+         Top Derma Clinics Near You
         </h2>
         <div
           style={{
@@ -158,6 +158,46 @@ const Index = () => {
           }}
         >
           <Offer1/>
+        </div>
+ <TreatmentPlans />
+
+<div
+            style={{
+              padding: "0px 0px",
+              backgroundColor: "#ffffff",
+              marginTop: "0px",
+            }}
+          >
+            <h2
+              style={{
+                textAlign: "center",
+                marginBottom: "20px",
+                fontWeight: "700",
+                fontSize: "26px",
+              }}
+            >
+             Best Treatment Offers
+            </h2>
+            <div
+              style={{
+                display: "flex",
+                gap: "20px",
+                justifyContent: "center",
+                flexWrap: "nowrap",
+              }}
+            >
+              <Offer2/>
+            </div>
+          </div>
+
+
+ <div style={{ padding: "0px 0 0px 0" }}>
+          <ProductCategory
+            title="Popular Product Categories"
+            backgroundColor="#ffffff"
+            textBg="white"
+            border="7px solid white"
+          />
         </div>
 
 
@@ -190,46 +230,12 @@ const Index = () => {
               Show More
             </h5>
           </Link> */}
-          <div
-            style={{
-              padding: "0px 0px",
-              backgroundColor: "#ffffff",
-              marginTop: "0px",
-            }}
-          >
-            <h2
-              style={{
-                textAlign: "center",
-                marginBottom: "20px",
-                fontWeight: "700",
-                fontSize: "26px",
-              }}
-            >
-              Offer2
-            </h2>
-            <div
-              style={{
-                display: "flex",
-                gap: "20px",
-                justifyContent: "center",
-                flexWrap: "nowrap",
-              }}
-            >
-              <Offer2/>
-            </div>
-          </div>
+          
         </div>
 
-        <div style={{ padding: "0px 0 0px 0" }}>
-          <ProductCategory
-            title="Popular Product Categories"
-            backgroundColor="#ffffff"
-            textBg="white"
-            border="7px solid white"
-          />
-        </div>
+       
 
-        <TreatmentPlans />
+       
 
         <div style={{ padding: "8px 0 18px", backgroundColor: "#ffffff" }}>
          
@@ -251,7 +257,7 @@ const Index = () => {
             fontSize: "26px",
           }}
         >
-          Offer3        </h2>
+          Special Offers on Products      </h2>
         <div
           style={{
             display: "flex",
@@ -292,7 +298,7 @@ const Index = () => {
           <Treatment />
         </div>
       </div>
-<h2
+{/* <h2
           style={{
             textAlign: "center",
             margin: "20px",
@@ -311,7 +317,7 @@ const Index = () => {
           }}
         >
           <Offer4/>
-        </div>
+        </div> */}
       <div
         style={{
           padding: "10px 20px",

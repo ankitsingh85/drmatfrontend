@@ -9,10 +9,10 @@ import Footer from "@/components/Layout/Footer";
 import Topbar from "@/components/Layout/Topbar";
 import MobileNavbar from "@/components/Layout/MobileNavbar";
 import { API_URL } from "@/config/api";
+import FullPageLoader from "@/components/common/FullPageLoader";
 
 const ITEMS_PER_PAGE = 6;
 
-/* ================= CATEGORY ================= */
 interface ClinicCategory {
   _id: string;
   categoryId: string;
@@ -20,7 +20,6 @@ interface ClinicCategory {
   imageUrl: string;
 }
 
-/* ================= CLINIC ================= */
 interface Clinic {
   _id: string;
   cuc: string;
@@ -32,8 +31,6 @@ interface Clinic {
   clinicStatus?: string;
   dermaCategory?: ClinicCategory;
   doctors?: any[];
-
-  /* 🔥 MEDIA */
   clinicLogo?: string;
   bannerImage?: string;
   photos?: string[];
@@ -51,20 +48,17 @@ const FindClinicsPage: React.FC = () => {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
     categoryQuery
   );
-
   const [currentPage, setCurrentPage] = useState(1);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [clinicError, setClinicError] = useState("");
 
-  /* ================= BASE64 SAFE IMAGE ================= */
   const getImage = (img?: string) => {
     if (!img) return undefined;
     if (img.startsWith("data:")) return img;
-    return img; // already base64 with prefix from backend
+    return img;
   };
 
-  /* ================= FETCH CATEGORIES ================= */
   const fetchCategories = async () => {
     try {
       const res = await fetch(`${API_URL}/clinic-categories`);
@@ -73,12 +67,10 @@ const FindClinicsPage: React.FC = () => {
       setCategories(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error(err);
-      // Do not block clinic listing if categories fail
       setCategories([]);
     }
   };
 
-  /* ================= FETCH CLINICS ================= */
   const fetchClinics = async () => {
     try {
       setLoading(true);
@@ -100,12 +92,10 @@ const FindClinicsPage: React.FC = () => {
     fetchClinics();
   }, []);
 
-  /* ================= URL CATEGORY SYNC ================= */
   useEffect(() => {
     setSelectedCategoryId(categoryQuery);
   }, [categoryQuery]);
 
-  /* ================= FILTER ================= */
   const filteredClinics = useMemo(() => {
     return clinics.filter((clinic) => {
       const matchCategory = selectedCategoryId
@@ -120,7 +110,6 @@ const FindClinicsPage: React.FC = () => {
     });
   }, [clinics, selectedCategoryId, search]);
 
-  /* ================= PAGINATION ================= */
   const totalPages = Math.max(
     1,
     Math.ceil(filteredClinics.length / ITEMS_PER_PAGE)
@@ -139,8 +128,8 @@ const FindClinicsPage: React.FC = () => {
   return (
     <>
       <Topbar />
+      {loading && <FullPageLoader />}
 
-      {/* ================= MOBILE CATEGORY BAR ================= */}
       <div className={styles.mobileCategories}>
         {categories.map((cat) => (
           <div
@@ -160,7 +149,6 @@ const FindClinicsPage: React.FC = () => {
       </div>
 
       <div className={styles.layout}>
-        {/* ================= SIDEBAR ================= */}
         <aside className={styles.sidebar}>
           <SideCategories
             categories={categories}
@@ -172,7 +160,6 @@ const FindClinicsPage: React.FC = () => {
           />
         </aside>
 
-        {/* ================= MAIN ================= */}
         <main className={styles.main}>
           <div className={styles.headerRow}>
             <div className={styles.searchWrapper}>
@@ -185,41 +172,33 @@ const FindClinicsPage: React.FC = () => {
                   setSearch(e.target.value);
                   setCurrentPage(1);
                 }}
-              />  
-              <button className={styles.searchButton}>🔍</button>
+              />
+              <button className={styles.searchButton}>Search</button>
             </div>
           </div>
 
-          {/* ================= STATES ================= */}
-          {loading ? (
-            <p className={styles.status}>Loading clinics…</p>
-          ) : clinicError ? (
-            <p className={styles.error}>{clinicError}</p>
-          ) : paginatedClinics.length === 0 ? (
-            <p className={styles.status}>No clinics found.</p>
-          ) : (
-            paginatedClinics.map((clinic) => (
-              <ClinicCard
-                key={clinic._id}
-                clinic={{
-                  ...clinic,
+          {loading
+            ? null
+            : clinicError
+            ? <p className={styles.error}>{clinicError}</p>
+            : paginatedClinics.length === 0
+            ? <p className={styles.status}>No clinics found.</p>
+            : paginatedClinics.map((clinic) => (
+                <ClinicCard
+                  key={clinic._id}
+                  clinic={{
+                    ...clinic,
+                    name: clinic.clinicName,
+                    image: getImage(clinic.photos?.[0]),
+                    images: [
+                      ...(clinic.photos?.map((p) => getImage(p)) || []),
+                    ].filter((img): img is string => Boolean(img)),
+                    clinicLogo: undefined,
+                    bannerImage: undefined,
+                  }}
+                />
+              ))}
 
-                  /* ✅ REQUIRED BY ClinicCard */
-                  name: clinic.clinicName,
-
-                  /* 🔥 USE ONLY PHOTOS FOR FIND CLINICS SLIDER */
-                  image: getImage(clinic.photos?.[0]),
-                  images: [
-                    ...(clinic.photos?.map((p) => getImage(p)) || []),
-                  ].filter((img): img is string => Boolean(img)),
-                  clinicLogo: undefined,
-                  bannerImage: undefined,
-                }}
-              />
-            ))
-          )}
-
-          {/* ================= PAGINATION ================= */}
           <div className={styles.pagination}>
             {Array.from({ length: totalPages }, (_, idx) => (
               <button

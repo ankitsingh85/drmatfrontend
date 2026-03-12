@@ -1,8 +1,10 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
 import { API_URL } from "@/config/api";
+import { useCart } from "@/context/CartContext";
+import { FaArrowRight } from "react-icons/fa";
 import styles from "@/styles/pages/treatmentPlansSection.module.css";
 
 interface Treatment {
@@ -12,6 +14,15 @@ interface Treatment {
   serviceCategory?: string;
   mrp?: number;
   offerPrice?: number;
+  treatmentImages?: string[];
+  addToCart?: boolean;
+  isActive?: boolean;
+  clinic?:
+    | {
+        _id: string;
+        clinicName?: string;
+      }
+    | string;
 }
 
 const stripHtml = (value?: string) =>
@@ -21,22 +32,34 @@ const stripHtml = (value?: string) =>
     .replace(/\s+/g, " ")
     .trim();
 
-const TreatmentPlans = () => {
+const MAX_HOME_TREATMENTS = 17;
+
+interface TreatmentPlansProps {
+  limit?: number;
+  showExploreCard?: boolean;
+  title?: string;
+}
+
+const TreatmentPlans = ({
+  limit = MAX_HOME_TREATMENTS,
+  showExploreCard = true,
+  title = "Top Treatment Plans",
+}: TreatmentPlansProps) => {
   const router = useRouter();
-  const sliderRef = useRef<HTMLDivElement>(null);
+  const { addToCart, cartItems } = useCart();
   const [treatments, setTreatments] = useState<Treatment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(false);
 
-  const visibleTreatments = useMemo(() => treatments.slice(0, 12), [treatments]);
+  const visibleTreatments = useMemo(() => treatments.slice(0, limit), [treatments, limit]);
+  const apiBaseUrl = API_URL.replace(/\/api\/?$/, "");
 
-  const updateArrows = () => {
-    const el = sliderRef.current;
-    if (!el) return;
-    setCanScrollLeft(el.scrollLeft > 0);
-    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 2);
+  const resolveImage = (img?: string) => {
+    if (!img) return "/skin_hair.jpg";
+    if (img.startsWith("http://") || img.startsWith("https://")) return img;
+    if (img.startsWith("data:")) return img;
+    if (img.startsWith("/")) return `${apiBaseUrl}${img}`;
+    return `data:image/jpeg;base64,${img}`;
   };
 
   useEffect(() => {
@@ -61,98 +84,150 @@ const TreatmentPlans = () => {
     fetchTreatments();
   }, []);
 
-  useEffect(() => {
-    updateArrows();
-    const el = sliderRef.current;
-    if (!el) return;
-    el.addEventListener("scroll", updateArrows);
-    window.addEventListener("resize", updateArrows);
-    return () => {
-      el.removeEventListener("scroll", updateArrows);
-      window.removeEventListener("resize", updateArrows);
-    };
-  }, [visibleTreatments.length]);
+  const handleAddToCart = (e: React.MouseEvent, treatment: Treatment) => {
+    e.stopPropagation();
 
-  const scrollByCards = (direction: "left" | "right") => {
-    const el = sliderRef.current;
-    if (!el) return;
-    const cardWidth = 200;
-    el.scrollBy({
-      left: direction === "right" ? cardWidth : -cardWidth,
-      behavior: "smooth",
+    const inCart = cartItems.some((item) => item.id === treatment._id);
+    if (inCart) {
+      router.push("/home/Cart");
+      return;
+    }
+
+    const mrp = Number(treatment.mrp || 0);
+    const offer =
+      treatment.offerPrice !== undefined ? Number(treatment.offerPrice) : undefined;
+    const sale = offer !== undefined && offer > 0 ? offer : mrp;
+    const clinicName =
+      typeof treatment.clinic === "object" ? treatment.clinic?.clinicName || "" : "";
+
+    addToCart({
+      id: treatment._id,
+      name: treatment.treatmentName,
+      price: sale || 0,
+      mrp: mrp || undefined,
+      discount:
+        offer !== undefined && offer > 0 && mrp > 0 && offer < mrp
+          ? `${Math.round(((mrp - offer) / mrp) * 100)}% OFF`
+          : undefined,
+      discountPrice: offer,
+      company: clinicName || treatment.serviceCategory,
+      image: resolveImage(treatment.treatmentImages?.[0]),
     });
   };
 
   return (
     <section className={styles.section}>
       <div className={styles.header}>
-        <h2 className={styles.title}>Top Treatment Plans</h2>
+        <h2 className={styles.title}>{title}</h2>
       </div>
 
       {loading && <p className={styles.state}>Loading treatment plans...</p>}
       {!loading && error && <p className={styles.state}>{error}</p>}
 
       {!loading && !error && (
-        <div className={styles.sliderWrap}>
-          {canScrollLeft && (
-            <button
-              type="button"
-              className={`${styles.arrow} ${styles.left}`}
-              onClick={() => scrollByCards("left")}
-              aria-label="Scroll left"
-            >
-              &#8249;
-            </button>
-          )}
-
-          <div className={styles.slider} ref={sliderRef}>
+        <div className={styles.gridWrap}>
+          <div className={styles.grid}>
             {visibleTreatments.map((treatment) => {
-              const sale = Number(
-                treatment.offerPrice !== undefined
-                  ? treatment.offerPrice
-                  : treatment.mrp || 0
-              );
               const mrp = Number(treatment.mrp || 0);
-              const displayPrice = Math.max(sale, mrp, 0);
+              const offer =
+                treatment.offerPrice !== undefined
+                  ? Number(treatment.offerPrice)
+                  : undefined;
+              const sale = offer !== undefined && offer > 0 ? offer : mrp;
+              const hasDiscount = sale < mrp && mrp > 0;
+              const discountPercent = hasDiscount
+                ? Math.round(((mrp - sale) / mrp) * 100)
+                : 0;
+              const inCart = cartItems.some((item) => item.id === treatment._id);
+              const canAddToCart =
+                treatment.addToCart !== false && treatment.isActive !== false;
+              const subtext =
+                stripHtml(treatment.description) ||
+                treatment.serviceCategory ||
+                "Known as treatment plan";
 
               return (
-                <article key={treatment._id} className={styles.card}>
-                  <div className={styles.content}>
-                    <div className={styles.headingRow}>
-                      <h3 className={styles.cardTitle}>{treatment.treatmentName}</h3>
-                      <p className={styles.price}>Rs. {displayPrice}</p>
-                    </div>
-                    <p className={styles.meta}>
-                      {stripHtml(treatment.description) ||
-                        treatment.serviceCategory ||
-                        "Known as treatment plan"}
-                    </p>
+                <article
+                  key={treatment._id}
+                  className={styles.card}
+                  onClick={() => router.push(`/treatment-plans/${treatment._id}`)}
+                >
+                  <div className={styles.imageBlock}>
+                    <img
+                      src={resolveImage(treatment.treatmentImages?.[0])}
+                      alt={treatment.treatmentName}
+                      className={styles.image}
+                      loading="lazy"
+                      decoding="async"
+                    />
+                    {hasDiscount && (
+                      <span className={styles.badge}>Save {discountPercent}%</span>
+                    )}
                   </div>
-                  <button
-                    type="button"
-                    className={styles.cta}
-                    onClick={() => router.push(`/treatment-plans/${treatment._id}`)}
-                  >
-                    ADD TO CART
-                  </button>
+
+                  <div className={styles.content}>
+                    <h3 className={styles.cardTitle}>{treatment.treatmentName}</h3>
+                    <p className={styles.meta}>{subtext}</p>
+
+                    <div className={styles.metaRow}>
+                      <div className={styles.priceGroup}>
+                        <span className={styles.salePrice}>Rs. {sale.toFixed(0)}</span>
+                        {hasDiscount && (
+                          <span className={styles.originalPrice}>
+                            Rs. {mrp.toFixed(0)}
+                          </span>
+                        )}
+                      </div>
+                      <span className={styles.unit}>Treatment Plan</span>
+                    </div>
+
+                    <div className={styles.actions}>
+                      <button
+                        type="button"
+                        className={styles.detailBtn}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(`/treatment-plans/${treatment._id}`);
+                        }}
+                      >
+                        View Details
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.cta}
+                        onClick={(e) => handleAddToCart(e, treatment)}
+                        disabled={!canAddToCart}
+                      >
+                        {!canAddToCart
+                          ? "Unavailable"
+                          : inCart
+                            ? "Go to Cart"
+                            : "Add to Cart"}
+                      </button>
+                    </div>
+                  </div>
                 </article>
               );
             })}
+
+            {showExploreCard && (
+              <article
+                className={`${styles.card} ${styles.showMore}`}
+                onClick={() => router.push("/treatment-plans")}
+              >
+                <div className={`${styles.content} ${styles.showMoreContent}`}>
+                  <div className={styles.showMoreAction}>
+                    <FaArrowRight size={20} />
+                    <span>Explore More</span>
+                  </div>
+                </div>
+              </article>
+            )}
+
             {visibleTreatments.length === 0 && (
               <p className={styles.state}>No treatment plans available right now.</p>
             )}
           </div>
-
-          {canScrollRight && (
-            <button
-              type="button"
-              className={`${styles.arrow} ${styles.right}`}
-              onClick={() => scrollByCards("right")}
-              aria-label="Scroll right"
-            >
-              &#8250;
-            </button>
-          )}
         </div>
       )}
     </section>

@@ -35,6 +35,12 @@
   gap: 24px;
 }
 
+.fieldGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 18px;
+}
+
 .section {
   padding: 24px;
   border-radius: 20px;
@@ -95,6 +101,92 @@
   box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.18);
 }
 
+.readOnlyInput {
+  background: #eef2ff;
+  font-weight: 700;
+}
+
+.helperText {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.checkboxRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 0 4px;
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.chipComposer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.chipInputRow {
+  display: flex;
+  gap: 12px;
+  align-items: stretch;
+}
+
+.chipList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #e0f2fe, #dbeafe);
+  color: #1e3a8a;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.chipRemove {
+  border: none;
+  background: transparent;
+  color: #1e3a8a;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.quill {
+  border-radius: 16px;
+  overflow: hidden;
+  background: #ffffff;
+  border: 1px solid #c7d2fe;
+}
+
+.quill :global(.ql-toolbar.ql-snow) {
+  border: none;
+  border-bottom: 1px solid #dbeafe;
+  background: #f8fafc;
+}
+
+.quill :global(.ql-container.ql-snow) {
+  border: none;
+  min-height: 180px;
+  font-size: 14px;
+  color: #0f172a;
+}
+
+.quill :global(.ql-editor) {
+  min-height: 180px;
+}
+
 .uploadBox {
   display: flex;
   flex-wrap: wrap;
@@ -126,6 +218,42 @@
   font-size: 12px;
   font-weight: 600;
   color: #64748b;
+}
+
+.fileList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.fileItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid #dbeafe;
+  background: #f8fbff;
+}
+
+.fileName {
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 700;
+  word-break: break-word;
+}
+
+.removeFileBtn {
+  padding: 8px 14px;
+  border: none;
+  border-radius: 999px;
+  background: #fee2e2;
+  color: #b91c1c;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 800;
 }
 
 .preview {
@@ -182,6 +310,10 @@
     padding: 24px;
   }
 
+  .fieldGrid {
+    grid-template-columns: 1fr;
+  }
+
   .heading {
     font-size: 27px;
   }
@@ -189,5 +321,14 @@
   .submitBtn {
     width: 100%;
     text-align: center;
+  }
+
+  .chipInputRow {
+    flex-direction: column;
+  }
+
+  .fileItem {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }

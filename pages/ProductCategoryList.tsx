@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import styles from "@/styles/pages/productcategorylist.module.css";
 import productImg from "@/public/product1.png";
 import { API_URL } from "@/config/api";
+import FullPageLoader from "@/components/common/FullPageLoader";
 
 interface Category {
   id: string;
@@ -54,7 +55,7 @@ const ProductCategoryList: React.FC = () => {
     return `data:image/jpeg;base64,${img}`;
   };
 
-  if (loading) return <p>Loading categories...</p>;
+  if (loading) return <FullPageLoader />;
 
   return (
     <div className={styles.cliniContainer}>

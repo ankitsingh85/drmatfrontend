@@ -34,17 +34,21 @@
   position: relative;
   border-radius: 12px;
   background: #f3f4f6;
-  min-height: 190px;
+  min-height: 168px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1rem;
+  padding: 0.55rem 0.65rem;
 }
 
 .image {
   width: 100%;
-  height: 160px;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
   object-fit: contain;
+  object-position: center;
+  display: block;
 }
 
 .badge {
@@ -199,12 +203,8 @@
   }
 
   .imageBlock {
-    min-height: 150px;
-    padding: 0.7rem;
-  }
-
-  .image {
-    height: 130px;
+    min-height: 132px;
+    padding: 0.42rem 0.5rem;
   }
 
   .name {

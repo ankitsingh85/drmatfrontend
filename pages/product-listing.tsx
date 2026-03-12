@@ -10,6 +10,7 @@ import Footer from "@/components/Layout/Footer";
 import MobileNavbar from "@/components/Layout/MobileNavbar";
 import { useCart } from "@/context/CartContext";
 import { FaHeart, FaRegHeart } from "react-icons/fa";
+import FullPageLoader from "@/components/common/FullPageLoader";
 
 interface Category {
   _id: string;
@@ -220,6 +221,7 @@ const ProductListingPage: React.FC = () => {
   return (
     <>
       <Topbar hideHamburgerOnMobile />
+      {loading && <FullPageLoader />}
 
       <section className={styles.shopSection}>
         <div className={styles.layoutWrapper}>
@@ -276,9 +278,7 @@ const ProductListingPage: React.FC = () => {
               </div>
             </div>
 
-            {loading ? (
-              <p style={{ padding: 20 }}>Loading products...</p>
-            ) : filteredProducts.length === 0 ? (
+            {loading ? null : filteredProducts.length === 0 ? (
               <p style={{ padding: 20 }}>No products found.</p>
             ) : (
               <div className={styles.productGrid}>

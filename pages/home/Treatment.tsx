@@ -84,11 +84,22 @@ const TreatmentStories = () => {
               modestbranding: 1,
               rel: 0,
               fs: 0,
+              playsinline: 1,
+              iv_load_policy: 3,
+              disablekb: 1,
+              loop: 1,
+              playlist: videoId,
             },
             events: {
               onReady: (event: any) => {
                 playersRef.current[index] = event.target;
                 event.target.mute();
+              },
+              onStateChange: (event: any) => {
+                if ((window as any).YT?.PlayerState?.ENDED === event.data) {
+                  event.target.seekTo(0);
+                  event.target.playVideo();
+                }
               },
             },
           }
@@ -190,15 +201,19 @@ const TreatmentStories = () => {
 
             <div className={styles.videoWrapper}>
               {short.platform === "youtube" ? (
-                <div id={`yt-player-${index}`} />
+                <div className={styles.youtubeFrame}>
+                  <div id={`yt-player-${index}`} />
+                </div>
               ) : (
-                <video
-                  ref={(el) => { videoRefs.current[index] = el; }}
-                  src={short.videoUrl}
-                  muted={isMuted}
-                  playsInline
-                  loop
-                />
+                <div className={styles.videoCrop}>
+                  <video
+                    ref={(el) => { videoRefs.current[index] = el; }}
+                    src={short.videoUrl}
+                    muted={isMuted}
+                    playsInline
+                    loop
+                  />
+                </div>
               )}
 
               <button className={styles.muteBtn} onClick={toggleMute}>

@@ -25,7 +25,6 @@ interface ProductCategoryProps {
 const ProductCategory: React.FC<ProductCategoryProps> = ({
   title,
   backgroundColor,
-  textBg,
   border,
 }) => {
   const router = useRouter();
@@ -113,11 +112,10 @@ const ProductCategory: React.FC<ProductCategoryProps> = ({
             key={category.id}
             className={styles.categoryWrapper}
             onClick={() => handleCategoryClick(category)}
-            style={{ cursor: "pointer" }}
           >
             <div
               className={styles.categoryCard}
-              style={{ backgroundColor: textBg || undefined, ...(border ? { border } : {}) }}
+              style={{ borderColor: border || undefined }}
             >
               <img
                 src={getValidImage(category.imageUrl)}
@@ -125,7 +123,9 @@ const ProductCategory: React.FC<ProductCategoryProps> = ({
                 className={styles.categoryImg}
               />
             </div>
-            <p className={styles.categoryLabel}>{category.name}</p>
+            <div className={styles.categoryLabelBox}>
+              <p className={styles.categoryLabel}>{category.name}</p>
+            </div>
           </div>
         ))}
 
@@ -133,16 +133,20 @@ const ProductCategory: React.FC<ProductCategoryProps> = ({
         <div
           className={styles.categoryWrapper}
           onClick={handleExploreClick}
-          style={{ cursor: "pointer" }}
         >
-          <div className={`${styles.categoryCard} ${styles.exploreCard}`} style={{ border: "1px solid #999" }}>
+          <div
+            className={`${styles.categoryCard} ${styles.exploreCard}`}
+            style={{ borderColor: border || undefined }}
+          >
             <img
               src={getValidImage(exploreImage || undefined)}
               alt="Explore More"
               className={styles.categoryImg}
             />
           </div>
-          <p className={styles.categoryLabel}>Explore More</p>
+          <div className={styles.categoryLabelBox}>
+            <p className={styles.categoryLabel}>Explore More</p>
+          </div>
         </div>
       </div>
     </div>

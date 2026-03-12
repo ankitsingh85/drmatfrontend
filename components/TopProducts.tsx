@@ -25,7 +25,7 @@ interface Product {
   images?: string[];
 }
 
-const MAX_TOP_PRODUCTS = 17;
+const MAX_TOP_PRODUCTS = 11;
 const TOP_PRODUCTS_CACHE_KEY = "top-products-cache-v1";
 const TOP_PRODUCTS_CACHE_TTL_MS = 5 * 60 * 1000;
 
@@ -244,7 +244,7 @@ const TopProducts: React.FC = () => {
 
         <div
           className={`${styles.card} ${styles.showMore}`}
-          onClick={() => router.push("/products")}
+          onClick={() => router.push("/product-listing")}
         >
           <FaArrowRight size={24} />
           <span className={styles.showMoreText}>Show More</span>

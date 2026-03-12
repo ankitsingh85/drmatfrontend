@@ -10,8 +10,8 @@ import MobileNavbar from "@/components/Layout/MobileNavbar";
 import Topbar from "@/components/Layout/Topbar";
 import Footer from "@/components/Layout/Footer";
 import { API_URL } from "@/config/api";
+import FullPageLoader from "@/components/common/FullPageLoader";
 
-/* ================= REVIEW ================= */
 interface Review {
   _id: string;
   user?: { name: string };
@@ -20,7 +20,6 @@ interface Review {
   createdAt: string;
 }
 
-/* ================= PRODUCT (ADMIN SCHEMA) ================= */
 interface Product {
   _id: string;
   productName: string;
@@ -50,7 +49,6 @@ export default function ProductDetail() {
   const [submitting, setSubmitting] = useState(false);
   const [zoomStyle, setZoomStyle] = useState<React.CSSProperties>({});
 
-  /* ================= FETCH PRODUCT ================= */
   useEffect(() => {
     if (!id) return;
 
@@ -72,7 +70,6 @@ export default function ProductDetail() {
     fetchProduct();
   }, [id]);
 
-  /* ================= REVIEW SUBMIT ================= */
   const handleSubmitReview = async () => {
     if (!rating || !comment.trim()) {
       alert("Please provide rating and comment");
@@ -100,7 +97,6 @@ export default function ProductDetail() {
     }
   };
 
-  /* ================= IMAGE ZOOM ================= */
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!mainImage) return;
     const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
@@ -117,7 +113,7 @@ export default function ProductDetail() {
 
   const handleMouseLeave = () => setZoomStyle({});
 
-  if (loading) return <p style={{ padding: 20 }}>Loading…</p>;
+  if (loading) return <FullPageLoader />;
   if (!product) return <p style={{ padding: 20 }}>Product not found</p>;
 
   const price = product.mrpPrice || 0;
@@ -137,9 +133,7 @@ export default function ProductDetail() {
       <Topbar />
 
       <div className={styles.wrapper}>
-        {/* ================= TOP ================= */}
         <div className={styles.topSection}>
-          {/* LEFT */}
           <div className={styles.leftColumn}>
             {product.productImages && product.productImages.length > 1 && (
               <div className={styles.thumbnailList}>
@@ -170,7 +164,6 @@ export default function ProductDetail() {
             </div>
           </div>
 
-          {/* RIGHT */}
           <div className={styles.rightColumn}>
             <p className={styles.breadcrumb}>{product.category}</p>
             <h1 className={styles.title}>{product.productName}</h1>
@@ -178,15 +171,12 @@ export default function ProductDetail() {
               By <span>{product.brandName}</span>
             </p>
 
-            {/* Rating */}
             <div className={styles.rating}>
               {[...Array(5)].map((_, i) => (
                 <FaStar
                   key={i}
                   className={`${styles.star} ${
-                    i < Math.round(Number(avgRating))
-                      ? styles.filledStar
-                      : ""
+                    i < Math.round(Number(avgRating)) ? styles.filledStar : ""
                   }`}
                 />
               ))}
@@ -197,16 +187,15 @@ export default function ProductDetail() {
               <FiShare2 className={styles.icon} />
             </div>
 
-            {/* PRICE */}
             <div className={styles.priceBox}>
               {hasDiscount && (
                 <p className={styles.mrp}>
-                  MRP <span>₹{price}</span>
+                  MRP <span>Rs. {price}</span>
                 </p>
               )}
 
               <p className={styles.price}>
-                ₹{discount}
+                Rs. {discount}
                 {hasDiscount && (
                   <span className={styles.discount}>
                     {Math.round(((price - discount) / price) * 100)}% OFF
@@ -216,11 +205,10 @@ export default function ProductDetail() {
 
               <p className={styles.tax}>Inclusive of all taxes</p>
               <div className={styles.memberPrice}>
-                ₹{Math.round(discount * 0.95)} for Premium Member
+                Rs. {Math.round(discount * 0.95)} for Premium Member
               </div>
             </div>
 
-            {/* ACTIONS */}
             <div className={styles.actions}>
               <div className={styles.quantity}>
                 <button onClick={() => setQuantity((q) => Math.max(1, q - 1))}>
@@ -238,7 +226,6 @@ export default function ProductDetail() {
           </div>
         </div>
 
-        {/* ================= TABS ================= */}
         <div className={styles.tabContainer}>
           {["details", "services", "reviews"].map((t) => (
             <button
@@ -257,7 +244,6 @@ export default function ProductDetail() {
           ))}
         </div>
 
-        {/* ================= CONTENT ================= */}
         <div className={styles.tabContent}>
           {activeTab === "details" && (
             <div

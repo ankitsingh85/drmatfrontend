@@ -2,60 +2,84 @@
 .wrapper {
   position: relative;
   width: 100%;
-  padding: 16px 32px;
+  padding: 16px 0;
   box-sizing: border-box;
 }
 
 /* ================= SLIDER ================= */
 .slider {
   display: flex;
-  gap: 16px;               /* 🔽 reduced gap */
+  gap: 16px;
   overflow-x: hidden;
   scroll-behavior: smooth;
 }
 
 /* ================= CARD ================= */
-/* 🔥 Narrower cards – still 5 visible */
 .card {
-  flex: 0 0 calc(20% - 22px); /* 🔽 width reduced */
+  flex: 0 0 calc(20% - 22px);
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   transition: transform 0.2s ease;
 }
 
 .card:hover {
-  transform: scale(1.015); /* subtle hover like SC */
+  transform: scale(1.015);
 }
 
 /* ================= CARD TITLE ================= */
 .cardTitle {
-  font-size: 12px;        /* 🔽 smaller text */
+  font-size: 12px;
   font-weight: 600;
   text-align: center;
-  margin-bottom: 5px;    /* 🔽 tighter spacing */
+  margin-bottom: 5px;
   color: #111;
   line-height: 1.2;
 }
 
 /* ================= VIDEO WRAPPER ================= */
-/* 🔥 HEIGHT REDUCED SIGNIFICANTLY */
 .videoWrapper {
   position: relative;
   width: 100%;
-  aspect-ratio: 9 / 16;   /* taller vertical frame */
-  border-radius: 12px;    /* 🔽 slightly tighter */
+  aspect-ratio: 9 / 16;
+  border-radius: 12px;
   overflow: hidden;
   background: #000;
 }
 
-/* Video / iframe */
 .videoWrapper iframe,
 .videoWrapper video {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
+}
+
+.videoCrop {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.videoCrop video {
+  width: 112%;
+  height: 100%;
+  margin-left: -6%;
+  object-fit: cover;
+}
+
+.youtubeFrame {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.youtubeFrame iframe {
+  width: 126%;
+  height: 118%;
+  margin-top: -9%;
+  margin-left: -13%;
+  border: 0;
 }
 
 /* ================= MUTE BUTTON ================= */
@@ -113,7 +137,7 @@
 
 @media (max-width: 480px) {
   .wrapper {
-    padding: 12px;
+    padding: 12px 0;
   }
 
   .card {

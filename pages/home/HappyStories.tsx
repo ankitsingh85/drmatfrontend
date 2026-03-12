@@ -9,6 +9,7 @@ interface Short {
   _id: string;
   platform: "youtube" | "instagram";
   videoUrl: string;
+  title?: string;
 }
 
 // ✅ Backend API base URL (local or deployed)
@@ -119,6 +120,7 @@ const HappyStories = () => {
       <div className={styles.slider} ref={containerRef}>
         {shorts.map((short, index) => (
           <div key={short._id} className={styles.card}>
+            {short.title && <p className={styles.cardTitle}>{short.title}</p>}
             <div
               className={styles.videoWrapper}
               onMouseEnter={() =>

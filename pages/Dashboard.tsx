@@ -32,11 +32,13 @@ import CreateTestResult from "@/components/AdminPanel/CreateTestResult";
 import CreateOnlineDoctor from "@/components/AdminPanel/CreateOnlineDoctor";
 import CreateB2BProduct from "@/components/AdminPanel/CreateB2BProduct";
 import CreateSupport from "@/components/AdminPanel/CreateSupport";
+import CreateCourse from "@/components/AdminPanel/CreateCourse";
 // import UserOrderHistory from "@/components/AdminPanel/UserOrderHistory";
 
 import CreateUser from "@/components/AdminPanel/CreateUser";
 import ListOfUser from "@/components/AdminPanel/ListOfUser";
 import ListOfB2BProduct from "@/components/AdminPanel/ListOfB2BProduct";
+import ListOfCourse from "@/components/AdminPanel/ListOfCourse";
 
 /* ✅ DOCTOR */
 import CreateDoctor from "@/components/AdminPanel/CreateDoctor";
@@ -195,6 +197,11 @@ export default function SuperAdminDashboard() {
       key: "TREATMENT PLANS",
       create: "createTreatment",
       list: "listOfTreatment",
+    },
+    {
+      key: "COURSE",
+      create: "createCourse",
+      list: "listOfCourse",
     },
   ];
 
@@ -669,6 +676,8 @@ export default function SuperAdminDashboard() {
           {activeSection === "createOnlineDoctor" && <CreateOnlineDoctor />}
           {activeSection === "createSupport" && <CreateSupport />}
           {activeSection === "createTreatment" && <CreateTreatment />}
+          {activeSection === "createCourse" && <CreateCourse />}
+          {activeSection === "listOfCourse" && <ListOfCourse />}
 
           {activeSection === "listOfB2BProductCategory" && <ListofB2BCategory/>}
 

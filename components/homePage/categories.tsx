@@ -24,14 +24,12 @@ interface ClinicCategoryProps {
 const ClinicCategories: React.FC<ClinicCategoryProps> = ({
   title,
   backgroundColor,
-  textBg,
   border,
 }) => {
   const router = useRouter();
   const [categories, setCategories] = useState<ClinicCategory[]>([]);
   const [exploreImage, setExploreImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -62,36 +60,38 @@ const ClinicCategories: React.FC<ClinicCategoryProps> = ({
       <h2 className={styles.clinicTitle}>{title}</h2>
 
       <div className={styles.gridContainer}>
-        {displayCategories.map((category, index) => (
+        {displayCategories.map((category) => (
           <div
             key={category._id}
             className={styles.categoryWrapper}
-            onMouseEnter={() => setHoveredIndex(index)}
-            onMouseLeave={() => setHoveredIndex(null)}
             onClick={() =>
               router.push(`/home/findClinicsPage?category=${category._id}`)
             }
           >
-            {/* IMAGE CARD */}
-            <div className={styles.categoryCard}>
+            <div
+              className={styles.categoryCard}
+              style={{ borderColor: border || undefined }}
+            >
               <img
                 src={category.imageUrl}
                 alt={category.name}
                 className={styles.categoryImg}
               />
             </div>
-
-            {/* TEXT BELOW */}
-            <p className={styles.categoryLabel}>{category.name}</p>
+            <div className={styles.categoryLabelBox}>
+              <p className={styles.categoryLabel}>{category.name}</p>
+            </div>
           </div>
         ))}
 
-        {/* 🔥 EXPLORE MORE (18th TILE) */}
         <div
           className={styles.categoryWrapper}
           onClick={() => router.push("/ClinicCategoryList")}
         >
-          <div className={`${styles.categoryCard} ${styles.exploreCard}`}>
+          <div
+            className={`${styles.categoryCard} ${styles.exploreCard}`}
+            style={{ borderColor: border || undefined }}
+          >
             {exploreImage && (
               <img
                 src={exploreImage}
@@ -100,8 +100,9 @@ const ClinicCategories: React.FC<ClinicCategoryProps> = ({
               />
             )}
           </div>
-
-          <p className={styles.categoryLabel}>Explore More</p>
+          <div className={styles.categoryLabelBox}>
+            <p className={styles.categoryLabel}>Explore More</p>
+          </div>
         </div>
       </div>
     </div>

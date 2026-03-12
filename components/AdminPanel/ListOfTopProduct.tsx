@@ -22,7 +22,7 @@ interface Product {
   productImages?: string[];
 }
 
-const MAX_TOP_PRODUCTS = 17;
+const MAX_TOP_PRODUCTS = 11;
 
 const ListOfTopProduct: React.FC = () => {
   const [topProducts, setTopProducts] = useState<(Product | null)[]>(
@@ -101,7 +101,7 @@ const ListOfTopProduct: React.FC = () => {
 
   return (
     <div className={styles.topProductContainer}>
-      <h2>Top Products (17 Slots)</h2>
+      <h2>Top Products</h2>
 
       <DragDropContext onDragEnd={handleDragEnd}>
         <Droppable droppableId="topProducts" direction="horizontal">

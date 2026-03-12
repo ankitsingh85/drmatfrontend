@@ -2,6 +2,7 @@ import UserLayout from "@/components/Layout/UserLayout";
 import { getProductList } from "@/components/lib/api/product";
 import PageNavigator from "@/components/page/PageNavigator";
 import React, { useEffect, useState } from "react";
+import FullPageLoader from "@/components/common/FullPageLoader";
 
 const DermatProducts = () => {
   const [loading, setLoading] = useState<boolean>(true);
@@ -27,7 +28,11 @@ const DermatProducts = () => {
   }, [currentPage]);
 
   if (loading) {
-    return <UserLayout>Loading</UserLayout>;
+    return (
+      <UserLayout>
+        <FullPageLoader />
+      </UserLayout>
+    );
   }
 
   return (

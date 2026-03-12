@@ -1,90 +1,134 @@
 import React from "react";
+import Link from "next/link";
+import {
+  FaApple,
+  FaFacebookF,
+  FaGoogle,
+  FaInstagram,
+  FaLinkedinIn,
+  FaTwitter,
+} from "react-icons/fa";
+import { IoLogoGooglePlaystore } from "react-icons/io5";
 import styles from "@/styles/components/Layout/Footer.module.css";
+
+const serviceLinks = [
+  { label: "Book Appointment", href: "/home/findClinicsPage" },
+  { label: "Video Consultation", href: "/video-consultation" },
+  { label: "Treatment Plans", href: "/plans" },
+  { label: "Buy Products", href: "/product-listing" },
+];
+
+const policyLinks = [
+  { label: "Privacy Policy", href: "#" },
+  { label: "Terms & Conditions", href: "#" },
+  { label: "Refund Policy", href: "#" },
+  { label: "Shipping Policy", href: "#" },
+];
+
+const aboutLinks = [
+  { label: "About Dr Dermat", href: "#" },
+  { label: "Our Clinics", href: "/home/findClinicsPage" },
+  { label: "Contact Us", href: "#" },
+  { label: "Support", href: "#" },
+];
+
+const socialLinks = [
+  { label: "Facebook", href: "#", icon: <FaFacebookF /> },
+  { label: "Instagram", href: "#", icon: <FaInstagram /> },
+  { label: "Twitter", href: "#", icon: <FaTwitter /> },
+  { label: "Google", href: "#", icon: <FaGoogle /> },
+  { label: "LinkedIn", href: "#", icon: <FaLinkedinIn /> },
+];
 
 const Footer = () => {
   return (
     <>
       <footer className={styles.footer}>
         <div className={styles.container}>
-          {/* Left Section (1/3) */}
-          <div className={styles.leftSection}>
+          <div className={styles.brandColumn}>
             <img src="/logo.jpeg" alt="Dr. Dermat Logo" className={styles.logo} />
             <p className={styles.description}>
-              Welcome to Dr. Dermat, your premier destination for advanced dermatological care. <br />
-              We specialize in personalized skin treatments, expert consultations, and cutting-edge solutions <br />
-              to help you achieve healthy, radiant skin.
+              Dr. Dermat is a holistic dermatology ecosystem that connects
+              patients with trusted skin and hair clinics, while empowering
+              clinics to launch standardized treatment plans and curated
+              dermatology products. Built on medical expertise and innovation,
+              we ensure transparency, quality, and consistent results. Our
+              mission is to elevate dermatology care by seamlessly supporting
+              patients, doctors, and clinics on one unified platform.
             </p>
           </div>
 
-          {/* Right Section (2/3) */}
-          <div className={styles.rightSection}>
-            {/* Column 1: About */}
+          <div className={styles.linksGrid}>
             <div className={styles.linkColumn}>
-              <h3>About Us</h3>
+              <h3>Our Services</h3>
               <ul>
-                <li><a href="#">Our Story</a></li>
-                <li><a href="#">Our Team</a></li>
-                <li><a href="#">Testimonials</a></li>
-                <li><a href="#">Careers</a></li>
-                <li><a href="#">News</a></li>
-                <li><a href="#">Events</a></li>
-                <li><a href="#">Gallery</a></li>
+                {serviceLinks.map((item) => (
+                  <li key={item.label}>
+                    <Link href={item.href}>{item.label}</Link>
+                  </li>
+                ))}
               </ul>
             </div>
 
-            {/* Column 2: Services */}
             <div className={styles.linkColumn}>
-              <h3>Services</h3>
+              <h3>Our Policies</h3>
               <ul>
-                <li><a href="#">Skin Consultations</a></li>
-                <li><a href="#">Acne Treatment</a></li>
-                <li><a href="#">Anti-Aging</a></li>
-                <li><a href="#">Laser Therapy</a></li>
-                <li><a href="#">Dermatology Surgery</a></li>
-                <li><a href="#">Cosmetic Procedures</a></li>
-                <li><a href="#">Skin Care Products</a></li>
+                {policyLinks.map((item) => (
+                  <li key={item.label}>
+                    <Link href={item.href}>{item.label}</Link>
+                  </li>
+                ))}
               </ul>
             </div>
 
-            {/* Column 3: Support */}
             <div className={styles.linkColumn}>
-              <h3>Support</h3>
+              <h3>Know About Us</h3>
               <ul>
-                <li><a href="#">Contact Us</a></li>
-                <li><a href="#">Locations</a></li>
-                <li><a href="#">Book Appointment</a></li>
-                <li><a href="#">Patient Portal</a></li>
-                <li><a href="#">Insurance</a></li>
-                <li><a href="#">FAQs</a></li>
-                <li><a href="#">Help Center</a></li>
+                {aboutLinks.map((item) => (
+                  <li key={item.label}>
+                    <Link href={item.href}>{item.label}</Link>
+                  </li>
+                ))}
               </ul>
             </div>
 
-            {/* Column 4: Resources */}
-            <div className={styles.linkColumn}>
-              <h3>Resources</h3>
-              <ul>
-                <li><a href="#">Skin Care Tips</a></li>
-                <li><a href="#">Blog</a></li>
-                <li><a href="#">Educational Videos</a></li>
-                <li><a href="#">Research</a></li>
-                <li><a href="#">Community</a></li>
-                <li><a href="#">Newsletter</a></li>
-                <li><a href="#">Privacy Policy</a></li>
-              </ul>
+            <div className={`${styles.linkColumn} ${styles.socialColumn}`}>
+              <h3>Connect With Us</h3>
+              <div className={styles.socialLinks}>
+                {socialLinks.map((item) => (
+                  <a
+                    key={item.label}
+                    href={item.href}
+                    className={styles.socialLink}
+                    aria-label={item.label}
+                    title={item.label}
+                  >
+                    {item.icon}
+                  </a>
+                ))}
+              </div>
+
+              <div className={`${styles.appPanel} ${styles.sideAppPanel}`}>
+                <p className={styles.panelTitle}>Download the Dr Dermat App</p>
+                <div className={styles.appButtons}>
+                  <a href="#" className={styles.appButton} aria-label="Download on Android">
+                    <IoLogoGooglePlaystore />
+                  </a>
+                  <a href="#" className={styles.appButton} aria-label="Download on iOS">
+                    <FaApple />
+                  </a>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </footer>
+
       <div className={styles.footerBottom}>
-        <p style={{
-          padding: "2rem 0"
-        }}>
-          © 2026 Dr. Dermat - All Rights Reserved | Terms & Condition | Privacy & Policy | Developed by LYB Technology
-        </p>
+        <p>© 2026 Dr. Dermat. All rights reserved. Developed by LYB Technology.</p>
       </div>
     </>
   );
 };
-  
+
 export default Footer;
