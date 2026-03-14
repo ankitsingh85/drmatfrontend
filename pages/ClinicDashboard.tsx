@@ -39,6 +39,12 @@ const ClinicDashboard = () => {
   const handleLogout = () => {
     Cookies.remove("token");
     Cookies.remove("role");
+    Cookies.remove("username");
+    Cookies.remove("clinicName");
+    Cookies.remove("clinicId");
+    Cookies.remove("email");
+    Cookies.remove("contactNo");
+    localStorage.removeItem("clinicId");
     router.replace("/cliniclogin");
   };
 

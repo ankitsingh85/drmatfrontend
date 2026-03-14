@@ -33,6 +33,7 @@ const Topbar: React.FC<TopbarProps> = ({ hideHamburgerOnMobile }) => {
   const profileImage = profile?.profileImage ?? null;
   const email = profile?.email ?? null;
   const contactNo = profile?.contactNo ?? null;
+  const currentRole = Cookies.get("role")?.toLowerCase();
 
   useEffect(() => {
     const storedLocation = Cookies.get("location");
@@ -111,13 +112,17 @@ const Topbar: React.FC<TopbarProps> = ({ hideHamburgerOnMobile }) => {
   const handleLogout = () => {
     Cookies.remove("token");
     Cookies.remove("username");
+    Cookies.remove("clinicName");
+    Cookies.remove("clinicId");
     Cookies.remove("email");
     Cookies.remove("userId");
     Cookies.remove("location");
     Cookies.remove("contactNo");
     Cookies.remove("profileImage");
+    Cookies.remove("role");
 
     localStorage.removeItem("userId");
+    localStorage.removeItem("clinicId");
     localStorage.removeItem("profileImage");
     profile?.clearProfile();
 
@@ -291,6 +296,10 @@ const Topbar: React.FC<TopbarProps> = ({ hideHamburgerOnMobile }) => {
                           className={styles.profileActionBtn}
                           onClick={() => {
                             setProfileOpen(false);
+                            if (currentRole === "clinic") {
+                              router.push("/ClinicDashboard");
+                              return;
+                            }
                             router.push("/UserDashboard");
                           }}
                         >

@@ -1,17 +1,15 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import {
   FaCalendarAlt,
   FaCartPlus,
   FaGlobe,
-  FaGraduationCap,
   FaStar,
   FaUserFriends,
-  FaUserTie,
 } from "react-icons/fa";
 import { API_URL } from "@/config/api";
+import { useCart } from "@/context/CartContext";
 import styles from "@/styles/courselisting.module.css";
 
 interface Course {
@@ -65,8 +63,11 @@ const formatPrice = (course: Course) => {
   return `Rs. ${Number(value).toLocaleString("en-IN")}`;
 };
 
+const getCourseAmount = (course: Course) =>
+  course.netFeesInr && course.netFeesInr > 0 ? course.netFeesInr : course.feesInr || 0;
+
 const CourseListing = () => {
-  const router = useRouter();
+  const { addToCart } = useCart();
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -177,24 +178,6 @@ const CourseListing = () => {
 
                   <p className={styles.summary}>{audience}</p>
 
-                  <div className={styles.cardFooter}>
-                    <button
-                      type="button"
-                      className={styles.actionBtn}
-                      onClick={() => {
-                        if (course.courseDemoVideo) {
-                          window.open(course.courseDemoVideo, "_blank", "noopener,noreferrer");
-                          return;
-                        }
-
-                        router.push("/course-listing");
-                      }}
-                    >
-                      <span>Add to Cart</span>
-                      <FaCartPlus />
-                    </button>
-                  </div>
-
                   <div className={styles.bottomMeta}>
                     <div className={styles.statGroup}>
                       <span className={styles.statItem}>
@@ -207,6 +190,28 @@ const CourseListing = () => {
                       </span>
                     </div>
                     <span className={styles.priceTag}>{formatPrice(course)}</span>
+                  </div>
+
+                  <div className={styles.cardFooter}>
+                    <button
+                      type="button"
+                      className={styles.actionBtn}
+                      onClick={() => {
+                        const image = getYoutubeThumbnail(course.courseDemoVideo);
+                        const amount = getCourseAmount(course);
+                        addToCart({
+                          id: `course:${course._id}`,
+                          name: course.courseName,
+                          price: amount,
+                          mrp: course.feesInr || amount,
+                          company: course.instituteName || course.courseType || "Course",
+                          image: image || undefined,
+                        });
+                      }}
+                    >
+                      <span>Add to Cart</span>
+                      <FaCartPlus />
+                    </button>
                   </div>
                 </div>
               </article>

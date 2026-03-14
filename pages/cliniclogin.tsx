@@ -1,108 +1,266 @@
 "use client";
 
-import React, { useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/router";
 import Cookies from "js-cookie";
-import styles from "@/styles/cliniclogin.module.css";
-import { FiEye, FiEyeOff } from "react-icons/fi";
+import Image from "next/image";
+import Topbar from "@/components/Layout/Topbar";
+import styles from "@/styles/components/forms/MobileLogin.module.css";
+import illustration from "../public/login.jpg";
+import registerIllustration from "../public/register.jpg";
+import otpIllustration from "../public/otp.jpg";
 import { API_URL } from "@/config/api";
-
-// const API_URL = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000/api";
 
 export default function ClinicLogin() {
   const router = useRouter();
-  const [form, setForm] = useState({ email: "", password: "" });
-  const [showPassword, setShowPassword] = useState(false);
+  const nextPath = (router.query?.next as string) || "/home";
+
+  const [mobile, setMobile] = useState("");
+  const [otp, setOtp] = useState("");
+  const [clinicName, setClinicName] = useState("");
+  const [email, setEmail] = useState("");
+  const [address, setAddress] = useState("");
+  const [ownerName, setOwnerName] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
+  const [step, setStep] = useState<"mobile" | "otp" | "profile">("mobile");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) =>
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  const completeLogin = (data: any, fallbackMobile: string) => {
+    const cookieOptions = {
+      path: "/",
+      sameSite: "lax" as const,
+      secure: typeof window !== "undefined" && window.location.protocol === "https:",
+    };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
+    const name = data?.clinic?.clinicName || "";
+    const id = String(data?.clinic?.id || "");
+    const clinicEmail = data?.clinic?.email || "";
+    const contactNo = data?.clinic?.contactNo || fallbackMobile;
+
+    Cookies.set("token", data.token, cookieOptions);
+    Cookies.set("role", "clinic", cookieOptions);
+    Cookies.set("clinicId", id, cookieOptions);
+    Cookies.set("clinicName", name, cookieOptions);
+    Cookies.set("username", name, cookieOptions);
+    Cookies.set("email", clinicEmail, cookieOptions);
+    Cookies.set("contactNo", contactNo, cookieOptions);
+
+    localStorage.setItem("clinicId", id);
+    window.dispatchEvent(new CustomEvent("user-logged-in"));
+    window.location.replace(nextPath.startsWith("/") ? nextPath : `/${nextPath}`);
+  };
+
+  const validateMobile = () => {
+    const normalized = mobile.replace(/\D/g, "");
+    if (normalized.length !== 10) {
+      alert("Please enter a valid 10 digit mobile number");
+      return null;
+    }
+    return normalized;
+  };
+
+  const handleSendOtp = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!validateMobile()) return;
+    setOtp("");
+    setStep("otp");
+  };
+
+  const handleConfirmOtp = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (otp !== "1234") {
+      alert("Invalid OTP. Use 1234");
+      return;
+    }
+
+    const normalizedMobile = validateMobile();
+    if (!normalizedMobile) return;
+
     setLoading(true);
-
     try {
-      const res = await fetch(`${API_URL}/clinics/login`, {
+      const res = await fetch(`${API_URL}/clinic-auth/mobile-login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ contactNo: normalizedMobile }),
       });
 
       const data = await res.json();
 
+      if (res.ok) {
+        completeLogin(data, normalizedMobile);
+        return;
+      }
+
+      if (data?.message === "Clinic details are required") {
+        setStep("profile");
+        return;
+      }
+
+      throw new Error(data?.message || "Login failed");
+    } catch (err: any) {
+      alert(err.message || "Login failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleContinue = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    const normalizedMobile = validateMobile();
+    if (!normalizedMobile) return;
+
+    if (!clinicName.trim() || !email.trim() || !address.trim()) {
+      alert("Clinic name, email and address are required");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/clinic-auth/mobile-login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contactNo: normalizedMobile,
+          clinicName: clinicName.trim(),
+          email: email.trim(),
+          address: address.trim(),
+          ownerName: ownerName.trim(),
+          whatsapp: whatsapp.trim(),
+        }),
+      });
+
+      const data = await res.json();
       if (!res.ok) throw new Error(data?.message || "Login failed");
 
-      // ⭐ FIX: Cookies with proper flags for HTTPS
-      const cookieOptions = {
-        expires: 1,
-        secure: true,
-        sameSite: "None" as const,
-      };
-
-      Cookies.set("token", data.token, cookieOptions);
-      Cookies.set("role", "clinic", cookieOptions);
-      Cookies.set("clinicId", data.clinic.id, cookieOptions);
-
-      router.replace("/ClinicDashboard");
-      window.location.href = "/ClinicDashboard"; // Force redirect
+      completeLogin(data, normalizedMobile);
     } catch (err: any) {
-      console.error("❌ Login error:", err);
-      setError(err.message || "Login failed");
+      alert(err.message || "Login failed");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className={styles.container}>
-      <div className={styles.card}>
-        <h2 className={styles.title}>Clinic Login</h2>
-        <form className={styles.form} onSubmit={handleSubmit} autoComplete="off">
-          <label className={styles.label}>
-            Email
-            <input
-              className={styles.input}
-              type="email"
-              name="email"
-              value={form.email}
-              onChange={handleChange}
-              required
-              placeholder="clinic@example.com"
+    <>
+      <Topbar />
+      <div className={styles.page}>
+        <div className={styles.splitCard}>
+          <div className={styles.imagePane}>
+            <Image
+              src={step === "otp" ? otpIllustration : step === "profile" ? registerIllustration : illustration}
+              alt="Clinic login"
+              className={styles.heroImage}
+              priority
             />
-          </label>
+          </div>
 
-          <label className={styles.label}>
-            Password
-            <div className={styles.passwordWrapper}>
-              <input
-                className={styles.input}
-                type={showPassword ? "text" : "password"}
-                name="password"
-                value={form.password}
-                onChange={handleChange}
-                required
-                placeholder="Enter password"
-              />
-              <button
-                type="button"
-                className={styles.eyeBtn}
-                onClick={() => setShowPassword((s) => !s)}
-              >
-                {showPassword ? <FiEyeOff /> : <FiEye />}
-              </button>
+          <div className={styles.formPane}>
+            <div className={styles.formCard}>
+              {step !== "mobile" && (
+                <button className={styles.backBtn} onClick={() => setStep(step === "profile" ? "otp" : "mobile")}>
+                  {"<"}
+                </button>
+              )}
+
+              {step === "mobile" && (
+                <>
+                  <h1 className={styles.title}>Clinic Sign in</h1>
+                  <p className={styles.subtitle}>Enter 10 digit clinic mobile no.</p>
+
+                  <form onSubmit={handleSendOtp}>
+                    <div className={styles.mobileRow}>
+                      <span className={styles.countryCode}>+91</span>
+                      <input
+                        className={styles.mobileInput}
+                        placeholder="Mobile Number"
+                        value={mobile}
+                        maxLength={10}
+                        inputMode="numeric"
+                        autoFocus
+                        onChange={(e) => setMobile(e.target.value.replace(/\D/g, ""))}
+                      />
+                    </div>
+
+                    <button type="submit" className={styles.primaryBtn}>
+                      Get Verification Code
+                    </button>
+                  </form>
+                </>
+              )}
+
+              {step === "otp" && (
+                <>
+                  <h2 className={styles.modalTitle}>Verify clinic number</h2>
+                  <p className={styles.modalText}>Enter OTP (for now use 1234)</p>
+                  <form onSubmit={handleConfirmOtp}>
+                    <input
+                      className={styles.otpInput}
+                      maxLength={4}
+                      inputMode="numeric"
+                      placeholder="____"
+                      value={otp}
+                      autoFocus
+                      onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+                    />
+                    <button type="submit" className={styles.primaryBtn} disabled={loading}>
+                      {loading ? "Please wait..." : "Confirm OTP"}
+                    </button>
+                  </form>
+                </>
+              )}
+
+              {step === "profile" && (
+                <>
+                  <h2 className={styles.modalTitle}>Complete Clinic Profile</h2>
+                  <form onSubmit={handleContinue}>
+                    <input
+                      className={styles.textInput}
+                      placeholder="Clinic Name"
+                      value={clinicName}
+                      autoFocus
+                      onChange={(e) => setClinicName(e.target.value)}
+                    />
+                    <input
+                      className={styles.textInput}
+                      placeholder="Clinic Email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                    />
+                    <input
+                      className={styles.textInput}
+                      placeholder="Clinic Address"
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
+                    />
+                    <input
+                      className={styles.textInput}
+                      placeholder="Owner Name (optional)"
+                      value={ownerName}
+                      onChange={(e) => setOwnerName(e.target.value)}
+                    />
+                    <input
+                      className={styles.textInput}
+                      placeholder="WhatsApp Number (optional)"
+                      value={whatsapp}
+                      maxLength={10}
+                      inputMode="numeric"
+                      onChange={(e) => setWhatsapp(e.target.value.replace(/\D/g, ""))}
+                    />
+                    <button type="submit" className={styles.primaryBtn} disabled={loading}>
+                      {loading ? "Please wait..." : "Continue"}
+                    </button>
+                  </form>
+                </>
+              )}
+
+              <p className={styles.terms}>
+                By proceeding, you consent to share your information with Dr.Dermat and agree to privacy policy and terms of service.
+              </p>
             </div>
-          </label>
-
-          {error && <div className={styles.error}>{error}</div>}
-
-          <button className={styles.submitBtn} type="submit" disabled={loading}>
-            {loading ? "Logging in..." : "Login"}
-          </button>
-        </form>
+          </div>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

@@ -374,7 +374,7 @@ const Index = () => {
             flexWrap: "wrap",
           }}
         >
-          {/* <CourseListing/> */}
+          <CourseListing/>
         </div>
       </div>
       <Footer />
