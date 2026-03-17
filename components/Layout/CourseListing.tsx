@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/router";
 import {
   FaCalendarAlt,
   FaCartPlus,
@@ -17,6 +18,8 @@ interface Course {
   courseName: string;
   courseUniqueCode: string;
   courseType?: string;
+  courseImage?: string;
+  trainerImage?: string;
   instituteName?: string;
   courseDuration?: string;
   modeOfTraining?: string;
@@ -34,6 +37,7 @@ interface Course {
 }
 
 const MAX_VISIBLE_TILES = 8;
+const apiBaseUrl = API_URL.replace(/\/api\/?$/, "");
 
 const getYoutubeThumbnail = (url?: string) => {
   if (!url) return "";
@@ -66,7 +70,15 @@ const formatPrice = (course: Course) => {
 const getCourseAmount = (course: Course) =>
   course.netFeesInr && course.netFeesInr > 0 ? course.netFeesInr : course.feesInr || 0;
 
+const resolveAssetUrl = (value?: string) => {
+  if (!value) return "";
+  if (value.startsWith("http://") || value.startsWith("https://")) return value;
+  if (value.startsWith("/")) return `${apiBaseUrl}${value}`;
+  return `${apiBaseUrl}/${value}`;
+};
+
 const CourseListing = () => {
+  const router = useRouter();
   const { addToCart } = useCart();
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
@@ -114,7 +126,9 @@ const CourseListing = () => {
       {!loading && !error && (
         <div className={styles.grid}>
           {visibleCourses.map((course) => {
-            const image = getYoutubeThumbnail(course.courseDemoVideo);
+            const image =
+              resolveAssetUrl(course.courseImage) ||
+              getYoutubeThumbnail(course.courseDemoVideo);
             const audience =
               Array.isArray(course.targetAudience) && course.targetAudience.length > 0
                 ? course.targetAudience.slice(0, 2).join(" | ")
@@ -123,7 +137,19 @@ const CourseListing = () => {
             const ratingText = course.certificationProvided === "Yes" ? "5 Stars" : "4 Stars";
 
             return (
-              <article key={course._id} className={styles.card}>
+              <article
+                key={course._id}
+                className={styles.card}
+                role="link"
+                tabIndex={0}
+                onClick={() => router.push(`/courses/${course._id}`)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    router.push(`/courses/${course._id}`);
+                  }
+                }}
+              >
                 <div className={styles.imageWrap}>
                   {image ? (
                     <img
@@ -144,9 +170,17 @@ const CourseListing = () => {
 
                 <div className={styles.content}>
                   <div className={styles.avatar}>
-                    {(course.trainerInstructorName || course.instituteName || "C")
-                      .slice(0, 1)
-                      .toUpperCase()}
+                    {course.trainerImage ? (
+                      <img
+                        src={resolveAssetUrl(course.trainerImage)}
+                        alt={course.trainerInstructorName || "Trainer"}
+                        className={styles.avatarImage}
+                      />
+                    ) : (
+                      (course.trainerInstructorName || course.instituteName || "C")
+                        .slice(0, 1)
+                        .toUpperCase()
+                    )}
                   </div>
 
                   <p className={styles.trainerName}>
@@ -196,8 +230,11 @@ const CourseListing = () => {
                     <button
                       type="button"
                       className={styles.actionBtn}
-                      onClick={() => {
-                        const image = getYoutubeThumbnail(course.courseDemoVideo);
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        const image =
+                          resolveAssetUrl(course.courseImage) ||
+                          getYoutubeThumbnail(course.courseDemoVideo);
                         const amount = getCourseAmount(course);
                         addToCart({
                           id: `course:${course._id}`,

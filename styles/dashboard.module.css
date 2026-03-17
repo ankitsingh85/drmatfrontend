@@ -487,6 +487,10 @@
   background: linear-gradient(180deg, #fff 0%, #e0f2fe 100%);
 }
 
+.toneCourseTypes {
+  background: linear-gradient(180deg, #fff 0%, #ede9fe 100%);
+}
+
 .insightGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

@@ -33,12 +33,14 @@ import CreateOnlineDoctor from "@/components/AdminPanel/CreateOnlineDoctor";
 import CreateB2BProduct from "@/components/AdminPanel/CreateB2BProduct";
 import CreateSupport from "@/components/AdminPanel/CreateSupport";
 import CreateCourse from "@/components/AdminPanel/CreateCourse";
+import CreateCourseType from "@/components/AdminPanel/CreateCourseType";
 // import UserOrderHistory from "@/components/AdminPanel/UserOrderHistory";
 
 import CreateUser from "@/components/AdminPanel/CreateUser";
 import ListOfUser from "@/components/AdminPanel/ListOfUser";
 import ListOfB2BProduct from "@/components/AdminPanel/ListOfB2BProduct";
 import ListOfCourse from "@/components/AdminPanel/ListOfCourse";
+import ListOfCourseType from "@/components/AdminPanel/ListOfCourseType";
 
 /* ✅ DOCTOR */
 import CreateDoctor from "@/components/AdminPanel/CreateDoctor";
@@ -95,6 +97,7 @@ export default function SuperAdminDashboard() {
     products: [] as any[],
     b2bCategories: [] as any[],
     b2bProducts: [] as any[],
+    courseTypes: [] as any[],
   });
 
   /* ================= AUTH ================= */
@@ -199,10 +202,16 @@ export default function SuperAdminDashboard() {
       list: "listOfTreatment",
     },
     {
+      key: "COURSE TYPE",
+      create: "createCourseType",
+      list: "listOfCourseType",
+    },
+    {
       key: "COURSE",
       create: "createCourse",
       list: "listOfCourse",
     },
+    
   ];
 
   const fetchDashboardSummary = async () => {
@@ -220,6 +229,7 @@ export default function SuperAdminDashboard() {
       { key: "products", url: `${API_URL}/products` },
       { key: "b2bCategories", url: `${API_URL}/b2b-categories` },
       { key: "b2bProducts", url: `${API_URL}/b2b-products` },
+      { key: "courseTypes", url: `${API_URL}/course-types` },
     ] as const;
 
     try {
@@ -255,6 +265,7 @@ export default function SuperAdminDashboard() {
           products: [] as any[],
           b2bCategories: [] as any[],
           b2bProducts: [] as any[],
+          courseTypes: [] as any[],
         }
       );
 
@@ -542,6 +553,12 @@ export default function SuperAdminDashboard() {
                     icon: <FiLayers />,
                     tone: styles.toneB2BCategories,
                   },
+                  {
+                    label: "Course Types",
+                    value: summaryData.courseTypes.length,
+                    icon: <FiLayers />,
+                    tone: styles.toneCourseTypes,
+                  },
                 ].map((item) => (
                   <div key={item.label} className={`${styles.statCard} ${item.tone}`}>
                     <div className={styles.statIcon}>{item.icon}</div>
@@ -678,6 +695,8 @@ export default function SuperAdminDashboard() {
           {activeSection === "createTreatment" && <CreateTreatment />}
           {activeSection === "createCourse" && <CreateCourse />}
           {activeSection === "listOfCourse" && <ListOfCourse />}
+          {activeSection === "createCourseType" && <CreateCourseType />}
+          {activeSection === "listOfCourseType" && <ListOfCourseType />}
 
           {activeSection === "listOfB2BProductCategory" && <ListofB2BCategory/>}
 

@@ -11,6 +11,7 @@ interface Course {
   courseName: string;
   courseUniqueCode: string;
   courseType?: string;
+  courseImage?: string;
   instituteName?: string;
   courseDuration?: string;
   modeOfTraining?: string;
@@ -29,6 +30,7 @@ interface Course {
   maximumSeatsBatchSize?: number;
   currentAvailability?: string;
   trainerInstructorName?: string;
+  trainerImage?: string;
   trainerExperience?: string;
   languageOfDelivery?: string;
   whatsIncluded?: string;
@@ -125,6 +127,13 @@ const formatDate = (value?: string) => {
   if (!value) return "-";
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? "-" : date.toLocaleDateString();
+};
+
+const resolveAssetUrl = (value?: string) => {
+  if (!value) return "";
+  if (value.startsWith("http://") || value.startsWith("https://")) return value;
+  if (value.startsWith("/")) return `${API_URL.replace(/\/api$/, "")}${value}`;
+  return value;
 };
 
 const ListOfCourse = () => {
@@ -469,9 +478,9 @@ const ListOfCourse = () => {
               <thead>
                 <tr>
                   <th>#</th>
+                  <th>Image</th>
                   <th>Course Code</th>
                   <th>Course Name</th>
-                  <th>Course Type</th>
                   <th>Fees</th>
                   <th>Language</th>
                   <th>Availability</th>
@@ -483,11 +492,21 @@ const ListOfCourse = () => {
                 {paginatedCourses.map((course, index) => (
                   <tr key={course._id}>
                     <td>{(currentPage - 1) * itemsPerPage + index + 1}</td>
+                    <td>
+                      {course.courseImage ? (
+                        <img
+                          src={resolveAssetUrl(course.courseImage)}
+                          alt={course.courseName || "Course"}
+                          className={styles.image}
+                        />
+                      ) : (
+                        "-"
+                      )}
+                    </td>
                     <td className={styles.id}>{course.courseUniqueCode || "-"}</td>
                     <td style={{ wordBreak: "break-word" }}>
                       {course.courseName || "Untitled Course"}
                     </td>
-                    <td style={{ wordBreak: "break-word" }}>{course.courseType || "-"}</td>
                     <td>{course.feesInr ?? 0}</td>
                     <td style={{ wordBreak: "break-word" }}>
                       {course.languageOfDelivery || "-"}
@@ -587,6 +606,30 @@ const ListOfCourse = () => {
           >
             <h3>View Course</h3>
             <div className={styles.detailsGrid}>
+              <div>
+                <strong>Course Image</strong>
+                {viewingCourse.courseImage ? (
+                  <img
+                    src={resolveAssetUrl(viewingCourse.courseImage)}
+                    alt={viewingCourse.courseName || "Course"}
+                    className={styles.preview}
+                  />
+                ) : (
+                  <p>-</p>
+                )}
+              </div>
+              <div>
+                <strong>Trainer Image</strong>
+                {viewingCourse.trainerImage ? (
+                  <img
+                    src={resolveAssetUrl(viewingCourse.trainerImage)}
+                    alt={viewingCourse.trainerInstructorName || "Trainer"}
+                    className={styles.preview}
+                  />
+                ) : (
+                  <p>-</p>
+                )}
+              </div>
               <div>
                 <strong>Course Name</strong>
                 <p>{viewingCourse.courseName || "-"}</p>

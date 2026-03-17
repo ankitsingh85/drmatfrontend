@@ -37,16 +37,26 @@ type CourseFormData = {
   maximumSeatsBatchSize: string;
   currentAvailability: string;
   trainerInstructorName: string;
+  trainerImage: File | null;
   trainerExperience: string;
   languageOfDelivery: string;
   whatsIncluded: string;
   whatsNotIncluded: string;
   learningOutcomes: string;
+  courseImage: File | null;
   courseDemoVideo: string;
   brochurePdfDownload: File[];
   refundCancellationPolicy: string;
   postCourseSupport: string;
+  mobileNo: string;
   contactForQueries: string;
+};
+
+type CourseTypeOption = {
+  _id: string;
+  id: string;
+  name: string;
+  imageUrl?: string;
 };
 
 const createInitialFormData = (courseUniqueCode = ""): CourseFormData => ({
@@ -71,24 +81,20 @@ const createInitialFormData = (courseUniqueCode = ""): CourseFormData => ({
   maximumSeatsBatchSize: "",
   currentAvailability: "",
   trainerInstructorName: "",
+  trainerImage: null,
   trainerExperience: "",
   languageOfDelivery: "",
   whatsIncluded: "",
   whatsNotIncluded: "",
   learningOutcomes: "",
+  courseImage: null,
   courseDemoVideo: "",
   brochurePdfDownload: [],
   refundCancellationPolicy: "",
   postCourseSupport: "",
+  mobileNo: "",
   contactForQueries: "",
 });
-
-const courseTypeOptions = [
-  "Certificate Course",
-  "Diploma Course",
-  "Fellowship Program",
-  "Masterclass",
-];
 
 const certificationOptions = ["Yes", "No"];
 const languageOptions = ["English", "Hindi", "Bilingual"];
@@ -136,15 +142,18 @@ const fieldLabels: Record<keyof CourseFormData, string> = {
   maximumSeatsBatchSize: "Maximum Seats / Batch Size",
   currentAvailability: "Current Availability",
   trainerInstructorName: "Trainer / Instructor Name",
+  trainerImage: "Trainer / Instructor Image",
   trainerExperience: "Trainer Experience",
   languageOfDelivery: "Language of Delivery",
   whatsIncluded: "What's Included",
   whatsNotIncluded: "What's Not Included",
   learningOutcomes: "Learning Outcomes",
+  courseImage: "Course Image",
   courseDemoVideo: "Course Demo Video (YouTube Link)",
   brochurePdfDownload: "Brochure PDF Upload",
   refundCancellationPolicy: "Refund / Cancellation Policy",
   postCourseSupport: "Post-Course Support",
+  mobileNo: "Mobile Number",
   contactForQueries: "Contact for Queries",
 };
 
@@ -165,9 +174,13 @@ const isYoutubeUrl = (value: string) => {
 
 const CreateCourse = () => {
   const [formData, setFormData] = useState<CourseFormData>(createInitialFormData());
+  const [courseTypeOptions, setCourseTypeOptions] = useState<CourseTypeOption[]>([]);
   const [targetAudienceInput, setTargetAudienceInput] = useState("");
+  const [courseImagePreview, setCourseImagePreview] = useState("");
+  const [trainerImagePreview, setTrainerImagePreview] = useState("");
   const [loading, setLoading] = useState(false);
   const [loadingCode, setLoadingCode] = useState(true);
+  const [loadingCourseTypes, setLoadingCourseTypes] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -216,14 +229,73 @@ const CreateCourse = () => {
     loadNextCourseCode();
   }, []);
 
+  useEffect(() => {
+    const loadCourseTypes = async () => {
+      try {
+        setLoadingCourseTypes(true);
+        const response = await fetch(`${API_URL}/course-types`);
+        const data = await response.json().catch(() => []);
+        setCourseTypeOptions(Array.isArray(data) ? data : []);
+      } catch {
+        setCourseTypeOptions([]);
+      } finally {
+        setLoadingCourseTypes(false);
+      }
+    };
+
+    loadCourseTypes();
+  }, []);
+
   const handleChange = (
     field: keyof CourseFormData,
-    value: string | boolean | string[] | File[]
+    value: string | boolean | string[] | File[] | File | null
   ) => {
     setFormData((prev) => ({
       ...prev,
       [field]: value,
     }));
+  };
+
+  const handleCourseImageChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] || null;
+    if (!file) return;
+
+    if (!/^image\/(jpeg|jpg|png|webp)$/i.test(file.type)) {
+      setError("Course image must be JPG, JPEG, PNG, or WEBP");
+      event.target.value = "";
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Course image must be less than or equal to 5MB");
+      event.target.value = "";
+      return;
+    }
+
+    setError("");
+    handleChange("courseImage", file);
+    setCourseImagePreview(URL.createObjectURL(file));
+  };
+
+  const handleTrainerImageChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] || null;
+    if (!file) return;
+
+    if (!/^image\/(jpeg|jpg|png|webp)$/i.test(file.type)) {
+      setError("Trainer image must be JPG, JPEG, PNG, or WEBP");
+      event.target.value = "";
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Trainer image must be less than or equal to 5MB");
+      event.target.value = "";
+      return;
+    }
+
+    setError("");
+    handleChange("trainerImage", file);
+    setTrainerImagePreview(URL.createObjectURL(file));
   };
 
   const addTargetAudience = () => {
@@ -318,6 +390,11 @@ const CreateCourse = () => {
       return;
     }
 
+    if (formData.mobileNo && !/^\d{10}$/.test(formData.mobileNo)) {
+      setError("Mobile number must be a valid 10 digit number");
+      return;
+    }
+
     try {
       setLoading(true);
 
@@ -346,17 +423,24 @@ const CreateCourse = () => {
       payload.append("maximumSeatsBatchSize", formData.maximumSeatsBatchSize);
       payload.append("currentAvailability", formData.currentAvailability);
       payload.append("trainerInstructorName", formData.trainerInstructorName);
+      if (formData.trainerImage) {
+        payload.append("trainerImage", formData.trainerImage);
+      }
       payload.append("trainerExperience", formData.trainerExperience);
       payload.append("languageOfDelivery", formData.languageOfDelivery);
       payload.append("whatsIncluded", formData.whatsIncluded);
       payload.append("whatsNotIncluded", formData.whatsNotIncluded);
       payload.append("learningOutcomes", formData.learningOutcomes);
+      if (formData.courseImage) {
+        payload.append("courseImage", formData.courseImage);
+      }
       payload.append("courseDemoVideo", formData.courseDemoVideo.trim());
       payload.append(
         "refundCancellationPolicy",
         formData.refundCancellationPolicy
       );
       payload.append("postCourseSupport", formData.postCourseSupport);
+      payload.append("mobileNo", formData.mobileNo);
       payload.append("contactForQueries", formData.contactForQueries);
 
       formData.brochurePdfDownload.forEach((file) => {
@@ -382,6 +466,8 @@ const CreateCourse = () => {
 
       setFormData(createInitialFormData(nextCode));
       setTargetAudienceInput("");
+      setCourseImagePreview("");
+      setTrainerImagePreview("");
       setSuccess("Course created successfully");
     } catch (err: any) {
       setError(err.message || "Failed to create course");
@@ -400,6 +486,8 @@ const CreateCourse = () => {
       | "whatsIncluded"
       | "whatsNotIncluded"
       | "learningOutcomes"
+      | "courseImage"
+      | "trainerImage"
       | "brochurePdfDownload"
     >
   ) => {
@@ -413,6 +501,8 @@ const CreateCourse = () => {
       ? "date"
       : isNumberField
         ? "number"
+        : field === "mobileNo"
+          ? "tel"
         : field === "courseDemoVideo"
           ? "url"
           : "text";
@@ -486,13 +576,20 @@ const CreateCourse = () => {
                 value={formData.courseType}
                 onChange={(e) => handleChange("courseType", e.target.value)}
               >
-                <option value="">Select course type</option>
+                <option value="">
+                  {loadingCourseTypes ? "Loading course types..." : "Select course type"}
+                </option>
                 {courseTypeOptions.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
+                  <option key={option._id || option.id} value={option.name}>
+                    {option.name}
                   </option>
                 ))}
               </select>
+              {!loadingCourseTypes && courseTypeOptions.length === 0 && (
+                <span className={styles.helperText}>
+                  No course types found. Create one from the dashboard first.
+                </span>
+              )}
             </div>
 
             <div className={styles.field}>
@@ -527,6 +624,35 @@ const CreateCourse = () => {
             {renderInput("location")}
             {renderInput("currentAvailability")}
             {renderInput("trainerInstructorName")}
+
+            <div className={styles.fullField}>
+              <label className={styles.label}>{fieldLabels.trainerImage}</label>
+              <div className={styles.uploadBox}>
+                <label className={styles.uploadBtn}>
+                  Select Trainer Image
+                  <input
+                    type="file"
+                    accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                    onChange={handleTrainerImageChange}
+                    hidden
+                  />
+                </label>
+                <span className={styles.uploadHint}>
+                  Upload one image for the trainer or instructor
+                </span>
+              </div>
+
+              {trainerImagePreview ? (
+                <img
+                  src={trainerImagePreview}
+                  className={styles.preview}
+                  alt="Trainer preview"
+                />
+              ) : (
+                <p className={styles.noImage}>No trainer image selected</p>
+              )}
+            </div>
+
             {renderInput("trainerExperience")}
 
             <div className={styles.field}>
@@ -568,9 +694,39 @@ const CreateCourse = () => {
             {renderInput("discountsOffers")}
             {renderInput("curriculumTopicsCovered")}
             {renderInput("affiliationAccreditation")}
+
+            <div className={styles.fullField}>
+              <label className={styles.label}>{fieldLabels.courseImage}</label>
+              <div className={styles.uploadBox}>
+                <label className={styles.uploadBtn}>
+                  Select Course Image
+                  <input
+                    type="file"
+                    accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                    onChange={handleCourseImageChange}
+                    hidden
+                  />
+                </label>
+                <span className={styles.uploadHint}>
+                  Upload one image for the course cover
+                </span>
+              </div>
+
+              {courseImagePreview ? (
+                <img
+                  src={courseImagePreview}
+                  className={styles.preview}
+                  alt="Course preview"
+                />
+              ) : (
+                <p className={styles.noImage}>No course image selected</p>
+              )}
+            </div>
+
             {renderInput("courseDemoVideo")}
             {renderInput("refundCancellationPolicy")}
             {renderInput("postCourseSupport")}
+            {renderInput("mobileNo")}
             {renderInput("contactForQueries")}
 
             <div className={styles.fullField}>
