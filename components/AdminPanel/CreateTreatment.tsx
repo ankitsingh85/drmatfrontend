@@ -2,17 +2,11 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
-import Cookies from "js-cookie";
-import { jwtDecode } from "jwt-decode";
 import styles from "@/styles/clinicdashboard/clinicservices.module.css";
 import "react-quill/dist/quill.snow.css";
 import { API_URL } from "@/config/api";
 
 const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
-
-interface JwtPayload {
-  id: string;
-}
 
 interface Clinic {
   _id: string;
@@ -25,68 +19,44 @@ interface ServiceCategory {
 }
 
 export default function CreateTreatmentPlan() {
-  const [defaultClinicId, setDefaultClinicId] = useState<string | null>(null);
   const [selectedClinicId, setSelectedClinicId] = useState("");
   const [clinics, setClinics] = useState<Clinic[]>([]);
   const [serviceCategories, setServiceCategories] = useState<ServiceCategory[]>(
     []
   );
 
-  /* Core */
-  const [tuc] = useState(`TUC-${Date.now().toString().slice(-6)}`);
+  const [tuc] = useState(() => {
+    const timePart = Date.now().toString().slice(-8);
+    const randPart = Math.random().toString(36).slice(2, 6).toUpperCase();
+    return `TUC-${timePart}-${randPart}`;
+  });
   const [treatmentName, setTreatmentName] = useState("");
   const [description, setDescription] = useState("");
 
-  /* Media */
   const [treatmentImages, setTreatmentImages] = useState<string[]>([]);
-  const [beforeAfterImages, setBeforeAfterImages] = useState<string[]>([]);
+  const [beforeImages, setBeforeImages] = useState<string[]>([]);
+  const [afterImages, setAfterImages] = useState<string[]>([]);
   const [shortReelUrl, setShortReelUrl] = useState("");
 
-  /* Category */
   const [serviceCategory, setServiceCategory] = useState("");
 
-  /* Pricing */
   const [mrp, setMrp] = useState("");
   const [offerPrice, setOfferPrice] = useState("");
   const [pricePerSession, setPricePerSession] = useState("");
   const [discountPercent, setDiscountPercent] = useState("");
 
-  /* Treatment */
   const [sessions, setSessions] = useState("");
   const [duration, setDuration] = useState("");
   const [validity, setValidity] = useState("");
   const [technologyUsed, setTechnologyUsed] = useState("");
 
-  /* Content */
-  const [instructions, setInstructions] = useState("");
-  const [disclaimer, setDisclaimer] = useState("");
-  const [inclusions, setInclusions] = useState("");
-  const [exclusions, setExclusions] = useState("");
-
-  /* Meta */
-  const [gender, setGender] = useState("Unisex");
-  const [paymentOption, setPaymentOption] = useState("Cash");
+  const [gender, setGender] = useState<"Unisex" | "Male" | "Female">("Unisex");
   const [promoCode, setPromoCode] = useState("");
 
-  /* Admin Controls */
   const [addToCart, setAddToCart] = useState(true);
   const [isActive, setIsActive] = useState(true);
 
-  /* Reviews */
-  const [rating, setRating] = useState("");
-  const [reviews, setReviews] = useState("");
-  const [patientFeedback, setPatientFeedback] = useState("");
-
   const [notification, setNotification] = useState("");
-
-  useEffect(() => {
-    const token = Cookies.get("token");
-    if (token) {
-      const decoded = jwtDecode<JwtPayload>(token);
-      setDefaultClinicId(decoded.id);
-      setSelectedClinicId(decoded.id);
-    }
-  }, []);
 
   useEffect(() => {
     const fetchClinics = async () => {
@@ -96,7 +66,11 @@ export default function CreateTreatmentPlan() {
         if (Array.isArray(data)) {
           setClinics(data);
           if (data.length > 0) {
-            setSelectedClinicId((prev) => prev || data[0]._id);
+            setSelectedClinicId((prev) =>
+              prev && data.some((clinic) => clinic._id === prev)
+                ? prev
+                : data[0]._id
+            );
           }
         }
       } catch (error) {
@@ -140,7 +114,7 @@ export default function CreateTreatmentPlan() {
 
   const handleFileChange = async (
     e: React.ChangeEvent<HTMLInputElement>,
-    type: "treatmentImages" | "beforeAfterImages"
+    type: "treatmentImages" | "beforeImages" | "afterImages"
   ) => {
     const files = Array.from(e.target.files || []);
     const base64Images = await Promise.all(files.map(fileToBase64));
@@ -149,7 +123,11 @@ export default function CreateTreatmentPlan() {
       setTreatmentImages(base64Images);
       return;
     }
-    setBeforeAfterImages(base64Images);
+    if (type === "beforeImages") {
+      setBeforeImages(base64Images);
+      return;
+    }
+    setAfterImages(base64Images);
   };
 
   const quillModules = useMemo(
@@ -166,65 +144,85 @@ export default function CreateTreatmentPlan() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const finalClinicId = selectedClinicId || defaultClinicId;
-    if (!finalClinicId) {
+
+    if (!selectedClinicId) {
       setNotification("Please select a clinic before submitting.");
       return;
     }
+    if (!treatmentName.trim()) {
+      setNotification("Treatment plan name is required.");
+      return;
+    }
+    if (!serviceCategory.trim()) {
+      setNotification("Please select a treatment category.");
+      return;
+    }
 
-    const payload = {
-      tuc,
-      treatmentName,
-      clinic: finalClinicId,
-      description,
-      shortReelUrl,
-      serviceCategory,
-      mrp,
-      offerPrice,
-      pricePerSession,
-      discountPercent,
-      sessions,
-      duration,
-      validity,
-      technologyUsed,
-      instructions,
-      disclaimer,
-      inclusions,
-      exclusions,
-      gender,
-      paymentOption,
-      promoCode,
-      addToCart,
-      isActive,
-      rating,
-      reviews,
-      patientFeedback,
-      treatmentImages,
-      beforeAfterImages,
-      categoryIcons: [],
-    };
+    try {
+      const payload = {
+        tuc,
+        treatmentName: treatmentName.trim(),
+        clinic: selectedClinicId,
+        description,
+        shortReelUrl,
+        serviceCategory: serviceCategory.trim(),
+        mrp,
+        offerPrice,
+        pricePerSession,
+        discountPercent,
+        sessions,
+        duration,
+        validity,
+        technologyUsed,
+        gender,
+        promoCode,
+        addToCart,
+        isActive,
+        treatmentImages,
+        beforeImages,
+        afterImages,
+        categoryIcons: [],
+      };
 
-    const res = await fetch(`${API_URL}/treatment-plans`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+      const res = await fetch(`${API_URL}/treatment-plans`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
 
-    setNotification(
-      res.ok ? "Treatment plan created successfully" : "Failed to create treatment plan"
-    );
+      if (res.ok) {
+        setNotification("Treatment plan created successfully");
+        return;
+      }
+
+      let message = "Failed to create treatment plan";
+      try {
+        const raw = await res.text();
+        if (raw) {
+          try {
+            const data = JSON.parse(raw);
+            message = data?.message || data?.error || message;
+          } catch {
+            message = raw;
+          }
+        }
+      } catch {
+        // Keep the fallback message.
+      }
+      setNotification(message);
+    } catch (error) {
+      console.error("Create treatment plan request failed", error);
+      setNotification("Network error while creating treatment plan");
+    }
   };
 
   return (
     <div className={styles.container}>
       <h1 className={styles.heading}>Create Treatment Plan</h1>
 
-      {notification && (
-        <div className={styles.notification}>{notification}</div>
-      )}
+      {notification && <div className={styles.notification}>{notification}</div>}
 
       <form className={styles.form} onSubmit={handleSubmit}>
-        {/* BASIC INFO */}
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>Basic Information</h2>
 
@@ -262,15 +260,16 @@ export default function CreateTreatmentPlan() {
 
           <div className={styles.fullField}>
             <label>Plan Description</label>
-            <ReactQuill
-              value={description}
-              onChange={setDescription}
-              modules={quillModules}
-            />
+            <div className={styles.quillWrapper}>
+              <ReactQuill
+                value={description}
+                onChange={setDescription}
+                modules={quillModules}
+              />
+            </div>
           </div>
         </section>
 
-        {/* MEDIA */}
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>Media & Visuals</h2>
 
@@ -294,17 +293,26 @@ export default function CreateTreatmentPlan() {
           </div>
 
           <div className={styles.field}>
-            <label>Before / After Images</label>
+            <label>Before Images</label>
             <input
               type="file"
               multiple
               className={styles.fileInput}
-              onChange={(e) => handleFileChange(e, "beforeAfterImages")}
+              onChange={(e) => handleFileChange(e, "beforeImages")}
+            />
+          </div>
+
+          <div className={styles.field}>
+            <label>After Images</label>
+            <input
+              type="file"
+              multiple
+              className={styles.fileInput}
+              onChange={(e) => handleFileChange(e, "afterImages")}
             />
           </div>
         </section>
 
-        {/* CATEGORY */}
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>Category</h2>
 
@@ -326,19 +334,23 @@ export default function CreateTreatmentPlan() {
           </div>
         </section>
 
-        {/* PRICING */}
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>Pricing</h2>
 
           <div className={styles.field}>
             <label>Gross Price (MRP)</label>
-            <input className={styles.input} onChange={(e) => setMrp(e.target.value)} />
+            <input
+              className={styles.input}
+              value={mrp}
+              onChange={(e) => setMrp(e.target.value)}
+            />
           </div>
 
           <div className={styles.field}>
             <label>Offer Price (Incl. Taxes)</label>
             <input
               className={styles.input}
+              value={offerPrice}
               onChange={(e) => setOfferPrice(e.target.value)}
             />
           </div>
@@ -347,6 +359,7 @@ export default function CreateTreatmentPlan() {
             <label>Price Per Session (Optional)</label>
             <input
               className={styles.input}
+              value={pricePerSession}
               onChange={(e) => setPricePerSession(e.target.value)}
             />
           </div>
@@ -355,75 +368,95 @@ export default function CreateTreatmentPlan() {
             <label>Discount %</label>
             <input
               className={styles.input}
+              value={discountPercent}
               onChange={(e) => setDiscountPercent(e.target.value)}
             />
           </div>
         </section>
 
-        {/* DETAILS */}
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>Treatment Details</h2>
 
           <div className={styles.field}>
             <label>No. of Sessions</label>
-            <input className={styles.input} onChange={(e) => setSessions(e.target.value)} />
+            <input
+              className={styles.input}
+              value={sessions}
+              onChange={(e) => setSessions(e.target.value)}
+            />
           </div>
 
           <div className={styles.field}>
             <label>Treatment Duration</label>
-            <input className={styles.input} onChange={(e) => setDuration(e.target.value)} />
+            <input
+              className={styles.input}
+              value={duration}
+              onChange={(e) => setDuration(e.target.value)}
+            />
           </div>
 
           <div className={styles.field}>
             <label>Validity Period</label>
-            <input className={styles.input} onChange={(e) => setValidity(e.target.value)} />
+            <input
+              className={styles.input}
+              value={validity}
+              onChange={(e) => setValidity(e.target.value)}
+            />
           </div>
 
           <div className={styles.field}>
             <label>Technology Used</label>
             <input
               className={styles.input}
+              value={technologyUsed}
               onChange={(e) => setTechnologyUsed(e.target.value)}
             />
           </div>
         </section>
 
-        {/* META */}
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>Meta & Admin</h2>
 
           <div className={styles.field}>
             <label>Gender Specific</label>
-            <select className={styles.select} onChange={(e) => setGender(e.target.value)}>
-              <option>Unisex</option>
-              <option>Male</option>
-              <option>Female</option>
+            <select
+              className={styles.select}
+              value={gender}
+              onChange={(e) =>
+                setGender(e.target.value as "Unisex" | "Male" | "Female")
+              }
+            >
+              <option value="Unisex">Unisex</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
             </select>
           </div>
 
           <div className={styles.field}>
-            <label>Payment Options</label>
-            <select
-              className={styles.select}
-              value={paymentOption}
-              onChange={(e) => setPaymentOption(e.target.value)}
-            >
-              <option>Cash</option>
-              <option>UPI</option>
-              <option>Card</option>
-              <option>EMI</option>
-              <option>Net Banking</option>
-            </select>
+            <label>Promo Code</label>
+            <input
+              className={styles.input}
+              value={promoCode}
+              onChange={(e) => setPromoCode(e.target.value)}
+            />
           </div>
 
           <div className={styles.switchRow}>
             <label>
-              <input type="checkbox" checked={addToCart} onChange={() => setAddToCart(!addToCart)} />
+              <input
+                type="checkbox"
+                checked={addToCart}
+                onChange={() => setAddToCart(!addToCart)}
+              />
               Add to Cart
             </label>
 
             <label>
-              <input type="checkbox" checked={isActive} onChange={() => setIsActive(!isActive)} />
+              <input
+                type="checkbox"
+                checked={isActive}
+                onChange={() => setIsActive(!isActive)}
+              />
               Active
             </label>
           </div>

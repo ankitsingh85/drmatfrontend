@@ -8,9 +8,8 @@ import editStyles from "@/styles/Dashboard/createUser.module.css";
 interface Treatment {
   _id: string;
   treatmentName: string;
-  description: string;
   serviceCategory?: string;
-  paymentOption?: string;
+  gender?: string;
   mrp?: number;
   offerPrice?: number;
   createdAt?: string;
@@ -26,17 +25,14 @@ interface TreatmentEditForm {
   treatmentName: string;
   clinicId: string;
   serviceCategory: string;
-  paymentOption: string;
   mrp: string;
   offerPrice: string;
-  description: string;
 }
 
 const ListOfTreatment = () => {
   const [treatments, setTreatments] = useState<Treatment[]>([]);
   const [search, setSearch] = useState("");
   const [filterClinic, setFilterClinic] = useState("all");
-  const [filterPayment, setFilterPayment] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [editingTreatment, setEditingTreatment] = useState<Treatment | null>(null);
@@ -44,10 +40,8 @@ const ListOfTreatment = () => {
     treatmentName: "",
     clinicId: "",
     serviceCategory: "",
-    paymentOption: "",
     mrp: "",
     offerPrice: "",
-    description: "",
   });
   const [error, setError] = useState("");
 
@@ -95,12 +89,9 @@ const ListOfTreatment = () => {
         (typeof treatment.clinic === "object" &&
           treatment.clinic?._id === filterClinic);
 
-      const isPaymentMatch =
-        filterPayment === "all" || treatment.paymentOption === filterPayment;
-
-      return isQueryMatch && isClinicMatch && isPaymentMatch;
+      return isQueryMatch && isClinicMatch;
     });
-  }, [treatments, search, filterClinic, filterPayment]);
+  }, [treatments, search, filterClinic]);
 
   const totalPages = Math.max(
     1,
@@ -109,7 +100,7 @@ const ListOfTreatment = () => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [search, filterClinic, filterPayment, itemsPerPage]);
+  }, [search, filterClinic, itemsPerPage]);
 
   const stripHtml = (value?: string) =>
     (value || "")
@@ -124,10 +115,9 @@ const ListOfTreatment = () => {
         "Treatment Name",
         "Clinic",
         "Category",
-        "Payment",
+        "Gender",
         "MRP",
         "Offer",
-        "Description",
       ],
       ...filteredTreatments.map((treatment) => [
         treatment.treatmentName || "",
@@ -135,10 +125,9 @@ const ListOfTreatment = () => {
           ? treatment.clinic?.clinicName || ""
           : "",
         treatment.serviceCategory || "",
-        treatment.paymentOption || "",
+        treatment.gender || "",
         treatment.mrp ?? "",
         treatment.offerPrice ?? "",
-        stripHtml(treatment.description) || "",
       ]),
     ];
 
@@ -186,10 +175,9 @@ const ListOfTreatment = () => {
               : "-"
           )}</td>
           <td>${escapeHtml(treatment.serviceCategory || "-")}</td>
-          <td>${escapeHtml(treatment.paymentOption || "-")}</td>
+          <td>${escapeHtml(treatment.gender || "-")}</td>
           <td>${escapeHtml(String(treatment.mrp ?? "-"))}</td>
           <td>${escapeHtml(String(treatment.offerPrice ?? "-"))}</td>
-          <td>${escapeHtml(stripHtml(treatment.description) || "-")}</td>
         </tr>`
       )
       .join("");
@@ -214,10 +202,9 @@ const ListOfTreatment = () => {
                 <th>Treatment</th>
                 <th>Clinic</th>
                 <th>Category</th>
-                <th>Payment</th>
+                <th>Gender</th>
                 <th>MRP</th>
                 <th>Offer</th>
-                <th>Description</th>
               </tr>
             </thead>
             <tbody>${rows}</tbody>
@@ -263,10 +250,8 @@ const ListOfTreatment = () => {
       treatmentName: treatment.treatmentName || "",
       clinicId,
       serviceCategory: treatment.serviceCategory || "",
-      paymentOption: treatment.paymentOption || "",
       mrp: treatment.mrp != null ? String(treatment.mrp) : "",
       offerPrice: treatment.offerPrice != null ? String(treatment.offerPrice) : "",
-      description: treatment.description || "",
     });
     setError("");
   };
@@ -295,10 +280,8 @@ const ListOfTreatment = () => {
       treatmentName: editForm.treatmentName.trim(),
       clinic: editForm.clinicId || undefined,
       serviceCategory: editForm.serviceCategory.trim(),
-      paymentOption: editForm.paymentOption.trim(),
       mrp: parsedMrp,
       offerPrice: parsedOffer,
-      description: editForm.description,
     };
 
     try {
@@ -319,10 +302,8 @@ const ListOfTreatment = () => {
                   ...t,
                   treatmentName: payload.treatmentName,
                   serviceCategory: payload.serviceCategory || undefined,
-                  paymentOption: payload.paymentOption || undefined,
                   mrp: payload.mrp,
                   offerPrice: payload.offerPrice,
-                  description: payload.description,
                   clinic: payload.clinic
                     ? {
                         _id: payload.clinic,
@@ -342,10 +323,8 @@ const ListOfTreatment = () => {
           treatmentName: "",
           clinicId: "",
           serviceCategory: "",
-          paymentOption: "",
           mrp: "",
           offerPrice: "",
-          description: "",
         });
       } else {
         setError("Failed to update treatment");
@@ -378,18 +357,6 @@ const ListOfTreatment = () => {
               {clinic.name}
             </option>
           ))}
-        </select>
-        <select
-          value={filterPayment}
-          onChange={(e) => setFilterPayment(e.target.value)}
-          className={styles.filter}
-        >
-          <option value="all">All Payments</option>
-          <option value="Cash">Cash</option>
-          <option value="UPI">UPI</option>
-          <option value="Card">Card</option>
-          <option value="EMI">EMI</option>
-          <option value="Net Banking">Net Banking</option>
         </select>
         {/* <select
           value={itemsPerPage}
@@ -426,10 +393,9 @@ const ListOfTreatment = () => {
               <th>Treatment Name</th>
               <th>Clinic</th>
               <th>Category</th>
-              <th>Payment</th>
+              <th>Gender</th>
               <th>MRP</th>
               <th>Offer</th>
-              <th>Description</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -443,10 +409,9 @@ const ListOfTreatment = () => {
                     : "-"}
                 </td>
                 <td>{treatment.serviceCategory || "-"}</td>
-                <td>{treatment.paymentOption || "-"}</td>
+                <td>{treatment.gender || "-"}</td>
                 <td>{treatment.mrp ?? "-"}</td>
                 <td>{treatment.offerPrice ?? "-"}</td>
-                <td>{stripHtml(treatment.description) || "-"}</td>
                 <td>
                   <>
                     <button
@@ -470,10 +435,10 @@ const ListOfTreatment = () => {
               </tr>
             ))}
             {paginatedTreatments.length === 0 && (
-              <tr>
-                <td colSpan={8}>No treatment plans found.</td>
-              </tr>
-            )}
+            <tr>
+              <td colSpan={7}>No treatment plans found.</td>
+            </tr>
+          )}
           </tbody>
         </table>
       </div>
@@ -583,27 +548,6 @@ const ListOfTreatment = () => {
               </div>
 
               <div className={editStyles.field}>
-                <label className={editStyles.label}>Payment Option</label>
-                <select
-                  value={editForm.paymentOption}
-                  onChange={(e) =>
-                    setEditForm((prev) => ({
-                      ...prev,
-                      paymentOption: e.target.value,
-                    }))
-                  }
-                  className={editStyles.select}
-                >
-                  <option value="">Select payment option</option>
-                  <option value="Cash">Cash</option>
-                  <option value="UPI">UPI</option>
-                  <option value="Card">Card</option>
-                  <option value="EMI">EMI</option>
-                  <option value="Net Banking">Net Banking</option>
-                </select>
-              </div>
-
-              <div className={editStyles.field}>
                 <label className={editStyles.label}>MRP</label>
                 <input
                   type="number"
@@ -631,20 +575,6 @@ const ListOfTreatment = () => {
                 />
               </div>
 
-              <div className={editStyles.fullField}>
-                <label className={editStyles.label}>Description</label>
-                <textarea
-                  value={editForm.description}
-                  onChange={(e) =>
-                    setEditForm((prev) => ({
-                      ...prev,
-                      description: e.target.value,
-                    }))
-                  }
-                  className={editStyles.textarea}
-                  placeholder="Treatment description"
-                />
-              </div>
             </div>
 
             <div style={{ display: "flex", gap: 12 }}>
@@ -660,10 +590,8 @@ const ListOfTreatment = () => {
                     treatmentName: "",
                     clinicId: "",
                     serviceCategory: "",
-                    paymentOption: "",
                     mrp: "",
                     offerPrice: "",
-                    description: "",
                   });
                 }}
               >

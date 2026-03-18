@@ -94,6 +94,11 @@
   max-width: 520px;
 }
 
+.fullField {
+  grid-column: 1 / -1;
+  max-width: none !important;
+}
+
 .section {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -125,7 +130,8 @@
 /* ===== INPUTS ===== */
 .input,
 .select,
-.readonlyInput {
+.readonlyInput,
+.textarea {
   padding: 16px 18px;
   border-radius: 16px;
   border: 1px solid #cbd5f5;
@@ -138,6 +144,12 @@
   background: linear-gradient(180deg, #f1f5f9, #e2e8f0);
   cursor: not-allowed;
   font-weight: 600;
+}
+
+.textarea {
+  min-height: 130px;
+  resize: vertical;
+  line-height: 1.6;
 }
 
 /* focus */
@@ -214,6 +226,29 @@
   border-radius: 0 0 16px 16px;
   min-height: 160px;
   font-size: 15px;
+}
+
+.quillWrapper {
+  width: 100%;
+}
+
+.quillWrapper :global(.ql-toolbar.ql-snow) {
+  border-color: #cbd5f5;
+  border-radius: 16px 16px 0 0;
+  background: #fff;
+}
+
+.quillWrapper :global(.ql-container.ql-snow) {
+  border-color: #cbd5f5;
+  border-radius: 0 0 16px 16px;
+  background: #fff;
+  min-height: 220px;
+  font-size: 15px;
+}
+
+.quillWrapper :global(.ql-editor) {
+  min-height: 180px;
+  line-height: 1.65;
 }
 
 /* ===== SUBMIT BUTTON ===== */

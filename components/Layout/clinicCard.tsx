@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import styles from "@/styles/components/Layout/clinicCard.module.css";
 import { useRouter } from "next/navigation";
+import Cookies from "js-cookie";
 import { FaWhatsapp, FaMap } from "react-icons/fa";
 import { IoCall } from "react-icons/io5";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -10,8 +11,10 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 /* ================= TYPES ================= */
 type Clinic = {
   _id: string;
+  slug?: string;
   name: string;
   mobile?: string;
+  contactNumber?: string;
   whatsapp?: string;
 
   /* 🔥 IMAGE SOURCES (ANY ONE CAN COME) */
@@ -37,6 +40,37 @@ interface ClinicCardProps {
 const ClinicCard: React.FC<ClinicCardProps> = ({ clinic }) => {
   const router = useRouter();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [loginModalAction, setLoginModalAction] = useState<string | null>(null);
+  const callNumber = clinic.mobile || clinic.contactNumber;
+
+  const redirectToLogin = () => {
+    if (typeof window === "undefined") return;
+    const nextPath = `${window.location.pathname}${window.location.search}`;
+    router.push(`/Login?next=${encodeURIComponent(nextPath)}`);
+  };
+
+  const closeLoginModal = () => {
+    setLoginModalAction(null);
+  };
+
+  const requireUserLogin = (
+    e: React.MouseEvent<HTMLAnchorElement>,
+    actionLabel: string,
+    href?: string
+  ) => {
+    e.stopPropagation();
+
+    if (!href) {
+      e.preventDefault();
+      return;
+    }
+
+    const token = Cookies.get("token");
+    if (!token) {
+      e.preventDefault();
+      setLoginModalAction(actionLabel);
+    }
+  };
 
   /* ================= IMAGE NORMALIZATION ================= */
   const images: string[] =
@@ -76,7 +110,7 @@ const ClinicCard: React.FC<ClinicCardProps> = ({ clinic }) => {
   };
 
   const handleCardClick = () => {
-    router.push(`/clinics/${clinic._id}`);
+    router.push(`/clinics/${clinic.slug || clinic._id}`);
   };
 
   const handleThumbnailClick = (
@@ -189,8 +223,14 @@ const ClinicCard: React.FC<ClinicCardProps> = ({ clinic }) => {
         {/* ================= ACTIONS ================= */}
         <div className={styles.buttons}>
           <a
-            href={clinic.mobile ? `tel:${clinic.mobile}` : undefined}
-            onClick={(e) => e.stopPropagation()}
+            href={callNumber ? `tel:${callNumber}` : undefined}
+            onClick={(e) =>
+              requireUserLogin(
+                e,
+                "call this clinic",
+                callNumber ? `tel:${callNumber}` : undefined
+              )
+            }
             className={styles.call}
           >
             <IoCall className={styles.icons} /> Call
@@ -202,7 +242,15 @@ const ClinicCard: React.FC<ClinicCardProps> = ({ clinic }) => {
                 ? `https://wa.me/${clinic.whatsapp.replace(/\D/g, "")}`
                 : undefined
             }
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) =>
+              requireUserLogin(
+                e,
+                "chat on WhatsApp",
+                clinic.whatsapp
+                  ? `https://wa.me/${clinic.whatsapp.replace(/\D/g, "")}`
+                  : undefined
+              )
+            }
             className={styles.whatsapp}
             target="_blank"
             rel="noreferrer"
@@ -215,7 +263,9 @@ const ClinicCard: React.FC<ClinicCardProps> = ({ clinic }) => {
               href={clinic.mapLink}
               target="_blank"
               rel="noreferrer"
-              onClick={(e) => e.stopPropagation()}
+              onClick={(e) =>
+                requireUserLogin(e, "view directions", clinic.mapLink)
+              }
               className={styles.call}
             >
               <FaMap className={styles.icons} /> Direction
@@ -233,6 +283,59 @@ const ClinicCard: React.FC<ClinicCardProps> = ({ clinic }) => {
           </button>
         </div>
       </div>
+
+      {loginModalAction && (
+        <div
+          className={styles.modalOverlay}
+          onClick={(e) => {
+            e.stopPropagation();
+            closeLoginModal();
+          }}
+          role="presentation"
+        >
+          <div
+            className={styles.modal}
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={`clinic-login-modal-${clinic._id}`}
+          >
+            <button
+              type="button"
+              className={styles.closeModal}
+              onClick={closeLoginModal}
+              aria-label="Close login prompt"
+            >
+              x
+            </button>
+            <h3
+              id={`clinic-login-modal-${clinic._id}`}
+              className={styles.modalTitle}
+            >
+              Login Required
+            </h3>
+            <p className={styles.modalText}>
+              You need to login first to {loginModalAction}.
+            </p>
+            <div className={styles.modalActions}>
+              <button
+                type="button"
+                className={styles.loginButton}
+                onClick={redirectToLogin}
+              >
+                Login
+              </button>
+              <button
+                type="button"
+                className={styles.cancelButton}
+                onClick={closeLoginModal}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

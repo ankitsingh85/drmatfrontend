@@ -10,6 +10,7 @@ import styles from "@/styles/pages/treatmentPlansSection.module.css";
 interface Treatment {
   _id: string;
   treatmentName: string;
+  slug?: string;
   description?: string;
   serviceCategory?: string;
   mrp?: number;
@@ -32,6 +33,14 @@ const stripHtml = (value?: string) =>
     .replace(/\s+/g, " ")
     .trim();
 
+const slugifyTreatmentName = (value: string) =>
+  value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .replace(/-{2,}/g, "-") || "treatment-plan-details";
+
 const MAX_HOME_TREATMENTS = 17;
 
 interface TreatmentPlansProps {
@@ -53,6 +62,9 @@ const TreatmentPlans = ({
 
   const visibleTreatments = useMemo(() => treatments.slice(0, limit), [treatments, limit]);
   const apiBaseUrl = API_URL.replace(/\/api\/?$/, "");
+
+  const getTreatmentSlug = (treatment: Treatment) =>
+    treatment.slug || slugifyTreatmentName(treatment.treatmentName);
 
   const resolveImage = (img?: string) => {
     if (!img) return "/skin_hair.jpg";
@@ -150,7 +162,9 @@ const TreatmentPlans = ({
                 <article
                   key={treatment._id}
                   className={styles.card}
-                  onClick={() => router.push(`/treatment-plans/${treatment._id}`)}
+                  onClick={() =>
+                    router.push(`/treatment-plans/${getTreatmentSlug(treatment)}`)
+                  }
                 >
                   <div className={styles.imageBlock}>
                     <img
@@ -183,12 +197,14 @@ const TreatmentPlans = ({
 
                     <div className={styles.actions}>
                       <button
-                        type="button"
-                        className={styles.detailBtn}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          router.push(`/treatment-plans/${treatment._id}`);
-                        }}
+                      type="button"
+                      className={styles.detailBtn}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(
+                          `/treatment-plans/${getTreatmentSlug(treatment)}`
+                        );
+                      }}
                       >
                         View Details
                       </button>

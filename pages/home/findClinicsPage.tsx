@@ -22,6 +22,7 @@ interface ClinicCategory {
 
 interface Clinic {
   _id: string;
+  slug?: string;
   cuc: string;
   clinicName: string;
   website?: string;
@@ -189,6 +190,7 @@ const FindClinicsPage: React.FC = () => {
                   clinic={{
                     ...clinic,
                     name: clinic.clinicName,
+                    mobile: clinic.contactNumber,
                     image: getImage(clinic.photos?.[0]),
                     images: [
                       ...(clinic.photos?.map((p) => getImage(p)) || []),
