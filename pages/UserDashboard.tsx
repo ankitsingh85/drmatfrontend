@@ -169,7 +169,7 @@ const UserDashboard: React.FC = () => {
     }
 
     if (activeSection === "orderhistory") return <OrderHistory mode="all" />;
-    if (activeSection === "treatmentorders") return ;
+    if (activeSection === "treatmentorders") return <TreatmentOrderHistory/> ;
     if (activeSection === "yourresult") return (
       <div className={styles.comingSoonCard}>
         <h3>{activeSectionTitle}</h3>
