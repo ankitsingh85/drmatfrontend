@@ -270,7 +270,7 @@ const ListOfServiceCategory = () => {
 
   return (
     <div className={styles.container}>
-      <h2 className={styles.title}>List of Service Categories</h2>
+      {/* <h2 className={styles.title}>List of Service Categories</h2> */}
       <div
         style={{
           display: "flex",

@@ -1,10 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { API_URL } from "@/config/api";
 import Topbar from "@/components/Layout/Topbar";
 import Footer from "@/components/Layout/Footer";
-import { useCart } from "@/context/CartContext";
 import { useRouter } from "next/router";
 import { ReactNode, useEffect, useMemo, useState } from "react";
 import {
@@ -12,7 +10,6 @@ import {
   FaCheckCircle,
   FaClock,
   FaInfoCircle,
-  FaShoppingCart,
   FaStar,
   FaTags,
   FaUserAlt,
@@ -73,11 +70,12 @@ const stripHtml = (value?: string) =>
     .replace(/\s+/g, " ")
     .trim();
 
+const TREATMENT_CHECKOUT_KEY = "treatmentCheckout";
+
 const TreatmentPlanDetailPage = () => {
   const router = useRouter();
   const { slug } = router.query;
   const planSlug = Array.isArray(slug) ? slug[0] : slug;
-  const { cartItems, addToCart } = useCart();
 
   const [plan, setPlan] = useState<TreatmentPlan | null>(null);
   const [loading, setLoading] = useState(true);
@@ -93,6 +91,25 @@ const TreatmentPlanDetailPage = () => {
     if (img.startsWith("data:")) return img;
     if (img.startsWith("/")) return `${apiBaseUrl}${img}`;
     return `data:image/jpeg;base64,${img}`;
+  };
+
+  const startTreatmentCheckout = () => {
+    if (!plan) return;
+
+    const checkoutItem = {
+      id: plan._id,
+      name: plan.treatmentName,
+      price: price.sale || 0,
+      mrp: price.mrp || undefined,
+      discount: savings && savings > 0 ? `${savings}% OFF` : undefined,
+      discountPrice: price.offer,
+      company: clinicName,
+      image: resolveImage(images[0]),
+      quantity: 1,
+    };
+
+    sessionStorage.setItem(TREATMENT_CHECKOUT_KEY, JSON.stringify([checkoutItem]));
+    router.push("/home/PaymentPage?flow=treatment");
   };
 
   useEffect(() => {
@@ -153,9 +170,7 @@ const TreatmentPlanDetailPage = () => {
   const afterImages = plan?.afterImages ?? [];
   const activeImage = images[selectedImage]?.toString() ?? "";
 
-  const inCart = cartItems.some((item) => item.id === plan?._id);
   const isAvailable = plan?.isActive !== false;
-  const canAddToCart = plan?.addToCart !== false && isAvailable;
 
   const clinicName =
     typeof plan?.clinic === "object"
@@ -273,27 +288,9 @@ const TreatmentPlanDetailPage = () => {
     return items;
   }, [plan]);
 
-  const handleAddToCart = () => {
-    if (!canAddToCart || inCart || !plan) return;
-
-    addToCart(
-      {
-        id: plan._id,
-        name: plan.treatmentName,
-        price: price.sale || 0,
-        mrp: price.mrp || undefined,
-        discount: savings && savings > 0 ? `${savings}% OFF` : undefined,
-        discountPrice: price.offer,
-        company: clinicName,
-        image: resolveImage(images[0]),
-      },
-      1
-    );
-  };
-
   const handleBookNow = () => {
-    if (!inCart) handleAddToCart();
-    router.push("/home/Cart");
+    if (!isAvailable) return;
+    startTreatmentCheckout();
   };
 
   const summaryText =
@@ -473,18 +470,11 @@ const TreatmentPlanDetailPage = () => {
 
               <div className={styles.ctaGroup}>
                 <button
-                  className={styles.secondaryBtn}
-                  disabled={!canAddToCart}
-                  onClick={() => (inCart ? router.push("/home/Cart") : handleAddToCart())}
-                >
-                  <FaShoppingCart /> {inCart ? "Go to Cart" : "Add to Cart"}
-                </button>
-                <button
                   className={styles.primaryBtn}
                   onClick={handleBookNow}
                   disabled={!isAvailable}
                 >
-                  Book Now
+                  Buy Now
                 </button>
               </div>
 

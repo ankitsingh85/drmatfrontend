@@ -4,7 +4,6 @@ import { API_URL } from "@/config/api";
 import React, { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import styles from "@/styles/Dashboard/createclinic.module.css";
-import MobileNavbar from "../Layout/MobileNavbar";
 import "react-quill/dist/quill.snow.css";
 
 const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
@@ -22,17 +21,10 @@ interface ClinicCategory {
 }
 
 /* ================= BASE64 HELPER ================= */
-const convertToBase64 = (file: File): Promise<string> =>
-  new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = reject;
-  });
-
 export default function CreateClinic() {
   const [cuc] = useState(`CUC-${Date.now().toString().slice(-6)}`);
   const [videoUrls, setVideoUrls] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const quillModules = {
     toolbar: [
@@ -102,6 +94,15 @@ export default function CreateClinic() {
     clinicStatus: "Open",
   });
 
+  const [media, setMedia] = useState({
+    clinicLogo: null as File | null,
+    bannerImage: null as File | null,
+    rateCard: null as File | null,
+    specialOffers: [] as File[],
+    photos: [] as File[],
+    certifications: [] as File[],
+  });
+
   /* ================= FETCH CLINIC CATEGORIES ================= */
   useEffect(() => {
     const fetchCategories = async () => {
@@ -130,7 +131,7 @@ export default function CreateClinic() {
     }));
   };
 
-  /* ================= FILE HANDLER (FIXED) ================= */
+  /* ================= FILE HANDLER ================= */
   const handleFileChange = async (
     e: React.ChangeEvent<HTMLInputElement>,
     field:
@@ -144,21 +145,15 @@ export default function CreateClinic() {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    if (Array.isArray(form[field])) {
-      const newFiles: string[] = [];
-      for (const file of Array.from(files)) {
-        newFiles.push(await convertToBase64(file));
-      }
-
-      setForm((prev) => ({
+    if (field === "specialOffers" || field === "photos" || field === "certifications") {
+      setMedia((prev) => ({
         ...prev,
-        [field]: [...(prev[field] as string[]), ...newFiles],
+        [field]: [...prev[field], ...Array.from(files)],
       }));
     } else {
-      const base64 = await convertToBase64(files[0]);
-      setForm((prev) => ({
+      setMedia((prev) => ({
         ...prev,
-        [field]: base64,
+        [field]: files[0],
       }));
     }
   };
@@ -188,37 +183,90 @@ export default function CreateClinic() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!form.dermaCategory) {
-      alert("Please select clinic category");
+    if (
+      !form.clinicName.trim() ||
+      !form.dermaCategory ||
+      !form.address.trim() ||
+      !form.email.trim()
+    ) {
+      alert("Please fill Clinic Name, Category, Address and Email before creating the clinic.");
       return;
     }
 
-    const payload = {
-      cuc,
-      ...form,
-      videos: videoUrls
-        .split(/\r?\n|,/)
-        .map((url) => url.trim())
-        .filter(Boolean),
-      doctors,
-    };
+    try {
+      setSubmitting(true);
+      const formData = new FormData();
+      formData.append("cuc", cuc);
+      formData.append("clinicName", form.clinicName);
+      formData.append("dermaCategory", form.dermaCategory);
+      formData.append("clinicType", form.clinicType);
+      formData.append("ownerName", form.ownerName);
+      formData.append("website", form.website);
+      formData.append("address", form.address);
+      formData.append("city", form.city);
+      formData.append("services", form.services);
+      formData.append("sector", form.sector);
+      formData.append("pincode", form.pincode);
+      formData.append("mapLink", form.mapLink);
+      formData.append("contactNumber", form.contactNumber);
+      formData.append("whatsapp", form.whatsapp);
+      formData.append("email", form.email);
+      formData.append("workingHours", form.workingHours);
+      formData.append("licenseNo", form.licenseNo);
+      formData.append("experience", form.experience);
+      formData.append("treatmentsAvailable", form.treatmentsAvailable);
+      formData.append("availableServices", form.availableServices);
+      formData.append("consultationFee", form.consultationFee);
+      formData.append("bookingMode", form.bookingMode);
+      formData.append("instagram", form.instagram);
+      formData.append("linkedin", form.linkedin);
+      formData.append("facebook", form.facebook);
+      formData.append("standardPlanLink", form.standardPlanLink);
+      formData.append("clinicStatus", form.clinicStatus);
+      formData.append("videos", JSON.stringify(
+        videoUrls
+          .split(/\r?\n|,/)
+          .map((url) => url.trim())
+          .filter(Boolean)
+      ));
+      formData.append("doctors", JSON.stringify(doctors));
 
-    const res = await fetch(`${API_URL}/clinics`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+      if (media.clinicLogo) formData.append("clinicLogo", media.clinicLogo);
+      if (media.bannerImage) formData.append("bannerImage", media.bannerImage);
+      if (media.rateCard) formData.append("rateCard", media.rateCard);
+      media.specialOffers.forEach((file) => formData.append("specialOffers", file));
+      media.photos.forEach((file) => formData.append("photos", file));
+      media.certifications.forEach((file) => formData.append("certifications", file));
 
-    res.ok
-      ? alert("✅ Clinic created successfully")
-      : alert("❌ Failed to create clinic");
+      const res = await fetch(`${API_URL}/clinics`, {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const message =
+          data?.message ||
+          data?.error ||
+          "Failed to create clinic";
+        throw new Error(message);
+      }
+
+      alert("Clinic created successfully");
+      window.dispatchEvent(new Event("admin-dashboard:create-success"));
+    } catch (error) {
+      console.error("Failed to create clinic:", error);
+      alert(error instanceof Error ? error.message : "Failed to create clinic");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   /* ================= JSX ================= */
   return (
     <div className={styles.page}>
       <div className={styles.container}>
-        <h1 className={styles.heading}>Create Clinic</h1>
+        {/* <h1 className={styles.heading}>Create Clinic</h1> */}
 
         <form className={styles.form} onSubmit={handleSubmit}>
 
@@ -416,7 +464,9 @@ export default function CreateClinic() {
             <input className={styles.input} name="facebook" placeholder="Facebook" onChange={handleChange} />
           </section>
 
-         <button className={styles.submitBtn}>Create Clinic</button>
+         <button className={styles.submitBtn} type="submit" disabled={submitting}>
+           {submitting ? "Creating..." : "Create Clinic"}
+         </button>
        </form>
      </div>
 
@@ -435,8 +485,6 @@ export default function CreateClinic() {
           </div>
         </div>
       )}
-
-      <MobileNavbar />
     </div>
   );
 }

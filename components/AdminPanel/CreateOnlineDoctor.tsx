@@ -89,7 +89,7 @@ export default function CreateOnlineDoctor() {
   /* ================= UI ================= */
   return (
     <div className={styles.container}>
-      <h1 className={styles.heading}>Create Online Doctor</h1>
+      {/* <h1 className={styles.heading}>Create Online Doctor</h1> */}
 
       <form className={styles.form} onSubmit={handleSubmit}>
         {/* ================= BASIC INFO ================= */}

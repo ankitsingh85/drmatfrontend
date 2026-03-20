@@ -194,11 +194,12 @@ export default function CreateB2BProduct() {
     });
 
     alert("B2B Product saved successfully");
+    window.dispatchEvent(new Event("admin-dashboard:create-success"));
   };
 
   return (
     <div className={styles.container}>
-      <h1 className={styles.heading}>Create B2B Product</h1>
+      {/* <h1 className={styles.heading}>Create B2B Product</h1> */}
 
       <form className={styles.form} onSubmit={handleSubmit}>
         {/* BASIC INFO */}

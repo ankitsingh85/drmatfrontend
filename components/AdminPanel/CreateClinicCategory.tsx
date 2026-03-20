@@ -1,7 +1,6 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
 import styles from "@/styles/Dashboard/createcliniccategory.module.css";
-import MobileNavbar from "../Layout/MobileNavbar";
 import { API_URL } from "@/config/api";
 
 const generateCategoryId = () => `CAT-${Date.now().toString().slice(-6)}`;
@@ -106,6 +105,7 @@ const CreateClinicCategory = () => {
       if (!res.ok) throw new Error(data.message);
 
       alert("Clinic category created successfully");
+      window.dispatchEvent(new Event("admin-dashboard:create-success"));
       setCategoryId(generateCategoryId());
       setCategoryName("");
       setCategoryImage(null);
@@ -155,7 +155,7 @@ const CreateClinicCategory = () => {
 
   return (
     <div className={styles.container}>
-      <h1 className={styles.heading}>Create Clinic Category</h1>
+      {/* <h1 className={styles.heading}>Create Clinic Category</h1> */}
       {error && <p className={styles.error}>{error}</p>}
 
       <form className={styles.form} onSubmit={handleSubmit}>
@@ -251,8 +251,6 @@ const CreateClinicCategory = () => {
           {loading ? "Uploading..." : "Save Explore Image"}
         </button>
       </section>
-
-      <MobileNavbar />
     </div>
   );
 };

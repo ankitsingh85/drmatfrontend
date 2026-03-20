@@ -2,7 +2,6 @@
 
 import React, { useRef, useState } from "react";
 import styles from "@/styles/Dashboard/createcategory.module.css";
-import MobileNavbar from "../Layout/MobileNavbar";
 import { API_URL } from "@/config/api";
 
 const CreateCourseType = () => {
@@ -80,6 +79,7 @@ const CreateCourseType = () => {
       setCourseTypeImage(null);
       setPreviewUrl(null);
       setSuccess("Course type created successfully");
+      window.dispatchEvent(new Event("admin-dashboard:create-success"));
       if (fileInputRef.current) fileInputRef.current.value = "";
     } catch (err: any) {
       setError(err.message || "Something went wrong");
@@ -90,7 +90,7 @@ const CreateCourseType = () => {
 
   return (
     <div className={styles.container}>
-      <h1 className={styles.heading}>Create Course Type</h1>
+      {/* <h1 className={styles.heading}>Create Course Type</h1> */}
 
       {error && <p className={styles.error}>{error}</p>}
       {success && <p className={styles.noImage}>{success}</p>}
@@ -143,8 +143,6 @@ const CreateCourseType = () => {
           {loading ? "Creating..." : "Create Course Type"}
         </button>
       </form>
-
-      <MobileNavbar />
     </div>
   );
 };

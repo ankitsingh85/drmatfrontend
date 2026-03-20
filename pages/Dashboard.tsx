@@ -2,7 +2,7 @@
 import Image from "next/image";
 import { API_URL } from "@/config/api";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ComponentType } from "react";
 import { jwtDecode } from "jwt-decode";
 import Cookies from "js-cookie";
 import { useRouter } from "next/navigation";
@@ -73,15 +73,24 @@ import MobileNavbar from "@/components/Layout/MobileNavbar";
 
 type JwtPayload = { id: string; role: string; exp: number };
 type BasicItem = { _id?: string; name?: string; createdAt?: string };
+type ModuleSectionConfig = {
+  id: string;
+  label: string;
+  listLabel: string;
+  createLabel: string;
+  ListComponent: ComponentType<any>;
+  CreateComponent: ComponentType<any>;
+};
 
 export default function SuperAdminDashboard() {
   const router = useRouter();
 
   const [activeSection, setActiveSection] = useState("dashBoard");
+  const [sectionMode, setSectionMode] = useState<"list" | "create">("list");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
-  const [openCategory, setOpenCategory] = useState<string | null>(null);
+  const [othersOpen, setOthersOpen] = useState(false);
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [summaryError, setSummaryError] = useState("");
   const [lastUpdated, setLastUpdated] = useState("");
@@ -160,61 +169,135 @@ export default function SuperAdminDashboard() {
     router.replace("/adminlogin");
   };
 
-  const handleSectionChange = (section: string) => {
-    setActiveSection(section);
+  const dashboardModules: ModuleSectionConfig[] = [
+    {
+      id: "admin",
+      label: "ADMIN",
+      listLabel: "List of Admin",
+      createLabel: "Create Admin",
+      ListComponent: ListOfAdmin,
+      CreateComponent: CreateAdmin,
+    },
+    {
+      id: "user",
+      label: "USER",
+      listLabel: "List of User",
+      createLabel: "Create User",
+      ListComponent: ListOfUser,
+      CreateComponent: CreateUser,
+    },
+    {
+      id: "productCategory",
+      label: "PRODUCT CATEGORY",
+      listLabel: "List of Product Category",
+      createLabel: "Create Product Category",
+      ListComponent: ListOfCategory,
+      CreateComponent: CreateCategory,
+    },
+    {
+      id: "product",
+      label: "PRODUCT",
+      listLabel: "List of Product",
+      createLabel: "Create Product",
+      ListComponent: ListOfProduct,
+      CreateComponent: CreateProduct,
+    },
+      {
+      id: "courseType",
+      label: "COURSE TYPE",
+      listLabel: "List of Course Type",
+      createLabel: "Create Course Type",
+      ListComponent: ListOfCourseType,
+      CreateComponent: CreateCourseType,
+    },
+    {
+      id: "course",
+      label: "COURSE",
+      listLabel: "List of Course",
+      createLabel: "Create Course",
+      ListComponent: ListOfCourse,
+      CreateComponent: CreateCourse,
+    },
+    {
+      id: "doctor",
+      label: "DOCTOR",
+      listLabel: "List of Doctor",
+      createLabel: "Create Doctor",
+      ListComponent: ListOfDoctor,
+      CreateComponent: CreateDoctor,
+    },
+    {
+      id: "clinicCategory",
+      label: "CLINIC CATEGORY",
+      listLabel: "List of Clinic Category",
+      createLabel: "Create Clinic Category",
+      ListComponent: ListOfClinicCategory,
+      CreateComponent: CreateClinicCategory,
+    },
+    {
+      id: "clinic",
+      label: "CLINIC",
+      listLabel: "List of Clinic",
+      createLabel: "Create Clinic",
+      ListComponent: ListOfClinic,
+      CreateComponent: CreateClinic,
+    },
+    
+    
+    {
+      id: "b2bProductCategory",
+      label: "B2B PRODUCT CATEGORY",
+      listLabel: "List of B2B Product Category",
+      createLabel: "Create B2B Product Category",
+      ListComponent: ListofB2BCategory,
+      CreateComponent: CreateB2BCategory,
+    },
+    {
+      id: "b2bProduct",
+      label: "B2B PRODUCT",
+      listLabel: "List of B2B Product",
+      createLabel: "Create B2B Product",
+      ListComponent: ListOfB2BProduct,
+      CreateComponent: CreateB2BProduct,
+    },
+    {
+      id: "serviceCategory",
+      label: "TREATMENT CATEGORY",
+      listLabel: "List of Service Category",
+      createLabel: "Create Service Category",
+      ListComponent: ListOfServiceCategory,
+      CreateComponent: CreateServiceCategory,
+    },
+    {
+      id: "treatment",
+      label: "TREATMENT PLANS",
+      listLabel: "List of Treatment",
+      createLabel: "Create Treatment",
+      ListComponent: ListOfTreatment,
+      CreateComponent: CreateTreatment,
+    },
+  
+  ];
+
+  const activeModule = dashboardModules.find((module) => module.id === activeSection);
+  const ActiveListComponent = activeModule?.ListComponent;
+  const ActiveCreateComponent = activeModule?.CreateComponent;
+
+  const handleModuleChange = (moduleId: string) => {
+    setActiveSection(moduleId);
+    setSectionMode("list");
+    setOthersOpen(false);
     setSidebarOpen(false);
   };
 
-  const menuSections = [
-    { key: "ADMIN", create: "createAdmin", list: "listOfAdmin" },
-    { key: "USER", create: "createUser", list: "listOfUser" },
-    { key: "DOCTOR", create: "createDoctor", list: "listOfDoctor" },
-    {
-      key: "CLINIC CATEGORY",
-      create: "createClinicCategory",
-      list: "listOfClinicCategory",
-    },
-    { key: "CLINIC", create: "createClinic", list: "listOfClinic" },
-    {
-      key: "PRODUCT CATEGORY",
-      create: "createProductCategory",
-      list: "listOfProductCategory",
-    },
-    { key: "PRODUCT", create: "createProduct", list: "listOfProduct" },
-    {
-      key: "B2B PRODUCT CATEGORY",
-      create: "createB2BProductCategory",
-      list: "listOfB2BProductCategory",
-    },
-    {
-      key: "B2B PRODUCT",
-      create: "createB2Bproduct",
-      list: "listOfB2Bproduct",
-    },
-    {
-      key: "Treatment CATEGORY",
-      create: "createServiceCategory",
-      list: "listOfServiceCategory",
-    },
-    {
-      key: "TREATMENT PLANS",
-      create: "createTreatment",
-      list: "listOfTreatment",
-    },
-    {
-      key: "COURSE TYPE",
-      create: "createCourseType",
-      list: "listOfCourseType",
-    },
-    {
-      key: "COURSE",
-      create: "createCourse",
-      list: "listOfCourse",
-    },
-    
-  ];
+  const handleSectionChange = (section: string) => {
+    setActiveSection(section);
+    setSectionMode("list");
+    setOthersOpen(false);
+    setSidebarOpen(false);
+  };
 
-  const fetchDashboardSummary = async () => {
+  const fetchDashboardSummary = useCallback(async () => {
     setSummaryLoading(true);
     setSummaryError("");
 
@@ -276,7 +359,23 @@ export default function SuperAdminDashboard() {
     } finally {
       setSummaryLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    const handleCreateSuccess = () => {
+      setSectionMode("list");
+      void fetchDashboardSummary();
+    };
+
+    window.addEventListener("admin-dashboard:create-success", handleCreateSuccess);
+
+    return () => {
+      window.removeEventListener(
+        "admin-dashboard:create-success",
+        handleCreateSuccess
+      );
+    };
+  }, [fetchDashboardSummary]);
 
   useEffect(() => {
     if (!checkingAuth && activeSection === "dashBoard") {
@@ -314,7 +413,7 @@ export default function SuperAdminDashboard() {
       {/* HEADER */}
       <div
         style={{
-          height: "84px",
+          height: "130px",
           background: "#ffffff",
           borderBottom: "1px solid #e5e7eb",
           display: "flex",
@@ -384,54 +483,44 @@ export default function SuperAdminDashboard() {
           <p className={styles.sectionTitle}>Dashboard</p>
 
           <li
-            className={styles.menuItem}
+            className={`${styles.menuItem} ${
+              activeSection === "dashBoard" ? styles.menuItemActive : ""
+            }`}
             onClick={() => handleSectionChange("dashBoard")}
           >
-            <FiUsers /> Dashboard
+            <span className={styles.iconLabel}>
+              <FiUsers />
+              <span className={styles.label}>Dashboard</span>
+            </span>
           </li>
 
-          {menuSections.map((cat) => (
-            <div key={cat.key}>
-              <li
-                className={styles.menuItem}
-                onClick={() =>
-                  setOpenCategory(openCategory === cat.key ? null : cat.key)
-                }
-              >
-                {cat.key}
-                {openCategory === cat.key ? (
-                  <FiChevronDown />
-                ) : (
-                  <FiChevronRight />
-                )}
-              </li>
-
-              {openCategory === cat.key && (
-                <ul className={styles.inlineDropdown}>
-                  <li onClick={() => handleSectionChange(cat.create)}>
-                    Create
-                  </li>
-                  <li onClick={() => handleSectionChange(cat.list)}>List</li>
-                </ul>
-              )}
-            </div>
+          {dashboardModules.map((module) => (
+            <li
+              key={module.id}
+              className={`${styles.menuItem} ${
+                activeSection === module.id ? styles.menuItemActive : ""
+              }`}
+              onClick={() => handleModuleChange(module.id)}
+            >
+              <span className={styles.iconLabel}>
+                <FiGrid />
+                <span className={styles.label}>{module.label}</span>
+              </span>
+            </li>
           ))}
 
           <li
             className={styles.menuItem}
-            onClick={() =>
-              setOpenCategory(openCategory === "OTHERS" ? null : "OTHERS")
-            }
+            onClick={() => setOthersOpen((prev) => !prev)}
           >
-            OTHERS
-            {openCategory === "OTHERS" ? (
-              <FiChevronDown />
-            ) : (
-              <FiChevronRight />
-            )}
+            <span className={styles.iconLabel}>
+              <FiLayers />
+              <span className={styles.label}>OTHERS</span>
+            </span>
+            {othersOpen ? <FiChevronDown /> : <FiChevronRight />}
           </li>
 
-          {openCategory === "OTHERS" && (
+          {othersOpen && (
             <ul className={styles.inlineDropdown}>
               <li onClick={() => handleSectionChange("listOfTopProduct")}>
                 List Top Product
@@ -454,7 +543,6 @@ export default function SuperAdminDashboard() {
               <li onClick={() => handleSectionChange("treatmentshorts")}>
                 Treatment Shorts
               </li>
-              
             </ul>
           )}
         </aside>
@@ -517,12 +605,7 @@ export default function SuperAdminDashboard() {
                     icon: <FiHome />,
                     tone: styles.toneClinics,
                   },
-                  {
-                    label: "Products",
-                    value: summaryData.products.length,
-                    icon: <FiBox />,
-                    tone: styles.toneProducts,
-                  },
+                  
                   {
                     label: "B2B Products",
                     value: summaryData.b2bProducts.length,
@@ -655,52 +738,63 @@ export default function SuperAdminDashboard() {
               </div>
             </div>
           )}
-          {activeSection === "createAdmin" && <CreateAdmin />}
-          {activeSection === "listOfAdmin" && <ListOfAdmin />}
-          {activeSection === "createUser" && <CreateUser />}
-          {activeSection === "listOfUser" && <ListOfUser />}
+          {activeModule ? (
+            <div className={styles.moduleShell}>
+              <div className={styles.moduleHeader}>
+                <div>
+                  <p className={styles.moduleKicker}>{activeModule.label}</p>
+                  <h2 className={styles.moduleTitle}>
+                    {sectionMode === "list"
+                      ? activeModule.listLabel
+                      : activeModule.createLabel}
+                  </h2>
+                </div>
 
-          {activeSection === "createDoctor" && <CreateDoctor />}
-          {activeSection === "listOfDoctor" && <ListOfDoctor />}
+                <div className={styles.moduleActions}>
+                  {sectionMode === "list" ? (
+                    <button
+                      type="button"
+                      className={styles.primaryAction}
+                      onClick={() => setSectionMode("create")}
+                    >
+                      {activeModule.createLabel}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className={styles.secondaryAction}
+                      onClick={() => setSectionMode("list")}
+                    >
+                      Back to list
+                    </button>
+                  )}
+                </div>
+              </div>
 
-          {activeSection === "createClinic" && <CreateClinic />}
-          {activeSection === "listOfClinic" && <ListOfClinic />}
-          {activeSection === "createClinicCategory" && <CreateClinicCategory />}
-          {activeSection === "listOfClinicCategory" && <ListOfClinicCategory />}
-          {activeSection === "createProduct" && <CreateProduct />}
-          {activeSection === "listOfProduct" && <ListOfProduct />}
-          {activeSection === "createProductCategory" && <CreateCategory />}
-          {activeSection === "listOfProductCategory" && <ListOfCategory />}
-          {activeSection === "createB2Bproduct" && <CreateB2BProduct />}
-          {activeSection === "listOfB2Bproduct" && <ListOfB2BProduct />}
-          {activeSection === "createServiceCategory" && (
-            <CreateServiceCategory />
+              <div className={styles.moduleBody}>
+                {sectionMode === "list" ? (
+                  ActiveListComponent ? <ActiveListComponent /> : null
+                ) : (
+                  ActiveCreateComponent ? <ActiveCreateComponent /> : null
+                )}
+              </div>
+            </div>
+          ) : (
+            <>
+              {activeSection === "listOfTopProduct" && <ListOfTopProduct />}
+              {activeSection === "offer1" && <Offer1 />}
+              {activeSection === "offer2" && <Offer2 />}
+              {activeSection === "offer3" && <Offer3 />}
+              {activeSection === "offer4" && <Offer4 />}
+              {activeSection === "latestshorts" && <LatestShorts />}
+              {activeSection === "treatmentshorts" && <TreatmentShorts />}
+              {/* {activeSection === "userorderhistory" && <UserOrderHistory />} */}
+              {activeSection === "createPatient" && <CreatePatient />}
+              {activeSection === "createTestResult" && <CreateTestResult />}
+              {activeSection === "createOnlineDoctor" && <CreateOnlineDoctor />}
+              {activeSection === "createSupport" && <CreateSupport />}
+            </>
           )}
-          {activeSection === "listOfServiceCategory" && (
-            <ListOfServiceCategory />
-          )}
-          {activeSection === "listOfTreatment" && <ListOfTreatment />}
-          {activeSection === "listOfTopProduct" && <ListOfTopProduct />}
-          {activeSection === "offer1" && <Offer1 />}
-          {activeSection === "offer2" && <Offer2 />}
-          {activeSection === "offer3" && <Offer3 />}
-          {activeSection === "offer4" && <Offer4 />}
-          {activeSection === "latestshorts" && <LatestShorts />}
-          {activeSection === "treatmentshorts" && <TreatmentShorts />}
-          {/* {activeSection === "userorderhistory" && <UserOrderHistory />} */}
-          {activeSection === "createPatient" && <CreatePatient />}
-          {activeSection === "createTestResult" && <CreateTestResult />}
-          {activeSection === "createOnlineDoctor" && <CreateOnlineDoctor />}
-          {activeSection === "createSupport" && <CreateSupport />}
-          {activeSection === "createTreatment" && <CreateTreatment />}
-          {activeSection === "createCourse" && <CreateCourse />}
-          {activeSection === "listOfCourse" && <ListOfCourse />}
-          {activeSection === "createCourseType" && <CreateCourseType />}
-          {activeSection === "listOfCourseType" && <ListOfCourseType />}
-
-          {activeSection === "listOfB2BProductCategory" && <ListofB2BCategory/>}
-
-          {activeSection === "createB2BProductCategory" && <CreateB2BCategory/>}
         </div>
       </div>
 

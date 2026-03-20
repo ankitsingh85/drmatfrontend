@@ -9,10 +9,13 @@ import { API_URL } from "@/config/api";
 export interface IOrder {
   _id?: string;
   userId?: string;
+  orderType?: "product" | "treatment";
   products: {
     id: string;
+    name?: string;
     quantity: number;
     price: number;
+    image?: string;
   }[];
   totalAmount: number;
   address: { type: string; address: string };
@@ -24,7 +27,8 @@ interface OrderContextType {
   createOrder: (
     items: CartItem[],
     total: number,
-    address: { type: string; address: string }
+    address: { type: string; address: string },
+    orderType?: "product" | "treatment"
   ) => Promise<void>;
   setOrders: React.Dispatch<React.SetStateAction<IOrder[]>>;
 }
@@ -42,7 +46,8 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({
   const createOrder = async (
     items: CartItem[],
     total: number,
-    address: { type: string; address: string }
+    address: { type: string; address: string },
+    orderType: "product" | "treatment" = "product"
   ) => {
     let userId = Cookies.get("userId") || localStorage.getItem("userId");
     if (!userId) {
@@ -75,6 +80,7 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({
         products: formattedProducts,
         totalAmount: total,
         address,
+        orderType,
       });
 
       setOrders((prev) => [...prev, res.data]);

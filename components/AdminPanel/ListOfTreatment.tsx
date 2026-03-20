@@ -336,7 +336,7 @@ const ListOfTreatment = () => {
 
   return (
     <div className={styles.container}>
-      <h2 className={styles.title}>List of Treatments</h2>
+      {/* <h2 className={styles.title}>List of Treatments</h2> */}
 
       <div className={styles.toolbar}>
         <input

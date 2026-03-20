@@ -266,7 +266,7 @@ export default function ListOfB2BProduct() {
 
   return (
     <div className={styles.container}>
-      <h1 className={styles.heading}>List Of B2B Products</h1>
+      {/* <h1 className={styles.heading}>List Of B2B Products</h1> */}
 
       {/* CONTROLS */}
       <div className={styles.controls}>

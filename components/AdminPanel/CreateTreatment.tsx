@@ -192,6 +192,7 @@ export default function CreateTreatmentPlan() {
 
       if (res.ok) {
         setNotification("Treatment plan created successfully");
+        window.dispatchEvent(new Event("admin-dashboard:create-success"));
         return;
       }
 
@@ -218,7 +219,7 @@ export default function CreateTreatmentPlan() {
 
   return (
     <div className={styles.container}>
-      <h1 className={styles.heading}>Create Treatment Plan</h1>
+      {/* <h1 className={styles.heading}>Create Treatment Plan</h1> */}
 
       {notification && <div className={styles.notification}>{notification}</div>}
 

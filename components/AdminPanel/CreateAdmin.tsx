@@ -3,7 +3,6 @@ import { API_URL } from "@/config/api";
 
 import React, { useState } from "react";
 import styles from "@/styles/Dashboard/adminpages.module.css";
-import MobileNavbar from "../Layout/MobileNavbar";
 
 // const API_URL =
 //   process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000/api";
@@ -84,6 +83,7 @@ export default function CreateAdmin() {
 
     setSuccess("✅ Admin account created successfully");
     setError("");
+    window.dispatchEvent(new Event("admin-dashboard:create-success"));
 
     setForm({
       name: "",
@@ -100,7 +100,7 @@ export default function CreateAdmin() {
 
   return (
     <div className={styles.container}>
-      <h1 className={styles.heading}>Create Admin</h1>
+      {/* <h1 className={styles.heading}>Create Admin</h1> */}
 
       <form className={styles.form} onSubmit={handleSubmit}>
         {/* ================= LOGIN / PROFILE ================= */}
@@ -201,8 +201,6 @@ export default function CreateAdmin() {
           Save Admin
         </button>
       </form>
-
-      <MobileNavbar />
     </div>
   );
 }

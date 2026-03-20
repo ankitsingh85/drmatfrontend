@@ -75,6 +75,7 @@ export default function CreateUser() {
       if (!res.ok) throw new Error(data.message);
 
       alert("✅ User created successfully");
+      window.dispatchEvent(new Event("admin-dashboard:create-success"));
 
       // 🔁 reset form with NEW patient ID
       setFormData({
@@ -97,7 +98,7 @@ export default function CreateUser() {
 
   return (
     <div className={styles.container}>
-      <h1 className={styles.heading}>Create User</h1>
+      {/* <h1 className={styles.heading}>Create User</h1> */}
 
       <form className={styles.form} onSubmit={handleSubmit}>
         {/* ================= BASIC INFO ================= */}

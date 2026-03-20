@@ -216,7 +216,7 @@ export default function ListofB2BCategory() {
 
   return (
     <div className={styles.container}>
-      <h2 className={styles.heading}>B2B Category List</h2>
+      {/* <h2 className={styles.heading}>B2B Category List</h2> */}
 
       <div className={styles.toolbar}>
         <input

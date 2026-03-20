@@ -266,7 +266,7 @@ const ListOfDoctor: React.FC = () => {
 
   return (
     <div className={styles.container}>
-      <h2 className={styles.title}>List of Doctors</h2>
+      {/* <h2 className={styles.title}>List of Doctors</h2> */}
       <div className={styles.toolbar}>
         <input
           type="text"

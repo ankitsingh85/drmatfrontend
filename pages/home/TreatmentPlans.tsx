@@ -3,7 +3,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
 import { API_URL } from "@/config/api";
-import { useCart } from "@/context/CartContext";
 import { FaArrowRight } from "react-icons/fa";
 import styles from "@/styles/pages/treatmentPlansSection.module.css";
 
@@ -42,6 +41,7 @@ const slugifyTreatmentName = (value: string) =>
     .replace(/-{2,}/g, "-") || "treatment-plan-details";
 
 const MAX_HOME_TREATMENTS = 17;
+const TREATMENT_CHECKOUT_KEY = "treatmentCheckout";
 
 interface TreatmentPlansProps {
   limit?: number;
@@ -55,7 +55,6 @@ const TreatmentPlans = ({
   title = "Top Treatment Plans",
 }: TreatmentPlansProps) => {
   const router = useRouter();
-  const { addToCart, cartItems } = useCart();
   const [treatments, setTreatments] = useState<Treatment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -72,6 +71,33 @@ const TreatmentPlans = ({
     if (img.startsWith("data:")) return img;
     if (img.startsWith("/")) return `${apiBaseUrl}${img}`;
     return `data:image/jpeg;base64,${img}`;
+  };
+
+  const startTreatmentCheckout = (treatment: Treatment) => {
+    const mrp = Number(treatment.mrp || 0);
+    const offer =
+      treatment.offerPrice !== undefined ? Number(treatment.offerPrice) : undefined;
+    const sale = offer !== undefined && offer > 0 ? offer : mrp;
+    const checkoutItem = {
+      id: treatment._id,
+      name: treatment.treatmentName,
+      price: sale || 0,
+      mrp: mrp || undefined,
+      discount:
+        offer !== undefined && offer > 0 && mrp > 0 && offer < mrp
+          ? `${Math.round(((mrp - offer) / mrp) * 100)}% OFF`
+          : undefined,
+      discountPrice: offer,
+      company:
+        typeof treatment.clinic === "object"
+          ? treatment.clinic?.clinicName || ""
+          : treatment.serviceCategory,
+      image: resolveImage(treatment.treatmentImages?.[0]),
+      quantity: 1,
+    };
+
+    sessionStorage.setItem(TREATMENT_CHECKOUT_KEY, JSON.stringify([checkoutItem]));
+    router.push("/home/PaymentPage?flow=treatment");
   };
 
   useEffect(() => {
@@ -96,35 +122,9 @@ const TreatmentPlans = ({
     fetchTreatments();
   }, []);
 
-  const handleAddToCart = (e: React.MouseEvent, treatment: Treatment) => {
+  const handleBuyNow = (e: React.MouseEvent, treatment: Treatment) => {
     e.stopPropagation();
-
-    const inCart = cartItems.some((item) => item.id === treatment._id);
-    if (inCart) {
-      router.push("/home/Cart");
-      return;
-    }
-
-    const mrp = Number(treatment.mrp || 0);
-    const offer =
-      treatment.offerPrice !== undefined ? Number(treatment.offerPrice) : undefined;
-    const sale = offer !== undefined && offer > 0 ? offer : mrp;
-    const clinicName =
-      typeof treatment.clinic === "object" ? treatment.clinic?.clinicName || "" : "";
-
-    addToCart({
-      id: treatment._id,
-      name: treatment.treatmentName,
-      price: sale || 0,
-      mrp: mrp || undefined,
-      discount:
-        offer !== undefined && offer > 0 && mrp > 0 && offer < mrp
-          ? `${Math.round(((mrp - offer) / mrp) * 100)}% OFF`
-          : undefined,
-      discountPrice: offer,
-      company: clinicName || treatment.serviceCategory,
-      image: resolveImage(treatment.treatmentImages?.[0]),
-    });
+    startTreatmentCheckout(treatment);
   };
 
   return (
@@ -150,9 +150,7 @@ const TreatmentPlans = ({
               const discountPercent = hasDiscount
                 ? Math.round(((mrp - sale) / mrp) * 100)
                 : 0;
-              const inCart = cartItems.some((item) => item.id === treatment._id);
-              const canAddToCart =
-                treatment.addToCart !== false && treatment.isActive !== false;
+              const canBuyNow = treatment.isActive !== false;
               const subtext =
                 stripHtml(treatment.description) ||
                 treatment.serviceCategory ||
@@ -197,28 +195,26 @@ const TreatmentPlans = ({
 
                     <div className={styles.actions}>
                       <button
-                      type="button"
-                      className={styles.detailBtn}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        router.push(
-                          `/treatment-plans/${getTreatmentSlug(treatment)}`
-                        );
-                      }}
+                        type="button"
+                        className={styles.detailBtn}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(
+                            `/treatment-plans/${getTreatmentSlug(treatment)}`
+                          );
+                        }}
                       >
                         View Details
                       </button>
                       <button
                         type="button"
                         className={styles.cta}
-                        onClick={(e) => handleAddToCart(e, treatment)}
-                        disabled={!canAddToCart}
+                        onClick={(e) => handleBuyNow(e, treatment)}
+                        disabled={!canBuyNow}
                       >
-                        {!canAddToCart
+                        {!canBuyNow
                           ? "Unavailable"
-                          : inCart
-                            ? "Go to Cart"
-                            : "Add to Cart"}
+                          : "Buy Now"}
                       </button>
                     </div>
                   </div>
@@ -226,7 +222,7 @@ const TreatmentPlans = ({
               );
             })}
 
-            {showExploreCard && (
+            {/* {showExploreCard && (
               <article
                 className={`${styles.card} ${styles.showMore}`}
                 onClick={() => router.push("/treatment-plans")}
@@ -238,7 +234,7 @@ const TreatmentPlans = ({
                   </div>
                 </div>
               </article>
-            )}
+            )} */}
 
             {visibleTreatments.length === 0 && (
               <p className={styles.state}>No treatment plans available right now.</p>

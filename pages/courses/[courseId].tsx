@@ -178,7 +178,7 @@ const CourseDetailPage = () => {
   const trainerRole = course.instituteName || course.courseType || "Dermat Educator";
   const learnerCount = course.maximumSeatsBatchSize || 100;
   const ratingValue = course.certificationProvided === "Yes" ? 4.9 : 4.7;
-  const reviewCount = 75254;
+  const reviewCount = 7525;
   const brochureUrl = resolveFileUrl(course.brochurePdfDownload?.[0]);
   const courseHeroImage = resolveFileUrl(course.courseImage) || COURSE_HERO_IMAGE;
   const trainerImage = resolveFileUrl(course.trainerImage) || INSTRUCTOR_IMAGE;

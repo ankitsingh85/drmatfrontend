@@ -267,7 +267,7 @@ const ListOfClinicCategory = () => {
 
   return (
     <div className={styles.container}>
-      <h2 className={styles.heading}>List of Clinic Categories</h2>
+      {/* <h2 className={styles.heading}>List of Clinic Categories</h2> */}
       <div className={styles.toolbar}>
         <input
           className={styles.search}

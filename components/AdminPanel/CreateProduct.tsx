@@ -207,12 +207,13 @@ export default function CreateProduct() {
     });
 
     alert("Product saved successfully (check console)");
+    window.dispatchEvent(new Event("admin-dashboard:create-success"));
   };
 
   /* ================= UI ================= */
   return (
     <div className={styles.container}>
-      <h1 className={styles.heading}>Create Product</h1>
+      {/* <h1 className={styles.heading}>Create Product</h1> */}
 
       <form className={styles.form} onSubmit={handleSubmit}>
         {/* ===== BASIC INFO ===== */}

@@ -58,10 +58,19 @@ function ListOfClinic() {
 
   const fetchClinics = async () => {
     setLoading(true);
-    const res = await fetch(`${API_URL}/clinics`);
-    const data = await res.json();
-    setClinics(data);
-    setLoading(false);
+    try {
+      const res = await fetch(`${API_URL}/clinics?light=true`);
+      if (!res.ok) {
+        throw new Error(`Failed to load clinics (${res.status})`);
+      }
+      const data = await res.json();
+      setClinics(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Failed to fetch clinics:", err);
+      setClinics([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const fetchCategories = async () => {
@@ -179,8 +188,12 @@ function ListOfClinic() {
     setEditForm({});
   };
 
-  const getImage = (img?: string) =>
-    img?.startsWith("data:") ? img : img || "";
+  const getImage = (img?: string) => {
+    if (!img) return "";
+    if (img.startsWith("data:")) return img;
+    if (/^https?:\/\//i.test(img)) return img;
+    return img.startsWith("/") ? `${API_URL}${img}` : `${API_URL}/${img}`;
+  };
 
   const handleDownloadCSV = () => {
     const rows = [
@@ -282,7 +295,7 @@ function ListOfClinic() {
 
   return (
     <div className={styles.container}>
-      <h1 className={styles.heading}>List Of Clinic</h1>
+      {/* <h1 className={styles.heading}>List Of Clinic</h1> */}
 
       <div className={styles.toolbar}>
         <input
@@ -337,7 +350,7 @@ function ListOfClinic() {
           <table className={styles.table}>
             <thead>
               <tr>
-                <th>Logo</th>
+                
                 <th>CUC</th>
                 <th>Name</th>
                 <th>Website</th>
@@ -351,7 +364,7 @@ function ListOfClinic() {
             <tbody>
               {paginatedClinics.map((clinic) => (
                 <tr key={clinic._id}>
-                  <td>
+                  {/* <td>
                     {clinic.clinicLogo ? (
                       <img
                         src={getImage(clinic.clinicLogo)}
@@ -365,7 +378,7 @@ function ListOfClinic() {
                     ) : (
                       "—"
                     )}
-                  </td>
+                  </td> */}
                   <td>{clinic.cuc}</td>
                   <td>{clinic.clinicName}</td>
                   <td>{clinic.website || "—"}</td>

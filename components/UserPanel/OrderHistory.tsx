@@ -17,6 +17,7 @@ interface OrderProduct {
 
 interface Order {
   _id: string;
+  orderType?: "product" | "treatment";
   products: OrderProduct[];
   totalAmount: number;
   address: { type: string; address: string };
@@ -30,7 +31,13 @@ interface ResolvedUser {
   email?: string;
 }
 
-const UserOrderHistory: React.FC = () => {
+type OrderHistoryMode = "all" | "treatment";
+
+interface OrderHistoryProps {
+  mode?: OrderHistoryMode;
+}
+
+const UserOrderHistory: React.FC<OrderHistoryProps> = ({ mode = "all" }) => {
   const { user, loading } = useUser();
   const [orders, setOrders] = useState<Order[]>([]);
   const [fetching, setFetching] = useState(false);
@@ -42,6 +49,19 @@ const UserOrderHistory: React.FC = () => {
     typeof window !== "undefined"
       ? Cookies.get("userId") || localStorage.getItem("userId")
       : null;
+
+  const isTreatmentOrder = (order: Order) => {
+    const orderType = String(order.orderType || "").toLowerCase();
+    if (orderType === "treatment") return true;
+
+    const type = String(order.address?.type || "").toLowerCase();
+    const addressText = String(order.address?.address || "").toLowerCase().trim();
+    return (
+      type === "other" ||
+      addressText.includes("treatment booking") ||
+      addressText.includes("treatment")
+    );
+  };
 
   useEffect(() => {
     if (loading) return;
@@ -112,6 +132,9 @@ const UserOrderHistory: React.FC = () => {
         setOrders([]);
 
         const res = await axios.get(`${API_URL}/orders/my`, {
+          params: {
+            orderType: mode === "treatment" ? "treatment" : "product",
+          },
           headers: {
             "x-user-id": resolvedUser.id,
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -119,7 +142,11 @@ const UserOrderHistory: React.FC = () => {
         });
 
         if (Array.isArray(res.data)) {
-          setOrders(res.data);
+          const nextOrders =
+            mode === "treatment"
+              ? res.data.filter((order: Order) => isTreatmentOrder(order))
+              : res.data.filter((order: Order) => !isTreatmentOrder(order));
+          setOrders(nextOrders);
         } else {
           setOrders([]);
         }
@@ -132,7 +159,7 @@ const UserOrderHistory: React.FC = () => {
     };
 
     fetchOrders();
-  }, [resolvedUser?.id, token]);
+  }, [mode, resolvedUser?.id, token]);
 
   if (loading) {
     return (
@@ -175,21 +202,27 @@ const UserOrderHistory: React.FC = () => {
     <div className={styles.container}>
       <div className={styles.header}>
         <div>
-          <h2>{headerName} Orders</h2>
+          <h2>{mode === "treatment" ? `${headerName} Treatment Orders` : `${headerName} Orders`}</h2>
           <p className={styles.subtle}>
-            Track purchases, payment status, and order details in one place.
+            Track {mode === "treatment" ? "treatment bookings" : "purchases"} and payment status in one place.
           </p>
         </div>
         <div className={styles.summaryChip}>
-          <span>Total Orders</span>
+          <span>{mode === "treatment" ? "Treatment Orders" : "Total Orders"}</span>
           <strong>{orders.length}</strong>
         </div>
       </div>
 
       {orders.length === 0 ? (
         <div className={styles.emptyState}>
-          <div className={styles.emptyBadge}>No Orders Yet</div>
-          <p>Once you purchase a product, it will appear here automatically.</p>
+          <div className={styles.emptyBadge}>
+            {mode === "treatment" ? "No Treatment Orders Yet" : "No Orders Yet"}
+          </div>
+          <p>
+            {mode === "treatment"
+              ? "Once you book a treatment plan, it will appear here automatically."
+              : "Once you purchase a product, it will appear here automatically."}
+          </p>
         </div>
       ) : (
         <div className={styles.grid}>
@@ -220,7 +253,7 @@ const UserOrderHistory: React.FC = () => {
 
               <div className={styles.totalRow}>
                 <span>Total</span>
-                <strong>₹{order.totalAmount.toLocaleString("en-IN")}</strong>
+                <strong>Rs. {order.totalAmount.toLocaleString("en-IN")}</strong>
               </div>
 
               <div className={styles.items}>
@@ -231,7 +264,7 @@ const UserOrderHistory: React.FC = () => {
                       <span className={styles.itemQty}>Qty {p.quantity}</span>
                     </div>
                     <div className={styles.itemPrice}>
-                      ₹{(p.price * p.quantity).toLocaleString("en-IN")}
+                      Rs. {(p.price * p.quantity).toLocaleString("en-IN")}
                     </div>
                   </div>
                 ))}

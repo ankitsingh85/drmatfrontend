@@ -161,7 +161,7 @@ const ListOfCourseType = () => {
 
   return (
     <div className={styles.container}>
-      <h2 className={styles.title}>List of Course Types</h2>
+      {/* <h2 className={styles.title}>List of Course Types</h2> */}
 
       <div className={styles.toolbar}>
         <input

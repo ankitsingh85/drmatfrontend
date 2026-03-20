@@ -109,6 +109,16 @@ export const TopbarProfileProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, []);
 
+  const clearProfile = useCallback(() => {
+    writeStoredProfileImage(null);
+    setState({
+      username: null,
+      profileImage: null,
+      email: null,
+      contactNo: null,
+    });
+  }, []);
+
   useEffect(() => {
     refetchProfile();
   }, [refetchProfile]);
@@ -122,25 +132,20 @@ export const TopbarProfileProvider: React.FC<{ children: React.ReactNode }> = ({
       syncFromStorage();
       refetchProfile();
     };
+    const onUserLoggedOut = () => {
+      clearProfile();
+    };
 
     window.addEventListener("profile-updated", onProfileUpdated);
     window.addEventListener("user-logged-in", onUserLoggedIn);
+    window.addEventListener("user-logged-out", onUserLoggedOut);
 
     return () => {
       window.removeEventListener("profile-updated", onProfileUpdated);
       window.removeEventListener("user-logged-in", onUserLoggedIn);
+      window.removeEventListener("user-logged-out", onUserLoggedOut);
     };
-  }, [refetchProfile, syncFromStorage]);
-
-  const clearProfile = useCallback(() => {
-    writeStoredProfileImage(null);
-    setState({
-      username: null,
-      profileImage: null,
-      email: null,
-      contactNo: null,
-    });
-  }, []);
+  }, [clearProfile, refetchProfile, syncFromStorage]);
 
   return (
     <TopbarProfileContext.Provider

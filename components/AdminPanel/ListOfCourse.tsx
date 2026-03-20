@@ -429,7 +429,7 @@ const ListOfCourse = () => {
       className={styles.container}
       style={{ maxWidth: "1680px", width: "100%" }}
     >
-      <h2 className={styles.title}>List of Courses</h2>
+      {/* <h2 className={styles.title}>List of Courses</h2> */}
 
       <div className={styles.toolbar}>
         <input

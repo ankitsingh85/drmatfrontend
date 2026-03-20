@@ -256,7 +256,7 @@ const ListOfProduct: React.FC = () => {
 
   return (
     <div className={styles.container}>
-      <h2 className={styles.heading}>List Of Products</h2>
+      {/* <h2 className={styles.heading}>List Of Products</h2> */}
 
       {/* CONTROLS */}
       <div className={styles.controls}>

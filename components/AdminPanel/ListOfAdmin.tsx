@@ -236,7 +236,7 @@ export default function ListOfAdmin() {
 
   return (
     <div className={styles.container}>
-      <h1 className={styles.heading}>List of Admin</h1>
+      {/* <h1 className={styles.heading}>List of Admin</h1> */}
 
       {/* 🔍 SEARCH & FILTER */}
       <div className={styles.toolbar}>

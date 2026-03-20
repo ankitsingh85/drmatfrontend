@@ -68,6 +68,7 @@ export default function CreateB2BCategory() {
       if (!res.ok) throw new Error(data.message || "Failed to create category");
 
       alert("B2B Category created successfully");
+      window.dispatchEvent(new Event("admin-dashboard:create-success"));
       setName("");
       setImage(null);
       setPreview(null);
@@ -82,7 +83,7 @@ export default function CreateB2BCategory() {
 
   return (
     <div className={styles.container}>
-      <h1 className={styles.heading}>Create B2B Category</h1>
+      {/* <h1 className={styles.heading}>Create B2B Category</h1> */}
 
       {error && <div className={styles.error}>{error}</div>}
 

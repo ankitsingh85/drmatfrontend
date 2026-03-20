@@ -10,7 +10,6 @@ import React, {
 import dynamic from "next/dynamic";
 import styles from "@/styles/Dashboard/createcategory.module.css";
 import { API_URL } from "@/config/api";
-import MobileNavbar from "../Layout/MobileNavbar";
 import "react-quill/dist/quill.snow.css";
 
 const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
@@ -469,6 +468,7 @@ const CreateCourse = () => {
       setCourseImagePreview("");
       setTrainerImagePreview("");
       setSuccess("Course created successfully");
+      window.dispatchEvent(new Event("admin-dashboard:create-success"));
     } catch (err: any) {
       setError(err.message || "Failed to create course");
     } finally {
@@ -556,7 +556,7 @@ const CreateCourse = () => {
 
   return (
     <div className={styles.container}>
-      <h1 className={styles.heading}>Create Course</h1>
+      {/* <h1 className={styles.heading}>Create Course</h1> */}
 
       {error && <p className={styles.error}>{error}</p>}
       {success && <p className={styles.noImage}>{success}</p>}
@@ -835,8 +835,6 @@ const CreateCourse = () => {
           {loading ? "Creating..." : "Create Course"}
         </button>
       </form>
-
-      <MobileNavbar />
     </div>
   );
 };

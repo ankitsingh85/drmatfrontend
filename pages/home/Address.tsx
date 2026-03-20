@@ -4,6 +4,8 @@ import React, { useCallback, useEffect, useState } from "react";
 import styles from "@/styles/user/Address.module.css";
 import { useRouter } from "next/router";
 import Cookies from "js-cookie";
+import Image from "next/image";
+
 import MobileNavbar from "@/components/Layout/MobileNavbar";
 import { FaUserCircle, FaShoppingCart, FaCreditCard } from "react-icons/fa";
 import { BsShieldCheck } from "react-icons/bs";
@@ -13,9 +15,9 @@ import {
   MdOutlineRadioButtonUnchecked,
 } from "react-icons/md";
 import { IoClose } from "react-icons/io5";
-import { useCart } from "@/context/CartContext";
+import { CartItem, useCart } from "@/context/CartContext";
 import { API_URL } from "@/config/api";
-
+// import {logo} from "@/public/logo.jpeg"
 interface Address {
   type: string;
   address?: string;
@@ -39,6 +41,7 @@ interface IUserProfile {
 
 const ADDRESS_TYPES = ["Home", "Work", "Office"] as const;
 type AddressType = (typeof ADDRESS_TYPES)[number];
+const TREATMENT_CHECKOUT_KEY = "treatmentCheckout";
 
 const emptyAddress: Address = {
   type: "Home",
@@ -130,6 +133,8 @@ const AddressPage: React.FC = () => {
   const { cartItems } = useCart();
 
   const [user, setUser] = useState<IUserProfile | null>(null);
+  const [checkoutItems, setCheckoutItems] = useState<CartItem[]>([]);
+  const [checkoutLoaded, setCheckoutLoaded] = useState(false);
   const [selectedAddressIndex, setSelectedAddressIndex] = useState(0);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -201,6 +206,22 @@ const AddressPage: React.FC = () => {
   }, [fetchUser]);
 
   useEffect(() => {
+    try {
+      const stored = sessionStorage.getItem(TREATMENT_CHECKOUT_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          setCheckoutItems(parsed);
+        }
+      }
+    } catch {
+      setCheckoutItems([]);
+    } finally {
+      setCheckoutLoaded(true);
+    }
+  }, []);
+
+  useEffect(() => {
     if (!showEditModal || editingAddressIndex === null || !user?.addresses?.length) return;
     const current = user.addresses[editingAddressIndex];
     if (current) {
@@ -220,8 +241,11 @@ const AddressPage: React.FC = () => {
     };
   }, [fetchUser]);
 
-  if (isLoadingUser || !user) return <p className={styles.message}>Loading...</p>;
-  if (cartItems.length === 0) {
+  const activeItems = checkoutItems.length > 0 ? checkoutItems : cartItems;
+  const isTreatmentCheckout = checkoutItems.length > 0;
+
+  if (isLoadingUser || !user || !checkoutLoaded) return <p className={styles.message}>Loading...</p>;
+  if (activeItems.length === 0) {
     router.replace("/home/Cart");
     return <p className={styles.message}>Your cart is empty. Redirecting...</p>;
   }
@@ -324,16 +348,17 @@ const AddressPage: React.FC = () => {
       query: {
         type: selectedAddress.type,
         address: formatAddressText(selectedAddress),
+        flow: isTreatmentCheckout ? "treatment" : "cart",
       },
     });
   };
 
-  const subtotalMrp = cartItems.reduce(
+  const subtotalMrp = activeItems.reduce(
     (acc, item) => acc + (item.mrp != null ? item.mrp : item.price) * item.quantity,
     0
   );
 
-  const offerTotal = cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
+  const offerTotal = activeItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
 
   const totalDiscount = Math.max(0, subtotalMrp - offerTotal);
   const deliveryFee = offerTotal >= 499 ? 0 : 49;
@@ -343,11 +368,11 @@ const AddressPage: React.FC = () => {
     <div className={styles.page}>
       <div className={styles.header}>
         <div className={styles.logo}>
-          <img
-            src="/logo.png"
+          <Image
+            src="/logo.jpeg"
             alt="Logo"
             width={155}
-            height={45}
+            height={120}
             onClick={() => router.push("/home")}
           />
         </div>
@@ -356,7 +381,9 @@ const AddressPage: React.FC = () => {
             <div className={styles.circleFilled}>
               <FaShoppingCart />
             </div>
-            <div className={styles.labelActive}>Cart</div>
+            <div className={styles.labelActive}>
+              {isTreatmentCheckout ? "Treatment" : "Cart"}
+            </div>
           </div>
           <div className={styles.line}></div>
           <div className={styles.step}>
@@ -372,6 +399,25 @@ const AddressPage: React.FC = () => {
             </div>
             <div className={styles.labelDisabled}>Payment</div>
           </div>
+        </div>
+      </div>
+
+      <div className={styles.heroBand}>
+        <div>
+          <p className={styles.heroEyebrow}>Secure checkout</p>
+          <h2 className={styles.heroTitle}>
+            {isTreatmentCheckout
+              ? "Confirm your treatment booking details"
+              : "Choose your delivery address"}
+          </h2>
+          <p className={styles.heroCopy}>
+            Review your saved addresses, select the one you want, and continue
+            to a clean payment step.
+          </p>
+        </div>
+        <div className={styles.heroBadge}>
+          <BsShieldCheck />
+          <span>Address verified</span>
         </div>
       </div>
 
@@ -443,34 +489,48 @@ const AddressPage: React.FC = () => {
         </div>
 
         <div className={styles.right}>
-          <h3 className={styles.summaryTitle}>Order Summary ({cartItems.length} items)</h3>
-          {cartItems.map((item) => (
-            <div key={item.id} className={styles.summaryRow}>
-              <span>
-                {item.name} x {item.quantity}
-              </span>
-              <span>Rs. {(item.price * item.quantity).toLocaleString("en-IN")}</span>
+          <div className={styles.summaryTop}>
+            <div>
+              <p className={styles.summaryKicker}>Review your order</p>
+              <h3 className={styles.summaryTitle}>
+                {isTreatmentCheckout ? "Treatment booking summary" : "Cart summary"}
+              </h3>
             </div>
-          ))}
-          <hr />
-          <div className={styles.summaryRow}>
-            <span>Subtotal (MRP)</span>
-            <span>Rs. {subtotalMrp.toLocaleString("en-IN")}</span>
+            <div className={styles.summaryPill}>{activeItems.length} item(s)</div>
           </div>
-          <div className={styles.summaryRow}>
-            <span>Offer Price</span>
-            <span>Rs. {offerTotal.toLocaleString("en-IN")}</span>
+
+          <div className={styles.summaryItems}>
+            {activeItems.map((item) => (
+              <div key={item.id} className={styles.summaryItem}>
+                <div className={styles.summaryItemCopy}>
+                  <span>{item.name}</span>
+                  <small>Qty {item.quantity}</small>
+                </div>
+                <strong>Rs. {(item.price * item.quantity).toLocaleString("en-IN")}</strong>
+              </div>
+            ))}
           </div>
-          <div className={styles.savingsNote}>
-            You save Rs. {totalDiscount.toLocaleString("en-IN")}
-          </div>
-          <div className={styles.summaryRow}>
-            <span>Delivery Fee</span>
-            <span>{deliveryFee === 0 ? "FREE" : `Rs. ${deliveryFee}`}</span>
-          </div>
-          <div className={styles.summaryTotal}>
-            <span>Total</span>
-            <span>Rs. {totalPayable.toLocaleString("en-IN")}</span>
+
+          <div className={styles.summaryBreakdown}>
+            <div className={styles.summaryRow}>
+              <span>Subtotal (MRP)</span>
+              <span>Rs. {subtotalMrp.toLocaleString("en-IN")}</span>
+            </div>
+            <div className={styles.summaryRow}>
+              <span>Offer Price</span>
+              <span>Rs. {offerTotal.toLocaleString("en-IN")}</span>
+            </div>
+            <div className={styles.savingsNote}>
+              You save Rs. {totalDiscount.toLocaleString("en-IN")}
+            </div>
+            <div className={styles.summaryRow}>
+              <span>Delivery Fee</span>
+              <span>{deliveryFee === 0 ? "FREE" : `Rs. ${deliveryFee}`}</span>
+            </div>
+            <div className={styles.summaryTotal}>
+              <span>Total</span>
+              <span>Rs. {totalPayable.toLocaleString("en-IN")}</span>
+            </div>
           </div>
 
           <button className={styles.saveDeliver} onClick={handleProceedPayment}>

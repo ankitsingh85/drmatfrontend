@@ -132,6 +132,11 @@
   margin-bottom: 0.34rem;
 }
 
+.menuItemActive {
+  background: linear-gradient(180deg, #eaf2ff 0%, #dbeafe 100%);
+  color: #0f172a;
+}
+
 .menuItem:hover {
   background-color: #ecf2ff;
   color: #0f172a;
@@ -208,6 +213,79 @@
     radial-gradient(circle at 92% 88%, rgba(255, 222, 189, 0.3) 0%, transparent 30%),
     linear-gradient(180deg, #f7fafd 0%, #f3f7fb 100%);
   overflow-y: auto;
+}
+
+.moduleShell {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  animation: fadeInUp 0.35s ease both;
+}
+
+.moduleHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px 24px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
+  border: 1px solid #dce5ef;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.07);
+}
+
+.moduleKicker {
+  margin: 0 0 8px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: #64748b;
+}
+
+.moduleTitle {
+  margin: 0;
+  font-size: 1.5rem;
+  line-height: 1.2;
+  color: #0f172a;
+  font-weight: 800;
+}
+
+.moduleActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.primaryAction,
+.secondaryAction {
+  border: none;
+  border-radius: 12px;
+  padding: 10px 16px;
+  font-size: 0.92rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+}
+
+.primaryAction {
+  background: linear-gradient(180deg, #2981b7 0%, #10678c 100%);
+  color: #fff;
+  box-shadow: 0 10px 18px rgba(15, 23, 42, 0.18);
+}
+
+.secondaryAction {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.primaryAction:hover,
+.secondaryAction:hover {
+  transform: translateY(-1px);
+}
+
+.moduleBody {
+  min-width: 0;
 }
 
 /* =========================

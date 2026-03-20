@@ -56,6 +56,7 @@ const CreateDoctor = () => {
 
       if (res.ok) {
         setMessage("✅ Doctor created successfully");
+        window.dispatchEvent(new Event("admin-dashboard:create-success"));
         setFormData({
           title: "",
           firstName: "",
@@ -79,7 +80,7 @@ const CreateDoctor = () => {
 
   return (
     <div className={styles.container}>
-      <h1 className={styles.heading}>Create Doctor</h1>
+      {/* <h1 className={styles.heading}>Create Doctor</h1> */}
 
       {message && <p>{message}</p>}
 

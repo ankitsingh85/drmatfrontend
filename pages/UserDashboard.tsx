@@ -6,32 +6,28 @@ import Cookies from "js-cookie";
 import styles from "@/styles/userdashboard.module.css";
 import {
   FiHome,
-  FiCalendar,
-  FiEdit2,
   FiLogOut,
   FiMenu,
   FiX,
-  FiFileText,
   FiChevronRight,
-  FiCreditCard,
   FiHelpCircle,
   FiSettings,
   FiStar,
   FiActivity,
-  FiBookOpen,
   FiUser,
 } from "react-icons/fi";
 
 import ServiceHistory from "@/components/UserPanel/ServiceHistory";
 import OrderHistory from "@/components/UserPanel/OrderHistory";
+import TreatmentOrderHistory from "@/components/UserPanel/TreatmentOrderHistory";
 import AppointmentHistory from "@/components/UserPanel/AppointmentHistory";
-import Prescription from "@/components/UserPanel/Prescription";
 import UserProfile from "@/components/UserPanel/UserProfile";
 
 import Topbar from "@/components/Layout/Topbar";
 import Footer from "@/components/Layout/Footer";
 import MobileNavbar from "@/components/Layout/MobileNavbar";
 import { API_URL } from "@/config/api";
+import { useTopbarProfile } from "@/context/TopbarProfileContext";
 
 const normalizeProfileImage = (img?: string | null) => {
   if (!img) return null;
@@ -50,9 +46,10 @@ interface User {
 
 const UserDashboard: React.FC = () => {
   const router = useRouter();
+  const profile = useTopbarProfile();
 
   const [activeSection, setActiveSection] = useState("orderhistory");
-  const [activeSectionTitle, setActiveSectionTitle] = useState("My Orders");
+  const [activeSectionTitle, setActiveSectionTitle] = useState("Orders");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [user, setUser] = useState<User>({});
@@ -112,8 +109,22 @@ const UserDashboard: React.FC = () => {
   const handleLogout = () => {
     Cookies.remove("token");
     Cookies.remove("username");
+    Cookies.remove("clinicName");
+    Cookies.remove("clinicId");
     Cookies.remove("email");
+    Cookies.remove("userId");
+    Cookies.remove("location");
     Cookies.remove("contactNo");
+    Cookies.remove("profileImage");
+    Cookies.remove("role");
+
+    localStorage.removeItem("userId");
+    localStorage.removeItem("clinicId");
+    localStorage.removeItem("profileImage");
+
+    profile?.clearProfile();
+    window.dispatchEvent(new CustomEvent("user-logged-out"));
+
     router.replace("/Login");
   };
 
@@ -132,18 +143,14 @@ const UserDashboard: React.FC = () => {
 
   /* ================= MENU ================= */
   const menuItems = [
-    { id: "orderhistory", label: "My Orders", icon: <FiHome /> },
-    { id: "labtest", label: "My Lab Test", icon: <FiCalendar /> },
-    { id: "testbooking", label: "Test Booking", icon: <FiEdit2 /> },
-    { id: "appointmenthistory", label: "Orders", icon: <FiActivity /> },
+    { id: "orderhistory", label: "Orders", icon: <FiHome /> },
+    { id: "treatmentorders", label: "Treatment Orders", icon: <FiHome /> },
+    { id: "yourresult", label: "Your Result", icon: <FiActivity /> },
+    { id: "appointmenthistory", label: "Appointments", icon: <FiActivity /> },
     { id: "servicehistory", label: "My Consultation", icon: <FiUser /> },
-    { id: "medicalrecords", label: "Medical Records", icon: <FiFileText /> },
-    { id: "payments", label: "Manage Payment Methods", icon: <FiCreditCard /> },
-    { id: "health", label: "Read About Health", icon: <FiBookOpen /> },
     { id: "helpcenter", label: "Help Center", icon: <FiHelpCircle /> },
     { id: "settings", label: "Settings", icon: <FiSettings /> },
     { id: "rating", label: "Like Us? Give us 5 Stars", icon: <FiStar /> },
-    { id: "prescription", label: "Prescription", icon: <FiFileText /> },
   ];
 
   /* ================= CONTENT ================= */
@@ -161,10 +168,16 @@ const UserDashboard: React.FC = () => {
       );
     }
 
-    if (activeSection === "orderhistory") return <OrderHistory />;
+    if (activeSection === "orderhistory") return <OrderHistory mode="all" />;
+    if (activeSection === "treatmentorders") return ;
+    if (activeSection === "yourresult") return (
+      <div className={styles.comingSoonCard}>
+        <h3>{activeSectionTitle}</h3>
+        <p>Your treatment results will appear here soon.</p>
+      </div>
+    );
     if (activeSection === "appointmenthistory") return <AppointmentHistory />;
     if (activeSection === "servicehistory") return <ServiceHistory />;
-    if (activeSection === "prescription") return <Prescription />;
 
     return (
       <div className={styles.comingSoonCard}>
