@@ -6,7 +6,15 @@ import Link from "next/link";
 import styles from "@/styles/components/Layout/Topbar.module.css";
 import Image from "next/image";
 import { useRouter, usePathname } from "next/navigation";
-import { ShoppingCart, MapPin, Menu, User, LogOut, ChevronDown } from "lucide-react";
+import {
+  ShoppingCart,
+  MapPin,
+  Menu,
+  User,
+  LogOut,
+  ChevronDown,
+  ArrowUpRight,
+} from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useTopbarProfile } from "@/context/TopbarProfileContext";
 import Cookies from "js-cookie";
@@ -201,6 +209,13 @@ const Topbar: React.FC<TopbarProps> = ({ hideHamburgerOnMobile }) => {
             <Link href="/plans" className={styles.navLink}>Buy Treatment Plan</Link>
             <Link href="/product-listing" className={styles.navLink}>Buy Products</Link>
             <Link href="/quiz/ques1" className={styles.navLink}>Online Test</Link>
+            <Link href="/cliniclogin" className={styles.businessNavLink}>
+              <span className={styles.businessTag}>BUSINESS</span>
+              <span className={styles.businessText}>
+                <span>Free Listing</span>
+                <ArrowUpRight size={15} className={styles.businessIcon} />
+              </span>
+            </Link>
 
           </nav>
         </div>

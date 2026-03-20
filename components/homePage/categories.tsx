@@ -9,7 +9,6 @@ interface ClinicCategory {
   _id: string;
   name: string;
   imageUrl: string;
-  exploreImage?: string;
 }
 
 interface ClinicCategoryProps {
@@ -28,7 +27,6 @@ const ClinicCategories: React.FC<ClinicCategoryProps> = ({
 }) => {
   const router = useRouter();
   const [categories, setCategories] = useState<ClinicCategory[]>([]);
-  const [exploreImage, setExploreImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -36,11 +34,6 @@ const ClinicCategories: React.FC<ClinicCategoryProps> = ({
       const res = await fetch(`${API_URL}/clinic-categories`);
       const data: ClinicCategory[] = await res.json();
       setCategories(data);
-
-      const exploreCat = data.find((c) => c.exploreImage);
-      if (exploreCat?.exploreImage) {
-        setExploreImage(exploreCat.exploreImage);
-      }
 
       setLoading(false);
     };
@@ -51,6 +44,7 @@ const ClinicCategories: React.FC<ClinicCategoryProps> = ({
   if (loading) return <p>Loading...</p>;
 
   const displayCategories = categories.slice(0, 17);
+  const remainingCount = Math.max(categories.length - displayCategories.length, 0);
 
   return (
     <div
@@ -84,26 +78,25 @@ const ClinicCategories: React.FC<ClinicCategoryProps> = ({
           </div>
         ))}
 
-        <div
-          className={styles.categoryWrapper}
-          onClick={() => router.push("/ClinicCategoryList")}
-        >
+        {remainingCount > 0 && (
           <div
-            className={`${styles.categoryCard} ${styles.exploreCard}`}
-            style={{ borderColor: border || undefined }}
+            className={styles.categoryWrapper}
+            onClick={() => router.push("/ClinicCategoryList")}
           >
-            {exploreImage && (
-              <img
-                src={exploreImage}
-                alt="Explore More"
-                className={styles.categoryImg}
-              />
-            )}
+            <div
+              className={`${styles.categoryCard} ${styles.exploreCard}`}
+              style={{ borderColor: border || undefined }}
+            >
+              <div className={styles.exploreCountCard}>
+                <span className={styles.exploreCount}>{remainingCount}+</span>
+                <span className={styles.exploreCountText}>More Categories</span>
+              </div>
+            </div>
+            <div className={styles.categoryLabelBox}>
+              <p className={styles.categoryLabel}>View More</p>
+            </div>
           </div>
-          <div className={styles.categoryLabelBox}>
-            <p className={styles.categoryLabel}>Explore More</p>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );
