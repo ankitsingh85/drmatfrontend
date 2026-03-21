@@ -7,6 +7,7 @@ import Cookies from "js-cookie";
 import Image from "next/image";
 
 import MobileNavbar from "@/components/Layout/MobileNavbar";
+import Topbar from "@/components/Layout/Topbar";
 import { FaUserCircle, FaShoppingCart, FaCreditCard } from "react-icons/fa";
 import { BsShieldCheck } from "react-icons/bs";
 import {
@@ -244,10 +245,22 @@ const AddressPage: React.FC = () => {
   const activeItems = checkoutItems.length > 0 ? checkoutItems : cartItems;
   const isTreatmentCheckout = checkoutItems.length > 0;
 
-  if (isLoadingUser || !user || !checkoutLoaded) return <p className={styles.message}>Loading...</p>;
+  if (isLoadingUser || !user || !checkoutLoaded) {
+    return (
+      <div className={styles.page}>
+        <Topbar />
+        <p className={styles.message}>Loading...</p>
+      </div>
+    );
+  }
   if (activeItems.length === 0) {
     router.replace("/home/Cart");
-    return <p className={styles.message}>Your cart is empty. Redirecting...</p>;
+    return (
+      <div className={styles.page}>
+        <Topbar />
+        <p className={styles.message}>Your cart is empty. Redirecting...</p>
+      </div>
+    );
   }
 
   const saveAddressesToBackend = async (addresses: Address[], selectedIndex?: number) => {
@@ -366,16 +379,12 @@ const AddressPage: React.FC = () => {
 
   return (
     <div className={styles.page}>
+      <Topbar />
       <div className={styles.header}>
         <div className={styles.logo}>
-          <Image
-            src="/logo.jpeg"
-            alt="Logo"
-            width={155}
-            height={120}
-            onClick={() => router.push("/home")}
-          />
-        </div>
+          
+                  <h1>Address</h1>
+                  </div>
         <div className={styles.steps}>
           <div className={styles.step}>
             <div className={styles.circleFilled}>

@@ -7,6 +7,7 @@ import Cookies from "js-cookie";
 import styles from "@/styles/user/paymentpage.module.css";
 import { CartItem, useCart } from "@/context/CartContext";
 import { useOrder } from "@/context/OrderContext";
+import Topbar from "@/components/Layout/Topbar";
 import {
   FaArrowRight,
   FaCheckCircle,
@@ -115,6 +116,7 @@ const PaymentPage: React.FC = () => {
   if (!checkoutLoaded) {
     return (
       <div className={styles.wrapper}>
+        <Topbar />
         <div className={styles.loadingState}>Loading checkout...</div>
       </div>
     );
@@ -123,6 +125,7 @@ const PaymentPage: React.FC = () => {
   if (paymentSuccess) {
     return (
       <div className={styles.wrapper}>
+        <Topbar />
         <div className={styles.successBackdrop} />
         <div className={styles.successShell}>
           <div className={styles.paymentSuccess}>
@@ -180,18 +183,19 @@ const PaymentPage: React.FC = () => {
 
   return (
     <div className={styles.wrapper}>
+      <Topbar />
       <div className={styles.backdrop} />
 
       <div className={styles.topbar}>
         <div className={styles.brandWrap}>
-          <Image
+          {/* <Image
             src="/logo.jpeg"
             alt="Logo"
             width={155}
             height={120}
             className={styles.logo}
             onClick={() => router.push("/home")}
-          />
+          /> */}
           <div className={styles.brandCopy}>
             <p className={styles.brandPill}>Secure checkout</p>
             <h1 className={styles.brandTitle}>
