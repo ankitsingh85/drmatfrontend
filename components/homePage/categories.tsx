@@ -72,9 +72,6 @@ const ClinicCategories: React.FC<ClinicCategoryProps> = ({
                 className={styles.categoryImg}
               />
             </div>
-            <div className={styles.categoryLabelBox}>
-              <p className={styles.categoryLabel}>{category.name}</p>
-            </div>
           </div>
         ))}
 
@@ -91,9 +88,6 @@ const ClinicCategories: React.FC<ClinicCategoryProps> = ({
                 <span className={styles.exploreCount}>{remainingCount}+</span>
                 <span className={styles.exploreCountText}>More Categories</span>
               </div>
-            </div>
-            <div className={styles.categoryLabelBox}>
-              <p className={styles.categoryLabel}>View More</p>
             </div>
           </div>
         )}

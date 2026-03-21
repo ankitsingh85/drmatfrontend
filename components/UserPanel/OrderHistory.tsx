@@ -228,46 +228,55 @@ const UserOrderHistory: React.FC<OrderHistoryProps> = ({ mode = "all" }) => {
         <div className={styles.grid}>
           {orders.map((order) => (
             <div key={order._id} className={styles.orderCard}>
-              <div className={styles.cardTop}>
-                <div>
-                  <h3>Order #{order._id.slice(-6)}</h3>
-                  <span className={styles.orderDate}>
-                    {new Date(order.createdAt).toLocaleString()}
+              <div className={styles.metaBar}>
+                <div className={styles.metaGroup}>
+                  <span>ORDER PLACED</span>
+                  <strong>{new Date(order.createdAt).toLocaleDateString("en-IN")}</strong>
+                </div>
+                <div className={styles.metaGroup}>
+                  <span>TOTAL</span>
+                  <strong>Rs. {order.totalAmount.toLocaleString("en-IN")}</strong>
+                </div>
+                <div className={styles.metaGroup}>
+                  <span>DELIVER TO</span>
+                  <strong>{order.address.type}</strong>
+                </div>
+                <div className={styles.metaRight}>
+                  <p>Order #{order._id.slice(-8)}</p>
+                  <span
+                    className={`${styles.badge} ${
+                      order.paymentStatus === "Paid"
+                        ? styles.badgePaid
+                        : styles.badgePending
+                    }`}
+                  >
+                    {order.paymentStatus || "Pending"}
                   </span>
                 </div>
-                <span
-                  className={`${styles.badge} ${
-                    order.paymentStatus === "Paid"
-                      ? styles.badgePaid
-                      : styles.badgePending
-                  }`}
-                >
-                  {order.paymentStatus || "Pending"}
-                </span>
               </div>
 
-              <div className={styles.address}>
-                <span>{order.address.type}</span>
-                <p>{order.address.address}</p>
-              </div>
-
-              <div className={styles.totalRow}>
-                <span>Total</span>
-                <strong>Rs. {order.totalAmount.toLocaleString("en-IN")}</strong>
-              </div>
-
-              <div className={styles.items}>
-                {order.products.map((p) => (
-                  <div key={`${order._id}-${p.id}`} className={styles.itemRow}>
-                    <div className={styles.itemMeta}>
-                      <p className={styles.itemName}>{p.name}</p>
-                      <span className={styles.itemQty}>Qty {p.quantity}</span>
+              <div className={styles.cardBody}>
+                <p className={styles.addressText}>{order.address.address}</p>
+                <div className={styles.items}>
+                  {order.products.map((p) => (
+                    <div key={`${order._id}-${p.id}`} className={styles.itemRow}>
+                      <div className={styles.itemLeft}>
+                        <img
+                          src={p.image || "/skin_hair.jpg"}
+                          alt={p.name}
+                          className={styles.itemImage}
+                        />
+                        <div className={styles.itemMeta}>
+                          <p className={styles.itemName}>{p.name}</p>
+                          <span className={styles.itemQty}>Qty: {p.quantity}</span>
+                        </div>
+                      </div>
+                      <div className={styles.itemPrice}>
+                        Rs. {(p.price * p.quantity).toLocaleString("en-IN")}
+                      </div>
                     </div>
-                    <div className={styles.itemPrice}>
-                      Rs. {(p.price * p.quantity).toLocaleString("en-IN")}
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </div>
           ))}
