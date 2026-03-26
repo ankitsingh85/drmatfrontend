@@ -1,12 +1,20 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/router";
 import styles from "@/styles/Offer.module.css";
 import { ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
 import { API_URL } from "@/config/api";
 
+interface TreatmentRef {
+  _id?: string;
+  slug?: string;
+  treatmentName?: string;
+}
+
 interface Offer {
   _id: string;
   imageBase64: string;
+  treatmentId?: string | TreatmentRef;
 }
 
 // const API_BASE =
@@ -14,7 +22,9 @@ interface Offer {
 
 const AUTO_DELAY = 3000;
 
-const OfferComponent = () => {
+const TreatmentOffer = () => {
+  const router = useRouter();
+
   const getVisibleCount = () => {
     if (typeof window === "undefined") return 3;
     if (window.innerWidth <= 640) return 1;
@@ -128,6 +138,27 @@ const OfferComponent = () => {
     setIsPlaying((prev) => !prev);
   };
 
+  const getTreatmentPath = (offer: Offer) => {
+    if (!offer.treatmentId) return "";
+    if (typeof offer.treatmentId === "string") {
+      return `/treatment-plans/${offer.treatmentId}`;
+    }
+
+    return (
+      (offer.treatmentId.slug && `/treatment-plans/${offer.treatmentId.slug}`) ||
+      (offer.treatmentId._id && `/treatment-plans/${offer.treatmentId._id}`) ||
+      (offer.treatmentId.treatmentName &&
+        `/treatment-plans/${encodeURIComponent(offer.treatmentId.treatmentName)}`) ||
+      ""
+    );
+  };
+
+  const handleOfferClick = (offer: Offer) => {
+    const targetPath = getTreatmentPath(offer);
+    if (!targetPath) return;
+    router.push(targetPath);
+  };
+
   if (slides.length === 0) {
     return <p style={{ textAlign: "center" }}>No offers available</p>;
   }
@@ -160,7 +191,21 @@ const OfferComponent = () => {
               key={`${slide._id}-${i}`}
               style={{ flex: `0 0 calc(100% / ${visibleCount})` }}
             >
-              <img src={slide.imageBase64} alt="Offer" />
+              <button
+                type="button"
+                onClick={() => handleOfferClick(slide)}
+                style={{
+                  border: "none",
+                  padding: 0,
+                  background: "transparent",
+                  width: "100%",
+                  cursor: slide.treatmentId ? "pointer" : "default",
+                }}
+                disabled={!slide.treatmentId}
+                aria-label="Open treatment details"
+              >
+                <img src={slide.imageBase64} alt="Offer" />
+              </button>
             </div>
           ))}
         </div>
@@ -185,4 +230,4 @@ const OfferComponent = () => {
   );
 };
 
-export default OfferComponent;
+export default TreatmentOffer;

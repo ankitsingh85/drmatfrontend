@@ -15,9 +15,9 @@ import ProductCard from "@/components/Layout/ProductCard";
 import ClinicCategories from "@/components/homePage/categories";
 import OfferCard from "@/components/homePage/offerCard";
 import FeaturedSection from "@/components/Layout/FeaturedSection";
-import Offer1 from "./ProductOffer";
+import ProductOffer from "./ProductOffer";
 // import Offer3 from "./ClinicOffer";
-import Offer2 from "./Offer2";
+import TreatmentOffer from "./TreatmentOffer";
 
 import Treatment from "./Treatment";
 import TreatmentPlans from "./TreatmentPlans";
@@ -190,7 +190,7 @@ const Index = () => {
                 flexWrap: "nowrap",
               }}
             >
-              <Offer2/>
+              <TreatmentOffer/>
             </div>
           </div>
 
@@ -274,7 +274,7 @@ const Index = () => {
             flexWrap: "wrap",
           }}
         >
-           <Offer1/>
+           <ProductOffer/>
         </div>
       </div>
       <div

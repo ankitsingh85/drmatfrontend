@@ -22,7 +22,7 @@ import CreateServiceCategory from "@/components/AdminPanel/CreateServiceCategory
 import ListOfServiceCategory from "@/components/AdminPanel/ListOfServiceCategory";
 import ListOfTopProduct from "@/components/AdminPanel/ListOfTopProduct";
 import Offer1 from "@/components/AdminPanel/ListofProductOffer";
-import Offer2 from "@/components/AdminPanel/ListofOffer2";
+import Offer2 from "@/components/AdminPanel/ListofTreatmentOffer";
 import Offer3 from "@/components/AdminPanel/ListofClinicOffer";
 import LatestShorts from "@/components/AdminPanel/LatestShorts";
 import TreatmentShorts from "@/components/AdminPanel/TreatmentShorts";
