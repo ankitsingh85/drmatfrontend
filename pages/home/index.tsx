@@ -15,10 +15,9 @@ import ProductCard from "@/components/Layout/ProductCard";
 import ClinicCategories from "@/components/homePage/categories";
 import OfferCard from "@/components/homePage/offerCard";
 import FeaturedSection from "@/components/Layout/FeaturedSection";
-import Offer1 from "./Offer1";
-import Offer3 from "./Offer3";
+import Offer1 from "./ProductOffer";
+// import Offer3 from "./ClinicOffer";
 import Offer2 from "./Offer2";
-import Offer4 from "./Offer4";
 
 import Treatment from "./Treatment";
 import TreatmentPlans from "./TreatmentPlans";
@@ -28,6 +27,7 @@ import TopProducts from "@/components/Layout/TopProducts";
 import ProductCategory from "@/components/homePage/productCategories";
 import FullPageLoader from "@/components/common/FullPageLoader";
 import CourseListing from "@/components/Layout/CourseListing";
+import ClinicOffer from "./ClinicOffer";
 
 const Index = () => {
   const router = useRouter();
@@ -146,6 +146,7 @@ const Index = () => {
             margin: "20px",
             fontWeight: "700",
             fontSize: "26px",
+            textDecoration:"underline",
           }}
         >
          Top Derma Clinics Near You
@@ -158,7 +159,7 @@ const Index = () => {
             flexWrap: "wrap",
           }}
         >
-          <Offer1/>
+          <ClinicOffer/>
         </div>
  <TreatmentPlans />
 
@@ -175,6 +176,8 @@ const Index = () => {
                 marginBottom: "20px",
                 fontWeight: "700",
                 fontSize: "26px",
+                            textDecoration:"underline",
+
               }}
             >
              Best Treatment Offers
@@ -215,9 +218,11 @@ const Index = () => {
               marginBottom: "30px",
               fontWeight: "700",
               fontSize: "26px",
+                          textDecoration:"underline",
+
             }}
           >
-            Top Products
+           Top Hair & Skin Products recommended by Dermatologist
           </h1>
           {<TopProducts />}
           {/* <Link href="/product-listing">
@@ -256,6 +261,8 @@ const Index = () => {
             margin: "20px",
             fontWeight: "700",
             fontSize: "26px",
+                        textDecoration:"underline",
+
           }}
         >
           Special Offers on Products      </h2>
@@ -267,7 +274,7 @@ const Index = () => {
             flexWrap: "wrap",
           }}
         >
-          <Offer3 />
+           <Offer1/>
         </div>
       </div>
       <div
@@ -284,6 +291,8 @@ const Index = () => {
             marginTop: "32px",
             fontWeight: "700",
             fontSize: "26px",
+                        textDecoration:"underline",
+
           }}
         >
           Treatment Procedure
@@ -333,6 +342,8 @@ const Index = () => {
             marginTop: "32px",
             fontWeight: "700",
             fontSize: "26px",
+                        textDecoration:"underline",
+
           }}
         >
           Happy Stories

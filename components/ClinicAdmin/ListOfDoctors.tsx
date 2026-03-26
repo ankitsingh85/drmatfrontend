@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import styles from "@/styles/clinicdashboard/listofdoctors.module.css";
 import { API_URL } from "@/config/api";
+import FullPageLoader from "@/components/common/FullPageLoader";
 
 // ✅ Use environment variable for API base URL
 // const API_URL = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000/api";
@@ -94,7 +95,7 @@ function ListOfDoctors() {
       />
 
       {loading ? (
-        <p>Loading doctors...</p>
+        <FullPageLoader />
       ) : (
         <table className={styles.table}>
           <thead>

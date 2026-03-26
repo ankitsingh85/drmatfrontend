@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import styles from "@/styles/Dashboard/dashboard.module.css";
 import { FiUsers, FiHome, FiBox } from "react-icons/fi";
 import { API_URL } from "@/config/api";
+import FullPageLoader from "@/components/common/FullPageLoader";
 
 // ✅ Use environment variable for API base
 // const API_URL = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000/api";
@@ -56,9 +57,7 @@ const Dashboard = () => {
     { title: "Total Products", value: counts.products, icon: <FiBox size={28} />, color: "#f59e0b" },
   ];
 
-  if (loading) {
-    return <div className={styles.loading}>Loading dashboard data...</div>;
-  }
+  if (loading) return <FullPageLoader />;
 
   if (error) {
     return <div className={styles.error}>Error: {error}</div>;

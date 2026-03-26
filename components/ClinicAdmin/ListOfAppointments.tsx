@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import styles from "@/styles/clinicdashboard/listofappointments.module.css";
 import Cookies from "js-cookie";
 import { API_URL } from "@/config/api";
+import FullPageLoader from "@/components/common/FullPageLoader";
 
 // const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000/api";
 
@@ -35,6 +36,7 @@ export default function ListOfAppointments() {
   const [showAssignSection, setShowAssignSection] = useState(false);
   const [purchased, setPurchased] = useState<any[]>([]);
   const [doctors, setDoctors] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const clinicId = Cookies.get("clinicId");
 
@@ -113,9 +115,10 @@ export default function ListOfAppointments() {
       📌 Initial Load
   ----------------------------------------------- */
   useEffect(() => {
-    fetchAppointments();
-    fetchDoctors();
-    fetchPurchased();
+    setLoading(true);
+    Promise.all([fetchAppointments(), fetchDoctors(), fetchPurchased()]).finally(() =>
+      setLoading(false)
+    );
   }, []);
 
   /* -----------------------------------------------
@@ -192,6 +195,7 @@ export default function ListOfAppointments() {
   ----------------------------------------------- */
   return (
     <div className={styles.container}>
+      {loading && <FullPageLoader />}
       <h2 className={styles.heading}>📅 Appointment Dashboard</h2>
 
       {/* 🔥 NEW SWITCH BUTTON */}

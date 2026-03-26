@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import styles from "@/styles/Dashboard/createcliniccategory.module.css";
 import { API_URL } from "@/config/api";
 
@@ -11,15 +11,10 @@ const CreateClinicCategory = () => {
   const [categoryImage, setCategoryImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-  const [exploreImage, setExploreImage] = useState<File | null>(null);
-  const [explorePreview, setExplorePreview] = useState<string | null>(null);
-  const [latestCategoryId, setLatestCategoryId] = useState<string | null>(null);
-
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const exploreInputRef = useRef<HTMLInputElement>(null);
 
   const convertToBase64 = (file: File): Promise<string> =>
     new Promise((resolve, reject) => {
@@ -44,23 +39,6 @@ const CreateClinicCategory = () => {
     return true;
   };
 
-  const fetchLatestCategory = async () => {
-    try {
-      const res = await fetch(`${API_URL}/clinic-categories`);
-      const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
-        setLatestCategoryId(data[0]._id);
-        setExplorePreview(data[0].exploreImage || null);
-      }
-    } catch (err) {
-      console.error("Failed to fetch latest category:", err);
-    }
-  };
-
-  useEffect(() => {
-    fetchLatestCategory();
-  }, []);
-
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -68,14 +46,6 @@ const CreateClinicCategory = () => {
     setError("");
     setCategoryImage(file);
     setPreviewUrl(URL.createObjectURL(file));
-  };
-
-  const handleExploreImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!validateImage(file, "Explore image")) return;
-    setError("");
-    setExploreImage(file);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -111,43 +81,8 @@ const CreateClinicCategory = () => {
       setCategoryImage(null);
       setPreviewUrl(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
-      fetchLatestCategory();
     } catch (err: any) {
       setError(err.message || "Something went wrong");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleExploreUpload = async () => {
-    setError("");
-    if (!exploreImage || !latestCategoryId) {
-      setError("Please select explore image");
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const base64 = await convertToBase64(exploreImage);
-
-      const res = await fetch(
-        `${API_URL}/clinic-categories/explore-image/${latestCategoryId}`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ exploreImage: base64 }),
-        }
-      );
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message);
-
-      alert("Explore image updated");
-      setExploreImage(null);
-      setExplorePreview(data.exploreImage);
-      if (exploreInputRef.current) exploreInputRef.current.value = "";
-    } catch (err: any) {
-      setError(err.message || "Upload failed");
     } finally {
       setLoading(false);
     }
@@ -213,44 +148,6 @@ const CreateClinicCategory = () => {
           {loading ? "Creating..." : "Create Category"}
         </button>
       </form>
-
-      <section className={styles.section}>
-        <h3 className={styles.sectionTitle}>Explore Category Image</h3>
-
-        {explorePreview ? (
-          <img src={explorePreview} className={styles.preview} alt="Explore preview" />
-        ) : (
-          <p className={styles.noImage}>No explore image uploaded</p>
-        )}
-
-        <div className={styles.uploadBox}>
-          <button
-            type="button"
-            className={styles.uploadBtn}
-            onClick={() => exploreInputRef.current?.click()}
-          >
-            Upload Explore Image
-          </button>
-          <span className={styles.uploadHint}>JPG/PNG/WEBP - Max 1MB</span>
-        </div>
-
-        <input
-          ref={exploreInputRef}
-          type="file"
-          hidden
-          accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
-          onChange={handleExploreImageChange}
-        />
-
-        <button
-          type="button"
-          className={styles.submitBtn}
-          onClick={handleExploreUpload}
-          disabled={loading}
-        >
-          {loading ? "Uploading..." : "Save Explore Image"}
-        </button>
-      </section>
     </div>
   );
 };

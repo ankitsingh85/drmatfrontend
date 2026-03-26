@@ -1,20 +1,41 @@
 "use client";
+
 import React, { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/router";
 import styles from "@/styles/Offer.module.css";
 import { ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
 import { API_URL } from "@/config/api";
 
+interface OfferProductRef {
+  _id: string;
+  productName?: string;
+  category?: string;
+}
+
+interface OfferCategoryRef {
+  _id: string;
+  id?: string;
+  name?: string;
+}
+
 interface Offer {
   _id: string;
   imageBase64: string;
+  productId?: string | OfferProductRef;
+  categoryId?: string | OfferCategoryRef;
 }
-
-// const API_BASE =
-//   process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000/api";
 
 const AUTO_DELAY = 3000;
 
+const slugify = (value: string) =>
+  value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
 const OfferComponent = () => {
+  const router = useRouter();
+
   const getVisibleCount = () => {
     if (typeof window === "undefined") return 3;
     if (window.innerWidth <= 640) return 1;
@@ -24,7 +45,7 @@ const OfferComponent = () => {
 
   const [visibleCount, setVisibleCount] = useState(3);
   const [slides, setSlides] = useState<Offer[]>([]);
-  const [index, setIndex] = useState(3); // start after clones
+  const [index, setIndex] = useState(3);
   const [isPlaying, setIsPlaying] = useState(true);
   const [enableTransition, setEnableTransition] = useState(true);
 
@@ -32,10 +53,9 @@ const OfferComponent = () => {
   const autoRef = useRef<NodeJS.Timeout | null>(null);
   const fetchRef = useRef<NodeJS.Timeout | null>(null);
 
-  /* ================= FETCH ================= */
   const fetchOffers = async () => {
     try {
-      const res = await fetch(`${API_URL}/offer4`);
+      const res = await fetch(`${API_URL}/offer1`);
       const data: Offer[] = await res.json();
       setSlides(data);
     } catch (err) {
@@ -64,14 +84,12 @@ const OfferComponent = () => {
     };
   }, []);
 
-  /* ================= CLONED SLIDES ================= */
   const extendedSlides = [
     ...slides.slice(-visibleCount),
     ...slides,
     ...slides.slice(0, visibleCount),
   ];
 
-  /* ================= AUTOPLAY ================= */
   const clearAuto = () => {
     if (autoRef.current) clearInterval(autoRef.current);
     autoRef.current = null;
@@ -92,7 +110,6 @@ const OfferComponent = () => {
     return () => clearAuto();
   }, [slides.length, isPlaying, visibleCount]);
 
-  /* ================= LOOP FIX ================= */
   useEffect(() => {
     if (!sliderRef.current) return;
 
@@ -113,7 +130,6 @@ const OfferComponent = () => {
     setTimeout(() => setEnableTransition(true), 650);
   }, [index, slides.length, visibleCount]);
 
-  /* ================= CONTROLS ================= */
   const next = () => {
     stopAuto();
     setIndex((prev) => prev + 1);
@@ -128,13 +144,33 @@ const OfferComponent = () => {
     setIsPlaying((prev) => !prev);
   };
 
+  const getProductId = (offer: Offer) =>
+    typeof offer.productId === "object" ? offer.productId._id : offer.productId;
+
+  const getProductLabel = (offer: Offer) =>
+    typeof offer.productId === "object"
+      ? offer.productId.productName || "View product"
+      : "View product";
+
+  const getCategoryLabel = (offer: Offer) =>
+    typeof offer.categoryId === "object"
+      ? offer.categoryId.name || offer.categoryId.id || "Category"
+      : "Category";
+
+  const handleSlideClick = (offer: Offer) => {
+    const product =
+      typeof offer.productId === "object" ? offer.productId : undefined;
+    const slugSource = product?.productName || product?._id || getProductId(offer);
+    if (!slugSource) return;
+    router.push(`/product/${slugify(String(slugSource))}`);
+  };
+
   if (slides.length === 0) {
     return <p style={{ textAlign: "center" }}>No offers available</p>;
   }
 
   return (
     <div className={styles.sliderWrapper}>
-      {/* TOP RIGHT ARROWS */}
       <div className={styles.topControls}>
         <button onClick={prev}>
           <ChevronLeft size={18} />
@@ -144,7 +180,6 @@ const OfferComponent = () => {
         </button>
       </div>
 
-      {/* SLIDER */}
       <div className={styles.viewport}>
         <div
           ref={sliderRef}
@@ -159,14 +194,26 @@ const OfferComponent = () => {
               className={styles.slide}
               key={`${slide._id}-${i}`}
               style={{ flex: `0 0 calc(100% / ${visibleCount})` }}
+              onClick={() => handleSlideClick(slide)}
+              role="link"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  handleSlideClick(slide);
+                }
+              }}
             >
               <img src={slide.imageBase64} alt="Offer" />
+              <div className={styles.slideMeta}>
+                <span>{getProductLabel(slide)}</span>
+                <small>{getCategoryLabel(slide)}</small>
+              </div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* BOTTOM CONTROLS */}
       <div className={styles.bottomBar}>
         <div className={styles.progressTrack}>
           <div

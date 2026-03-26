@@ -12,6 +12,7 @@ import {
 import { API_URL } from "@/config/api";
 import { useCart } from "@/context/CartContext";
 import styles from "@/styles/courselisting.module.css";
+import FullPageLoader from "@/components/common/FullPageLoader";
 
 interface Course {
   _id: string;
@@ -120,7 +121,7 @@ const CourseListing = () => {
         </p>
       </div>
 
-      {loading && <p className={styles.stateText}>Loading courses...</p>}
+      {loading && <FullPageLoader />}
       {!loading && error && <p className={styles.error}>{error}</p>}
 
       {!loading && !error && (

@@ -9,6 +9,7 @@ import Footer from "@/components/Layout/Footer";
 import MobileNavbar from "@/components/Layout/MobileNavbar";
 import FullPageLoader from "@/components/common/FullPageLoader";
 import { FaEye } from "react-icons/fa";
+import { useCart } from "@/context/CartContext";
 
 interface Category {
   _id: string;
@@ -44,10 +45,9 @@ interface StoredCategory {
   name?: string;
 }
 
-const TREATMENT_CHECKOUT_KEY = "treatmentCheckout";
-
 const TreatmentListingPage: React.FC = () => {
   const router = useRouter();
+  const { cartItems, addToCart } = useCart();
 
   const [treatments, setTreatments] = useState<TreatmentWithCategory[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -139,13 +139,13 @@ const TreatmentListingPage: React.FC = () => {
       .replace(/-{2,}/g, "-") ||
     "treatment-plan-details";
 
-  const resolveInitialTreatmentCheckout = (plan: TreatmentWithCategory) => {
+  const buildTreatmentCartItem = (plan: TreatmentWithCategory) => {
     const mrp = Number(plan.mrp || 0);
     const offer =
       plan.offerPrice !== undefined ? Number(plan.offerPrice) : undefined;
     const sale = offer !== undefined && offer > 0 ? offer : mrp;
 
-    const checkoutItem = {
+    return {
       id: plan._id,
       name: plan.treatmentName,
       price: sale || 0,
@@ -157,14 +157,21 @@ const TreatmentListingPage: React.FC = () => {
       discountPrice: offer,
       company:
         typeof plan.clinic === "object"
-          ? plan.clinic?.clinicName || ""
-          : "",
+          ? plan.clinic?.clinicName || plan.serviceCategory || "Treatment Plan"
+          : plan.serviceCategory || "Treatment Plan",
       image: resolveImage(plan.treatmentImages?.[0]),
-      quantity: 1,
+      itemType: "treatment" as const,
     };
+  };
 
-    sessionStorage.setItem(TREATMENT_CHECKOUT_KEY, JSON.stringify([checkoutItem]));
-    router.push("/home/PaymentPage?flow=treatment");
+  const handleTreatmentAction = (plan: TreatmentWithCategory) => {
+    if (plan.isActive === false) return;
+    const item = buildTreatmentCartItem(plan);
+    if (cartItems.some((existing) => existing.id === plan._id)) {
+      router.push("/home/Cart");
+      return;
+    }
+    addToCart(item);
   };
 
   useEffect(() => {
@@ -381,11 +388,27 @@ const TreatmentListingPage: React.FC = () => {
                             className={styles.productButton}
                             onClick={(e) => {
                               e.stopPropagation();
-                              if (!isAvailable) return;
-                              resolveInitialTreatmentCheckout(plan);
+                              handleTreatmentAction(plan);
                             }}
                           >
-                            {isAvailable ? "Buy Now" : "Unavailable"}
+                            {isAvailable
+                              ? cartItems.some((item) => item.id === plan._id)
+                                ? "Go to Cart"
+                                : "Add to Cart"
+                              : "Unavailable"}
+                          </button>
+
+                          <button
+                            className={styles.wishlistBtn}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (!isAvailable) return;
+                              addToCart(buildTreatmentCartItem(plan));
+                            }}
+                            aria-label="Add to cart"
+                            title="Add to cart"
+                          >
+                            +
                           </button>
 
                           <button

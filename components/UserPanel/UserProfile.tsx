@@ -5,6 +5,7 @@ import Cookies from "js-cookie";
 import { useRouter } from "next/navigation";
 import styles from "@/styles/adminpanel/userprofile.module.css";
 import { API_URL } from "@/config/api";
+import FullPageLoader from "@/components/common/FullPageLoader";
 
 interface IUserAddress {
   type: string;
@@ -369,7 +370,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
     }
   };
 
-  if (loading) return <p className={styles.message}>Loading profile...</p>;
+  if (loading) return <FullPageLoader />;
 
   const previewAddress = formatAddressText({
     type: form.addressType || "Home",

@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useUser } from "@/context/UserContext";
 import axios from "axios";
 import { API_URL } from "@/config/api";
+import FullPageLoader from "@/components/common/FullPageLoader";
 
 interface AppointmentItem {
   serviceName: string;
@@ -42,7 +43,7 @@ function AppointmentHistory() {
     fetchAppointments();
   }, [user?._id, loading]);
 
-  if (loading || fetching) return <p>Loading appointments...</p>;
+  if (loading || fetching) return <FullPageLoader />;
   if (!user?._id) return <p>Please log in.</p>;
 
   // INTERNAL CSS

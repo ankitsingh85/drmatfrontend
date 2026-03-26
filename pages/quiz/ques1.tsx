@@ -6,6 +6,7 @@ import styles from "@/styles/quiz/ques1.module.css";
 import Topbar from "@/components/Layout/Topbar";
 import Footer from "@/components/Layout/Footer";
 import { API_URL } from "@/config/api";
+import FullPageLoader from "@/components/common/FullPageLoader";
 
 interface Option {
   text: string;
@@ -144,7 +145,7 @@ const UserQuiz: React.FC = () => {
     );
   }
 
-  if (questions.length === 0) return <p>Loading questions...</p>;
+  if (questions.length === 0) return <FullPageLoader />;
 
   const currentQuestion = questions[currentIndex];
   const selected = selectedAnswers[currentQuestion._id] || [];

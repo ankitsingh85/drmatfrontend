@@ -17,6 +17,7 @@ import {
   FaUserFriends,
 } from "react-icons/fa";
 import { FiChevronDown, FiChevronUp } from "react-icons/fi";
+import FullPageLoader from "@/components/common/FullPageLoader";
 
 interface Course {
   _id: string;
@@ -159,6 +160,7 @@ const CourseDetailPage = () => {
     : false;
 
   if (loading || error || !course) {
+    if (loading) return <FullPageLoader />;
     return (
       <>
         <Topbar />

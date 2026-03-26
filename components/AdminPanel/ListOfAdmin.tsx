@@ -4,6 +4,7 @@ import { API_URL } from "@/config/api";
 import React, { useEffect, useMemo, useState } from "react";
 import styles from "@/styles/Dashboard/listofadmin.module.css";
 import createStyles from "@/styles/Dashboard/adminpages.module.css";
+import FullPageLoader from "@/components/common/FullPageLoader";
 
 interface Admin {
   _id: string;
@@ -231,7 +232,7 @@ export default function ListOfAdmin() {
   };
 
   if (loading) {
-    return <div className={styles.loading}>Loading admins…</div>;
+    return <FullPageLoader />;
   }
 
   return (

@@ -3,6 +3,7 @@ import { API_URL } from "@/config/api";
 
 import React, { useEffect, useState } from "react";
 import styles from "@/styles/Dashboard/allorders.module.css";
+import FullPageLoader from "@/components/common/FullPageLoader";
 
 interface ICartItem {
   id: string;
@@ -96,7 +97,7 @@ const AllOrders: React.FC = () => {
     }
   };
 
-  if (loading) return <p className={styles.message}>Loading orders...</p>;
+  if (loading) return <FullPageLoader />;
   if (!filteredOrders.length)
     return <p className={styles.message}>No orders found.</p>;
 

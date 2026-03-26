@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useUser } from "@/context/UserContext";
 import axios from "axios";
 import { API_URL } from "@/config/api";
+import FullPageLoader from "@/components/common/FullPageLoader";
 
 interface ServiceHistoryItem {
   clinicName: string;
@@ -59,9 +60,9 @@ const ServiceHistory: React.FC = () => {
     fetchServices();
   }, [user?._id, loading]);
 
-  if (loading) return <p>Loading user...</p>;
+  if (loading) return <FullPageLoader />;
   if (!user?._id) return <p>Please log in.</p>;
-  if (fetching) return <p>Loading service history...</p>;
+  if (fetching) return <FullPageLoader />;
   if (error) return <p style={{ color: "red" }}>{error}</p>;
 
   const cardStyle = {

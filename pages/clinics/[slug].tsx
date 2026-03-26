@@ -238,7 +238,7 @@ const ClinicDetailPage = () => {
               </div>
 
               {loadingServices ? (
-                <div className={styles.emptyState}>Loading services...</div>
+                <FullPageLoader />
               ) : services.length === 0 ? (
                 <div className={styles.emptyState}>No services available.</div>
               ) : (
@@ -349,4 +349,3 @@ const ClinicDetailPage = () => {
 };
 
 export default ClinicDetailPage;
-

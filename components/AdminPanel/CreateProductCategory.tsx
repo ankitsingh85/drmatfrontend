@@ -9,15 +9,10 @@ const CreateCategory = () => {
   const [categoryImage, setCategoryImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-  const [exploreImage, setExploreImage] = useState<File | null>(null);
-  const [explorePreview, setExplorePreview] = useState<string | null>(null);
-
   const [error, setError] = useState("");
   const [loadingCategory, setLoadingCategory] = useState(false);
-  const [loadingExplore, setLoadingExplore] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const exploreInputRef = useRef<HTMLInputElement>(null);
 
   const convertToBase64 = (file: File): Promise<string> =>
     new Promise((resolve, reject) => {
@@ -49,15 +44,6 @@ const CreateCategory = () => {
     setError("");
     setCategoryImage(file);
     setPreviewUrl(URL.createObjectURL(file));
-  };
-
-  const handleExploreImage = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!validateImage(file, "Explore image")) return;
-    setError("");
-    setExploreImage(file);
-    setExplorePreview(URL.createObjectURL(file));
   };
 
   const handleCreateCategory = async (e: React.FormEvent) => {
@@ -101,42 +87,6 @@ const CreateCategory = () => {
       setError(err.message || "Something went wrong");
     } finally {
       setLoadingCategory(false);
-    }
-  };
-
-  const handleExploreSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-
-    if (!exploreImage) {
-      setError("Please select explore image");
-      return;
-    }
-
-    try {
-      setLoadingExplore(true);
-      const base64Explore = await convertToBase64(exploreImage);
-
-      const res = await fetch(`${API_URL}/categories`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: "Explore Image Only",
-          exploreImage: base64Explore,
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message);
-
-      alert("Explore image uploaded");
-      setExploreImage(null);
-      setExplorePreview(null);
-      if (exploreInputRef.current) exploreInputRef.current.value = "";
-    } catch (err: any) {
-      setError(err.message || "Explore upload failed");
-    } finally {
-      setLoadingExplore(false);
     }
   };
 
@@ -192,41 +142,6 @@ const CreateCategory = () => {
 
         <button className={styles.submitBtn} disabled={loadingCategory}>
           {loadingCategory ? "Creating..." : "Create Category"}
-        </button>
-      </form>
-
-      <form className={styles.form} onSubmit={handleExploreSubmit}>
-        <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>Explore Category Image</h2>
-
-          <div className={styles.uploadBox}>
-            <button
-              type="button"
-              className={styles.uploadBtn}
-              onClick={() => exploreInputRef.current?.click()}
-            >
-              Upload Explore Image
-            </button>
-            <span className={styles.uploadHint}>JPG/PNG/WEBP - Max 1MB</span>
-          </div>
-
-          <input
-            ref={exploreInputRef}
-            type="file"
-            accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
-            hidden
-            onChange={handleExploreImage}
-          />
-
-          {explorePreview ? (
-            <img src={explorePreview} className={styles.preview} alt="Explore preview" />
-          ) : (
-            <p className={styles.noImage}>No explore image uploaded</p>
-          )}
-        </section>
-
-        <button className={styles.submitBtn} disabled={loadingExplore}>
-          {loadingExplore ? "Saving..." : "Save Explore Image"}
         </button>
       </form>
     </div>

@@ -5,12 +5,12 @@ import React, { useEffect, useState } from "react";
 import styles from "@/styles/components/homePage/categories.module.css";
 import { useRouter } from "next/navigation";
 import productImg from "@/public/product1.png";
+import FullPageLoader from "@/components/common/FullPageLoader";
 
 interface Category {
   id: string;
   name: string;
   imageUrl?: string;
-  exploreImage?: string;
 }
 
 interface ProductCategoryProps {
@@ -29,7 +29,6 @@ const ProductCategory: React.FC<ProductCategoryProps> = ({
 }) => {
   const router = useRouter();
   const [categories, setCategories] = useState<Category[]>([]);
-  const [exploreImage, setExploreImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Convert base64 or fallback image
@@ -56,21 +55,9 @@ const ProductCategory: React.FC<ProductCategoryProps> = ({
           id: cat.id ?? cat._id,
           name: cat.name,
           imageUrl: cat.imageUrl,
-          exploreImage: cat.exploreImage,
         }));
 
-        // Only first 7 categories for grid (8th tile is reserved for exploration tile - NOT a category)
-        setCategories(formatted.slice(0, 7));
-
-        // Use clinic categories explore image so this tile matches clinic category design
-        const clinicRes = await fetch(`${API_URL}/clinic-categories`, { signal: ac.signal });
-        if (clinicRes.ok) {
-          const clinicData: Array<{ exploreImage?: string }> = await clinicRes.json();
-          const clinicExplore = clinicData.find((c) => c.exploreImage);
-          if (clinicExplore?.exploreImage) {
-            setExploreImage(clinicExplore.exploreImage);
-          }
-        }
+        setCategories(formatted);
 
       } catch (err) {
         if ((err as any).name !== "AbortError") {
@@ -90,13 +77,16 @@ const ProductCategory: React.FC<ProductCategoryProps> = ({
     router.push("/product-listing");
   };
 
-  const handleExploreClick = () => {
+  const handleMoreClick = () => {
     localStorage.removeItem("selectedCategory");
     localStorage.removeItem("selectedCategoryId");
-    router.push("/product-listing");
+    router.push("/ProductCategoryList");
   };
 
-  if (loading) return <p>Loading categories...</p>;
+  if (loading) return <FullPageLoader />;
+
+  const visibleCategories = categories.slice(0, 17);
+  const remainingCount = Math.max(categories.length - visibleCategories.length, 0);
 
   return (
     <div
@@ -106,8 +96,7 @@ const ProductCategory: React.FC<ProductCategoryProps> = ({
       <h2 className={styles.clinicTitle}>{title}</h2>
 
       <div className={styles.gridContainer}>
-        {/* Render first 7 categories only */}
-        {categories.map((category) => (
+        {visibleCategories.map((category) => (
           <div
             key={category.id}
             className={styles.categoryWrapper}
@@ -129,25 +118,22 @@ const ProductCategory: React.FC<ProductCategoryProps> = ({
           </div>
         ))}
 
-        {/* 8th Tile: Exploration tile (NOT a category) - Navigation only to product list page */}
-        <div
-          className={styles.categoryWrapper}
-          onClick={handleExploreClick}
-        >
-          <div
-            className={`${styles.categoryCard} ${styles.exploreCard}`}
-            style={{ borderColor: border || undefined }}
-          >
-            <img
-              src={getValidImage(exploreImage || undefined)}
-              alt="Explore More"
-              className={styles.categoryImg}
-            />
+        {remainingCount > 0 && (
+          <div className={styles.categoryWrapper} onClick={handleMoreClick}>
+            <div
+              className={`${styles.categoryCard} ${styles.exploreCard}`}
+              style={{ borderColor: border || undefined }}
+            >
+              <div className={styles.exploreCountCard}>
+                <span className={styles.exploreCount}>{remainingCount}+</span>
+                <span className={styles.exploreCountText}>More Categories</span>
+              </div>
+            </div>
+            <div className={styles.categoryLabelBox}>
+              <p className={styles.categoryLabel}>More Categories</p>
+            </div>
           </div>
-          <div className={styles.categoryLabelBox}>
-            <p className={styles.categoryLabel}>Explore More</p>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );

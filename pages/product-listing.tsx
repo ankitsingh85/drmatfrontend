@@ -50,6 +50,11 @@ const ProductListingPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
 
   const apiBaseUrl = API_URL.replace(/\/api\/?$/, "");
+  const slugify = (value: string) =>
+    value
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
 
   const extractArray = (payload: unknown): any[] => {
     if (Array.isArray(payload)) return payload;
@@ -294,7 +299,9 @@ const ProductListingPage: React.FC = () => {
                     <div
                       key={product._id}
                       className={styles.productCard}
-                      onClick={() => router.push(`/product-detail/${product._id}`)}
+                      onClick={() =>
+                        router.push(`/product/${slugify(product.productName || product._id)}`)
+                      }
                     >
                       <div className={styles.productItem}>
                         <img

@@ -5,6 +5,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { API_URL } from "@/config/api";
 import styles from "@/styles/Dashboard/listofuser.module.css";
 import editStyles from "@/styles/Dashboard/createUser.module.css";
+import FullPageLoader from "@/components/common/FullPageLoader";
 import {
   FiActivity,
   FiCalendar,
@@ -337,7 +338,7 @@ export default function ListOfUser() {
     setActiveDetailTab("orders");
   };
 
-  if (loading) return <p className={styles.loading}>Loading users...</p>;
+  if (loading) return <FullPageLoader />;
 
   if (viewingUser) {
     const totalSpent = viewOrders.reduce(
@@ -500,7 +501,7 @@ export default function ListOfUser() {
                   <p>{viewLoading ? "Loading..." : `${viewOrders.length} orders found`}</p>
                 </div>
 
-                {viewLoading && <p className={styles.emptyState}>Loading orders...</p>}
+                {viewLoading && <FullPageLoader />}
                 {!viewLoading && viewError && (
                   <p className={styles.emptyState}>{viewError}</p>
                 )}

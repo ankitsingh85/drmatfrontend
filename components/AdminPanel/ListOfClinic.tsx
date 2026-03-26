@@ -5,6 +5,7 @@ import { API_URL } from "@/config/api";
 import React, { useEffect, useMemo, useState } from "react";
 import styles from "@/styles/Dashboard/listofclinic.module.css";
 import createStyles from "@/styles/Dashboard/createclinic.module.css";
+import FullPageLoader from "@/components/common/FullPageLoader";
 
 type ClinicCategory = {
   _id: string;
@@ -344,7 +345,7 @@ function ListOfClinic() {
       </div>
 
       {loading ? (
-        <p className={styles.status}>Loading clinics...</p>
+        <FullPageLoader />
       ) : (
         <div className={styles.tableWrapper}>
           <table className={styles.table}>

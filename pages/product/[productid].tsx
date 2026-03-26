@@ -10,6 +10,7 @@ import MobileNavbar from "@/components/Layout/MobileNavbar";
 import Topbar from "@/components/Layout/Topbar";
 import Footer from "@/components/Layout/Footer";
 import { API_URL } from "@/config/api";
+import FullPageLoader from "@/components/common/FullPageLoader";
 
 interface Review {
   rating: number;
@@ -49,11 +50,18 @@ interface ApiProduct {
   reviews?: Review[];
 }
 
+const slugify = (value: string) =>
+  value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
 export default function ProductDetail() {
   const router = useRouter();
   const { productid } = router.query;
 
   const [product, setProduct] = useState<Product | null>(null);
+  const [resolvedProductId, setResolvedProductId] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState<"details" | "services" | "reviews">("details");
@@ -62,13 +70,23 @@ export default function ProductDetail() {
   // Zoom
   const [isZooming, setIsZooming] = useState(false);
   const [lensPosition, setLensPosition] = useState({ x: 0, y: 0 });
-  const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
   const imageRef = useRef<HTMLDivElement>(null);
 
   // New review form
   const [newComment, setNewComment] = useState("");
   const [newRating, setNewRating] = useState(0);
 // const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000/api";
+
+  const getProductSlug = (raw: ApiProduct | Product) =>
+    slugify(
+      String(
+        (raw as ApiProduct).name ||
+          (raw as ApiProduct).productName ||
+          (raw as Product).name ||
+          (raw as Product)._id ||
+          ""
+      )
+    );
 
   const normalizeProduct = (raw: ApiProduct): Product => ({
     _id: String(raw._id || ""),
@@ -87,12 +105,25 @@ export default function ProductDetail() {
 
   // Fetch product with reviews
   useEffect(() => {
-    const id = Array.isArray(productid) ? productid[0] : productid;
-    if (!id) return;
+    const key = Array.isArray(productid) ? productid[0] : productid;
+    if (!key) return;
+    setLoading(true);
+    setResolvedProductId("");
+    setProduct(null);
 
     const fetchProduct = async () => {
       try {
-        const res = await axios.get(`${API_URL}/products/${id}`);
+        const resolvedKey = slugify(String(key));
+        const listRes = await axios.get(`${API_URL}/products`);
+        const list = Array.isArray(listRes.data) ? listRes.data : [];
+        const matched = list.find((item: ApiProduct) => {
+          const itemSlug = getProductSlug(item);
+          return item._id === key || itemSlug === resolvedKey;
+        });
+
+        const productId = String(matched?._id || key);
+        setResolvedProductId(productId);
+        const res = await axios.get(`${API_URL}/products/${productId}`);
         const normalized = normalizeProduct(res.data as ApiProduct);
         setProduct(normalized);
         setMainImage(normalized.images?.[0] || null);
@@ -108,16 +139,15 @@ export default function ProductDetail() {
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!imageRef.current) return;
     const { left, top, width, height } = imageRef.current.getBoundingClientRect();
-    const x = e.pageX - left;
-    const y = e.pageY - top;
+    const x = e.clientX - left;
+    const y = e.clientY - top;
     const lensX = Math.max(0, Math.min(x, width));
     const lensY = Math.max(0, Math.min(y, height));
     setLensPosition({ x: lensX, y: lensY });
-    setCursorPos({ x: e.pageX, y: e.pageY });
   };
 
   const handleReviewSubmit = async () => {
-    const id = Array.isArray(productid) ? productid[0] : productid;
+    const id = resolvedProductId || (Array.isArray(productid) ? productid[0] : productid);
     if (!newComment.trim() || newRating === 0 || !id) return;
     try {
       const res = await axios.post(`${API_URL}/products/${id}/reviews`, {
@@ -134,7 +164,7 @@ export default function ProductDetail() {
     }
   };
 
-  if (loading) return <p style={{ padding: 20 }}>Loading...</p>;
+  if (loading) return <FullPageLoader />;
   if (!product) return <p style={{ padding: 20 }}>Product not found</p>;
 
   // Average rating
@@ -163,31 +193,58 @@ export default function ProductDetail() {
               ))}
             </div>
 
-            <div
-              className={styles.mainImageWrapper}
-              ref={imageRef}
-              onMouseEnter={() => setIsZooming(true)}
-              onMouseLeave={() => setIsZooming(false)}
-              onMouseMove={handleMouseMove}
-            >
-              {mainImage ? (
-                <img src={mainImage} alt={product.name} className={styles.mainImage} />
-              ) : (
-                <div className={styles.noImage}>No Image</div>
+            <div className={styles.mediaColumn}>
+              <div
+                className={styles.mainImageWrapper}
+                ref={imageRef}
+                onMouseEnter={() => setIsZooming(true)}
+                onMouseLeave={() => setIsZooming(false)}
+                onMouseMove={handleMouseMove}
+              >
+                {mainImage ? (
+                  <img src={mainImage} alt={product.name} className={styles.mainImage} />
+                ) : (
+                  <div className={styles.noImage}>No Image</div>
+                )}
+
+                {isZooming && mainImage && (
+                  <div
+                    className={styles.lens}
+                    style={{
+                      left: Math.max(
+                        0,
+                        Math.min(
+                          lensPosition.x - 110,
+                          (imageRef.current?.offsetWidth || 0) - 220
+                        )
+                      ),
+                      top: Math.max(
+                        0,
+                        Math.min(
+                          lensPosition.y - 110,
+                          (imageRef.current?.offsetHeight || 0) - 220
+                        )
+                      ),
+                    }}
+                  />
+                )}
+              </div>
+
+              {mainImage && (
+                <div
+                  className={`${styles.zoomPane} ${isZooming ? styles.zoomPaneActive : ""}`}
+                  style={{
+                    backgroundImage: `url(${mainImage})`,
+                    backgroundPosition: `${(lensPosition.x / (imageRef.current?.offsetWidth || 1)) * 100}% ${(lensPosition.y / (imageRef.current?.offsetHeight || 1)) * 100}%`,
+                  }}
+                >
+                  <div className={styles.zoomPaneLabel}>
+                    <span>Zoom View</span>
+                    <small>Move over the image</small>
+                  </div>
+                </div>
               )}
             </div>
-
-            {isZooming && mainImage && (
-              <div
-                className={styles.zoomBox}
-                style={{
-                  top: cursorPos.y + 20,
-                  left: cursorPos.x + 20,
-                  backgroundImage: `url(${mainImage})`,
-                  backgroundPosition: `${(lensPosition.x / (imageRef.current?.offsetWidth || 1)) * 100}% ${(lensPosition.y / (imageRef.current?.offsetHeight || 1)) * 100}%`,
-                }}
-              />
-            )}
           </div>
 
           {/* RIGHT COLUMN */}

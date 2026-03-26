@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import styles from "@/styles/clinicdashboard/clinicdashboard.module.css";
 import { API_URL } from "@/config/api";
+import FullPageLoader from "@/components/common/FullPageLoader";
 
 type Doctor = {
   _id: string;
@@ -65,7 +66,7 @@ function ClinicDashboard() {
     fetchData();
   }, []);
 
-  if (loading) return <p className={styles.loading}>Loading Dashboard...</p>;
+  if (loading) return <FullPageLoader />;
 
   // Sort appointments by date (upcoming first)
   const upcomingAppointments = [...appointments]

@@ -6,6 +6,7 @@ import dynamic from "next/dynamic";
 import Cookies from "js-cookie";
 import {jwtDecode} from "jwt-decode";
 import styles from "@/styles/clinicdashboard/listofservices.module.css";
+import FullPageLoader from "@/components/common/FullPageLoader";
 
 const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
 import "react-quill/dist/quill.snow.css";
@@ -185,7 +186,7 @@ const ServiceList = () => {
     }
   };
 
-  if (loading) return <p>Loading services...</p>;
+  if (loading) return <FullPageLoader />;
   if (!loading && services.length === 0) return <p>{notification || "No services found."}</p>;
 
   return (

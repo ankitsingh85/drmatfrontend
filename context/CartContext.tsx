@@ -13,12 +13,14 @@ export interface CartItem {
   discountPrice?: number;
   company?: string;
   image?: string;
+  itemType?: "product" | "treatment";
   quantity: number;
 }
 
 interface CartContextType {
   cartItems: CartItem[];
   wishlistItems: CartItem[];
+  hydrated: boolean;
   addToCart: (product: Omit<CartItem, "quantity">, quantity?: number) => void;
   removeFromCart: (id: string) => void;
   updateQuantity: (id: string, quantity: number) => void;
@@ -52,17 +54,21 @@ const normalizeItems = (items: any[]): CartItem[] =>
       discountPrice: it.discountPrice != null ? Number(it.discountPrice) : undefined,
       company: it.company,
       image: it.image,
+      itemType: it.itemType === "treatment" ? "treatment" : "product",
       quantity: Math.max(1, Number(it.quantity || 1)),
     }));
 
 const toCompactItems = (items: CartItem[]): CartItem[] =>
-  items.map(({ id, name, price, mrp, discount, discountPrice, quantity }) => ({
+  items.map(({ id, name, price, mrp, discount, discountPrice, company, image, itemType, quantity }) => ({
     id,
     name,
     price,
     mrp,
     discount,
     discountPrice,
+    company,
+    image,
+    itemType,
     quantity,
   }));
 
@@ -87,6 +93,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [wishlistItems, setWishlistItems] = useState<CartItem[]>([]);
   const [identityKey, setIdentityKey] = useState("guest");
   const [userEmail, setUserEmail] = useState("");
+  const [hydrated, setHydrated] = useState(false);
 
   const refreshIdentity = () => {
     const email = Cookies.get("email") || "";
@@ -139,6 +146,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   useEffect(() => {
+    setHydrated(false);
     const localCart = parseStored(localStorage.getItem(cartStorageKey));
     const localWishlist = parseStored(localStorage.getItem(wishlistStorageKey));
     setCartItems(localCart);
@@ -166,7 +174,9 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       }
     };
 
-    hydrateFromBackend();
+    hydrateFromBackend().finally(() => {
+      setHydrated(true);
+    });
   }, [identityKey, userEmail, cartStorageKey, wishlistStorageKey]);
 
   useEffect(() => {
@@ -177,17 +187,21 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   const addToCart = (product: Omit<CartItem, "quantity">, quantity = 1) => {
     setCartItems((prev) => {
-      const existing = prev.find((item) => item.id === product.id);
+      const normalizedProduct: Omit<CartItem, "quantity"> = {
+        ...product,
+        itemType: product.itemType === "treatment" ? "treatment" : "product",
+      };
+      const existing = prev.find((item) => item.id === normalizedProduct.id);
       if (existing) {
-        alert(`${product.name} is added`);
+        alert(`${normalizedProduct.name} is added`);
         return prev.map((item) =>
-          item.id === product.id
-            ? { ...item, quantity: item.quantity + quantity }
+          item.id === normalizedProduct.id
+            ? { ...item, quantity: item.quantity + quantity, itemType: item.itemType || normalizedProduct.itemType }
             : item
         );
       }
-      alert(`${product.name} is added`);
-      return [...prev, { ...product, quantity }];
+      alert(`${normalizedProduct.name} is added`);
+      return [...prev, { ...normalizedProduct, quantity }];
     });
   };
 
@@ -234,6 +248,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       value={{
         cartItems,
         wishlistItems,
+        hydrated,
         addToCart,
         removeFromCart,
         updateQuantity,

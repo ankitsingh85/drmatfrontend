@@ -1,12 +1,21 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/router";
 import styles from "@/styles/Offer.module.css";
 import { ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
 import { API_URL } from "@/config/api";
 
+interface ClinicRef {
+  _id: string;
+  slug?: string;
+  clinicName?: string;
+  cuc?: string;
+}
+
 interface Offer {
   _id: string;
   imageBase64: string;
+  clinicId?: string | ClinicRef;
 }
 
 // const API_BASE =
@@ -14,7 +23,9 @@ interface Offer {
 
 const AUTO_DELAY = 3000;
 
-const OfferComponent = () => {
+const ClinicOffer = () => {
+  const router = useRouter();
+
   const getVisibleCount = () => {
     if (typeof window === "undefined") return 3;
     if (window.innerWidth <= 640) return 1;
@@ -35,7 +46,7 @@ const OfferComponent = () => {
   /* ================= FETCH ================= */
   const fetchOffers = async () => {
     try {
-      const res = await fetch(`${API_URL}/offer1`);
+      const res = await fetch(`${API_URL}/offer3`);
       const data: Offer[] = await res.json();
       setSlides(data);
     } catch (err) {
@@ -128,6 +139,18 @@ const OfferComponent = () => {
     setIsPlaying((prev) => !prev);
   };
 
+  const getClinicId = (offer: Offer) =>
+    typeof offer.clinicId === "object" ? offer.clinicId._id : offer.clinicId;
+
+  const handleSlideClick = (offer: Offer) => {
+    const clinic =
+      typeof offer.clinicId === "object" ? offer.clinicId : undefined;
+    const clinicSlug = clinic?.slug || clinic?._id || getClinicId(offer);
+    if (!clinicSlug) return;
+
+    router.push(`/clinics/${clinicSlug}`);
+  };
+
   if (slides.length === 0) {
     return <p style={{ textAlign: "center" }}>No offers available</p>;
   }
@@ -159,6 +182,15 @@ const OfferComponent = () => {
               className={styles.slide}
               key={`${slide._id}-${i}`}
               style={{ flex: `0 0 calc(100% / ${visibleCount})` }}
+              onClick={() => handleSlideClick(slide)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  handleSlideClick(slide);
+                }
+              }}
             >
               <img src={slide.imageBase64} alt="Offer" />
             </div>
@@ -185,4 +217,4 @@ const OfferComponent = () => {
   );
 };
 
-export default OfferComponent;
+export default ClinicOffer;

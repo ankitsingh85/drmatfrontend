@@ -5,6 +5,7 @@ import { FaEdit, FaEye, FaFileExcel, FaFilePdf, FaTrash } from "react-icons/fa";
 import styles from "@/styles/Dashboard/listofcategory.module.css";
 import createStyles from "@/styles/Dashboard/createcategory.module.css";
 import { API_URL } from "@/config/api";
+import FullPageLoader from "@/components/common/FullPageLoader";
 
 interface Course {
   _id: string;
@@ -465,7 +466,7 @@ const ListOfCourse = () => {
         </button>
       </div>
 
-      {loading && <p className={styles.loading}>Loading courses...</p>}
+      {loading && <FullPageLoader />}
       {!loading && error && !editingCourse && <p className={styles.error}>{error}</p>}
 
       {!loading && !error && (

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { useCart } from "@/context/CartContext";
 import styles from "@/styles/Cart.module.css";
 import { FaTrashAlt, FaShoppingCart, FaCreditCard } from "react-icons/fa";
@@ -11,14 +11,7 @@ import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
 import MobileNavbar from "@/components/Layout/MobileNavbar";
 import Topbar from "@/components/Layout/Topbar";
-import { API_URL } from "@/config/api";
-
-interface IUserProfile {
-  _id?: string;
-  email: string;
-  name: string;
-  addresses: { type: string; address: string }[];
-}
+import FullPageLoader from "@/components/common/FullPageLoader";
 
 // const API_BASE =
 //   process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000/api";
@@ -33,54 +26,21 @@ const CartPage: React.FC = () => {
     wishlistItems,
     removeFromWishlist,
     addToCart,
+    hydrated: cartHydrated,
   } = useCart();
-  const [user, setUser] = useState<IUserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
 
   const email = Cookies.get("email");
   const token = Cookies.get("token");
 
   useEffect(() => {
     if (!email || !token) {
-      // Don't clear cart — preserve items. Redirect to Login with return URL.
       router.replace("/Login?next=/home/Cart");
-      setLoading(false);
       return;
     }
-
-    const fetchUser = async () => {
-      try {
-        const res = await fetch(`${API_URL}/users/by-email/${encodeURIComponent(email)}`);
-        if (res.ok) {
-          const data = await res.json();
-          setUser({
-            _id: data._id,
-            email: data.email,
-            name: data.name,
-            addresses: data.addresses || [],
-          });
-          Cookies.set("userId", data._id);
-          localStorage.setItem("userId", data._id);
-        } else {
-          Cookies.remove("email");
-          Cookies.remove("userId");
-          Cookies.remove("token");
-          localStorage.removeItem("userId");
-          router.replace("/Login?next=/home/Cart");
-        }
-      } catch (err) {
-        console.error(err);
-        router.replace("/Login?next=/home/Cart");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchUser();
   }, [email, token, router]);
 
-  if (loading) return <p className={styles.message}>Loading...</p>;
-  if (!user) return null; // redirecting to Login
+  if (!cartHydrated) return <FullPageLoader />;
+  if (!email || !token) return <FullPageLoader />;
 
   const totalMRP = cartItems.reduce(
     (acc, item) => acc + (item.mrp ?? item.price) * item.quantity,

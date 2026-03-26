@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
 import { API_URL } from "@/config/api";
 import styles from "@/styles/components/homePage/categories.module.css";
+import FullPageLoader from "@/components/common/FullPageLoader";
 
 interface ServiceCategory {
   _id: string;
@@ -16,7 +17,6 @@ interface TreatmentPlansProps {
   title?: string;
   backgroundColor?: string;
   border?: string;
-  showExploreCard?: boolean;
 }
 
 const TreatmentPlans = ({
@@ -60,8 +60,9 @@ const TreatmentPlans = ({
     () => categories.slice(0, limit),
     [categories, limit]
   );
+  const remainingCount = Math.max(categories.length - displayCategories.length, 0);
 
-  if (loading) return <p>Loading...</p>;
+  if (loading) return <FullPageLoader />;
 
   return (
     <div
@@ -100,28 +101,29 @@ const TreatmentPlans = ({
           </div>
         ))}
 
-        <div
-          className={styles.categoryWrapper}
-          onClick={() => {
-            localStorage.removeItem("selectedTreatmentCategoryId");
-            localStorage.removeItem("selectedTreatmentCategory");
-            router.push("/treatment-plans");
-          }}
-        >
+        {remainingCount > 0 && (
           <div
-            className={`${styles.categoryCard} ${styles.exploreCard}`}
-            style={{ borderColor: border || undefined }}
+            className={styles.categoryWrapper}
+            onClick={() => {
+              localStorage.removeItem("selectedTreatmentCategoryId");
+              localStorage.removeItem("selectedTreatmentCategory");
+              router.push("/TreatmentCategoryList");
+            }}
           >
-            <img
-              src="/skin_hair.jpg"
-              alt="Explore More"
-              className={styles.categoryImg}
-            />
+            <div
+              className={`${styles.categoryCard} ${styles.exploreCard}`}
+              style={{ borderColor: border || undefined }}
+            >
+              <div className={styles.exploreCountCard}>
+                <span className={styles.exploreCount}>{remainingCount}+</span>
+                <span className={styles.exploreCountText}>More Categories</span>
+              </div>
+            </div>
+            <div className={styles.categoryLabelBox}>
+              <p className={styles.categoryLabel}>More Categories</p>
+            </div>
           </div>
-          <div className={styles.categoryLabelBox}>
-            <p className={styles.categoryLabel}>Explore More</p>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );

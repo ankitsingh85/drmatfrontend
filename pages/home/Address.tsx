@@ -131,7 +131,7 @@ const toBackendAddress = (addr: Address): Address => ({
 
 const AddressPage: React.FC = () => {
   const router = useRouter();
-  const { cartItems } = useCart();
+  const { cartItems, hydrated: cartHydrated } = useCart();
 
   const [user, setUser] = useState<IUserProfile | null>(null);
   const [checkoutItems, setCheckoutItems] = useState<CartItem[]>([]);
@@ -242,23 +242,21 @@ const AddressPage: React.FC = () => {
     };
   }, [fetchUser]);
 
-  const activeItems = checkoutItems.length > 0 ? checkoutItems : cartItems;
-  const isTreatmentCheckout = checkoutItems.length > 0;
+  const activeItems = cartItems.length > 0 ? cartItems : checkoutItems;
+  const isTreatmentCheckout = checkoutItems.length > 0 && cartItems.length === 0;
 
-  if (isLoadingUser || !user || !checkoutLoaded) {
+  useEffect(() => {
+    if (isLoadingUser || !checkoutLoaded || !cartHydrated) return;
+    if (activeItems.length === 0) {
+      router.replace("/home/Cart");
+    }
+  }, [activeItems.length, cartHydrated, checkoutLoaded, isLoadingUser, router]);
+
+  if (isLoadingUser || !user || !checkoutLoaded || !cartHydrated) {
     return (
       <div className={styles.page}>
         <Topbar />
         <p className={styles.message}>Loading...</p>
-      </div>
-    );
-  }
-  if (activeItems.length === 0) {
-    router.replace("/home/Cart");
-    return (
-      <div className={styles.page}>
-        <Topbar />
-        <p className={styles.message}>Your cart is empty. Redirecting...</p>
       </div>
     );
   }
@@ -374,8 +372,7 @@ const AddressPage: React.FC = () => {
   const offerTotal = activeItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
 
   const totalDiscount = Math.max(0, subtotalMrp - offerTotal);
-  const deliveryFee = offerTotal >= 499 ? 0 : 49;
-  const totalPayable = offerTotal + deliveryFee;
+  const totalPayable = offerTotal;
 
   return (
     <div className={styles.page}>
@@ -531,10 +528,6 @@ const AddressPage: React.FC = () => {
             </div>
             <div className={styles.savingsNote}>
               You save Rs. {totalDiscount.toLocaleString("en-IN")}
-            </div>
-            <div className={styles.summaryRow}>
-              <span>Delivery Fee</span>
-              <span>{deliveryFee === 0 ? "FREE" : `Rs. ${deliveryFee}`}</span>
             </div>
             <div className={styles.summaryTotal}>
               <span>Total</span>

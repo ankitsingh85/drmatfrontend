@@ -4,6 +4,7 @@ import { API_URL } from "@/config/api";
 import React, { useEffect, useState } from "react";
 import Cookies from "js-cookie";
 import { useRouter } from "next/navigation";
+import FullPageLoader from "@/components/common/FullPageLoader";
 // const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000/api";
 
 export default function PurchasedServices() {
@@ -111,7 +112,7 @@ export default function PurchasedServices() {
     return <p style={{ color: "red" }}>Clinic session expired. Redirecting...</p>;
   }
 
-  if (loading) return <p>Loading purchased services...</p>;
+  if (loading) return <FullPageLoader />;
 
   return (
     <div style={styles.container}>

@@ -263,9 +263,9 @@ const ClinicCard: React.FC<ClinicCardProps> = ({ clinic }) => {
               href={clinic.mapLink}
               target="_blank"
               rel="noreferrer"
-              onClick={(e) =>
-                requireUserLogin(e, "view directions", clinic.mapLink)
-              }
+              // onClick={(e) =>
+              //   requireUserLogin(e, "view directions", clinic.mapLink)
+              // }
               className={styles.call}
             >
               <FaMap className={styles.icons} /> Direction

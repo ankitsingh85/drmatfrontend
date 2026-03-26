@@ -15,6 +15,7 @@ import {
   FaShieldAlt,
 } from "react-icons/fa";
 import { GoLocation } from "react-icons/go";
+import FullPageLoader from "@/components/common/FullPageLoader";
 
 const TREATMENT_CHECKOUT_KEY = "treatmentCheckout";
 
@@ -22,13 +23,20 @@ const PaymentPage: React.FC = () => {
   const router = useRouter();
   const { type, address, flow } = router.query;
 
-  const { cartItems, clearCart } = useCart();
+  const { cartItems, clearCart, hydrated: cartHydrated } = useCart();
   const { createOrder } = useOrder();
 
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
   const [checkoutItems, setCheckoutItems] = useState<CartItem[]>([]);
   const [checkoutLoaded, setCheckoutLoaded] = useState(false);
+  const [paymentSnapshot, setPaymentSnapshot] = useState<{
+    items: CartItem[];
+    total: number;
+    addressType: string;
+    addressText: string;
+    flowLabel: string;
+  } | null>(null);
 
   useEffect(() => {
     try {
@@ -45,18 +53,20 @@ const PaymentPage: React.FC = () => {
   }, []);
 
   const flowMode = Array.isArray(flow) ? flow[0] : flow;
+  const activeItems = checkoutItems.length > 0 ? checkoutItems : cartItems;
+  const hasProductItems = activeItems.some((item) => item.itemType !== "treatment");
+  const hasTreatmentItems = activeItems.some((item) => item.itemType === "treatment");
   const isTreatmentCheckout =
     flowMode === "treatment" ||
-    (checkoutLoaded && checkoutItems.length > 0 && cartItems.length === 0);
-  const activeItems = isTreatmentCheckout ? checkoutItems : cartItems;
+    (checkoutLoaded && checkoutItems.length > 0 && cartItems.length === 0) ||
+    (activeItems.length > 0 && hasTreatmentItems && !hasProductItems);
 
   const subtotal = useMemo(
     () => activeItems.reduce((acc, item) => acc + item.price * item.quantity, 0),
     [activeItems]
   );
 
-  const serviceFee = isTreatmentCheckout ? 0 : subtotal >= 499 ? 0 : 49;
-  const grandTotal = subtotal + serviceFee;
+  const grandTotal = subtotal;
 
   const deliveryType = Array.isArray(type) ? type[0] : type;
   const deliveryAddress = Array.isArray(address) ? address[0] : address;
@@ -79,6 +89,15 @@ const PaymentPage: React.FC = () => {
 
     try {
       setLoading(true);
+      const snapshotItems = [...activeItems];
+      const snapshotTotal = grandTotal;
+      setPaymentSnapshot({
+        items: snapshotItems,
+        total: snapshotTotal,
+        addressType: String(displayAddressType || orderAddressType),
+        addressText: String(displayAddressText || orderAddressText),
+        flowLabel: isTreatmentCheckout ? "Treatment booking" : "Delivery address",
+      });
       await createOrder(activeItems, grandTotal, {
         type: String(orderAddressType),
         address: String(orderAddressText),
@@ -107,22 +126,22 @@ const PaymentPage: React.FC = () => {
       return;
     }
 
-    if (!checkoutLoaded) return;
+    if (!checkoutLoaded || !cartHydrated) return;
     if (activeItems.length === 0 && !paymentSuccess) {
       router.push(isTreatmentCheckout ? "/home/TreatmentPlans" : "/home/Cart");
     }
-  }, [activeItems.length, checkoutLoaded, isTreatmentCheckout, paymentSuccess, router]);
+  }, [activeItems.length, checkoutLoaded, cartHydrated, isTreatmentCheckout, paymentSuccess, router]);
 
-  if (!checkoutLoaded) {
-    return (
-      <div className={styles.wrapper}>
-        <Topbar />
-        <div className={styles.loadingState}>Loading checkout...</div>
-      </div>
-    );
+  if (!checkoutLoaded || !cartHydrated) {
+    return <FullPageLoader />;
   }
 
   if (paymentSuccess) {
+    const summaryItems = paymentSnapshot?.items || activeItems;
+    const summaryTotal = paymentSnapshot?.total ?? grandTotal;
+    const summaryAddressType = paymentSnapshot?.addressType || displayAddressType;
+    const summaryAddressText = paymentSnapshot?.addressText || displayAddressText;
+
     return (
       <div className={styles.wrapper}>
         <Topbar />
@@ -148,14 +167,14 @@ const PaymentPage: React.FC = () => {
 
             <div className={styles.successMeta}>
               <div className={styles.successMetaItem}>
-                <span>{isTreatmentCheckout ? "Booking type" : "Delivery address"}</span>
-                <strong>{displayAddressType}</strong>
-                <p>{displayAddressText}</p>
+                <span>{paymentSnapshot?.flowLabel || (isTreatmentCheckout ? "Booking type" : "Delivery address")}</span>
+                <strong>{summaryAddressType}</strong>
+                <p>{summaryAddressText}</p>
               </div>
               <div className={styles.successMetaItem}>
                 <span>Amount paid</span>
-                <strong>₹{grandTotal}</strong>
-                <p>{activeItems.length} item(s)</p>
+                <strong>₹{summaryTotal}</strong>
+                <p>{summaryItems.length} item(s)</p>
               </div>
             </div>
 
@@ -326,10 +345,6 @@ const PaymentPage: React.FC = () => {
             <div className={styles.totalRow}>
               <span>Subtotal</span>
               <strong>₹{subtotal}</strong>
-            </div>
-            <div className={styles.totalRow}>
-              <span>{isTreatmentCheckout ? "Booking fee" : "Delivery fee"}</span>
-              <strong>{serviceFee === 0 ? "Free" : `₹${serviceFee}`}</strong>
             </div>
             <div className={styles.grandTotal}>
               <span>Payable amount</span>

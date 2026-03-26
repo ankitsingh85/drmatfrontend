@@ -16,6 +16,7 @@ export interface IOrder {
     quantity: number;
     price: number;
     image?: string;
+    itemType?: "product" | "treatment";
   }[];
   totalAmount: number;
   address: { type: string; address: string };
@@ -34,9 +35,6 @@ interface OrderContextType {
 }
 
 const OrderContext = createContext<OrderContextType | undefined>(undefined);
-
-// const API_BASE =
-//   process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000/api";
 
 export const OrderProvider: React.FC<{ children: ReactNode }> = ({
   children,
@@ -67,20 +65,26 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({
     if (!userId) throw new Error("User not logged in");
 
     try {
-     const formattedProducts = items.map((item) => ({
-  id: item.id,
-  name: item.name,          // ⭐ REQUIRED
-  price: item.price,
-  quantity: item.quantity,
-  image: item.image,        // optional but useful
-}));
+      const formattedProducts = items.map((item) => ({
+        id: item.id,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+        image: item.image,
+        itemType: item.itemType === "treatment" ? "treatment" : "product",
+      }));
+
+      const derivedOrderType =
+        items.length > 0 && items.every((item) => item.itemType === "treatment")
+          ? "treatment"
+          : orderType;
 
       const res = await axios.post(`${API_URL}/orders`, {
         userId,
         products: formattedProducts,
         totalAmount: total,
         address,
-        orderType,
+        orderType: derivedOrderType,
       });
 
       setOrders((prev) => [...prev, res.data]);

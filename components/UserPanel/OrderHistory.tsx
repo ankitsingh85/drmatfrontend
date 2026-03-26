@@ -3,9 +3,11 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import Cookies from "js-cookie";
+import { useRouter } from "next/router";
 import { useUser } from "@/context/UserContext";
 import styles from "@/styles/adminpanel/orderhistory.module.css";
 import { API_URL } from "@/config/api";
+import FullPageLoader from "@/components/common/FullPageLoader";
 
 interface OrderProduct {
   id: string;
@@ -13,6 +15,7 @@ interface OrderProduct {
   quantity: number;
   price: number;
   image?: string;
+  itemType?: "product" | "treatment";
 }
 
 interface Order {
@@ -23,6 +26,7 @@ interface Order {
   address: { type: string; address: string };
   createdAt: string;
   paymentStatus?: string;
+  status?: "Pending" | "Shipped" | "Delivered" | "Cancelled";
 }
 
 interface ResolvedUser {
@@ -31,6 +35,12 @@ interface ResolvedUser {
   email?: string;
 }
 
+const slugify = (value: string) =>
+  value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
 type OrderHistoryMode = "all" | "treatment";
 
 interface OrderHistoryProps {
@@ -38,6 +48,7 @@ interface OrderHistoryProps {
 }
 
 const UserOrderHistory: React.FC<OrderHistoryProps> = ({ mode = "all" }) => {
+  const router = useRouter();
   const { user, loading } = useUser();
   const [orders, setOrders] = useState<Order[]>([]);
   const [fetching, setFetching] = useState(false);
@@ -50,9 +61,17 @@ const UserOrderHistory: React.FC<OrderHistoryProps> = ({ mode = "all" }) => {
       ? Cookies.get("userId") || localStorage.getItem("userId")
       : null;
 
+  const hasTreatmentItems = (order: Order) =>
+    Array.isArray(order.products) &&
+    order.products.some((item) => item.itemType === "treatment");
+
+  const hasProductItems = (order: Order) =>
+    Array.isArray(order.products) &&
+    order.products.some((item) => item.itemType !== "treatment");
+
   const isTreatmentOrder = (order: Order) => {
     const orderType = String(order.orderType || "").toLowerCase();
-    if (orderType === "treatment") return true;
+    if (orderType === "treatment" || hasTreatmentItems(order)) return true;
 
     const type = String(order.address?.type || "").toLowerCase();
     const addressText = String(order.address?.address || "").toLowerCase().trim();
@@ -62,6 +81,32 @@ const UserOrderHistory: React.FC<OrderHistoryProps> = ({ mode = "all" }) => {
       addressText.includes("treatment")
     );
   };
+
+  const isProductOrder = (order: Order) => {
+    const orderType = String(order.orderType || "").toLowerCase();
+    if (hasProductItems(order)) return true;
+    return orderType !== "treatment" && !isTreatmentOrder(order);
+  };
+
+  const getVisibleProducts = (order: Order) => {
+    const products = Array.isArray(order.products) ? order.products : [];
+    if (mode === "treatment") {
+      const treatmentItems = products.filter((item) => item.itemType === "treatment");
+      if (treatmentItems.length > 0) return treatmentItems;
+    }
+    const productItems = products.filter((item) => item.itemType !== "treatment");
+    return productItems.length > 0 ? productItems : products;
+  };
+
+  const getOrderTitle = (order: Order) => {
+    const visibleItems = getVisibleProducts(order);
+    if (mode === "treatment") {
+      return visibleItems[0]?.name || "treatment booking";
+    }
+    return visibleItems[0]?.name || order.products?.[0]?.name || "order";
+  };
+
+  const getOrderSlug = (order: Order) => slugify(getOrderTitle(order));
 
   useEffect(() => {
     if (loading) return;
@@ -145,7 +190,7 @@ const UserOrderHistory: React.FC<OrderHistoryProps> = ({ mode = "all" }) => {
           const nextOrders =
             mode === "treatment"
               ? res.data.filter((order: Order) => isTreatmentOrder(order))
-              : res.data.filter((order: Order) => !isTreatmentOrder(order));
+              : res.data.filter((order: Order) => isProductOrder(order));
           setOrders(nextOrders);
         } else {
           setOrders([]);
@@ -162,12 +207,7 @@ const UserOrderHistory: React.FC<OrderHistoryProps> = ({ mode = "all" }) => {
   }, [mode, resolvedUser?.id, token]);
 
   if (loading) {
-    return (
-      <div className={styles.stateWrap}>
-        <div className={styles.spinner} />
-        <p>Loading your profile...</p>
-      </div>
-    );
+    return <FullPageLoader />;
   }
 
   if (!resolvedUser?.id) {
@@ -180,12 +220,7 @@ const UserOrderHistory: React.FC<OrderHistoryProps> = ({ mode = "all" }) => {
   }
 
   if (fetching) {
-    return (
-      <div className={styles.stateWrap}>
-        <div className={styles.spinner} />
-        <p>Loading your orders...</p>
-      </div>
-    );
+    return <FullPageLoader />;
   }
 
   if (error) {
@@ -197,6 +232,20 @@ const UserOrderHistory: React.FC<OrderHistoryProps> = ({ mode = "all" }) => {
   }
 
   const headerName = resolvedUser.name || "Your";
+
+  const handleOrderClick = (order: Order) => {
+    router.push(`/user/order/${getOrderSlug(order)}`);
+  };
+
+  const handleOrderKeyDown = (
+    event: React.KeyboardEvent<HTMLDivElement>,
+    order: Order
+  ) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      router.push(`/user/order/${getOrderSlug(order)}`);
+    }
+  };
 
   return (
     <div className={styles.container}>
@@ -227,7 +276,15 @@ const UserOrderHistory: React.FC<OrderHistoryProps> = ({ mode = "all" }) => {
       ) : (
         <div className={styles.grid}>
           {orders.map((order) => (
-            <div key={order._id} className={styles.orderCard}>
+            <div
+              key={order._id}
+              className={`${styles.orderCard} ${styles.orderCardClickable}`}
+              role="button"
+              tabIndex={0}
+              onClick={() => handleOrderClick(order)}
+              onKeyDown={(event) => handleOrderKeyDown(event, order)}
+              aria-label={`Open order ${getOrderTitle(order)} details`}
+            >
               <div className={styles.metaBar}>
                 <div className={styles.metaGroup}>
                   <span>ORDER PLACED</span>
@@ -242,10 +299,10 @@ const UserOrderHistory: React.FC<OrderHistoryProps> = ({ mode = "all" }) => {
                   <strong>{order.address.type}</strong>
                 </div>
                 <div className={styles.metaRight}>
-                  <p>Order #{order._id.slice(-8)}</p>
+                  <p>{getOrderTitle(order)}</p>
                   <span
                     className={`${styles.badge} ${
-                      order.paymentStatus === "Paid"
+                      String(order.paymentStatus || "").toLowerCase() === "paid"
                         ? styles.badgePaid
                         : styles.badgePending
                     }`}
@@ -257,12 +314,13 @@ const UserOrderHistory: React.FC<OrderHistoryProps> = ({ mode = "all" }) => {
 
               <div className={styles.cardBody}>
                 <p className={styles.addressText}>{order.address.address}</p>
+                <p className={styles.hintText}>Tap to view full order details and invoice</p><hr/>
                 <div className={styles.items}>
-                  {order.products.map((p) => (
+                  {getVisibleProducts(order).map((p) => (
                     <div key={`${order._id}-${p.id}`} className={styles.itemRow}>
                       <div className={styles.itemLeft}>
                         <img
-                          src={p.image || "/skin_hair.jpg"}
+                          src={p.image || ""}
                           alt={p.name}
                           className={styles.itemImage}
                         />

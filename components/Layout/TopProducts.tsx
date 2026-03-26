@@ -28,6 +28,11 @@ interface Product {
 const MAX_TOP_PRODUCTS = 11;
 const TOP_PRODUCTS_CACHE_KEY = "top-products-cache-v1";
 const TOP_PRODUCTS_CACHE_TTL_MS = 5 * 60 * 1000;
+const slugify = (value: string) =>
+  value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 
 const TopProducts: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -188,7 +193,7 @@ const TopProducts: React.FC = () => {
             <div
               key={product.id}
               className={styles.card}
-              onClick={() => router.push(`/product-detail/${product.id}`)}
+              onClick={() => router.push(`/product/${slugify(product.name || product.id)}`)}
             >
               <div className={styles.imageBlock}>
                 <img

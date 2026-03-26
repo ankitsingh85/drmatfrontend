@@ -11,6 +11,7 @@ const DermatProducts = () => {
   const [products, setProducts] = useState<any[]>([]);
 
   async function getProducts() {
+    setLoading(true);
     const data = await getProductList(
       currentPage,
       "",

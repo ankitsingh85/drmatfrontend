@@ -6,6 +6,7 @@ import axios from "axios";
 import styles from "@/styles/Dashboard/listofdoctor.module.css";
 import createStyles from "@/styles/Dashboard/createdoctor.module.css";
 import { API_URL } from "@/config/api";
+import FullPageLoader from "@/components/common/FullPageLoader";
 // import { ListOfDoctors } from '@/components/ClinicAdmin/ListOfDoctors';
 
 interface Doctor {
@@ -261,7 +262,7 @@ const ListOfDoctor: React.FC = () => {
     printable.print();
   };
 
-  if (loading) return <p>Loading doctors...</p>;
+  if (loading) return <FullPageLoader />;
   if (error) return <p className={styles.error}>{error}</p>;
 
   return (

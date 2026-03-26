@@ -10,6 +10,11 @@ interface ProductCardProps {
 
 const ProductCard: React.FC<ProductCardProps> = ({ products }) => {
   const router = useRouter();
+  const slugify = (value: string) =>
+    value
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
 
   const handleAddToCart = (event: React.MouseEvent<HTMLButtonElement>, product: Product) => {
     event.stopPropagation();
@@ -27,7 +32,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ products }) => {
             <div
               key={product.id}
               className={styles.productCard}
-              onClick={() => router.push(`/product-detail/${product.id}`)}
+              onClick={() => router.push(`/product/${slugify(product.name || String(product.id))}`)}
             >
               <div className={styles.productItem}>
                 {product.isBestseller && (

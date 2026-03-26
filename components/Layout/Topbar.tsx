@@ -12,7 +12,6 @@ import {
   Menu,
   User,
   LogOut,
-  ChevronDown,
   ArrowUpRight,
 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
@@ -33,9 +32,7 @@ const Topbar: React.FC<TopbarProps> = ({ hideHamburgerOnMobile }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [location, setLocation] = useState<string>("");
   const [profileOpen, setProfileOpen] = useState(false);
-  const [loginOpen, setLoginOpen] = useState(false);
   const userBtnRef = useRef<HTMLButtonElement | null>(null);
-  const loginRef = useRef<HTMLDivElement | null>(null);
 
   const username = profile?.username ?? null;
   const profileImage = profile?.profileImage ?? null;
@@ -58,6 +55,39 @@ const Topbar: React.FC<TopbarProps> = ({ hideHamburgerOnMobile }) => {
     router.push("/home/Cart");
   };
 
+  const formatDetailedLocation = (data: any, latitude: number, longitude: number) => {
+    const address = data?.address || {};
+    const parts = [
+      address.building,
+      address.house_name,
+      address.amenity,
+      address.shop,
+      address.office,
+      address.sector,
+      address.suburb,
+      address.neighbourhood,
+      address.locality,
+      address.house_number,
+      address.road,
+      address.city || address.town || address.village,
+      address.district || address.county,
+      address.state,
+      address.postcode,
+    ]
+      .map((part) => String(part || "").trim())
+      .filter(Boolean);
+
+    const uniqueParts = Array.from(new Set(parts));
+    if (uniqueParts.length > 0) {
+      return uniqueParts.join(", ");
+    }
+
+    return (
+      data?.display_name ||
+      `Lat ${latitude.toFixed(2)}, Lng ${longitude.toFixed(2)}`
+    );
+  };
+
   const fetchLocation = (silent = false) => {
     if (!navigator.geolocation) {
       if (!silent) alert("Geolocation not supported");
@@ -71,12 +101,7 @@ const Topbar: React.FC<TopbarProps> = ({ hideHamburgerOnMobile }) => {
             `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`
           );
           const data = await res.json();
-          const city =
-            data?.address?.city ||
-            data?.address?.town ||
-            data?.address?.village;
-          const state = data?.address?.state;
-          const finalLocation = `${city || "Unknown"}, ${state || ""}`.trim();
+          const finalLocation = formatDetailedLocation(data, latitude, longitude);
           setLocation(finalLocation);
           Cookies.set("location", finalLocation, { expires: 7 });
         } catch {
@@ -99,10 +124,6 @@ const Topbar: React.FC<TopbarProps> = ({ hideHamburgerOnMobile }) => {
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
-
-      if (loginRef.current && !loginRef.current.contains(target)) {
-        setLoginOpen(false);
-      }
 
       if (
         userBtnRef.current &&
@@ -140,41 +161,13 @@ const Topbar: React.FC<TopbarProps> = ({ hideHamburgerOnMobile }) => {
   };
 
   const renderLoginOptions = () => (
-    <div className={styles.loginMenu} ref={loginRef}>
-      <button
-        type="button"
-        className={styles.loginTrigger}
-        onClick={() => setLoginOpen((prev) => !prev)}
-      >
-        <span>Login</span>
-        <ChevronDown size={16} className={loginOpen ? styles.loginChevronOpen : ""} />
-      </button>
-
-      {loginOpen && (
-        <div className={styles.loginDropdown}>
-          <button
-            type="button"
-            className={styles.loginOption}
-            onClick={() => {
-              setLoginOpen(false);
-              router.push("/Login");
-            }}
-          >
-            Login as User
-          </button>
-          <button
-            type="button"
-            className={styles.loginOption}
-            onClick={() => {
-              setLoginOpen(false);
-              router.push("/cliniclogin");
-            }}
-          >
-            Login as Clinic
-          </button>
-        </div>
-      )}
-    </div>
+    <button
+      type="button"
+      className={styles.loginLink}
+      onClick={() => router.push("/Login")}
+    >
+      Login
+    </button>
   );
 
   return (

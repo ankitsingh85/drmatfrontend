@@ -1,6 +1,7 @@
 "use client";
 import Image from "next/image";
 import { API_URL } from "@/config/api";
+import FullPageLoader from "@/components/common/FullPageLoader";
 
 import { useCallback, useEffect, useState, type ComponentType } from "react";
 import { jwtDecode } from "jwt-decode";
@@ -20,10 +21,9 @@ import ListOfProduct from "@/components/AdminPanel/ListOfProduct";
 import CreateServiceCategory from "@/components/AdminPanel/CreateServiceCategory";
 import ListOfServiceCategory from "@/components/AdminPanel/ListOfServiceCategory";
 import ListOfTopProduct from "@/components/AdminPanel/ListOfTopProduct";
-import Offer1 from "@/components/AdminPanel/ListofOffer1";
+import Offer1 from "@/components/AdminPanel/ListofProductOffer";
 import Offer2 from "@/components/AdminPanel/ListofOffer2";
-import Offer3 from "@/components/AdminPanel/ListofOffer3";
-import Offer4 from "@/components/AdminPanel/ListofOffer4";
+import Offer3 from "@/components/AdminPanel/ListofClinicOffer";
 import LatestShorts from "@/components/AdminPanel/LatestShorts";
 import TreatmentShorts from "@/components/AdminPanel/TreatmentShorts";
 import CreateTreatment from "@/components/AdminPanel/CreateTreatment";
@@ -400,7 +400,7 @@ export default function SuperAdminDashboard() {
   );
 
   if (checkingAuth) {
-    return <div className={styles.loading}>Loading dashboard.......</div>;
+    return <FullPageLoader />;
   }
 
   return (
@@ -526,17 +526,17 @@ export default function SuperAdminDashboard() {
                 List Top Product
               </li>
               <li onClick={() => handleSectionChange("offer1")}>
-                Offer 1
+                Product Offer
               </li>
               <li onClick={() => handleSectionChange("offer2")}>
-                Offer 2
+                Treatment Offer
               </li>
               <li onClick={() => handleSectionChange("offer3")}>
-                Offer 3
+                Clinic Offer
               </li>
-              <li onClick={() => handleSectionChange("offer4")}>
+              {/* <li onClick={() => handleSectionChange("offer4")}>
                 Offer 4
-              </li>
+              </li> */}
               <li onClick={() => handleSectionChange("latestshorts")}>
                 Latest Shorts
               </li>
@@ -785,7 +785,6 @@ export default function SuperAdminDashboard() {
               {activeSection === "offer1" && <Offer1 />}
               {activeSection === "offer2" && <Offer2 />}
               {activeSection === "offer3" && <Offer3 />}
-              {activeSection === "offer4" && <Offer4 />}
               {activeSection === "latestshorts" && <LatestShorts />}
               {activeSection === "treatmentshorts" && <TreatmentShorts />}
               {/* {activeSection === "userorderhistory" && <UserOrderHistory />} */}

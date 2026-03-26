@@ -28,6 +28,7 @@ import Footer from "@/components/Layout/Footer";
 import MobileNavbar from "@/components/Layout/MobileNavbar";
 import { API_URL } from "@/config/api";
 import { useTopbarProfile } from "@/context/TopbarProfileContext";
+import FullPageLoader from "@/components/common/FullPageLoader";
 
 const normalizeProfileImage = (img?: string | null) => {
   if (!img) return null;
@@ -143,10 +144,10 @@ const UserDashboard: React.FC = () => {
 
   /* ================= MENU ================= */
   const menuItems = [
-    { id: "orderhistory", label: "Orders", icon: <FiHome /> },
+    { id: "orderhistory", label: "Product Orders", icon: <FiHome /> },
     { id: "treatmentorders", label: "Treatment Orders", icon: <FiHome /> },
     { id: "yourresult", label: "Your Result", icon: <FiActivity /> },
-    { id: "appointmenthistory", label: "Appointments", icon: <FiActivity /> },
+    // { id: "appointmenthistory", label: "Appointments", icon: <FiActivity /> },
     { id: "servicehistory", label: "My Consultation", icon: <FiUser /> },
     { id: "helpcenter", label: "Help Center", icon: <FiHelpCircle /> },
     { id: "settings", label: "Settings", icon: <FiSettings /> },
@@ -188,12 +189,7 @@ const UserDashboard: React.FC = () => {
   };
 
   if (loading) {
-    return (
-      <div className={styles.loaderWrapper}>
-        <div className={styles.loader}></div>
-        <p>Loading your dashboard...</p>
-      </div>
-    );
+    return <FullPageLoader />;
   }
 
   /* ================= UI ================= */

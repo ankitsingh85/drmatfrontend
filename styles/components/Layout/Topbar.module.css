@@ -28,7 +28,7 @@
 /* Nav links */
 .navLinks {
   display: flex;
-  gap: 10px;
+  gap: 12px;
   align-items: center;
 }
 
@@ -97,7 +97,7 @@
 
 .location {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   cursor: pointer;
   gap: 6px;
   font-size: 14px;
@@ -112,10 +112,9 @@
 .locationText {
   font-size: 13px;
   color: #555;
-  white-space: nowrap;
-  max-width: 150px;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  max-width: 220px;
+  line-height: 1.25;
 }
 
 .authLinks {
@@ -127,64 +126,24 @@
   color: #1a2238;
 }
 
-.loginMenu {
-  position: relative;
+.loginLink {
+     display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #dbe3ef;
+    background: linear-gradient(184deg, #3fa3ff 0%, #bbd5f70f 100%);
+    color: #1a2238;
+    padding: 10px 14px;
+    border-radius: 999px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;  
 }
 
-.loginTrigger {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  border: 1px solid #dbe3ef;
-  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
-  color: #1a2238;
-  padding: 10px 14px;
-  border-radius: 999px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.loginTrigger:hover {
+.loginLink:hover {
   border-color: #b9c9e3;
   box-shadow: 0 6px 18px rgba(19, 87, 139, 0.08);
-}
-
-.loginChevronOpen {
-  transform: rotate(180deg);
-}
-
-.loginDropdown {
-  position: absolute;
-  top: calc(100% + 10px);
-  right: 0;
-  min-width: 180px;
-  padding: 8px;
-  border-radius: 14px;
-  background: #ffffff;
-  border: 1px solid rgba(10, 75, 131, 0.12);
-  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.14);
-  z-index: 999;
-}
-
-.loginOption {
-  width: 100%;
-  border: none;
-  background: transparent;
-  color: #1a2238;
-  text-align: left;
-  padding: 12px 14px;
-  border-radius: 10px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.loginOption:hover {
-  background: #eff6ff;
-  color: #13578b;
 }
 
 .separator {
@@ -291,10 +250,6 @@
     font-size: 12px;
   }
 
-  .loginTrigger {
-    padding: 9px 12px;
-    font-size: 13px;
-  }
 }
 
 /* Phones (portrait) */
@@ -336,10 +291,6 @@
     display: none; /* only keep icon */
   }
 
-  .loginDropdown {
-    right: auto;
-    left: 0;
-  }
 }
 
 /* Very small devices (<= 370px) */

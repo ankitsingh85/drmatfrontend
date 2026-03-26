@@ -16,6 +16,7 @@ import {
   FaVideo,
 } from "react-icons/fa";
 import { FiChevronDown } from "react-icons/fi";
+import { useCart } from "@/context/CartContext";
 import styles from "@/styles/pages/treatmentPlanDetail.module.css";
 
 interface TreatmentPlan {
@@ -70,12 +71,11 @@ const stripHtml = (value?: string) =>
     .replace(/\s+/g, " ")
     .trim();
 
-const TREATMENT_CHECKOUT_KEY = "treatmentCheckout";
-
 const TreatmentPlanDetailPage = () => {
   const router = useRouter();
   const { slug } = router.query;
   const planSlug = Array.isArray(slug) ? slug[0] : slug;
+  const { cartItems, addToCart } = useCart();
 
   const [plan, setPlan] = useState<TreatmentPlan | null>(null);
   const [loading, setLoading] = useState(true);
@@ -91,25 +91,6 @@ const TreatmentPlanDetailPage = () => {
     if (img.startsWith("data:")) return img;
     if (img.startsWith("/")) return `${apiBaseUrl}${img}`;
     return `data:image/jpeg;base64,${img}`;
-  };
-
-  const startTreatmentCheckout = () => {
-    if (!plan) return;
-
-    const checkoutItem = {
-      id: plan._id,
-      name: plan.treatmentName,
-      price: price.sale || 0,
-      mrp: price.mrp || undefined,
-      discount: savings && savings > 0 ? `${savings}% OFF` : undefined,
-      discountPrice: price.offer,
-      company: clinicName,
-      image: resolveImage(images[0]),
-      quantity: 1,
-    };
-
-    sessionStorage.setItem(TREATMENT_CHECKOUT_KEY, JSON.stringify([checkoutItem]));
-    router.push("/home/PaymentPage?flow=treatment");
   };
 
   useEffect(() => {
@@ -185,6 +166,25 @@ const TreatmentPlanDetailPage = () => {
   const plainInclusions = stripHtml(plan?.inclusions);
   const plainExclusions = stripHtml(plan?.exclusions);
   const plainFeedback = stripHtml(plan?.patientFeedback);
+  const treatmentCartItem = useMemo(
+    () =>
+      plan
+        ? {
+            id: plan._id,
+            name: plan.treatmentName,
+            price: price.sale || 0,
+            mrp: price.mrp || undefined,
+            discount:
+              savings && savings > 0 ? `${savings}% OFF` : undefined,
+            discountPrice: price.offer,
+            company: clinicName || plan.serviceCategory || "Treatment Plan",
+            image: resolveImage(activeImage || images[0]),
+            itemType: "treatment" as const,
+          }
+        : null,
+    [activeImage, clinicName, images, plan, price.mrp, price.offer, price.sale, savings]
+  );
+  const isInCart = !!treatmentCartItem && cartItems.some((item) => item.id === treatmentCartItem.id);
 
   const sections = useMemo<DetailSection[]>(
     () =>
@@ -288,9 +288,13 @@ const TreatmentPlanDetailPage = () => {
     return items;
   }, [plan]);
 
-  const handleBookNow = () => {
-    if (!isAvailable) return;
-    startTreatmentCheckout();
+  const handleTreatmentAction = () => {
+    if (!isAvailable || !treatmentCartItem) return;
+    if (isInCart) {
+      router.push("/home/Cart");
+      return;
+    }
+    addToCart(treatmentCartItem);
   };
 
   const summaryText =
@@ -471,10 +475,10 @@ const TreatmentPlanDetailPage = () => {
               <div className={styles.ctaGroup}>
                 <button
                   className={styles.primaryBtn}
-                  onClick={handleBookNow}
+                  onClick={handleTreatmentAction}
                   disabled={!isAvailable}
                 >
-                  Buy Now
+                  {isInCart ? "Go to Cart" : "Add to Cart"}
                 </button>
               </div>
 

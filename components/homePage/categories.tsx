@@ -4,6 +4,7 @@ import { API_URL } from "@/config/api";
 import React, { useEffect, useState } from "react";
 import styles from "@/styles/components/homePage/categories.module.css";
 import { useRouter } from "next/router";
+import FullPageLoader from "@/components/common/FullPageLoader";
 
 interface ClinicCategory {
   _id: string;
@@ -41,7 +42,7 @@ const ClinicCategories: React.FC<ClinicCategoryProps> = ({
     fetchCategories();
   }, []);
 
-  if (loading) return <p>Loading...</p>;
+  if (loading) return <FullPageLoader />;
 
   const displayCategories = categories.slice(0, 17);
   const remainingCount = Math.max(categories.length - displayCategories.length, 0);
