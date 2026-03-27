@@ -10,6 +10,7 @@ import Topbar from "@/components/Layout/Topbar";
 import MobileNavbar from "@/components/Layout/MobileNavbar";
 import { API_URL } from "@/config/api";
 import FullPageLoader from "@/components/common/FullPageLoader";
+import { resolveMediaUrl } from "@/lib/media";
 
 const ITEMS_PER_PAGE = 6;
 
@@ -55,9 +56,7 @@ const FindClinicsPage: React.FC = () => {
   const [clinicError, setClinicError] = useState("");
 
   const getImage = (img?: string) => {
-    if (!img) return undefined;
-    if (img.startsWith("data:")) return img;
-    return img;
+    return resolveMediaUrl(img) || img || "";
   };
 
   const fetchCategories = async () => {
@@ -143,7 +142,7 @@ const FindClinicsPage: React.FC = () => {
               setCurrentPage(1);
             }}
           >
-            <img src={cat.imageUrl} alt={cat.name} />
+            <img src={getImage(cat.imageUrl)} alt={cat.name} />
             <span>{cat.name}</span>
           </div>
         ))}

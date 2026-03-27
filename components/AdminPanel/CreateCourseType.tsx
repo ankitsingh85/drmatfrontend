@@ -14,14 +14,6 @@ const CreateCourseType = () => {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const convertToBase64 = (file: File): Promise<string> =>
-    new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
-    });
-
   const isAllowedImage = (file: File) =>
     ["image/jpeg", "image/jpg", "image/png", "image/webp"].includes(file.type);
 
@@ -61,15 +53,13 @@ const CreateCourseType = () => {
 
     try {
       setLoading(true);
-      const base64Image = await convertToBase64(courseTypeImage);
+      const formData = new FormData();
+      formData.append("name", courseTypeName.trim());
+      formData.append("imageUrl", courseTypeImage);
 
       const res = await fetch(`${API_URL}/course-types`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: courseTypeName.trim(),
-          imageUrl: base64Image,
-        }),
+        body: formData,
       });
 
       const data = await res.json().catch(() => ({}));

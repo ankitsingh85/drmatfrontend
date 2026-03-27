@@ -7,6 +7,7 @@ import { API_URL } from "@/config/api";
 import Topbar from "@/components/Layout/Topbar";
 import Footer from "@/components/Layout/Footer";
 import FullPageLoader from "@/components/common/FullPageLoader";
+import { resolveMediaUrl } from "@/lib/media";
 
 interface Category {
   id: string;
@@ -23,11 +24,7 @@ const TreatmentCategoryList: React.FC = () => {
   const apiBaseUrl = API_URL.replace(/\/api\/?$/, "");
 
   const resolveImage = (img?: string) => {
-    if (!img) return "/skin_hair.jpg";
-    if (img.startsWith("http://") || img.startsWith("https://")) return img;
-    if (img.startsWith("data:")) return img;
-    if (img.startsWith("/")) return `${apiBaseUrl}${img}`;
-    return `data:image/jpeg;base64,${img}`;
+    return resolveMediaUrl(img) || "/skin_hair.jpg";
   };
 
   const normalizeCategories = (payload: unknown): Category[] => {

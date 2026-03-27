@@ -3,6 +3,7 @@ import { API_URL } from "@/config/api";
 
 import React, { useEffect, useMemo, useState } from "react";
 import styles from "@/styles/Dashboard/listofcliniccategory.module.css";
+import { resolveMediaUrl } from "@/lib/media";
 
 interface Category {
   _id: string;
@@ -20,6 +21,7 @@ export default function ListofB2BCategory() {
   const [editForm, setEditForm] = useState<Partial<Category>>({});
   const [editImage, setEditImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [existingImageUrl, setExistingImageUrl] = useState("");
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -44,7 +46,8 @@ export default function ListofB2BCategory() {
     setEditForm({
       name: cat.name,
     });
-    setPreviewUrl(cat.imageUrl);
+    setPreviewUrl(resolveMediaUrl(cat.imageUrl));
+    setExistingImageUrl(cat.imageUrl);
     setEditImage(null);
     setError("");
     setIsEditing(true);
@@ -63,14 +66,6 @@ export default function ListofB2BCategory() {
     }
   };
 
-  const convertToBase64 = (file: File): Promise<string> =>
-    new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = (err) => reject(err);
-    });
-
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editName.trim()) {
@@ -79,13 +74,15 @@ export default function ListofB2BCategory() {
     }
 
     try {
-      let imageUrl = previewUrl;
-      if (editImage) imageUrl = await convertToBase64(editImage);
+      const formData = new FormData();
+      formData.append("name", editForm.name?.trim() || "");
+      if (editImage) {
+        formData.append("imageUrl", editImage);
+      }
 
       const res = await fetch(`${API_URL}/b2b-categories/${editingCategory?._id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: editForm.name?.trim(), imageUrl }),
+        body: formData,
       });
 
       if (!res.ok) throw new Error("Failed to update category");
@@ -108,6 +105,7 @@ export default function ListofB2BCategory() {
     setEditForm({});
     setEditImage(null);
     setPreviewUrl(null);
+    setExistingImageUrl("");
     setError("");
   };
 
@@ -216,8 +214,6 @@ export default function ListofB2BCategory() {
 
   return (
     <div className={styles.container}>
-      {/* <h2 className={styles.heading}>B2B Category List</h2> */}
-
       <div className={styles.toolbar}>
         <input
           className={styles.search}
@@ -269,7 +265,11 @@ export default function ListofB2BCategory() {
                 <td>{(currentPage - 1) * itemsPerPage + index + 1}</td>
                 <td>{cat.name}</td>
                 <td>
-                  <img src={cat.imageUrl} className={styles.image} alt={cat.name} />
+                  <img
+                    src={resolveMediaUrl(cat.imageUrl) || cat.imageUrl}
+                    className={styles.image}
+                    alt={cat.name}
+                  />
                 </td>
                 <td>
                   <div className={styles.actions}>
@@ -302,6 +302,7 @@ export default function ListofB2BCategory() {
           </tbody>
         </table>
       </div>
+
       <div
         style={{
           marginTop: 12,
@@ -363,6 +364,9 @@ export default function ListofB2BCategory() {
 
               {previewUrl && (
                 <img src={previewUrl} alt="Preview" className={styles.preview} />
+              )}
+              {!editImage && existingImageUrl && (
+                <p className={styles.noData}>Using existing uploaded image</p>
               )}
 
               <div className={styles.modalActions}>

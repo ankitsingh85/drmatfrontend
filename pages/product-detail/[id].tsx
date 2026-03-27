@@ -11,6 +11,7 @@ import Topbar from "@/components/Layout/Topbar";
 import Footer from "@/components/Layout/Footer";
 import { API_URL } from "@/config/api";
 import FullPageLoader from "@/components/common/FullPageLoader";
+import { resolveMediaUrl } from "@/lib/media";
 
 interface Review {
   _id: string;
@@ -59,7 +60,7 @@ export default function ProductDetail() {
 
         const data: Product = await res.json();
         setProduct(data);
-        setMainImage(data.productImages?.[0] || null);
+        setMainImage(resolveMediaUrl(data.productImages?.[0]) || null);
       } catch (err) {
         console.error("Error fetching product:", err);
       } finally {
@@ -137,16 +138,19 @@ export default function ProductDetail() {
           <div className={styles.leftColumn}>
             {product.productImages && product.productImages.length > 1 && (
               <div className={styles.thumbnailList}>
-                {product.productImages.map((img, idx) => (
-                  <img
-                    key={idx}
-                    src={img}
-                    className={`${styles.thumbnail} ${
-                      mainImage === img ? styles.activeThumb : ""
-                    }`}
-                    onClick={() => setMainImage(img)}
-                  />
-                ))}
+                {product.productImages.map((img, idx) => {
+                  const resolvedImg = resolveMediaUrl(img) || img;
+                  return (
+                    <img
+                      key={idx}
+                      src={resolvedImg}
+                      className={`${styles.thumbnail} ${
+                        mainImage === resolvedImg ? styles.activeThumb : ""
+                      }`}
+                      onClick={() => setMainImage(resolvedImg)}
+                    />
+                  );
+                })}
               </div>
             )}
 

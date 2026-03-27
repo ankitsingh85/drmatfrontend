@@ -11,6 +11,7 @@ import MobileNavbar from "@/components/Layout/MobileNavbar";
 import { useCart } from "@/context/CartContext";
 import { FaHeart, FaRegHeart } from "react-icons/fa";
 import FullPageLoader from "@/components/common/FullPageLoader";
+import { resolveMediaUrl } from "@/lib/media";
 
 interface Category {
   _id: string;
@@ -49,7 +50,6 @@ const ProductListingPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
 
-  const apiBaseUrl = API_URL.replace(/\/api\/?$/, "");
   const slugify = (value: string) =>
     value
       .toLowerCase()
@@ -96,10 +96,7 @@ const ProductListingPage: React.FC = () => {
 
   const getImage = (img?: string) => {
     if (!img) return productImg.src;
-    if (img.startsWith("data:")) return img;
-    if (img.startsWith("http://") || img.startsWith("https://")) return img;
-    if (img.startsWith("/")) return `${apiBaseUrl}${img}`;
-    return `data:image/jpeg;base64,${img}`;
+    return resolveMediaUrl(img) || productImg.src;
   };
 
   const normalizeProduct = (p: any, cats: Category[]): ProductWithCategory => {

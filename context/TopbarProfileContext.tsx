@@ -3,6 +3,7 @@
 import React, { createContext, useCallback, useContext, useEffect } from "react";
 import Cookies from "js-cookie";
 import { API_URL } from "@/config/api";
+import { resolveMediaUrl } from "@/lib/media";
 
 interface TopbarProfileState {
   username: string | null;
@@ -19,14 +20,6 @@ interface TopbarProfileContextType extends TopbarProfileState {
 const TopbarProfileContext = createContext<TopbarProfileContextType | undefined>(undefined);
 const PROFILE_IMAGE_STORAGE_KEY = "profileImage";
 
-const normalizeImage = (img: string | undefined | null, apiUrl: string): string | null => {
-  if (!img) return null;
-  if (/^data:image\//i.test(img)) return img;
-  if (/^https?:\/\//i.test(img)) return img;
-  if (img.startsWith("/")) return `${apiUrl}${img}`;
-  return `${apiUrl}/${img}`;
-};
-
 const readStoredProfileImage = (): string | null => {
   try {
     return localStorage.getItem(PROFILE_IMAGE_STORAGE_KEY) || Cookies.get("profileImage") || null;
@@ -37,7 +30,7 @@ const readStoredProfileImage = (): string | null => {
 
 const writeStoredProfileImage = (value: string | null) => {
   try {
-    if (value) {
+    if (value && !/^data:image\//i.test(value)) {
       localStorage.setItem(PROFILE_IMAGE_STORAGE_KEY, value);
     } else {
       localStorage.removeItem(PROFILE_IMAGE_STORAGE_KEY);
@@ -71,7 +64,7 @@ export const TopbarProfileProvider: React.FC<{ children: React.ReactNode }> = ({
       username,
       email,
       contactNo,
-      profileImage: normalizeImage(rawProfileImage, API_URL),
+      profileImage: resolveMediaUrl(rawProfileImage),
     });
   }, []);
 
@@ -95,7 +88,7 @@ export const TopbarProfileProvider: React.FC<{ children: React.ReactNode }> = ({
       Cookies.set("email", data.email || "");
       Cookies.set("contactNo", data.contactNo || "");
 
-      const normalizedProfile = data.profileImage ? normalizeImage(data.profileImage, API_URL) : null;
+      const normalizedProfile = resolveMediaUrl(data.profileImage);
       writeStoredProfileImage(normalizedProfile);
 
       setState({

@@ -18,6 +18,7 @@ import {
 import { IoClose } from "react-icons/io5";
 import { CartItem, useCart } from "@/context/CartContext";
 import { API_URL } from "@/config/api";
+import { resolveMediaUrl } from "@/lib/media";
 // import {logo} from "@/public/logo.jpeg"
 interface Address {
   type: string;
@@ -143,13 +144,6 @@ const AddressPage: React.FC = () => {
   const [editAddress, setEditAddress] = useState<Address>({ ...emptyAddress });
   const [newAddress, setNewAddress] = useState<Address>({ ...emptyAddress });
   const [isLoadingUser, setIsLoadingUser] = useState(true);
-
-  const normalizeProfileImage = (img?: string) => {
-    if (!img) return "";
-    if (img.startsWith("data:image/")) return img;
-    if (img.startsWith("http")) return img;
-    return `data:image/jpeg;base64,${img}`;
-  };
 
   const fetchPincodeMeta = async (pincode: string, mode: "new" | "edit") => {
     if (pincode.length !== 6) return;
@@ -432,7 +426,7 @@ const AddressPage: React.FC = () => {
           <div className={styles.userCard}>
             {user.profileImage ? (
               <img
-                src={normalizeProfileImage(user.profileImage)}
+                src={resolveMediaUrl(user.profileImage) || ""}
                 alt={user.name}
                 className={styles.avatarImage}
               />

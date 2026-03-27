@@ -76,6 +76,13 @@ export default function CreateTreatmentPlan() {
     }
   }, []);
 
+  const handleMultiFileChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    setter: React.Dispatch<React.SetStateAction<File[]>>
+  ) => {
+    setter(Array.from(e.target.files || []));
+  };
+
   const quillModules = useMemo(
     () => ({
       toolbar: [
@@ -92,39 +99,41 @@ export default function CreateTreatmentPlan() {
     e.preventDefault();
     if (!clinicId) return;
 
-    const payload = {
-      tuc,
-      treatmentName,
-      clinic: clinicId,
-      description,
-      shortReelUrl,
-      serviceCategory,
-      mrp,
-      offerPrice,
-      pricePerSession,
-      discountPercent,
-      sessions,
-      duration,
-      validity,
-      technologyUsed,
-      instructions,
-      disclaimer,
-      inclusions,
-      exclusions,
-      gender,
-      paymentOptions,
-      promoCode,
-      addToCart,
-      isActive,
-      rating,
-      reviews,
-      patientFeedback,
-    };
+    const formData = new FormData();
+    formData.append("tuc", tuc);
+    formData.append("treatmentName", treatmentName);
+    formData.append("clinic", clinicId);
+    formData.append("description", description);
+    formData.append("shortReelUrl", shortReelUrl);
+    formData.append("serviceCategory", serviceCategory);
+    formData.append("mrp", mrp);
+    formData.append("offerPrice", offerPrice);
+    formData.append("pricePerSession", pricePerSession);
+    formData.append("discountPercent", discountPercent);
+    formData.append("sessions", sessions);
+    formData.append("duration", duration);
+    formData.append("validity", validity);
+    formData.append("technologyUsed", technologyUsed);
+    formData.append("instructions", instructions);
+    formData.append("disclaimer", disclaimer);
+    formData.append("inclusions", inclusions);
+    formData.append("exclusions", exclusions);
+    formData.append("gender", gender);
+    formData.append("paymentOptions", JSON.stringify(paymentOptions));
+    formData.append("promoCode", promoCode);
+    formData.append("addToCart", String(addToCart));
+    formData.append("isActive", String(isActive));
+    formData.append("rating", rating);
+    formData.append("reviews", reviews);
+    formData.append("patientFeedback", patientFeedback);
+    treatmentImages.forEach((file) => formData.append("treatmentImages", file));
+    beforeAfterImages.forEach((file) => formData.append("beforeImages", file));
+    beforeAfterImages.forEach((file) => formData.append("afterImages", file));
+    categoryIcons.forEach((file) => formData.append("categoryIcons", file));
 
     const res = await fetch(`${API_URL}/treatment-plans`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: formData,
     });
 
     setNotification(
@@ -185,12 +194,22 @@ export default function CreateTreatmentPlan() {
 
           <div className={styles.field}>
             <label>Treatment Images</label>
-            <input type="file" multiple className={styles.fileInput} />
+          <input
+            type="file"
+            multiple
+            className={styles.fileInput}
+            onChange={(e) => handleMultiFileChange(e, setTreatmentImages)}
+          />
           </div>
 
           <div className={styles.field}>
             <label>Before / After Images</label>
-            <input type="file" multiple className={styles.fileInput} />
+          <input
+            type="file"
+            multiple
+            className={styles.fileInput}
+            onChange={(e) => handleMultiFileChange(e, setBeforeAfterImages)}
+          />
           </div>
         </section>
 
@@ -208,7 +227,12 @@ export default function CreateTreatmentPlan() {
 
           <div className={styles.field}>
             <label>Category Icon Images</label>
-            <input type="file" multiple className={styles.fileInput} />
+          <input
+            type="file"
+            multiple
+            className={styles.fileInput}
+            onChange={(e) => handleMultiFileChange(e, setCategoryIcons)}
+          />
           </div>
         </section>
 

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import styles from "@/styles/adminpanel/userprofile.module.css";
 import { API_URL } from "@/config/api";
 import FullPageLoader from "@/components/common/FullPageLoader";
+import { resolveMediaUrl } from "@/lib/media";
 
 interface IUserAddress {
   type: string;
@@ -27,6 +28,7 @@ interface IUserForm {
   email: string;
   contactNo: string;
   profileImage: string;
+  profileImageFile: File | null;
   addresses: IUserAddress[];
   addressType: string;
   addressName: string;
@@ -154,6 +156,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
     email: "",
     contactNo: "",
     profileImage: "",
+    profileImageFile: null,
     addresses: [],
     addressType: "Home",
     addressName: "",
@@ -206,7 +209,8 @@ const UserProfile: React.FC<UserProfileProps> = ({
         name: data.name || "",
         email: data.email || email,
         contactNo: data.contactNo || "",
-        profileImage: data.profileImage || "",
+        profileImage: resolveMediaUrl(data.profileImage) || "",
+        profileImageFile: null,
         addresses,
         addressType: sanitizeAddressType(primary.type),
         addressName: primary.fullName || data.name || "",
@@ -243,6 +247,14 @@ const UserProfile: React.FC<UserProfileProps> = ({
     setShowForm(showFormInitially);
   }, [showFormInitially]);
 
+  useEffect(() => {
+    return () => {
+      if (form.profileImage.startsWith("blob:")) {
+        URL.revokeObjectURL(form.profileImage);
+      }
+    };
+  }, [form.profileImage]);
+
   const handleChange = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
@@ -261,14 +273,12 @@ const UserProfile: React.FC<UserProfileProps> = ({
         return;
       }
 
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setForm((prev) => ({
-          ...prev,
-          profileImage: reader.result as string,
-        }));
-      };
-      reader.readAsDataURL(file);
+      const previewUrl = URL.createObjectURL(file);
+      setForm((prev) => ({
+        ...prev,
+        profileImage: previewUrl,
+        profileImageFile: file,
+      }));
       return;
     }
 
@@ -325,17 +335,20 @@ const UserProfile: React.FC<UserProfileProps> = ({
 
     setSaving(true);
     try {
+      const payload = new FormData();
+      payload.append("name", form.name.trim());
+      payload.append("email", form.email.trim());
+      payload.append("contactNo", form.contactNo.trim());
+      payload.append("addresses", JSON.stringify(addresses));
+      payload.append("address", primaryAddress.address || "");
+
+      if (form.profileImageFile) {
+        payload.append("profileImage", form.profileImageFile);
+      }
+
       const res = await fetch(`${API_URL}/users/${form._id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: form.name.trim(),
-          email: form.email.trim(),
-          contactNo: form.contactNo.trim(),
-          profileImage: form.profileImage,
-          addresses,
-          address: primaryAddress.address,
-        }),
+        body: payload,
       });
 
       const data = await res.json();
@@ -349,6 +362,8 @@ const UserProfile: React.FC<UserProfileProps> = ({
         ...prev,
         ...data.user,
         addresses,
+        profileImage: resolveMediaUrl(data.user?.profileImage) || prev.profileImage,
+        profileImageFile: null,
       }));
 
       window.dispatchEvent(new CustomEvent("profile-updated"));

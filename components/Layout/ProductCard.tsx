@@ -3,6 +3,7 @@ import styles from "@/styles/pages/ProductListingPage.module.css";
 import { useRouter } from "next/router";
 import { Product } from "../types/product";
 import fallbackImg from "@/public/product1.png";
+import { resolveMediaUrl } from "@/lib/media";
 
 interface ProductCardProps {
   products: Product[];
@@ -42,11 +43,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ products }) => {
                 )}
 
                 <img
-                  src={
-                    mainImage.startsWith("data:")
-                      ? mainImage
-                      : `data:image/jpeg;base64,${mainImage}`
-                  }
+                  src={resolveMediaUrl(mainImage) || fallbackImg.src}
                   alt={product.name}
                   className={styles.productImage}
                 />

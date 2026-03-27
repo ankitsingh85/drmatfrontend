@@ -5,6 +5,7 @@ import React, { useEffect, useState } from "react";
 import styles from "@/styles/components/homePage/categories.module.css";
 import { useRouter } from "next/router";
 import FullPageLoader from "@/components/common/FullPageLoader";
+import { resolveMediaUrl } from "@/lib/media";
 
 interface ClinicCategory {
   _id: string;
@@ -68,7 +69,7 @@ const ClinicCategories: React.FC<ClinicCategoryProps> = ({
               style={{ borderColor: border || undefined }}
             >
               <img
-                src={category.imageUrl}
+                src={resolveMediaUrl(category.imageUrl) || category.imageUrl}
                 alt={category.name}
                 className={styles.categoryImg}
               />

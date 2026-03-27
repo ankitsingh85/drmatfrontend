@@ -1,16 +1,15 @@
 "use client";
+
 import React, { useEffect, useMemo, useState } from "react";
 import styles from "@/styles/Dashboard/listofcategory.module.css";
 import { API_URL } from "@/config/api";
+import { resolveMediaUrl } from "@/lib/media";
 
 interface ServiceCategory {
   _id: string;
   name: string;
-  imageUrl: string; // base64
+  imageUrl: string;
 }
-
-// ✅ Use environment variable for API
-// const API_URL = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000/api";
 
 const ListOfServiceCategory = () => {
   const [categories, setCategories] = useState<ServiceCategory[]>([]);
@@ -21,6 +20,7 @@ const ListOfServiceCategory = () => {
   const [editName, setEditName] = useState("");
   const [editImage, setEditImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [existingImageUrl, setExistingImageUrl] = useState("");
   const [error, setError] = useState("");
 
   const premiumButtonStyle: React.CSSProperties = {
@@ -77,31 +77,24 @@ const ListOfServiceCategory = () => {
   const handleEdit = (cat: ServiceCategory) => {
     setEditingCategory(cat);
     setEditName(cat.name);
-    setPreviewUrl(cat.imageUrl);
+    setPreviewUrl(resolveMediaUrl(cat.imageUrl));
+    setExistingImageUrl(cat.imageUrl);
     setEditImage(null);
     setError("");
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 1024 * 1024) {
-        setError("Image must be ≤ 1MB");
-        return;
-      }
-      setError("");
-      setEditImage(file);
-      setPreviewUrl(URL.createObjectURL(file));
-    }
-  };
+    if (!file) return;
 
-  const convertToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = (err) => reject(err);
-    });
+    if (file.size > 1024 * 1024) {
+      setError("Image must be <= 1MB");
+      return;
+    }
+
+    setError("");
+    setEditImage(file);
+    setPreviewUrl(URL.createObjectURL(file));
   };
 
   const handleEditSubmit = async (e: React.FormEvent) => {
@@ -112,24 +105,17 @@ const ListOfServiceCategory = () => {
     }
 
     try {
-      let imageUrl = previewUrl;
+      const formData = new FormData();
+      formData.append("name", editName.trim());
       if (editImage) {
-        if (editImage.size > 1024 * 1024) {
-          setError("Image must be ≤ 1MB");
-          return;
-        }
-        imageUrl = await convertToBase64(editImage);
+        formData.append("imageUrl", editImage);
       }
 
       const res = await fetch(
         `${API_URL}/service-categories/${editingCategory?._id}`,
         {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: editName.trim(),
-            imageUrl,
-          }),
+          body: formData,
         }
       );
 
@@ -145,6 +131,7 @@ const ListOfServiceCategory = () => {
       setEditingCategory(null);
       setEditImage(null);
       setPreviewUrl(null);
+      setExistingImageUrl("");
     } catch (error) {
       console.error("Update failed:", error);
       setError("Unexpected error occurred");
@@ -156,6 +143,7 @@ const ListOfServiceCategory = () => {
     setError("");
     setEditImage(null);
     setPreviewUrl(null);
+    setExistingImageUrl("");
   };
 
   const filteredCategories = useMemo(() => {
@@ -270,7 +258,6 @@ const ListOfServiceCategory = () => {
 
   return (
     <div className={styles.container}>
-      {/* <h2 className={styles.title}>List of Service Categories</h2> */}
       <div
         style={{
           display: "flex",
@@ -318,7 +305,11 @@ const ListOfServiceCategory = () => {
               <td>{`ServiceCat-${(currentPage - 1) * itemsPerPage + index + 1}`}</td>
               <td>{cat.name}</td>
               <td>
-                <img src={cat.imageUrl} alt={cat.name} className={styles.image} />
+                <img
+                  src={resolveMediaUrl(cat.imageUrl) || cat.imageUrl}
+                  alt={cat.name}
+                  className={styles.image}
+                />
               </td>
               <td>
                 <button
@@ -407,6 +398,9 @@ const ListOfServiceCategory = () => {
               />
               {previewUrl && (
                 <img src={previewUrl} className={styles.preview} alt="Preview" />
+              )}
+              {!editImage && existingImageUrl && (
+                <p className={styles.noImage}>Using existing uploaded image</p>
               )}
 
               <div className={styles.modalActions}>

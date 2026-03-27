@@ -7,6 +7,7 @@ import Cookies from "js-cookie";
 import { FaWhatsapp, FaMap } from "react-icons/fa";
 import { IoCall } from "react-icons/io5";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { resolveMediaUrl } from "@/lib/media";
 
 /* ================= TYPES ================= */
 type Clinic = {
@@ -75,15 +76,15 @@ const ClinicCard: React.FC<ClinicCardProps> = ({ clinic }) => {
   /* ================= IMAGE NORMALIZATION ================= */
   const images: string[] =
     clinic.images && clinic.images.length > 0
-      ? clinic.images
+      ? clinic.images.map((img) => resolveMediaUrl(img) || img)
       : clinic.image
-      ? [clinic.image]
+      ? [resolveMediaUrl(clinic.image) || clinic.image]
       : clinic.clinicLogo
-      ? [clinic.clinicLogo]
+      ? [resolveMediaUrl(clinic.clinicLogo) || clinic.clinicLogo]
       : clinic.bannerImage
-      ? [clinic.bannerImage]
+      ? [resolveMediaUrl(clinic.bannerImage) || clinic.bannerImage]
       : clinic.imageUrl
-      ? [clinic.imageUrl]
+      ? [resolveMediaUrl(clinic.imageUrl) || clinic.imageUrl]
       : ["/placeholder-clinic.jpg"];
 
   /* ================= AUTO SLIDE ================= */

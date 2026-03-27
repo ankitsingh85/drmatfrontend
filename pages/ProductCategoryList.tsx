@@ -8,6 +8,7 @@ import { API_URL } from "@/config/api";
 import Topbar from "@/components/Layout/Topbar";
 import Footer from "@/components/Layout/Footer";
 import FullPageLoader from "@/components/common/FullPageLoader";
+import { resolveMediaUrl } from "@/lib/media";
 
 interface Category {
   id: string;
@@ -82,8 +83,7 @@ const ProductCategoryList: React.FC = () => {
 
   const getValidImage = (img?: string) => {
     if (!img) return productImg.src;
-    if (img.startsWith("data:")) return img;
-    return `data:image/jpeg;base64,${img}`;
+    return resolveMediaUrl(img) || productImg.src;
   };
 
   if (loading) return <FullPageLoader />;

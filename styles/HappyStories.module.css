@@ -82,6 +82,14 @@
   border: 0;
 }
 
+.instagramEmbed {
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  border: 0 !important;
+}
+
 /* ================= MUTE BUTTON ================= */
 .muteBtn {
   position: absolute;

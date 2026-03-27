@@ -22,6 +22,7 @@ import OrderHistory from "@/components/UserPanel/OrderHistory";
 import TreatmentOrderHistory from "@/components/UserPanel/TreatmentOrderHistory";
 import AppointmentHistory from "@/components/UserPanel/AppointmentHistory";
 import UserProfile from "@/components/UserPanel/UserProfile";
+import YourResult from "@/components/UserPanel/YourResult";
 
 import Topbar from "@/components/Layout/Topbar";
 import Footer from "@/components/Layout/Footer";
@@ -29,16 +30,10 @@ import MobileNavbar from "@/components/Layout/MobileNavbar";
 import { API_URL } from "@/config/api";
 import { useTopbarProfile } from "@/context/TopbarProfileContext";
 import FullPageLoader from "@/components/common/FullPageLoader";
-
-const normalizeProfileImage = (img?: string | null) => {
-  if (!img) return null;
-  if (/^data:image\//i.test(img)) return img;
-  if (/^https?:\/\//i.test(img)) return img;
-  if (img.startsWith("/")) return `${API_URL}${img}`;
-  return `${API_URL}/${img}`;
-};
+import { resolveMediaUrl } from "@/lib/media";
 
 interface User {
+  _id?: string;
   name?: string;
   email?: string;
   contactNo?: string;
@@ -87,12 +82,17 @@ const UserDashboard: React.FC = () => {
     const data = await res.json();
 
     setUser({
+      _id: data._id,
       name: data.name,
       email: data.email,
       contactNo: data.contactNo,
-      profileImage: normalizeProfileImage(data.profileImage) || data.profileImage || undefined,
+      profileImage: resolveMediaUrl(data.profileImage) || data.profileImage || undefined,
     });
 
+    if (data._id) {
+      Cookies.set("userId", data._id);
+      localStorage.setItem("userId", data._id);
+    }
     Cookies.set("username", data.name || "");
     Cookies.set("email", data.email || "");
     Cookies.set("contactNo", data.contactNo || "");
@@ -105,6 +105,23 @@ const UserDashboard: React.FC = () => {
 
     fetchUser();
   }, [router]);
+
+  useEffect(() => {
+    if (!router.isReady) return;
+
+    const section = typeof router.query.section === "string" ? router.query.section : "";
+    if (section) {
+      setActiveSection(section);
+      const label =
+        section === "yourresult"
+          ? "Your Result"
+          : menuItems.find((item) => item.id === section)?.label;
+
+      if (label) {
+        setActiveSectionTitle(label);
+      }
+    }
+  }, [router.isReady, router.query.section]);
 
   /* ================= LOGOUT ================= */
   const handleLogout = () => {
@@ -171,12 +188,11 @@ const UserDashboard: React.FC = () => {
 
     if (activeSection === "orderhistory") return <OrderHistory mode="all" />;
     if (activeSection === "treatmentorders") return <TreatmentOrderHistory/> ;
-    if (activeSection === "yourresult") return (
-      <div className={styles.comingSoonCard}>
-        <h3>{activeSectionTitle}</h3>
-        <p>Your treatment results will appear here soon.</p>
-      </div>
-    );
+    if (activeSection === "yourresult") {
+      const tabParam = typeof router.query.tab === "string" ? router.query.tab : "";
+      const initialTab = tabParam === "prescriptions" ? "prescriptions" : "gallery";
+      return <YourResult userId={user._id} userName={user.name} initialTab={initialTab} />;
+    }
     if (activeSection === "appointmenthistory") return <AppointmentHistory />;
     if (activeSection === "servicehistory") return <ServiceHistory />;
 
@@ -224,7 +240,7 @@ const UserDashboard: React.FC = () => {
               <div className={styles.avatarCircle}>
                 {user.profileImage ? (
                   <img
-                    src={user.profileImage}
+                    src={resolveMediaUrl(user.profileImage) || user.profileImage}
                     className={styles.avatarImage}
                     alt="Profile"
                   />

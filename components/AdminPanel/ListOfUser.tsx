@@ -6,6 +6,7 @@ import { API_URL } from "@/config/api";
 import styles from "@/styles/Dashboard/listofuser.module.css";
 import editStyles from "@/styles/Dashboard/createUser.module.css";
 import FullPageLoader from "@/components/common/FullPageLoader";
+import { resolveMediaUrl } from "@/lib/media";
 import {
   FiActivity,
   FiCalendar,
@@ -359,7 +360,7 @@ export default function ListOfUser() {
           <div className={styles.heroProfile}>
             {viewingUser.profileImage ? (
               <img
-                src={viewingUser.profileImage}
+                src={resolveMediaUrl(viewingUser.profileImage) || viewingUser.profileImage}
                 alt={viewingUser.name}
                 className={styles.heroAvatar}
               />

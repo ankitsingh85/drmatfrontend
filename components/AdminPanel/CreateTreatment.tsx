@@ -33,9 +33,9 @@ export default function CreateTreatmentPlan() {
   const [treatmentName, setTreatmentName] = useState("");
   const [description, setDescription] = useState("");
 
-  const [treatmentImages, setTreatmentImages] = useState<string[]>([]);
-  const [beforeImages, setBeforeImages] = useState<string[]>([]);
-  const [afterImages, setAfterImages] = useState<string[]>([]);
+  const [treatmentImages, setTreatmentImages] = useState<File[]>([]);
+  const [beforeImages, setBeforeImages] = useState<File[]>([]);
+  const [afterImages, setAfterImages] = useState<File[]>([]);
   const [shortReelUrl, setShortReelUrl] = useState("");
 
   const [serviceCategory, setServiceCategory] = useState("");
@@ -98,36 +98,20 @@ export default function CreateTreatmentPlan() {
     fetchServiceCategories();
   }, []);
 
-  const fileToBase64 = (file: File) =>
-    new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        if (typeof reader.result === "string") {
-          resolve(reader.result);
-          return;
-        }
-        reject(new Error("Invalid file data"));
-      };
-      reader.onerror = () => reject(new Error("Failed to read file"));
-      reader.readAsDataURL(file);
-    });
-
   const handleFileChange = async (
     e: React.ChangeEvent<HTMLInputElement>,
     type: "treatmentImages" | "beforeImages" | "afterImages"
   ) => {
     const files = Array.from(e.target.files || []);
-    const base64Images = await Promise.all(files.map(fileToBase64));
-
     if (type === "treatmentImages") {
-      setTreatmentImages(base64Images);
+      setTreatmentImages(files);
       return;
     }
     if (type === "beforeImages") {
-      setBeforeImages(base64Images);
+      setBeforeImages(files);
       return;
     }
-    setAfterImages(base64Images);
+    setAfterImages(files);
   };
 
   const quillModules = useMemo(
@@ -159,35 +143,32 @@ export default function CreateTreatmentPlan() {
     }
 
     try {
-      const payload = {
-        tuc,
-        treatmentName: treatmentName.trim(),
-        clinic: selectedClinicId,
-        description,
-        shortReelUrl,
-        serviceCategory: serviceCategory.trim(),
-        mrp,
-        offerPrice,
-        pricePerSession,
-        discountPercent,
-        sessions,
-        duration,
-        validity,
-        technologyUsed,
-        gender,
-        promoCode,
-        addToCart,
-        isActive,
-        treatmentImages,
-        beforeImages,
-        afterImages,
-        categoryIcons: [],
-      };
+      const formData = new FormData();
+      formData.append("tuc", tuc);
+      formData.append("treatmentName", treatmentName.trim());
+      formData.append("clinic", selectedClinicId);
+      formData.append("description", description);
+      formData.append("shortReelUrl", shortReelUrl);
+      formData.append("serviceCategory", serviceCategory.trim());
+      formData.append("mrp", mrp);
+      formData.append("offerPrice", offerPrice);
+      formData.append("pricePerSession", pricePerSession);
+      formData.append("discountPercent", discountPercent);
+      formData.append("sessions", sessions);
+      formData.append("duration", duration);
+      formData.append("validity", validity);
+      formData.append("technologyUsed", technologyUsed);
+      formData.append("gender", gender);
+      formData.append("promoCode", promoCode);
+      formData.append("addToCart", String(addToCart));
+      formData.append("isActive", String(isActive));
+      treatmentImages.forEach((file) => formData.append("treatmentImages", file));
+      beforeImages.forEach((file) => formData.append("beforeImages", file));
+      afterImages.forEach((file) => formData.append("afterImages", file));
 
       const res = await fetch(`${API_URL}/treatment-plans`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: formData,
       });
 
       if (res.ok) {

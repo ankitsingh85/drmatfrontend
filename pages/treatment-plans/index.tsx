@@ -10,6 +10,7 @@ import MobileNavbar from "@/components/Layout/MobileNavbar";
 import FullPageLoader from "@/components/common/FullPageLoader";
 import { FaEye } from "react-icons/fa";
 import { useCart } from "@/context/CartContext";
+import { resolveMediaUrl } from "@/lib/media";
 
 interface Category {
   _id: string;
@@ -55,8 +56,6 @@ const TreatmentListingPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
 
-  const apiBaseUrl = API_URL.replace(/\/api\/?$/, "");
-
   const extractArray = (payload: unknown): any[] => {
     if (Array.isArray(payload)) return payload;
     if (payload && typeof payload === "object") {
@@ -68,11 +67,7 @@ const TreatmentListingPage: React.FC = () => {
   };
 
   const resolveImage = (img?: string) => {
-    if (!img) return "/skin_hair.jpg";
-    if (img.startsWith("data:")) return img;
-    if (img.startsWith("http://") || img.startsWith("https://")) return img;
-    if (img.startsWith("/")) return `${apiBaseUrl}${img}`;
-    return `data:image/jpeg;base64,${img}`;
+    return resolveMediaUrl(img) || "/skin_hair.jpg";
   };
 
   const resolveInitialCategoryId = (catData: Category[]): string | null => {

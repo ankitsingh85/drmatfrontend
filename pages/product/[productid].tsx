@@ -11,6 +11,7 @@ import Topbar from "@/components/Layout/Topbar";
 import Footer from "@/components/Layout/Footer";
 import { API_URL } from "@/config/api";
 import FullPageLoader from "@/components/common/FullPageLoader";
+import { resolveMediaUrl } from "@/lib/media";
 
 interface Review {
   rating: number;
@@ -99,7 +100,7 @@ export default function ProductDetail() {
       raw.discountPrice ?? raw.discountedPrice ?? raw.price ?? raw.mrpPrice ?? 0
     ),
     quantity: raw.quantity,
-    images: raw.images || raw.productImages || [],
+    images: (raw.images || raw.productImages || []).map((img) => resolveMediaUrl(img) || img),
     reviews: Array.isArray(raw.reviews) ? raw.reviews : [],
   });
 

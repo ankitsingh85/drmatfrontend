@@ -6,6 +6,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import styles from "@/styles/Dashboard/listofclinic.module.css";
 import createStyles from "@/styles/Dashboard/createclinic.module.css";
 import FullPageLoader from "@/components/common/FullPageLoader";
+import { resolveMediaUrl } from "@/lib/media";
 
 type ClinicCategory = {
   _id: string;
@@ -190,10 +191,7 @@ function ListOfClinic() {
   };
 
   const getImage = (img?: string) => {
-    if (!img) return "";
-    if (img.startsWith("data:")) return img;
-    if (/^https?:\/\//i.test(img)) return img;
-    return img.startsWith("/") ? `${API_URL}${img}` : `${API_URL}/${img}`;
+    return resolveMediaUrl(img) || "";
   };
 
   const handleDownloadCSV = () => {

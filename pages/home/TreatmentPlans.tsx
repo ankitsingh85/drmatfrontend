@@ -5,6 +5,7 @@ import { useRouter } from "next/router";
 import { API_URL } from "@/config/api";
 import styles from "@/styles/components/homePage/categories.module.css";
 import FullPageLoader from "@/components/common/FullPageLoader";
+import { resolveMediaUrl } from "@/lib/media";
 
 interface ServiceCategory {
   _id: string;
@@ -29,14 +30,8 @@ const TreatmentPlans = ({
   const [categories, setCategories] = useState<ServiceCategory[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const apiBaseUrl = API_URL.replace(/\/api\/?$/, "");
-
   const resolveImage = (img?: string) => {
-    if (!img) return "/skin_hair.jpg";
-    if (img.startsWith("http://") || img.startsWith("https://")) return img;
-    if (img.startsWith("data:")) return img;
-    if (img.startsWith("/")) return `${apiBaseUrl}${img}`;
-    return `data:image/jpeg;base64,${img}`;
+    return resolveMediaUrl(img) || "/skin_hair.jpg";
   };
 
   useEffect(() => {

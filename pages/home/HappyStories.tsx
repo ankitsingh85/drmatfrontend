@@ -76,6 +76,25 @@ const HappyStories = () => {
     }
   }, [shorts, isMuted]);
 
+  // ✅ Load Instagram embed script for reel blocks
+  useEffect(() => {
+    if (!shorts.some((short) => short.platform === "instagram")) return;
+
+    const existing = document.getElementById("instagram-embed-script");
+    if (!existing) {
+      const script = document.createElement("script");
+      script.id = "instagram-embed-script";
+      script.src = "https://www.instagram.com/embed.js";
+      script.async = true;
+      script.onload = () => {
+        (window as any).instgrm?.Embeds?.process?.();
+      };
+      document.body.appendChild(script);
+    } else {
+      (window as any).instgrm?.Embeds?.process?.();
+    }
+  }, [shorts]);
+
   // ✅ Toggle mute
   const toggleMute = () => {
     setIsMuted((prev) => !prev);
@@ -133,22 +152,14 @@ const HappyStories = () => {
               {short.platform === "youtube" ? (
                 <div
                   id={`yt-player-happy-${index}`}
-                  className={styles.youtubeIframe}
+                  className={styles.youtubeFrame}
                 />
               ) : (
-                <iframe
-                  src={
-                    short.videoUrl.includes("embed")
-                      ? short.videoUrl
-                      : `${short.videoUrl}embed`
-                  }
-                  width="100%"
-                  height="100%"
-                  frameBorder="0"
-                  allow="autoplay; encrypted-media"
-                  allowFullScreen
-                  className={styles.videoTag}
-                  title={`insta-${index}`}
+                <blockquote
+                  key={short._id}
+                  className={`instagram-media ${styles.instagramEmbed}`}
+                  data-instgrm-permalink={short.videoUrl}
+                  data-instgrm-version="14"
                 />
               )}
               {short.platform === "youtube" && (

@@ -10,6 +10,7 @@ import illustration from "../public/login.jpg";
 import registerIllustration from "../public/register.jpg";
 import otpIllustration from "../public/otp.jpg";
 import { API_URL } from "@/config/api";
+import { resolveMediaUrl } from "@/lib/media";
 
 export default function Login() {
   const router = useRouter();
@@ -21,14 +22,6 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [step, setStep] = useState<"mobile" | "otp" | "profile">("mobile");
   const [loading, setLoading] = useState(false);
-
-  const normalizeImage = (img?: string | null) => {
-    if (!img) return null;
-    if (/^data:image\//i.test(img)) return img;
-    if (/^https?:\/\//i.test(img)) return img;
-    if (img.startsWith("/")) return `${API_URL}${img}`;
-    return `${API_URL}/${img}`;
-  };
 
   const completeLogin = (data: any, fallbackMobile: string) => {
     const cookieOptions = {
@@ -42,8 +35,8 @@ export default function Login() {
     Cookies.set("username", data.user.name || "", cookieOptions);
     Cookies.set("contactNo", data.user.contactNo || fallbackMobile, cookieOptions);
     Cookies.set("role", "user", cookieOptions);
-    const normalizedProfileImage = normalizeImage(data.user?.profileImage);
-    if (normalizedProfileImage) {
+    const normalizedProfileImage = resolveMediaUrl(data.user?.profileImage);
+    if (normalizedProfileImage && !/^data:image\//i.test(normalizedProfileImage)) {
       Cookies.set("profileImage", normalizedProfileImage, cookieOptions);
       localStorage.setItem("profileImage", normalizedProfileImage);
     } else {

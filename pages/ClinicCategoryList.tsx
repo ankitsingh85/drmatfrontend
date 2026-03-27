@@ -6,6 +6,7 @@ import styles from "@/styles/pages/cliniccategorylist.module.css";
 import Topbar from "@/components/Layout/Topbar";
 import Footer from "@/components/Layout/Footer";
 import FullPageLoader from "@/components/common/FullPageLoader";
+import { resolveMediaUrl } from "@/lib/media";
 
 interface ClinicCategory {
   _id: string;
@@ -72,7 +73,7 @@ const ClinicCategoryList: React.FC = () => {
                   >
                     <div className={styles.categoryCard}>
                       <img
-                        src={cat.imageUrl}
+                        src={resolveMediaUrl(cat.imageUrl) || cat.imageUrl}
                         alt={cat.name}
                         className={styles.categoryImg}
                       />

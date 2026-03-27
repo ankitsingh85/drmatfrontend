@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import styles from "@/styles/Dashboard/productlist.module.css";
 import createStyles from "@/styles/Dashboard/createproduct.module.css";
 import { API_URL } from "@/config/api";
+import { resolveMediaUrl } from "@/lib/media";
 
 interface Category {
   _id: string;
@@ -482,7 +483,7 @@ const ListOfProduct: React.FC = () => {
       {viewProduct.productImages?.length > 0 && (
         <div className={styles.modalImages}>
           {viewProduct.productImages.map((img, i) => (
-            <img key={i} src={img} alt="Product" />
+            <img key={i} src={resolveMediaUrl(img) || img} alt="Product" />
           ))}
         </div>
       )}

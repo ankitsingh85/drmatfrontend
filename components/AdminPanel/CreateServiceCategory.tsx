@@ -12,14 +12,6 @@ const CreateServiceCategory = () => {
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const convertToBase64 = (file: File): Promise<string> =>
-    new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
-    });
-
   const isAllowedImage = (file: File) =>
     ["image/jpeg", "image/jpg", "image/png", "image/webp"].includes(file.type);
 
@@ -62,15 +54,13 @@ const CreateServiceCategory = () => {
 
     try {
       setLoading(true);
-      const base64Image = await convertToBase64(categoryImage);
+      const formData = new FormData();
+      formData.append("name", categoryName.trim());
+      formData.append("imageUrl", categoryImage);
 
       const response = await fetch(`${API_URL}/service-categories`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: categoryName.trim(),
-          imageUrl: base64Image,
-        }),
+        body: formData,
       });
 
       const data = await response.json();

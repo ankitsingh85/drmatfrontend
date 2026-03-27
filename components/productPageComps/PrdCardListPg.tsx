@@ -2,6 +2,7 @@ import React from "react";
 import styles from "@/styles/components/productPageComps/PrdCardListPg.module.css";
 import { useRouter } from "next/router";
 import { Product } from "../types/product";
+import { resolveMediaUrl } from "@/lib/media";
 
 interface ProductCardProps {
   products: Product[];
@@ -49,7 +50,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ products }) => {
                 )}
 
                 <img
-                  src={product.image[0]}
+                  src={resolveMediaUrl(product.image[0]) || product.image[0]}
                   alt={product.name}
                   className={styles.productImage}
                 />

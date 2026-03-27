@@ -2,6 +2,7 @@
 
 import { API_URL } from "@/config/api";
 import React, { useEffect, useState } from "react";
+import { resolveMediaUrl } from "@/lib/media";
 
 // @ts-ignore
 import {
@@ -127,6 +128,7 @@ const ListOfTopProduct: React.FC = () => {
                         <>
                           <img
                             src={
+                              resolveMediaUrl(product.productImages?.[0]) ||
                               product.productImages?.[0] ||
                               "/fallback.png"
                             }
@@ -214,6 +216,7 @@ const ListOfTopProduct: React.FC = () => {
                   >
                     <img
                       src={
+                        resolveMediaUrl(product.productImages?.[0]) ||
                         product.productImages?.[0] ||
                         "/fallback.png"
                       }

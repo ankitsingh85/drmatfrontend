@@ -3,6 +3,7 @@ import { API_URL } from "@/config/api";
 
 import React, { useEffect, useMemo, useState } from "react";
 import styles from "@/styles/Dashboard/listofcategory.module.css";
+import { resolveMediaUrl } from "@/lib/media";
 
 interface Category {
   _id: string;
@@ -66,7 +67,7 @@ const ListOfCategory = () => {
   const handleEdit = (cat: Category) => {
     setEditingCategory(cat);
     setEditName(cat.name);
-    setPreviewUrl(cat.imageUrl);
+    setPreviewUrl(resolveMediaUrl(cat.imageUrl));
     setEditImage(null);
     setError("");
   };
@@ -84,14 +85,6 @@ const ListOfCategory = () => {
     }
   };
 
-  const convertToBase64 = (file: File): Promise<string> =>
-    new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = (err) => reject(err);
-    });
-
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editName.trim()) {
@@ -100,15 +93,17 @@ const ListOfCategory = () => {
     }
 
     try {
-      let imageUrl = previewUrl;
-      if (editImage) imageUrl = await convertToBase64(editImage);
+      const formData = new FormData();
+      formData.append("name", editName.trim());
+      if (editImage) {
+        formData.append("imageUrl", editImage);
+      }
 
       const res = await fetch(
         `${API_URL}/categories/${editingCategory?._id}`,
         {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: editName.trim(), imageUrl }),
+          body: formData,
         }
       );
       if (!res.ok) throw new Error("Failed to update category");
@@ -295,7 +290,11 @@ const ListOfCategory = () => {
               <td>{cat.id}</td>
               <td>{cat.name}</td>
               <td>
-                <img src={cat.imageUrl} alt={cat.name} className={styles.image} />
+                <img
+                  src={resolveMediaUrl(cat.imageUrl) || cat.imageUrl}
+                  alt={cat.name}
+                  className={styles.image}
+                />
               </td>
               <td className={styles.actions}>
                 <button className={styles.editBtn} onClick={() => handleEdit(cat)}>

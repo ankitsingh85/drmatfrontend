@@ -18,6 +18,7 @@ import {
 import { FiChevronDown } from "react-icons/fi";
 import { useCart } from "@/context/CartContext";
 import styles from "@/styles/pages/treatmentPlanDetail.module.css";
+import { resolveMediaUrl } from "@/lib/media";
 
 interface TreatmentPlan {
   _id: string;
@@ -83,14 +84,8 @@ const TreatmentPlanDetailPage = () => {
   const [openSection, setOpenSection] = useState("overview");
   const [selectedImage, setSelectedImage] = useState(0);
 
-  const apiBaseUrl = API_URL.replace(/\/api\/?$/, "");
-
   const resolveImage = (img?: string) => {
-    if (!img) return "/placeholder.png";
-    if (img.startsWith("http://") || img.startsWith("https://")) return img;
-    if (img.startsWith("data:")) return img;
-    if (img.startsWith("/")) return `${apiBaseUrl}${img}`;
-    return `data:image/jpeg;base64,${img}`;
+    return resolveMediaUrl(img) || "/placeholder.png";
   };
 
   useEffect(() => {

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import styles from "@/styles/topproducts.module.css";
 import { useCart } from "@/context/CartContext";
 import { FaArrowRight, FaHeart, FaRegHeart } from "react-icons/fa";
+import { resolveMediaUrl } from "@/lib/media";
 
 interface AdminProduct {
   _id: string;
@@ -62,8 +63,7 @@ const TopProducts: React.FC = () => {
 
   const getImage = (img?: string) => {
     if (!img) return "/product1.png";
-    if (img.startsWith("data:")) return img;
-    return img;
+    return resolveMediaUrl(img) || img;
   };
 
   useEffect(() => {

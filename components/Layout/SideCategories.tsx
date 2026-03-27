@@ -1,5 +1,6 @@
 import React from "react";
 import styles from "@/styles/components/Layout/SideCategories.module.css";
+import { resolveMediaUrl } from "@/lib/media";
 
 interface Category {
   _id: string;
@@ -41,7 +42,11 @@ const SideCategories: React.FC<SideCategoriesProps> = ({
             }`}
             onClick={() => onCategorySelect(cat._id)}
           >
-            <img src={cat.imageUrl} alt={cat.name} className={styles.image} />
+            <img
+              src={resolveMediaUrl(cat.imageUrl) || cat.imageUrl}
+              alt={cat.name}
+              className={styles.image}
+            />
             <div className={styles.label}>{cat.name}</div>
           </div>
         ))}

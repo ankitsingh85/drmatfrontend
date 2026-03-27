@@ -12,14 +12,6 @@ export default function CreateB2BCategory() {
 
   const imageInputRef = useRef<HTMLInputElement>(null);
 
-  const convertToBase64 = (file: File): Promise<string> =>
-    new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
-    });
-
   const isAllowedImage = (file: File) =>
     ["image/jpeg", "image/jpg", "image/png", "image/webp"].includes(file.type);
 
@@ -53,15 +45,13 @@ export default function CreateB2BCategory() {
 
     try {
       setLoading(true);
-      const imageUrl = await convertToBase64(image);
+      const formData = new FormData();
+      formData.append("name", name.trim());
+      formData.append("imageUrl", image);
 
       const res = await fetch(`${API_URL}/b2b-categories`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: name.trim(),
-          imageUrl,
-        }),
+        body: formData,
       });
 
       const data = await res.json();
@@ -83,8 +73,6 @@ export default function CreateB2BCategory() {
 
   return (
     <div className={styles.container}>
-      {/* <h1 className={styles.heading}>Create B2B Category</h1> */}
-
       {error && <div className={styles.error}>{error}</div>}
 
       <form className={styles.form} onSubmit={handleSubmit}>

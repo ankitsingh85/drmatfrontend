@@ -1,18 +1,16 @@
 "use client";
-import { API_URL } from "@/config/api";
 
 import React, { useEffect, useMemo, useState } from "react";
+import { API_URL } from "@/config/api";
+import { resolveMediaUrl } from "@/lib/media";
 import styles from "@/styles/Dashboard/listofcliniccategory.module.css";
 
 interface ClinicCategory {
   _id: string;
   categoryId: string;
   name: string;
-  imageUrl: string; // base64 string
+  imageUrl: string;
 }
-
-// ✅ Use environment variable for API base
-// const API_URL = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000/api";
 
 const ListOfClinicCategory = () => {
   const [categories, setCategories] = useState<ClinicCategory[]>([]);
@@ -24,6 +22,7 @@ const ListOfClinicCategory = () => {
   const [editName, setEditName] = useState("");
   const [editImage, setEditImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [existingImageUrl, setExistingImageUrl] = useState("");
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -64,31 +63,30 @@ const ListOfClinicCategory = () => {
     setEditingCategory(cat);
     setEditCategoryId(cat.categoryId);
     setEditName(cat.name);
-    setPreviewUrl(cat.imageUrl);
+    setPreviewUrl(resolveMediaUrl(cat.imageUrl));
+    setExistingImageUrl(cat.imageUrl);
     setEditImage(null);
     setError("");
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 1024 * 1024) {
-        setError("Image must be ≤ 1MB");
-        return;
-      }
-      setError("");
-      setEditImage(file);
-      setPreviewUrl(URL.createObjectURL(file));
-    }
-  };
+    if (!file) return;
 
-  const convertToBase64 = (file: File): Promise<string> =>
-    new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = (err) => reject(err);
-    });
+    if (!file.type.startsWith("image/")) {
+      setError("Category image must be an image file");
+      return;
+    }
+
+    if (file.size > 1024 * 1024) {
+      setError("Image must be <= 1MB");
+      return;
+    }
+
+    setError("");
+    setEditImage(file);
+    setPreviewUrl(URL.createObjectURL(file));
+  };
 
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -104,24 +102,16 @@ const ListOfClinicCategory = () => {
     }
 
     try {
-      let imageUrl = previewUrl;
-
+      const formData = new FormData();
+      formData.append("categoryId", editCategoryId.trim());
+      formData.append("name", editName.trim());
       if (editImage) {
-        if (editImage.size > 1024 * 1024) {
-          setError("Image must be ≤ 1MB");
-          return;
-        }
-        imageUrl = await convertToBase64(editImage);
+        formData.append("imageUrl", editImage);
       }
 
       const res = await fetch(`${API_URL}/clinic-categories/${editingCategory?._id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          categoryId: editCategoryId.trim(),
-          name: editName.trim(),
-          imageUrl,
-        }),
+        body: formData,
       });
 
       const data = await res.json();
@@ -138,6 +128,7 @@ const ListOfClinicCategory = () => {
       setEditingCategory(null);
       setEditImage(null);
       setPreviewUrl(null);
+      setExistingImageUrl("");
     } catch (error) {
       console.error("Update failed:", error);
       setError("Unexpected error occurred");
@@ -149,6 +140,7 @@ const ListOfClinicCategory = () => {
     setError("");
     setEditImage(null);
     setPreviewUrl(null);
+    setExistingImageUrl("");
   };
 
   const filteredCategories = useMemo(() => {
@@ -267,7 +259,6 @@ const ListOfClinicCategory = () => {
 
   return (
     <div className={styles.container}>
-      {/* <h2 className={styles.heading}>List of Clinic Categories</h2> */}
       <div className={styles.toolbar}>
         <input
           className={styles.search}
@@ -301,42 +292,48 @@ const ListOfClinicCategory = () => {
           Download PDF
         </button>
       </div>
+
       <div className={styles.tableWrapper}>
-      <table className={styles.table}>
-        <thead>
-          <tr>
-            <th>Category ID</th>
-            <th>Name</th>
-            <th>Image</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {paginatedCategories.map((cat) => (
-            <tr key={cat._id}>
-              <td>{cat.categoryId}</td>
-              <td>{cat.name}</td>
-              <td>
-                <img src={cat.imageUrl} alt={cat.name} className={styles.image} />
-              </td>
-              <td className={styles.actions}>
-                <button className={styles.editBtn} onClick={() => handleEdit(cat)}>
-                  ✏️
-                </button>
-                <button className={styles.deleteBtn} onClick={() => handleDelete(cat._id)}>
-                  🗑
-                </button>
-              </td>
-            </tr>
-          ))}
-          {paginatedCategories.length === 0 && (
+        <table className={styles.table}>
+          <thead>
             <tr>
-              <td colSpan={4}>No clinic categories found.</td>
+              <th>Category ID</th>
+              <th>Name</th>
+              <th>Image</th>
+              <th>Actions</th>
             </tr>
-          )}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {paginatedCategories.map((cat) => (
+              <tr key={cat._id}>
+                <td>{cat.categoryId}</td>
+                <td>{cat.name}</td>
+                <td>
+                  <img
+                    src={resolveMediaUrl(cat.imageUrl) || cat.imageUrl}
+                    alt={cat.name}
+                    className={styles.image}
+                  />
+                </td>
+                <td className={styles.actions}>
+                  <button className={styles.editBtn} onClick={() => handleEdit(cat)}>
+                    ✏️
+                  </button>
+                  <button className={styles.deleteBtn} onClick={() => handleDelete(cat._id)}>
+                    🗑
+                  </button>
+                </td>
+              </tr>
+            ))}
+            {paginatedCategories.length === 0 && (
+              <tr>
+                <td colSpan={4}>No clinic categories found.</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
       </div>
+
       <div
         style={{
           marginTop: 12,
@@ -403,6 +400,9 @@ const ListOfClinicCategory = () => {
               <input type="file" accept="image/*" onChange={handleImageChange} />
               {previewUrl && (
                 <img src={previewUrl} className={styles.preview} alt="Preview" />
+              )}
+              {!editImage && existingImageUrl && (
+                <p className={styles.noImage}>Using existing uploaded image</p>
               )}
 
               <div className={styles.modalActions}>

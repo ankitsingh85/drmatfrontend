@@ -6,6 +6,7 @@ import styles from "@/styles/components/homePage/categories.module.css";
 import { useRouter } from "next/navigation";
 import productImg from "@/public/product1.png";
 import FullPageLoader from "@/components/common/FullPageLoader";
+import { resolveMediaUrl } from "@/lib/media";
 
 interface Category {
   id: string;
@@ -31,12 +32,9 @@ const ProductCategory: React.FC<ProductCategoryProps> = ({
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Convert base64 or fallback image
   const getValidImage = (img?: string) => {
     if (!img) return productImg.src;
-    if (img.startsWith("data:")) return img;
-    if (img.startsWith("http://") || img.startsWith("https://") || img.startsWith("/")) return img;
-    return `data:image/jpeg;base64,${img}`;
+    return resolveMediaUrl(img) || productImg.src;
   };
 
   useEffect(() => {

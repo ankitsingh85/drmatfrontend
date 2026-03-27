@@ -70,8 +70,8 @@ const MobileNavbar = () => {
               <a href="#">Your Orders</a>
               <a href="#">Online Consultations</a>
               <a href="#">Online Test Report</a>
-              <a href="#">Your Gallery</a>
-              <a href="#">Upload a Prescription</a>
+              <a href="/UserDashboard?section=yourresult&tab=gallery">Your Gallery</a>
+              <a href="/UserDashboard?section=yourresult&tab=prescriptions">Upload a Prescription</a>
               <a href="#">Recommended Products for you</a>
               <a href="#">Recommended Treatment Plans for you</a>
               <a href="#">Avail Special Offers & Discount</a>

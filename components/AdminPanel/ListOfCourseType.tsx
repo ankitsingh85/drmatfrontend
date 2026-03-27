@@ -3,6 +3,7 @@
 import { API_URL } from "@/config/api";
 import React, { useEffect, useMemo, useState } from "react";
 import styles from "@/styles/Dashboard/listofcategory.module.css";
+import { resolveMediaUrl } from "@/lib/media";
 
 interface CourseType {
   _id: string;
@@ -20,6 +21,7 @@ const ListOfCourseType = () => {
   const [editName, setEditName] = useState("");
   const [editImage, setEditImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [existingImageUrl, setExistingImageUrl] = useState("");
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -64,7 +66,8 @@ const ListOfCourseType = () => {
   const handleEdit = (item: CourseType) => {
     setEditingCourseType(item);
     setEditName(item.name);
-    setPreviewUrl(item.imageUrl);
+    setPreviewUrl(resolveMediaUrl(item.imageUrl));
+    setExistingImageUrl(item.imageUrl);
     setEditImage(null);
     setError("");
   };
@@ -83,14 +86,6 @@ const ListOfCourseType = () => {
     setPreviewUrl(URL.createObjectURL(file));
   };
 
-  const convertToBase64 = (file: File): Promise<string> =>
-    new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
-    });
-
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -100,18 +95,15 @@ const ListOfCourseType = () => {
     }
 
     try {
-      let imageUrl = previewUrl;
+      const formData = new FormData();
+      formData.append("name", editName.trim());
       if (editImage) {
-        imageUrl = await convertToBase64(editImage);
+        formData.append("imageUrl", editImage);
       }
 
       const res = await fetch(`${API_URL}/course-types/${editingCourseType?._id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: editName.trim(),
-          imageUrl,
-        }),
+        body: formData,
       });
 
       const updated = await res.json().catch(() => ({}));
@@ -132,6 +124,7 @@ const ListOfCourseType = () => {
     setEditName("");
     setEditImage(null);
     setPreviewUrl(null);
+    setExistingImageUrl("");
     setError("");
   };
 
@@ -161,8 +154,6 @@ const ListOfCourseType = () => {
 
   return (
     <div className={styles.container}>
-      {/* <h2 className={styles.title}>List of Course Types</h2> */}
-
       <div className={styles.toolbar}>
         <input
           className={styles.search}
@@ -199,7 +190,11 @@ const ListOfCourseType = () => {
                 <td>{item.id}</td>
                 <td>{item.name}</td>
                 <td>
-                  <img src={item.imageUrl} alt={item.name} className={styles.image} />
+                  <img
+                    src={resolveMediaUrl(item.imageUrl) || item.imageUrl}
+                    alt={item.name}
+                    className={styles.image}
+                  />
                 </td>
                 <td className={styles.actions}>
                   <button className={styles.editBtn} onClick={() => handleEdit(item)}>
@@ -283,6 +278,9 @@ const ListOfCourseType = () => {
               <label>Course Type Image (Max 1MB)</label>
               <input type="file" accept="image/*" onChange={handleImageChange} />
               {previewUrl && <img src={previewUrl} className={styles.preview} alt="Preview" />}
+              {!editImage && existingImageUrl && (
+                <p className={styles.noImage}>Using existing uploaded image</p>
+              )}
 
               <div className={styles.modalActions}>
                 <button type="submit" className={styles.saveBtn}>

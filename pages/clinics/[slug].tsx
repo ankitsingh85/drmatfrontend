@@ -9,6 +9,7 @@ import Footer from "@/components/Layout/Footer";
 import Ratings from "@/components/Layout/Reviews";
 import Topbar from "@/components/Layout/Topbar";
 import FullPageLoader from "@/components/common/FullPageLoader";
+import { resolveMediaUrl } from "@/lib/media";
 
 interface Clinic {
   _id: string;
@@ -52,8 +53,6 @@ const ClinicDetailPage = () => {
     "Reviews",
   ];
 
-  const apiBaseUrl = API_URL.replace(/\/api\/?$/, "");
-
   const [clinic, setClinic] = useState<Clinic | null>(null);
   const [services, setServices] = useState<ClinicService[]>([]);
   const [loadingClinic, setLoadingClinic] = useState(true);
@@ -64,10 +63,7 @@ const ClinicDetailPage = () => {
   const [error, setError] = useState("");
 
   const getImage = (img?: string) => {
-    if (!img) return undefined;
-    if (img.startsWith("data:")) return img;
-    if (img.startsWith("/")) return `${apiBaseUrl}${img}`;
-    return img;
+    return resolveMediaUrl(img) || img;
   };
 
   const parseServices = (raw?: string): ClinicService[] => {
@@ -141,7 +137,7 @@ const ClinicDetailPage = () => {
       }
     };
     fetchClinic();
-  }, [slugValue, apiBaseUrl]);
+  }, [slugValue]);
 
   if (loadingClinic) return <FullPageLoader />;
   if (error) return <div className={styles.error}>{error}</div>;

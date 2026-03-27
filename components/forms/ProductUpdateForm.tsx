@@ -6,6 +6,7 @@ import { ProductCategory } from "../types/productCategory";
 import { getCategoryList } from "../lib/api/productCategories";
 import { updateProduct } from "../lib/api/product";
 import { useSession } from "next-auth/react";
+import { resolveMediaUrl } from "@/lib/media";
 
 type ProductPropType = {
   product: Product;
@@ -194,7 +195,7 @@ function ProductUpdateForm({ product }: ProductPropType) {
             id="image1"
             className={styles.input}
           />
-          <img src={product.image[0]} alt="Product Image" />
+          <img src={resolveMediaUrl(product.image[0]) || product.image[0]} alt="Product Image" />
         </div>
         <div className={styles.inputDiv}>
           <label htmlFor="image2" className={styles.label}>
@@ -206,7 +207,7 @@ function ProductUpdateForm({ product }: ProductPropType) {
             id="image2"
             className={styles.input}
           />
-          <img src={product.image[1]} alt="Product Image" />
+          <img src={resolveMediaUrl(product.image[1]) || product.image[1]} alt="Product Image" />
         </div>
         <div className={styles.inputDiv}>
           <label htmlFor="image3" className={styles.label}>
@@ -218,7 +219,7 @@ function ProductUpdateForm({ product }: ProductPropType) {
             id="image3"
             className={styles.input}
           />
-          <img src={product.image[2]} alt="Product Image" />
+          <img src={resolveMediaUrl(product.image[2]) || product.image[2]} alt="Product Image" />
         </div>
         <button type="submit" className={styles.button}>
           Update the Product

@@ -9,6 +9,8 @@ interface User {
   _id: string;
   email: string;
   name: string;
+  contactNo?: string;
+  profileImage?: string;
   age?: number;
   image?: string;
 }
@@ -32,12 +34,19 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const email = Cookies.get("email");
         const userId = Cookies.get("userId") || localStorage.getItem("userId");
+        const token = Cookies.get("token");
 
         if (userId) {
-          const res = await axios.get(`${API_URL}/userprofile/id/${userId}`);
+          const res = await axios.get(`${API_URL}/users/${userId}`);
           setUser(res.data);
+          Cookies.set("userId", res.data._id);
+          localStorage.setItem("userId", res.data._id);
         } else if (email) {
-          const res = await axios.get(`${API_URL}/userprofile/${email}`);
+          const res = token
+            ? await axios.get(`${API_URL}/users/me`, {
+                headers: { Authorization: `Bearer ${token}` },
+              })
+            : await axios.get(`${API_URL}/users/by-email/${encodeURIComponent(email)}`);
           setUser(res.data);
 
           Cookies.set("userId", res.data._id);

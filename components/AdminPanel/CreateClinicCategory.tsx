@@ -16,14 +16,6 @@ const CreateClinicCategory = () => {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const convertToBase64 = (file: File): Promise<string> =>
-    new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
-    });
-
   const isAllowedImage = (file: File) =>
     ["image/jpeg", "image/jpg", "image/png", "image/webp"].includes(file.type);
 
@@ -59,16 +51,14 @@ const CreateClinicCategory = () => {
 
     try {
       setLoading(true);
-      const base64 = await convertToBase64(categoryImage);
+      const formData = new FormData();
+      formData.append("categoryId", categoryId.trim());
+      formData.append("name", categoryName.trim());
+      formData.append("imageUrl", categoryImage);
 
       const res = await fetch(`${API_URL}/clinic-categories`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          categoryId: categoryId.trim(),
-          name: categoryName.trim(),
-          imageUrl: base64,
-        }),
+        body: formData,
       });
 
       const data = await res.json();
