@@ -176,13 +176,15 @@ export default function ProductDetail() {
       ? product.reviews.reduce((sum, r) => sum + r.rating, 0) / product.reviews.length
       : 0;
 
+  const routeKey = Array.isArray(productid) ? productid[0] : productid;
+  const cartProductId = String(product._id || resolvedProductId || routeKey || "");
   const mrp = Number(product.price ?? 0);
   const salePrice = Number(product.discountPrice ?? mrp);
   const hasDiscount = salePrice < mrp;
-  const inCart = cartItems.some((item) => item.id === product._id);
+  const inCart = cartItems.some((item) => item.id === cartProductId);
 
   const buildCartPayload = () => ({
-    id: product._id,
+    id: cartProductId,
     name: product.name,
     price: salePrice,
     mrp: mrp || salePrice,
@@ -194,6 +196,10 @@ export default function ProductDetail() {
   });
 
   const handleAddToCart = () => {
+    if (!cartProductId) {
+      alert("Unable to add this product right now. Please refresh and try again.");
+      return;
+    }
     if (inCart) {
       router.push("/home/Cart");
       return;
@@ -202,6 +208,10 @@ export default function ProductDetail() {
   };
 
   const handleBuyNow = () => {
+    if (!cartProductId) {
+      alert("Unable to continue right now. Please refresh and try again.");
+      return;
+    }
     if (!inCart) {
       addToCart(buildCartPayload(), quantity);
     }
