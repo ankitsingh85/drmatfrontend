@@ -12,6 +12,7 @@ import Footer from "@/components/Layout/Footer";
 import { API_URL } from "@/config/api";
 import FullPageLoader from "@/components/common/FullPageLoader";
 import { resolveMediaUrl } from "@/lib/media";
+import { useCart } from "@/context/CartContext";
 
 interface Review {
   _id: string;
@@ -37,6 +38,8 @@ interface Product {
 export default function ProductDetail() {
   const router = useRouter();
   const { id } = router.query;
+  const resolvedId = Array.isArray(id) ? id[0] : id;
+  const { addToCart, cartItems } = useCart();
 
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -51,11 +54,11 @@ export default function ProductDetail() {
   const [zoomStyle, setZoomStyle] = useState<React.CSSProperties>({});
 
   useEffect(() => {
-    if (!id) return;
+    if (!resolvedId) return;
 
     const fetchProduct = async () => {
       try {
-        const res = await fetch(`${API_URL}/products/${id}`);
+        const res = await fetch(`${API_URL}/products/${resolvedId}`);
         if (!res.ok) throw new Error("Product not found");
 
         const data: Product = await res.json();
@@ -69,7 +72,7 @@ export default function ProductDetail() {
     };
 
     fetchProduct();
-  }, [id]);
+  }, [resolvedId]);
 
   const handleSubmitReview = async () => {
     if (!rating || !comment.trim()) {
@@ -79,7 +82,7 @@ export default function ProductDetail() {
 
     try {
       setSubmitting(true);
-      const res = await fetch(`${API_URL}/products/${id}/reviews`, {
+      const res = await fetch(`${API_URL}/products/${resolvedId}/reviews`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ rating, comment, user: "Guest User" }),
@@ -120,6 +123,34 @@ export default function ProductDetail() {
   const price = product.mrpPrice || 0;
   const discount = product.discountedPrice || price;
   const hasDiscount = discount < price;
+  const inCart = cartItems.some((item) => item.id === product._id);
+
+  const buildCartPayload = () => ({
+    id: product._id,
+    name: product.productName,
+    price: discount,
+    mrp: price,
+    discount: hasDiscount ? `${Math.round(((price - discount) / price) * 100)}% OFF` : undefined,
+    discountPrice: discount,
+    company: product.brandName,
+    image: resolveMediaUrl(product.productImages?.[0]) || product.productImages?.[0],
+    itemType: "product" as const,
+  });
+
+  const handleAddToCart = () => {
+    if (inCart) {
+      router.push("/home/Cart");
+      return;
+    }
+    addToCart(buildCartPayload(), quantity);
+  };
+
+  const handleBuyNow = () => {
+    if (!inCart) {
+      addToCart(buildCartPayload(), quantity);
+    }
+    router.push("/home/Cart");
+  };
 
   const avgRating =
     product.reviews && product.reviews.length
@@ -224,8 +255,12 @@ export default function ProductDetail() {
                 </button>
               </div>
 
-              <button className={styles.addToCart}>Add To Cart</button>
-              <button className={styles.buyNow}>Buy Now</button>
+              <button className={styles.addToCart} onClick={handleAddToCart}>
+                {inCart ? "Go To Cart" : "Add To Cart"}
+              </button>
+              <button className={styles.buyNow} onClick={handleBuyNow}>
+                Buy Now
+              </button>
             </div>
           </div>
         </div>
