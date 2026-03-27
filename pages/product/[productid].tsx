@@ -12,6 +12,7 @@ import Footer from "@/components/Layout/Footer";
 import { API_URL } from "@/config/api";
 import FullPageLoader from "@/components/common/FullPageLoader";
 import { resolveMediaUrl } from "@/lib/media";
+import { useCart } from "@/context/CartContext";
 
 interface Review {
   rating: number;
@@ -60,6 +61,7 @@ const slugify = (value: string) =>
 export default function ProductDetail() {
   const router = useRouter();
   const { productid } = router.query;
+  const { addToCart, cartItems } = useCart();
 
   const [product, setProduct] = useState<Product | null>(null);
   const [resolvedProductId, setResolvedProductId] = useState<string>("");
@@ -173,6 +175,38 @@ export default function ProductDetail() {
     product.reviews.length > 0
       ? product.reviews.reduce((sum, r) => sum + r.rating, 0) / product.reviews.length
       : 0;
+
+  const mrp = Number(product.price ?? 0);
+  const salePrice = Number(product.discountPrice ?? mrp);
+  const hasDiscount = salePrice < mrp;
+  const inCart = cartItems.some((item) => item.id === product._id);
+
+  const buildCartPayload = () => ({
+    id: product._id,
+    name: product.name,
+    price: salePrice,
+    mrp: mrp || salePrice,
+    discount: hasDiscount ? `${Math.round(((mrp - salePrice) / mrp) * 100)}% OFF` : undefined,
+    discountPrice: salePrice,
+    company: product.company,
+    image: product.images?.[0],
+    itemType: "product" as const,
+  });
+
+  const handleAddToCart = () => {
+    if (inCart) {
+      router.push("/home/Cart");
+      return;
+    }
+    addToCart(buildCartPayload(), quantity);
+  };
+
+  const handleBuyNow = () => {
+    if (!inCart) {
+      addToCart(buildCartPayload(), quantity);
+    }
+    router.push("/home/Cart");
+  };
 
   return (
     <>
@@ -299,8 +333,10 @@ export default function ProductDetail() {
                   <AiOutlinePlus />
                 </button>
               </div>
-              <button className={styles.addToCart}>Add To Cart</button>
-              <button className={styles.buyNow}>Buy Now</button>
+              <button className={styles.addToCart} onClick={handleAddToCart}>
+                {inCart ? "Go To Cart" : "Add To Cart"}
+              </button>
+              <button className={styles.buyNow} onClick={handleBuyNow}>Buy Now</button>
             </div>
           </div>
         </div>
