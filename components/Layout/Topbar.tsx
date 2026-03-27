@@ -159,7 +159,7 @@ const Topbar: React.FC<TopbarProps> = ({ hideHamburgerOnMobile }) => {
     window.dispatchEvent(new CustomEvent("user-logged-out"));
     router.replace("/Login");
   };
-
+console.log("data");
   const renderLoginOptions = () => (
     <button
       type="button"
