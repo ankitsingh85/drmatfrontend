@@ -131,7 +131,7 @@
     align-items: center;
     justify-content: center;
     border: 1px solid #dbe3ef;
-    background: linear-gradient(184deg, #3fa3ff 0%, #bbd5f70f 100%);
+    background: rgb(105, 122, 233);
     color: #1a2238;
     padding: 10px 14px;
     border-radius: 999px;

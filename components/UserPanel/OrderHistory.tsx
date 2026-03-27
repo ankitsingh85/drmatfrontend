@@ -69,9 +69,16 @@ const UserOrderHistory: React.FC<OrderHistoryProps> = ({ mode = "all" }) => {
     Array.isArray(order.products) &&
     order.products.some((item) => item.itemType !== "treatment");
 
+  const hasTreatmentName = (order: Order) =>
+    Array.isArray(order.products) &&
+    order.products.some((item) =>
+      String(item.name || "").toLowerCase().includes("treatment")
+    );
+
   const isTreatmentOrder = (order: Order) => {
     const orderType = String(order.orderType || "").toLowerCase();
-    if (orderType === "treatment" || hasTreatmentItems(order)) return true;
+    if (orderType === "treatment" || hasTreatmentItems(order) || hasTreatmentName(order))
+      return true;
 
     const type = String(order.address?.type || "").toLowerCase();
     const addressText = String(order.address?.address || "").toLowerCase().trim();
@@ -84,8 +91,8 @@ const UserOrderHistory: React.FC<OrderHistoryProps> = ({ mode = "all" }) => {
 
   const isProductOrder = (order: Order) => {
     const orderType = String(order.orderType || "").toLowerCase();
-    if (hasProductItems(order)) return true;
-    return orderType !== "treatment" && !isTreatmentOrder(order);
+    if (isTreatmentOrder(order)) return false;
+    return orderType === "product" || hasProductItems(order);
   };
 
   const getVisibleProducts = (order: Order) => {

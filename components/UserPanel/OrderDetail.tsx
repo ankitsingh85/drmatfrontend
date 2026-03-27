@@ -46,6 +46,29 @@ const slugify = (value: string) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 
+const looksLikeTreatmentOrder = (order: Order | null) => {
+  if (!order) return false;
+  const orderType = String(order.orderType || "").toLowerCase();
+  const products = Array.isArray(order.products) ? order.products : [];
+  const hasTreatmentItem = products.some(
+    (item) => String(item.itemType || "").toLowerCase() === "treatment"
+  );
+  const hasTreatmentName = products.some((item) =>
+    String(item.name || "").toLowerCase().includes("treatment")
+  );
+  const addressType = String(order.address?.type || "").toLowerCase();
+  const addressText = String(order.address?.address || "").toLowerCase();
+
+  return (
+    orderType === "treatment" ||
+    hasTreatmentItem ||
+    hasTreatmentName ||
+    addressType === "other" ||
+    addressText.includes("treatment booking") ||
+    addressText.includes("treatment")
+  );
+};
+
 const UserOrderDetail: React.FC<OrderDetailProps> = ({ orderKey }) => {
   const router = useRouter();
   const { user, loading } = useUser();
@@ -192,13 +215,7 @@ const UserOrderDetail: React.FC<OrderDetailProps> = ({ orderKey }) => {
     fetchOrder();
   }, [orderKey, resolvedUser?.id, token]);
 
-  const orderType = String(order?.orderType || "").toLowerCase();
-  const hasTreatmentItems = !!order?.products?.some(
-    (item: OrderProduct) => item.itemType === "treatment"
-  );
-  const isTreatment =
-    matchedKind === "treatment" ||
-    (matchedKind === "unknown" && (orderType === "treatment" || hasTreatmentItems));
+  const isTreatment = matchedKind === "treatment" || looksLikeTreatmentOrder(order);
   const headerTitle = isTreatment ? "Treatment Order Details" : "Order Details";
   const orderTitle = order
     ? isTreatment
