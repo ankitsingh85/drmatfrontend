@@ -193,14 +193,14 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       };
       const existing = prev.find((item) => item.id === normalizedProduct.id);
       if (existing) {
-        alert(`${normalizedProduct.name} is added`);
+        // alert(`${normalizedProduct.name} is added`);
         return prev.map((item) =>
           item.id === normalizedProduct.id
             ? { ...item, quantity: item.quantity + quantity, itemType: item.itemType || normalizedProduct.itemType }
             : item
         );
       }
-      alert(`${normalizedProduct.name} is added`);
+      // alert(`${normalizedProduct.name} is added`);
       return [...prev, { ...normalizedProduct, quantity }];
     });
   };
@@ -224,7 +224,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       if (prev.some((item) => item.id === product.id)) return prev;
       return [...prev, { ...product, quantity: 1 }];
     });
-    alert(`${product.name} added to wishlist`);
+    // alert(`${product.name} added to wishlist`);
   };
 
   const removeFromWishlist = (id: string) => {
@@ -235,10 +235,10 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     setWishlistItems((prev) => {
       const exists = prev.some((item) => item.id === product.id);
       if (exists) {
-        alert(`${product.name} removed from wishlist`);
+        // alert(`${product.name} removed from wishlist`);
         return prev.filter((item) => item.id !== product.id);
       }
-      alert(`${product.name} added to wishlist`);
+      // alert(`${product.name} added to wishlist`);
       return [...prev, { ...product, quantity: 1 }];
     });
   };

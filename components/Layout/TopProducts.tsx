@@ -5,7 +5,7 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import styles from "@/styles/topproducts.module.css";
 import { useCart } from "@/context/CartContext";
-import { FaArrowRight, FaHeart, FaRegHeart } from "react-icons/fa";
+import { FaHeart, FaRegHeart } from "react-icons/fa";
 import { resolveMediaUrl } from "@/lib/media";
 
 interface AdminProduct {
@@ -26,7 +26,7 @@ interface Product {
   images?: string[];
 }
 
-const MAX_TOP_PRODUCTS = 11;
+const MAX_TOP_PRODUCTS = 12;
 const TOP_PRODUCTS_CACHE_KEY = "top-products-cache-v1";
 const TOP_PRODUCTS_CACHE_TTL_MS = 5 * 60 * 1000;
 const slugify = (value: string) =>
@@ -246,14 +246,6 @@ const TopProducts: React.FC = () => {
             </div>
           );
         })}
-
-        <div
-          className={`${styles.card} ${styles.showMore}`}
-          onClick={() => router.push("/product-listing")}
-        >
-          <FaArrowRight size={24} />
-          <span className={styles.showMoreText}>Show More</span>
-        </div>
       </div>
     </div>
   );

@@ -141,6 +141,25 @@
   border-color: #818cf8;
 }
 
+/* ===== VALIDATION MESSAGES ===== */
+.fieldError,
+.submitError,
+.success {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.fieldError,
+.submitError {
+  color: #dc2626;
+}
+
+.success {
+  color: #15803d;
+}
+
 /* ===== SWITCH ROW ===== */
 .switchRow {
   grid-column: 1 / -1;

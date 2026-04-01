@@ -180,6 +180,10 @@ export default function CreateClinic() {
     setShowDoctorModal(false);
   };
 
+  const removeDoctor = (index: number) => {
+    setDoctors((prev) => prev.filter((_, doctorIndex) => doctorIndex !== index));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -285,6 +289,8 @@ export default function CreateClinic() {
             </select>
 
             <input className={styles.input} name="clinicType" placeholder="Clinic Type" onChange={handleChange} />
+                        <input className={styles.input} name="contactNumber" placeholder="Contact Number" onChange={handleChange} />
+
             <input className={styles.input} name="ownerName" placeholder="Owner Name" onChange={handleChange} />
             <input className={styles.input} name="website" placeholder="Website" onChange={handleChange} />
           </section>
@@ -349,7 +355,7 @@ export default function CreateClinic() {
     <label>Videos</label>
     <textarea
       className={styles.textarea}
-      placeholder="Add video URL(s), one per line"
+      placeholder="Add video URL"
       value={videoUrls}
       onChange={(e) => setVideoUrls(e.target.value)}
     />
@@ -380,9 +386,18 @@ export default function CreateClinic() {
 
             {doctors.map((doc, i) => (
               <div key={i} className={styles.doctorCard}>
-                <strong>{doc.name}</strong>
-                <span>Reg No: {doc.regNo}</span>
-                <span>{doc.specialization}</span>
+                <div>
+                  <strong>{doc.name}</strong>
+                  <span>Reg No: {doc.regNo}</span>
+                  <span>{doc.specialization}</span>
+                </div>
+                <button
+                  type="button"
+                  className={styles.removeDoctorBtn}
+                  onClick={() => removeDoctor(i)}
+                >
+                  Delete
+                </button>
               </div>
             ))}
 
@@ -404,7 +419,6 @@ export default function CreateClinic() {
             <input className={styles.input} name="sector" placeholder="Sector" onChange={handleChange} />
             <input className={styles.input} name="pincode" placeholder="Pin Code" onChange={handleChange} />
             <input className={styles.input} name="mapLink" placeholder="Google Maps Link" onChange={handleChange} />
-            <input className={styles.input} name="contactNumber" placeholder="Clinic Contact Number" onChange={handleChange} />
             <input className={styles.input} name="email" placeholder="Email Address" onChange={handleChange} />
             <input className={styles.input} name="whatsapp" placeholder="Whatsapp Contact" onChange={handleChange} />
             <input className={styles.input} name="workingHours" placeholder="Working Hours / Days" onChange={handleChange} />
@@ -424,7 +438,7 @@ export default function CreateClinic() {
 
             <div className={styles.field}>
               <label>Treatments Available</label>
-              <ReactQuill
+              <ReactQuill className={styles.ql_Container}
                 theme="snow"
                 value={form.treatmentsAvailable}
                 onChange={(value) =>
@@ -436,7 +450,7 @@ export default function CreateClinic() {
 
             <div className={styles.field}>
               <label>Available Services</label>
-              <ReactQuill
+              <ReactQuill className={styles.ql_Container}
                 theme="snow"
                 value={form.availableServices}
                 onChange={(value) =>

@@ -22,3 +22,12 @@ export const resolveMediaUrl = (value?: string | null): string | null => {
   const origin = getMediaOrigin();
   return value.startsWith("/") ? `${origin}${value}` : `${origin}/${value}`;
 };
+
+export const resolveUploadedMediaUrl = (value?: string | null): string | null => {
+  if (!value) return null;
+  if (/^https?:\/\//i.test(value)) return value;
+  if (/^(data|blob):/i.test(value)) return value;
+
+  const origin = getMediaOrigin();
+  return value.startsWith("/") ? `${origin}${value}` : `${origin}/${value}`;
+};

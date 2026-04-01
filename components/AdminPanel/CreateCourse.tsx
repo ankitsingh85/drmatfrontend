@@ -171,6 +171,163 @@ const isYoutubeUrl = (value: string) => {
   }
 };
 
+const textOnlyRegex = /^[A-Za-z ]+$/;
+const digitsOnlyRegex = /^\d+$/;
+const isValidYoutubeUrl = (value: string) => {
+  if (!value.trim()) return false;
+  return isYoutubeUrl(value);
+};
+const stripHtml = (value: string) =>
+  value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+const sanitizeTextOnly = (value: string) => value.replace(/[^A-Za-z ]/g, "");
+const sanitizeDigitsOnly = (value: string) => value.replace(/\D/g, "");
+
+type CourseErrors = Partial<Record<keyof CourseFormData, string>>;
+type CourseTouched = Partial<Record<keyof CourseFormData, boolean>>;
+
+const validateCourseField = (
+  field: keyof CourseFormData,
+  value: CourseFormData[keyof CourseFormData],
+  form: CourseFormData
+) => {
+  const stringValue = String(value ?? "").trim();
+  const requiredTextFields: Array<keyof CourseFormData> = [
+    "courseName",
+    "courseUniqueCode",
+    "courseType",
+    "instituteName",
+    "courseDuration",
+    "modeOfTraining",
+    "startDate",
+    "endDate",
+    "registrationDeadline",
+    "curriculumTopicsCovered",
+    "certificationProvided",
+    "affiliationAccreditation",
+    "location",
+    "currentAvailability",
+    "trainerInstructorName",
+    "trainerExperience",
+    "languageOfDelivery",
+    "refundCancellationPolicy",
+    "postCourseSupport",
+    "mobileNo",
+    "contactForQueries",
+    "courseDemoVideo",
+  ];
+
+  if (field === "targetAudience" && (!Array.isArray(value) || value.length === 0)) {
+    return "At least one target audience item is required";
+  }
+
+  if (field === "courseImage" && !(value instanceof File)) {
+    return "Course image is required";
+  }
+
+  if (field === "trainerImage" && !(value instanceof File)) {
+    return "Trainer image is required";
+  }
+
+  if (field === "brochurePdfDownload" && (!Array.isArray(value) || value.length === 0)) {
+    return "At least one brochure PDF is required";
+  }
+
+  if (requiredTextFields.includes(field) && !stringValue) {
+    const labels: Record<string, string> = {
+      courseName: "Course name",
+      courseUniqueCode: "Course unique code",
+      courseType: "Course type",
+      instituteName: "Institute name",
+      courseDuration: "Course duration",
+      modeOfTraining: "Mode of training",
+      startDate: "Start date",
+      endDate: "End date",
+      registrationDeadline: "Registration deadline",
+      curriculumTopicsCovered: "Curriculum / Topics Covered",
+      certificationProvided: "Certification Provided",
+      affiliationAccreditation: "Affiliation / Accreditation",
+      location: "Location",
+      currentAvailability: "Current Availability",
+      trainerInstructorName: "Trainer / Instructor Name",
+      trainerExperience: "Trainer Experience",
+      languageOfDelivery: "Language of Delivery",
+      refundCancellationPolicy: "Refund / Cancellation Policy",
+      postCourseSupport: "Post-Course Support",
+      mobileNo: "Mobile number",
+      contactForQueries: "Contact for Queries",
+      courseDemoVideo: "Course Demo Video",
+    };
+    return `${labels[field] || String(field)} is required`;
+  }
+
+  if (field === "courseName" && !textOnlyRegex.test(stringValue)) {
+    return "Course name should contain only letters and spaces";
+  }
+
+  if (field === "instituteName" && !textOnlyRegex.test(stringValue)) {
+    return "Institute name should contain only letters and spaces";
+  }
+
+  if (field === "trainerInstructorName" && !textOnlyRegex.test(stringValue)) {
+    return "Trainer / instructor name should contain only letters and spaces";
+  }
+
+  if (field === "mobileNo" && !digitsOnlyRegex.test(stringValue)) {
+    return "Mobile number must contain digits only";
+  }
+
+  if (field === "mobileNo" && stringValue && stringValue.length !== 10) {
+    return "Mobile number must be exactly 10 digits";
+  }
+
+  if (
+    ["feesInr", "netFeesInr", "maximumSeatsBatchSize"].includes(field) &&
+    stringValue &&
+    Number.isNaN(Number(stringValue))
+  ) {
+    return `${fieldLabels[field]} must be a valid number`;
+  }
+
+  if (
+    ["feesInr", "netFeesInr", "maximumSeatsBatchSize"].includes(field) &&
+    stringValue &&
+    !Number.isInteger(Number(stringValue))
+  ) {
+    return `${fieldLabels[field]} must contain digits only`;
+  }
+
+  if (
+    ["feesInr", "netFeesInr", "maximumSeatsBatchSize"].includes(field) &&
+    !stringValue
+  ) {
+    return `${fieldLabels[field]} is required`;
+  }
+
+  if (field === "courseDemoVideo" && !isValidYoutubeUrl(stringValue)) {
+    return "Course demo video must be a valid YouTube link";
+  }
+
+  if (field === "courseType" && !stringValue) return "Please select a course type";
+  if (field === "certificationProvided" && !stringValue) return "Please select certification provided";
+  if (field === "languageOfDelivery" && !stringValue) return "Please select language of delivery";
+
+  if (field === "whatsIncluded" && !stripHtml(String(value))) {
+    return "What's Included is required";
+  }
+  if (field === "whatsNotIncluded" && !stripHtml(String(value))) {
+    return "What's Not Included is required";
+  }
+  if (field === "learningOutcomes" && !stripHtml(String(value))) {
+    return "Learning Outcomes is required";
+  }
+
+  if (field === "startDate" || field === "endDate" || field === "registrationDeadline") {
+    if (!stringValue) return `${fieldLabels[field]} is required`;
+  }
+
+  return "";
+};
+
 const CreateCourse = () => {
   const [formData, setFormData] = useState<CourseFormData>(createInitialFormData());
   const [courseTypeOptions, setCourseTypeOptions] = useState<CourseTypeOption[]>([]);
@@ -182,6 +339,8 @@ const CreateCourse = () => {
   const [loadingCourseTypes, setLoadingCourseTypes] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<CourseErrors>({});
+  const [touched, setTouched] = useState<CourseTouched>({});
 
   const quillModules = useMemo(
     () => ({
@@ -245,14 +404,48 @@ const CreateCourse = () => {
     loadCourseTypes();
   }, []);
 
+  const setFieldValue = (
+    field: keyof CourseFormData,
+    value: string | boolean | string[] | File[] | File | null
+  ) => {
+    setFormData((prev) => {
+      const next = {
+        ...prev,
+        [field]: value,
+      };
+
+      setFieldErrors((prevErrors) => ({
+        ...prevErrors,
+        [field]: validateCourseField(field, value as any, next),
+      }));
+
+      return next;
+    });
+  };
+
   const handleChange = (
     field: keyof CourseFormData,
     value: string | boolean | string[] | File[] | File | null
   ) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
+    let nextValue = value;
+
+    if (field === "courseName" || field === "instituteName" || field === "trainerInstructorName") {
+      nextValue = sanitizeTextOnly(String(value ?? ""));
+    }
+
+    if (
+      field === "mobileNo" ||
+      field === "feesInr" ||
+      field === "netFeesInr" ||
+      field === "maximumSeatsBatchSize"
+    ) {
+      nextValue = sanitizeDigitsOnly(String(value ?? ""));
+    }
+
+    setTouched((prev) => ({ ...prev, [field]: true }));
+    setFieldValue(field, nextValue);
+    setError("");
+    setSuccess("");
   };
 
   const handleCourseImageChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -260,18 +453,27 @@ const CreateCourse = () => {
     if (!file) return;
 
     if (!/^image\/(jpeg|jpg|png|webp)$/i.test(file.type)) {
-      setError("Course image must be JPG, JPEG, PNG, or WEBP");
+      setFieldErrors((prev) => ({
+        ...prev,
+        courseImage: "Course image must be JPG, JPEG, PNG, or WEBP",
+      }));
+      setTouched((prev) => ({ ...prev, courseImage: true }));
       event.target.value = "";
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      setError("Course image must be less than or equal to 5MB");
+      setFieldErrors((prev) => ({
+        ...prev,
+        courseImage: "Course image must be less than or equal to 5MB",
+      }));
+      setTouched((prev) => ({ ...prev, courseImage: true }));
       event.target.value = "";
       return;
     }
 
-    setError("");
+    setFieldErrors((prev) => ({ ...prev, courseImage: "" }));
+    setTouched((prev) => ({ ...prev, courseImage: true }));
     handleChange("courseImage", file);
     setCourseImagePreview(URL.createObjectURL(file));
   };
@@ -281,18 +483,27 @@ const CreateCourse = () => {
     if (!file) return;
 
     if (!/^image\/(jpeg|jpg|png|webp)$/i.test(file.type)) {
-      setError("Trainer image must be JPG, JPEG, PNG, or WEBP");
+      setFieldErrors((prev) => ({
+        ...prev,
+        trainerImage: "Trainer image must be JPG, JPEG, PNG, or WEBP",
+      }));
+      setTouched((prev) => ({ ...prev, trainerImage: true }));
       event.target.value = "";
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      setError("Trainer image must be less than or equal to 5MB");
+      setFieldErrors((prev) => ({
+        ...prev,
+        trainerImage: "Trainer image must be less than or equal to 5MB",
+      }));
+      setTouched((prev) => ({ ...prev, trainerImage: true }));
       event.target.value = "";
       return;
     }
 
-    setError("");
+    setFieldErrors((prev) => ({ ...prev, trainerImage: "" }));
+    setTouched((prev) => ({ ...prev, trainerImage: true }));
     handleChange("trainerImage", file);
     setTrainerImagePreview(URL.createObjectURL(file));
   };
@@ -313,6 +524,8 @@ const CreateCourse = () => {
 
     handleChange("targetAudience", [...formData.targetAudience, value]);
     setTargetAudienceInput("");
+    setTouched((prev) => ({ ...prev, targetAudience: true }));
+    setFieldErrors((prev) => ({ ...prev, targetAudience: "" }));
   };
 
   const handleAudienceKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
@@ -323,10 +536,16 @@ const CreateCourse = () => {
   };
 
   const removeTargetAudience = (value: string) => {
-    handleChange(
-      "targetAudience",
-      formData.targetAudience.filter((item) => item !== value)
-    );
+    const next = formData.targetAudience.filter((item) => item !== value);
+    handleChange("targetAudience", next);
+    setTouched((prev) => ({ ...prev, targetAudience: true }));
+    setFieldErrors((prev) => ({
+      ...prev,
+      targetAudience: validateCourseField("targetAudience", next, {
+        ...formData,
+        targetAudience: next,
+      }),
+    }));
   };
 
   const handleBrochureChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -334,7 +553,14 @@ const CreateCourse = () => {
       (file) => file.type === "application/pdf"
     );
 
-    if (selectedFiles.length === 0) return;
+    if (selectedFiles.length === 0) {
+      setTouched((prev) => ({ ...prev, brochurePdfDownload: true }));
+      setFieldErrors((prev) => ({
+        ...prev,
+        brochurePdfDownload: "Please upload at least one PDF",
+      }));
+      return;
+    }
 
     const mergedFiles = [...formData.brochurePdfDownload];
 
@@ -349,6 +575,8 @@ const CreateCourse = () => {
     }
 
     handleChange("brochurePdfDownload", mergedFiles);
+    setTouched((prev) => ({ ...prev, brochurePdfDownload: true }));
+    setFieldErrors((prev) => ({ ...prev, brochurePdfDownload: "" }));
     event.target.value = "";
   };
 
@@ -357,6 +585,27 @@ const CreateCourse = () => {
       "brochurePdfDownload",
       formData.brochurePdfDownload.filter((file) => file.name !== fileName)
     );
+    setTouched((prev) => ({ ...prev, brochurePdfDownload: true }));
+    setFieldErrors((prev) => ({
+      ...prev,
+      brochurePdfDownload:
+        formData.brochurePdfDownload.filter((file) => file.name !== fileName)
+          .length === 0
+          ? "At least one brochure PDF is required"
+          : "",
+    }));
+  };
+
+  const validateAllFields = (current: CourseFormData) => {
+    const nextErrors: CourseErrors = {};
+    (Object.keys(current) as Array<keyof CourseFormData>).forEach((field) => {
+      const errorMessage = validateCourseField(field, current[field] as any, current);
+      if (errorMessage) {
+        nextErrors[field] = errorMessage;
+      }
+    });
+
+    return nextErrors;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -364,33 +613,21 @@ const CreateCourse = () => {
     setError("");
     setSuccess("");
 
-    if (!formData.courseName.trim()) {
-      setError("Course name is required");
+    const nextErrors = validateAllFields(formData);
+    setFieldErrors(nextErrors);
+    setTouched(
+      Object.keys(formData).reduce((acc, key) => {
+        acc[key as keyof CourseFormData] = true;
+        return acc;
+      }, {} as CourseTouched)
+    );
+
+    if (Object.keys(nextErrors).length > 0) {
       return;
     }
 
     if (!formData.courseUniqueCode.trim()) {
       setError("Course unique code is still generating. Please wait a moment.");
-      return;
-    }
-
-    if (!formData.courseType) {
-      setError("Please select a course type");
-      return;
-    }
-
-    if (!formData.languageOfDelivery) {
-      setError("Please select language of delivery");
-      return;
-    }
-
-    if (!isYoutubeUrl(formData.courseDemoVideo)) {
-      setError("Course demo video must be a valid YouTube link");
-      return;
-    }
-
-    if (formData.mobileNo && !/^\d{10}$/.test(formData.mobileNo)) {
-      setError("Mobile number must be a valid 10 digit number");
       return;
     }
 
@@ -522,6 +759,13 @@ const CreateCourse = () => {
             className={styles.input}
             value={formData[field] as string}
             onChange={(e) => handleChange(field, e.target.value)}
+            onBlur={() => {
+              setTouched((prev) => ({ ...prev, [field]: true }));
+              setFieldErrors((prev) => ({
+                ...prev,
+                [field]: validateCourseField(field, formData[field] as any, formData),
+              }));
+            }}
             placeholder={`Enter ${fieldLabels[field]}`}
             rows={5}
           />
@@ -529,11 +773,19 @@ const CreateCourse = () => {
           <input
             type={inputType}
             min={isNumberField ? "0" : undefined}
+            step={isNumberField ? "1" : undefined}
             className={`${styles.input} ${
               field === "courseUniqueCode" ? styles.readOnlyInput : ""
             }`}
             value={formData[field] as string}
             onChange={(e) => handleChange(field, e.target.value)}
+            onBlur={() => {
+              setTouched((prev) => ({ ...prev, [field]: true }));
+              setFieldErrors((prev) => ({
+                ...prev,
+                [field]: validateCourseField(field, formData[field] as any, formData),
+              }));
+            }}
             placeholder={`Enter ${fieldLabels[field]}`}
             readOnly={field === "courseUniqueCode"}
           />
@@ -550,6 +802,9 @@ const CreateCourse = () => {
             Add a YouTube link like `https://www.youtube.com/watch?v=...`
           </span>
         )}
+        {touched[field] && fieldErrors[field] && (
+          <p className={styles.fieldError}>{fieldErrors[field]}</p>
+        )}
       </div>
     );
   };
@@ -559,7 +814,7 @@ const CreateCourse = () => {
       {/* <h1 className={styles.heading}>Create Course</h1> */}
 
       {error && <p className={styles.error}>{error}</p>}
-      {success && <p className={styles.noImage}>{success}</p>}
+      {success && <p className={styles.success}>{success}</p>}
 
       <form className={styles.form} onSubmit={handleSubmit}>
         <section className={styles.section}>
@@ -575,6 +830,17 @@ const CreateCourse = () => {
                 className={styles.input}
                 value={formData.courseType}
                 onChange={(e) => handleChange("courseType", e.target.value)}
+                onBlur={() => {
+                  setTouched((prev) => ({ ...prev, courseType: true }));
+                  setFieldErrors((prev) => ({
+                    ...prev,
+                    courseType: validateCourseField(
+                      "courseType",
+                      formData.courseType,
+                      formData
+                    ),
+                  }));
+                }}
               >
                 <option value="">
                   {loadingCourseTypes ? "Loading course types..." : "Select course type"}
@@ -590,6 +856,9 @@ const CreateCourse = () => {
                   No course types found. Create one from the dashboard first.
                 </span>
               )}
+              {touched.courseType && fieldErrors.courseType && (
+                <p className={styles.fieldError}>{fieldErrors.courseType}</p>
+              )}
             </div>
 
             <div className={styles.field}>
@@ -602,6 +871,20 @@ const CreateCourse = () => {
                 onChange={(e) =>
                   handleChange("certificationProvided", e.target.value)
                 }
+                onBlur={() => {
+                  setTouched((prev) => ({
+                    ...prev,
+                    certificationProvided: true,
+                  }));
+                  setFieldErrors((prev) => ({
+                    ...prev,
+                    certificationProvided: validateCourseField(
+                      "certificationProvided",
+                      formData.certificationProvided,
+                      formData
+                    ),
+                  }));
+                }}
               >
                 <option value="">Select option</option>
                 {certificationOptions.map((option) => (
@@ -610,6 +893,11 @@ const CreateCourse = () => {
                   </option>
                 ))}
               </select>
+              {touched.certificationProvided && fieldErrors.certificationProvided && (
+                <p className={styles.fieldError}>
+                  {fieldErrors.certificationProvided}
+                </p>
+              )}
             </div>
 
             {renderInput("instituteName")}
@@ -651,6 +939,9 @@ const CreateCourse = () => {
               ) : (
                 <p className={styles.noImage}>No trainer image selected</p>
               )}
+              {touched.trainerImage && fieldErrors.trainerImage && (
+                <p className={styles.fieldError}>{fieldErrors.trainerImage}</p>
+              )}
             </div>
 
             {renderInput("trainerExperience")}
@@ -665,6 +956,17 @@ const CreateCourse = () => {
                 onChange={(e) =>
                   handleChange("languageOfDelivery", e.target.value)
                 }
+                onBlur={() => {
+                  setTouched((prev) => ({ ...prev, languageOfDelivery: true }));
+                  setFieldErrors((prev) => ({
+                    ...prev,
+                    languageOfDelivery: validateCourseField(
+                      "languageOfDelivery",
+                      formData.languageOfDelivery,
+                      formData
+                    ),
+                  }));
+                }}
               >
                 <option value="">Select language</option>
                 {languageOptions.map((option) => (
@@ -673,6 +975,11 @@ const CreateCourse = () => {
                   </option>
                 ))}
               </select>
+              {touched.languageOfDelivery && fieldErrors.languageOfDelivery && (
+                <p className={styles.fieldError}>
+                  {fieldErrors.languageOfDelivery}
+                </p>
+              )}
             </div>
 
             <div className={styles.field}>
@@ -721,6 +1028,9 @@ const CreateCourse = () => {
               ) : (
                 <p className={styles.noImage}>No course image selected</p>
               )}
+              {touched.courseImage && fieldErrors.courseImage && (
+                <p className={styles.fieldError}>{fieldErrors.courseImage}</p>
+              )}
             </div>
 
             {renderInput("courseDemoVideo")}
@@ -750,11 +1060,11 @@ const CreateCourse = () => {
                   </button>
                 </div>
 
-                <div className={styles.chipList}>
-                  {formData.targetAudience.length > 0 ? (
-                    formData.targetAudience.map((item) => (
-                      <span key={item} className={styles.chip}>
-                        {item}
+            <div className={styles.chipList}>
+              {formData.targetAudience.length > 0 ? (
+                formData.targetAudience.map((item) => (
+                  <span key={item} className={styles.chip}>
+                    {item}
                         <button
                           type="button"
                           className={styles.chipRemove}
@@ -765,11 +1075,14 @@ const CreateCourse = () => {
                       </span>
                     ))
                   ) : (
-                    <p className={styles.noImage}>No target audience added yet</p>
-                  )}
-                </div>
-              </div>
+                <p className={styles.noImage}>No target audience added yet</p>
+              )}
             </div>
+            {touched.targetAudience && fieldErrors.targetAudience && (
+              <p className={styles.fieldError}>{fieldErrors.targetAudience}</p>
+            )}
+          </div>
+        </div>
 
             {richTextFields.map((field) => (
               <div key={field} className={styles.fullField}>
@@ -779,9 +1092,26 @@ const CreateCourse = () => {
                   theme="snow"
                   value={formData[field]}
                   onChange={(value) => handleChange(field, value)}
+                  onBlur={() => {
+                    setTouched((prev) => ({
+                      ...prev,
+                      [field]: true,
+                    }));
+                    setFieldErrors((prev) => ({
+                      ...prev,
+                      [field]: validateCourseField(
+                        field,
+                        formData[field] as any,
+                        formData
+                      ),
+                    }));
+                  }}
                   modules={quillModules}
                   formats={quillFormats}
                 />
+                {touched[field] && fieldErrors[field] && (
+                  <p className={styles.fieldError}>{fieldErrors[field]}</p>
+                )}
               </div>
             ))}
 
@@ -823,6 +1153,11 @@ const CreateCourse = () => {
                   <p className={styles.noImage}>No brochure PDFs selected</p>
                 )}
               </div>
+              {touched.brochurePdfDownload && fieldErrors.brochurePdfDownload && (
+                <p className={styles.fieldError}>
+                  {fieldErrors.brochurePdfDownload}
+                </p>
+              )}
             </div>
           </div>
         </section>

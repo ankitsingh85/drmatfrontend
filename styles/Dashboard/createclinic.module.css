@@ -81,6 +81,13 @@
   min-width: 0;
 }
 
+.ql_Container{
+      box-sizing: border-box;
+    line-height: 1.42;
+    height: 57%;
+    outline: none;
+}
+
 .field label {
   font-weight: 600;
   color: #1e293b;
@@ -123,7 +130,7 @@
   border-top: 0;
   border-radius: 0 0 16px 16px;
   background: #ffffff;
-  min-height: 100px;
+  min-height: auto;
   max-width: 100%;
 }
 
@@ -167,7 +174,7 @@
   border-radius: 999px;
   font-size: 18px;
   font-weight: 800;
-  background: linear-gradient(180deg, #cfd0fa, #9ebbfd);
+     background: linear-gradient(180deg, #777bfe, #83a1e6);
   color: #ffffff;
   border: none;
   cursor: pointer;
@@ -213,8 +220,31 @@
   padding: 14px;
   border-radius: 12px;
   display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.doctorCard > div {
+  display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
+}
+
+.removeDoctorBtn {
+  flex: 0 0 auto;
+  border: none;
+  border-radius: 999px;
+  padding: 8px 14px;
+  background: #fee2e2;
+  color: #b91c1c;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.removeDoctorBtn:hover {
+  background: #fecaca;
 }
 
 .modalOverlay {

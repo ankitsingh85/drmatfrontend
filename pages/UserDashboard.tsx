@@ -40,6 +40,21 @@ interface User {
   profileImage?: string;
 }
 
+const allowedResultTabs = new Set([
+  "gallery",
+  "prescriptions",
+  "orders",
+  "reports",
+  "products",
+  "treatments",
+  "offers",
+] as const);
+
+type ResultTabKey = "gallery" | "prescriptions" | "orders" | "reports" | "products" | "treatments" | "offers";
+
+const isResultTabKey = (value: string): value is ResultTabKey =>
+  allowedResultTabs.has(value as ResultTabKey);
+
 const UserDashboard: React.FC = () => {
   const router = useRouter();
   const profile = useTopbarProfile();
@@ -190,7 +205,7 @@ const UserDashboard: React.FC = () => {
     if (activeSection === "treatmentorders") return <TreatmentOrderHistory/> ;
     if (activeSection === "yourresult") {
       const tabParam = typeof router.query.tab === "string" ? router.query.tab : "";
-      const initialTab = tabParam === "prescriptions" ? "prescriptions" : "gallery";
+      const initialTab = isResultTabKey(tabParam) ? tabParam : "gallery";
       return <YourResult userId={user._id} userName={user.name} initialTab={initialTab} />;
     }
     if (activeSection === "appointmenthistory") return <AppointmentHistory />;

@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react"; // ✅ useEffect added
+import { useEffect, useState } from "react";
 import styles from "@/styles/Dashboard/createUser.module.css";
 import { API_URL } from "@/config/api";
 
-// ✅ helper to generate Patient ID
 const generatePatientId = () => `PAT-${Date.now().toString().slice(-6)}`;
+type ValidatedField = "patientName" | "email" | "contactNo" | "address";
 
 export default function CreateUser() {
   const [formData, setFormData] = useState({
@@ -14,7 +14,6 @@ export default function CreateUser() {
     email: "",
     contactNo: "",
     address: "",
-
     membershipPlan: "",
     paymentMethod: "",
     location: "",
@@ -23,12 +22,69 @@ export default function CreateUser() {
     profileReset: false,
   });
 
+  const [errors, setErrors] = useState<Record<ValidatedField, string>>({
+    patientName: "",
+    email: "",
+    contactNo: "",
+    address: "",
+  });
+  const [touched, setTouched] = useState<Record<ValidatedField, boolean>>({
+    patientName: false,
+    email: false,
+    contactNo: false,
+    address: false,
+  });
+  const [success, setSuccess] = useState("");
+  const [submitError, setSubmitError] = useState("");
+
+  const nameRegex = /^[A-Za-z ]+$/;
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
   useEffect(() => {
     setFormData((prev) => ({
       ...prev,
       patientId: generatePatientId(),
     }));
   }, []);
+
+  const validateField = (name: string, value: string) => {
+    switch (name) {
+      case "patientName":
+        if (!value.trim()) return "Patient name is required";
+        if (!nameRegex.test(value.trim())) {
+          return "Patient name should contain only letters and spaces";
+        }
+        return "";
+      case "email":
+        if (!value.trim()) return "Email is required";
+        if (!emailRegex.test(value.trim())) return "Enter a valid email address";
+        return "";
+      case "contactNo":
+        if (!value.trim()) return "Contact No. is required";
+        if (!/^\d*$/.test(value)) return "Contact No. can contain digits only";
+        if (value.length !== 10) {
+          return "Contact No. must contain exactly 10 digits";
+        }
+        return "";
+      case "address":
+        if (!value.trim()) return "Address is required";
+        return "";
+      default:
+        return "";
+    }
+  };
+
+  const validateForm = (currentForm = formData) => {
+    const nextErrors = {
+      patientName: validateField("patientName", currentForm.patientName),
+      email: validateField("email", currentForm.email),
+      contactNo: validateField("contactNo", currentForm.contactNo),
+      address: validateField("address", currentForm.address),
+    };
+
+    setErrors(nextErrors);
+    return nextErrors;
+  };
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -37,47 +93,117 @@ export default function CreateUser() {
   ) => {
     const { name, value, type } = e.target;
     const checked = (e.target as HTMLInputElement).checked;
+    const nextValue =
+      name === "contactNo" ? value.replace(/\D/g, "").slice(0, 10) : value;
 
-    setFormData((prev) => ({
+    const nextForm = {
+      ...formData,
+      [name]: type === "checkbox" ? checked : nextValue,
+    };
+
+    setFormData(nextForm);
+
+    const validatedFields: ValidatedField[] = [
+      "patientName",
+      "email",
+      "contactNo",
+      "address",
+    ];
+
+    if (validatedFields.includes(name as ValidatedField)) {
+      setErrors((prev) => ({
+        ...prev,
+        [name as ValidatedField]: validateField(
+          name,
+          String(nextValue)
+        ),
+      }));
+    }
+
+    setTouched((prev) => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : value,
+      ...(validatedFields.includes(name as ValidatedField)
+        ? { [name as ValidatedField]: true }
+        : {}),
     }));
+
+    setSuccess("");
+    setSubmitError("");
+  };
+
+  const handleBlur = (
+    e: React.FocusEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >
+  ) => {
+    const { name, value } = e.target;
+    const validatedFields: ValidatedField[] = [
+      "patientName",
+      "email",
+      "contactNo",
+      "address",
+    ];
+
+    if (validatedFields.includes(name as ValidatedField)) {
+      setTouched((prev) => ({
+        ...prev,
+        [name as ValidatedField]: true,
+      }));
+      setErrors((prev) => ({
+        ...prev,
+        [name as ValidatedField]: validateField(name, value),
+      }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.patientName.trim() || !formData.email.trim()) {
-      alert("Name and Email are required");
-      return;
-    }
+    const nextErrors = validateForm();
+    const hasErrors = Object.values(nextErrors).some(Boolean);
+    setTouched({
+      patientName: true,
+      email: true,
+      contactNo: true,
+      address: true,
+    });
+    if (hasErrors) return;
 
     const payload = {
-      patientId: formData.patientId, // ✅ SENT TO BACKEND
-      name: formData.patientName,
-      email: formData.email,
-      contactNo: formData.contactNo,
-      address: formData.address,
+      patientId: formData.patientId,
+      name: formData.patientName.trim(),
+      email: formData.email.trim(),
+      contactNo: formData.contactNo.trim(),
+      address: formData.address.trim(),
     };
-
-    console.log("CREATE USER PAYLOAD 👉", payload); // 🔧 ADDED
 
     try {
       const res = await fetch(`${API_URL}/users`, {
         method: "POST",
-        credentials: "include", // 🔧 ADDED (safe for prod)
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
       const data = await res.json();
-
       if (!res.ok) throw new Error(data.message);
 
-      alert("✅ User created successfully");
+      setSuccess("User created successfully");
+      setSubmitError("");
+      setErrors({
+        patientName: "",
+        email: "",
+        contactNo: "",
+        address: "",
+      });
+      setTouched({
+        patientName: false,
+        email: false,
+        contactNo: false,
+        address: false,
+      });
       window.dispatchEvent(new Event("admin-dashboard:create-success"));
 
-      // 🔁 reset form with NEW patient ID
       setFormData({
         patientId: generatePatientId(),
         patientName: "",
@@ -92,16 +218,14 @@ export default function CreateUser() {
         profileReset: false,
       });
     } catch (err: any) {
-      alert(err.message || "Failed to create user");
+      setSuccess("");
+      setSubmitError(err.message || "Failed to create user");
     }
   };
 
   return (
     <div className={styles.container}>
-      {/* <h1 className={styles.heading}>Create User</h1> */}
-
       <form className={styles.form} onSubmit={handleSubmit}>
-        {/* ================= BASIC INFO ================= */}
         <div className={styles.section}>
           <div className={styles.sectionTitle}>Basic Information</div>
 
@@ -123,8 +247,14 @@ export default function CreateUser() {
               placeholder="Enter full name"
               value={formData.patientName}
               onChange={handleChange}
+              onBlur={handleBlur}
+              pattern="[A-Za-z ]+"
+              title="Use letters and spaces only"
               required
             />
+            {touched.patientName && errors.patientName && (
+              <p className={styles.fieldError}>{errors.patientName}</p>
+            )}
           </div>
 
           <div className={styles.field}>
@@ -136,19 +266,33 @@ export default function CreateUser() {
               placeholder="Enter email"
               value={formData.email}
               onChange={handleChange}
+              onBlur={handleBlur}
               required
             />
+            {touched.email && errors.email && (
+              <p className={styles.fieldError}>{errors.email}</p>
+            )}
           </div>
 
           <div className={styles.field}>
             <label className={styles.label}>Contact No.</label>
             <input
               className={styles.input}
+              type="tel"
               name="contactNo"
-              placeholder="Enter contact number"
+              placeholder="Enter 10 digit contact number"
               value={formData.contactNo}
               onChange={handleChange}
+              onBlur={handleBlur}
+              inputMode="numeric"
+              maxLength={10}
+              pattern="[0-9]{10}"
+              title="Enter exactly 10 digits"
+              required
             />
+            {touched.contactNo && errors.contactNo && (
+              <p className={styles.fieldError}>{errors.contactNo}</p>
+            )}
           </div>
 
           <div className={styles.fullField}>
@@ -159,41 +303,15 @@ export default function CreateUser() {
               placeholder="Enter full address"
               value={formData.address}
               onChange={handleChange}
+              onBlur={handleBlur}
+              required
             />
+            {touched.address && errors.address && (
+              <p className={styles.fieldError}>{errors.address}</p>
+            )}
           </div>
         </div>
 
-        {/* ================= SERVICES ================= */}
-        <div className={styles.section}>
-          <div className={styles.sectionTitle}>User Activity</div>
-
-          <div className={styles.field}>
-            <label className={styles.label}>Your Orders</label>
-            <input className={styles.readonlyInput} readOnly value="Available" />
-          </div>
-
-          <div className={styles.field}>
-            <label className={styles.label}>Your Consultations</label>
-            <input className={styles.readonlyInput} readOnly value="Available" />
-          </div>
-
-          <div className={styles.field}>
-            <label className={styles.label}>Online Test Report</label>
-            <input className={styles.readonlyInput} readOnly value="Available" />
-          </div>
-
-          <div className={styles.field}>
-            <label className={styles.label}>Your Prescriptions</label>
-            <input className={styles.readonlyInput} readOnly value="Available" />
-          </div>
-
-          <div className={styles.field}>
-            <label className={styles.label}>Search History</label>
-            <input className={styles.readonlyInput} readOnly value="Tracked" />
-          </div>
-        </div>
-
-        {/* ================= ACCOUNT ================= */}
         <div className={styles.section}>
           <div className={styles.sectionTitle}>Account & Membership</div>
 
@@ -244,7 +362,6 @@ export default function CreateUser() {
           </div>
         </div>
 
-        {/* ================= SETTINGS ================= */}
         <div className={styles.section}>
           <div className={styles.sectionTitle}>Preferences & Controls</div>
 
@@ -275,6 +392,9 @@ export default function CreateUser() {
             <label>Rate us ⭐⭐⭐⭐⭐</label>
           </div>
         </div>
+
+        {submitError && <p className={styles.submitError}>{submitError}</p>}
+        {success && <p className={styles.success}>{success}</p>}
 
         <button type="submit" className={styles.submitBtn}>
           Create User

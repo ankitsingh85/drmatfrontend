@@ -274,7 +274,7 @@ const ListOfServiceCategory = () => {
           onChange={(e) => setSearch(e.target.value)}
         />
         <select
-          value={itemsPerPage}
+          value={itemsPerPage} style={premiumButtonStyle}
           onChange={(e) => setItemsPerPage(Number(e.target.value))}
         >
           {[5, 10, 20, 50].map((size) => (

@@ -1,21 +1,22 @@
 .topbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 40px;
-  background-color: #ffffff;
-  width: 100%;
-  z-index: 100;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  position: relative;
-  font-family: "Arial", sans-serif;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding: 12px 0px;
+    background-color: #ffffff;
+    width: 100%;
+    z-index: 100;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    position: relative;
+    font-family: "Arial", sans-serif;
+
 }
 
 /* Left section (logo + menu) */
 .leftSection {
   display: flex;
   align-items: center;
-  gap: 35px;
+  gap: 125px;
 }
 
 .logo {
@@ -321,8 +322,8 @@
   padding: 1px 4px;
   font-size: 12px;
   position: absolute;
-  top: 57px;
-  right: 33px;
+  top: 56px;
+  right: 53px;
 }
 /* 🔽 Add this to Topbar.module.css */
 .logoutBtn {

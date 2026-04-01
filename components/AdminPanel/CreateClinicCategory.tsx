@@ -3,10 +3,7 @@ import React, { useRef, useState } from "react";
 import styles from "@/styles/Dashboard/createcliniccategory.module.css";
 import { API_URL } from "@/config/api";
 
-const generateCategoryId = () => `CAT-${Date.now().toString().slice(-6)}`;
-
 const CreateClinicCategory = () => {
-  const [categoryId, setCategoryId] = useState(generateCategoryId());
   const [categoryName, setCategoryName] = useState("");
   const [categoryImage, setCategoryImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -44,15 +41,14 @@ const CreateClinicCategory = () => {
     e.preventDefault();
     setError("");
 
-    if (!categoryId.trim() || !categoryName.trim() || !categoryImage) {
-      setError("Category ID, name and image are required");
+    if (!categoryName.trim() || !categoryImage) {
+      setError("Category name and image are required");
       return;
     }
 
     try {
       setLoading(true);
       const formData = new FormData();
-      formData.append("categoryId", categoryId.trim());
       formData.append("name", categoryName.trim());
       formData.append("imageUrl", categoryImage);
 
@@ -66,7 +62,6 @@ const CreateClinicCategory = () => {
 
       alert("Clinic category created successfully");
       window.dispatchEvent(new Event("admin-dashboard:create-success"));
-      setCategoryId(generateCategoryId());
       setCategoryName("");
       setCategoryImage(null);
       setPreviewUrl(null);
@@ -86,16 +81,6 @@ const CreateClinicCategory = () => {
       <form className={styles.form} onSubmit={handleSubmit}>
         <section className={styles.section}>
           <h3 className={styles.sectionTitle}>Category Details</h3>
-
-          <div className={styles.field}>
-            <label className={styles.label}>Category ID</label>
-            <input
-              className={styles.input}
-              value={categoryId}
-              onChange={(e) => setCategoryId(e.target.value)}
-              placeholder="Unique category ID"
-            />
-          </div>
 
           <div className={styles.field}>
             <label className={styles.label}>Category Name</label>

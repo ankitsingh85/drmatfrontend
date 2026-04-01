@@ -5,14 +5,15 @@
 }
 
 .hero {
-  display: flex;
+  display: flex;  
   align-items: flex-start;
   justify-content: space-between;
-  gap: 18px;
+  gap: 0px;
   background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
   border: 1px solid #e5eef8;
   border-radius: 24px;
   padding: 22px;
+  align-items: center;
   box-shadow: 0 16px 40px rgba(15, 23, 42, 0.06);
 }
 
@@ -41,17 +42,18 @@
 }
 
 .statGrid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(120px, 1fr));
-  gap: 12px;
-  min-width: 280px;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(101px, 1fr));
+    grid-gap: 12px;
+    gap: 13px;
+    min-width: 280px;
 }
 
 .statCard {
   background: #0f5f9f;
   color: #fff;
   border-radius: 18px;
-  padding: 16px;
+  padding: 13px;
   text-align: center;
   box-shadow: 0 12px 24px rgba(15, 95, 159, 0.18);
 }
@@ -86,6 +88,7 @@
   background: #eef4fb;
   overflow-x: auto;
   scrollbar-width: none;
+  flex-wrap: wrap;
 }
 
 .tabBar::-webkit-scrollbar {
@@ -122,6 +125,32 @@
   grid-template-columns: 1.05fr 1fr;
   gap: 18px;
   align-items: start;
+}
+
+.galleryLayout {
+  display: grid;
+  gap: 18px;
+}
+
+.galleryUploadCard {
+  padding: 22px;
+}
+
+.galleryUploadGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin: 16px 0;
+}
+
+.gallerySavedSection {
+  display: grid;
+  gap: 14px;
+}
+
+.galleryList {
+  display: grid;
+  gap: 16px;
 }
 
 .panelCard,
@@ -313,8 +342,18 @@
   gap: 14px;
 }
 
+.orderList {
+  display: grid;
+  gap: 14px;
+}
+
 .resultCard {
-  padding: 16px;
+  padding: 18px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 251, 255, 0.96)),
+    #ffffff;
+  border: 1px solid #dbe7f2;
+  overflow: hidden;
 }
 
 .resultMediaGrid {
@@ -340,7 +379,7 @@
 .mediaBox img,
 .mediaFallback {
   width: 100%;
-  height: 180px;
+  height: 220px;
   border-radius: 16px;
   object-fit: cover;
   background: #eef4fb;
@@ -355,12 +394,18 @@
   border: 1px dashed #cbd5e1;
 }
 
+.mediaBox .iconBtn {
+  width: 100%;
+  justify-content: center;
+  margin-top: 8px;
+}
+
 .resultMeta {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
   gap: 16px;
-  margin-top: 14px;
+  margin-top: 16px;
 }
 
 .iconBtn,
@@ -373,8 +418,9 @@
 }
 
 .iconBtn {
-  background: #fff1f2;
+  background: linear-gradient(180deg, #fff1f2, #ffe4e6);
   color: #be123c;
+  box-shadow: 0 10px 20px rgba(244, 63, 94, 0.12);
 }
 
 .linkBtn {
@@ -385,6 +431,296 @@
 
 .prescriptionCard {
   padding: 16px;
+}
+
+.orderCard {
+  padding: 16px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 20px;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.05);
+}
+
+.orderHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.orderHeader h4 {
+  margin: 0;
+  color: #0f172a;
+}
+
+.orderHeader p {
+  margin: 6px 0 0;
+  color: #64748b;
+}
+
+.orderBadge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: #eaf4ff;
+  color: #0f5f9f;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.orderMetaGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.orderMetaGrid small {
+  display: block;
+  margin-bottom: 4px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.orderMetaGrid strong {
+  color: #0f172a;
+  font-size: 14px;
+}
+
+.orderAddress {
+  margin: 14px 0 0;
+  color: #475467;
+}
+
+.orderItems {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.orderItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  border-radius: 14px;
+  background: #f8fbff;
+}
+
+.orderItemImage,
+.orderItemFallback {
+  width: 54px;
+  height: 54px;
+  border-radius: 14px;
+  object-fit: cover;
+  background: #eef4fb;
+}
+
+.orderItemFallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.orderItemText {
+  display: grid;
+  gap: 4px;
+}
+
+.orderItemText strong {
+  color: #0f172a;
+}
+
+.orderItemText span {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.promoGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.promoCard {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 20px;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.05);
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.promoImage {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+  display: block;
+}
+
+.promoBody {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  
+
+}
+
+.promoBody h4 {
+  margin: 0;
+  color: #0f172a;
+  display: none;
+}
+
+.promoBody p {
+  margin: 0;
+  color: #64748b;
+  
+}
+
+.promoBody strong {
+  color: #0f5f9f;
+}
+
+.topProductGrid {
+  display: grid;
+grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.specialOfferGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.topProductCard {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 22px;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.05);
+  overflow: hidden;
+  cursor: pointer;
+  display: grid;
+}
+
+.topProductImageWrap {
+  position: relative;
+  padding: 14px;
+}
+
+.topProductImage {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  border-radius: 18px;
+  display: block;
+  background: #f3f4f6;
+}
+
+.topProductBadge {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  background: #d9f500;
+  color: #1f2937;
+  font-size: 13px;
+  font-weight: 800;
+  border-radius: 10px;
+  padding: 6px 10px;
+}
+
+.topProductBody {
+  padding: 0 16px 16px;
+  display: grid;
+  gap: 10px;
+}
+
+.topProductName {
+  margin: 0;
+  color: #1f2937;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.topProductCompany {
+  margin: 0;
+  color: #667085;
+  font-size: 14px;
+}
+
+.topProductMetaRow {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.topProductPriceGroup {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.topProductPrice {
+  color: #111827;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.topProductOriginalPrice {
+  color: #98a2b3;
+  font-size: 14px;
+  text-decoration: line-through;
+  margin-bottom: 2px;
+}
+
+.topProductUnit {
+  color: #667085;
+  font-size: 14px;
+  text-align: right;
+}
+
+.topProductActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.topProductAddBtn {
+  flex: 1 1;
+    border: none;
+    border-radius: 999px;
+    background: #145ea8;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 600;
+    padding: 10px 16px;
+    cursor: pointer;
+    box-shadow: 0 12px 24px rgba(20, 94, 168, 0.22);
+}
+
+.topProductWishBtn {
+      width: 40px;
+    height: 40px;
+  border-radius: 999px;
+  border: 1px solid #d0d5dd;
+  background: #fff;
+  color: #344054;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 22px;
 }
 
 .prescriptionInfo {
@@ -440,12 +776,35 @@
 
   .statGrid,
   .previewRow,
-  .resultMediaGrid {
+  .galleryUploadGrid,
+  .resultMediaGrid,
+  .promoGrid,
+  .orderMetaGrid,
+  .topProductGrid,
+  .specialOfferGrid {
     grid-template-columns: 1fr;
   }
 
   .resultMeta {
     flex-direction: column;
+    align-items: stretch;
+  }
+
+  .topProductMetaRow {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .topProductActions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .topProductWishBtn {
+    width: 100%;
+  }
+
+  .resultMeta {
     align-items: stretch;
   }
 }

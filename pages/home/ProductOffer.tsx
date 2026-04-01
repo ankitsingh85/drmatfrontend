@@ -5,6 +5,7 @@ import { useRouter } from "next/router";
 import styles from "@/styles/Offer.module.css";
 import { ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
 import { API_URL } from "@/config/api";
+import { resolveMediaUrl } from "@/lib/media";
 
 interface OfferProductRef {
   _id: string;
@@ -204,7 +205,10 @@ const OfferComponent = () => {
                 }
               }}
             >
-              <img src={slide.imageBase64} alt="Offer" />
+              <img
+                src={resolveMediaUrl(slide.imageBase64) || slide.imageBase64}
+                alt="Offer"
+              />
               <div className={styles.slideMeta}>
                 <span>{getProductLabel(slide)}</span>
                 <small>{getCategoryLabel(slide)}</small>

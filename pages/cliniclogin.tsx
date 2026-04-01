@@ -33,9 +33,10 @@ export default function ClinicLogin() {
     };
 
     const name = data?.clinic?.clinicName || "";
-    const id = String(data?.clinic?.id || "");
+    const id = String(data?.clinic?.id || data?.clinic?._id || "");
     const clinicEmail = data?.clinic?.email || "";
-    const contactNo = data?.clinic?.contactNo || fallbackMobile;
+    const contactNo =
+      data?.clinic?.contactNo || data?.clinic?.contactNumber || fallbackMobile;
 
     Cookies.set("token", data.token, cookieOptions);
     Cookies.set("role", "clinic", cookieOptions);
@@ -91,7 +92,7 @@ export default function ClinicLogin() {
         return;
       }
 
-      if (data?.message === "Clinic details are required") {
+      if (data?.needsProfile || data?.message === "Clinic details are required") {
         setStep("profile");
         return;
       }
@@ -157,7 +158,11 @@ export default function ClinicLogin() {
           <div className={styles.formPane}>
             <div className={styles.formCard}>
               {step !== "mobile" && (
-                <button className={styles.backBtn} onClick={() => setStep(step === "profile" ? "otp" : "mobile")}>
+                <button
+                  type="button"
+                  className={styles.backBtn}
+                  onClick={() => setStep(step === "profile" ? "otp" : "mobile")}
+                >
                   {"<"}
                 </button>
               )}

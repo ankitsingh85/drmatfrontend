@@ -299,18 +299,7 @@ const PaymentPage: React.FC = () => {
             </div>
           </div>
 
-          <div className={styles.helpPanel}>
-            <p className={styles.helpTitle}>What happens next</p>
-            <ul className={styles.helpList}>
-              <li>
-                {isTreatmentCheckout
-                  ? "We place the booking after payment."
-                  : "We place the order after payment."}
-              </li>
-              <li>You can review the selected items below.</li>
-              <li>All steps stay inside this secure checkout.</li>
-            </ul>
-          </div>
+         
         </section>
 
         <aside className={styles.rightCard}>

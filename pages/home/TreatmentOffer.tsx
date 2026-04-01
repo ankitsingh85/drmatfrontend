@@ -4,6 +4,7 @@ import { useRouter } from "next/router";
 import styles from "@/styles/Offer.module.css";
 import { ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
 import { API_URL } from "@/config/api";
+import { resolveMediaUrl } from "@/lib/media";
 
 interface TreatmentRef {
   _id?: string;
@@ -201,10 +202,13 @@ const TreatmentOffer = () => {
                   width: "100%",
                   cursor: slide.treatmentId ? "pointer" : "default",
                 }}
-                disabled={!slide.treatmentId}
-                aria-label="Open treatment details"
-              >
-                <img src={slide.imageBase64} alt="Offer" />
+                  disabled={!slide.treatmentId}
+                  aria-label="Open treatment details"
+                >
+                <img
+                  src={resolveMediaUrl(slide.imageBase64) || slide.imageBase64}
+                  alt="Offer"
+                />
               </button>
             </div>
           ))}

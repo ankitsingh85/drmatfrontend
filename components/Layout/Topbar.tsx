@@ -17,7 +17,7 @@ import {
 import { useCart } from "@/context/CartContext";
 import { useTopbarProfile } from "@/context/TopbarProfileContext";
 import Cookies from "js-cookie";
-
+import TreatmentPlans from "@/pages/home/TreatmentPlans";
 interface TopbarProps {
   hideHamburgerOnMobile?: boolean;
 }
@@ -196,10 +196,10 @@ console.log("data");
           <nav className={`${styles.navLinks} ${menuOpen ? styles.open : ""}`}>
             <Link href="/home" className={styles.navLink}>Home</Link>
             <Link href="/home/findClinicsPage" className={styles.navLink}>Book Appointment</Link>
-            <Link href="/user/profile" className={styles.navLink}>Care Plan</Link>
-            <Link href="/home/findClinicsPage" className={styles.navLink}>Find Derma Clinic</Link>
+            {/* <Link href="/user/profile" className={styles.navLink}>Care Plan</Link> */}
+            {/* <Link href="/home/findClinicsPage" className={styles.navLink}>Find Derma Clinic</Link> */}
             <Link href="/video-consultation" className={styles.navLink}>Book Video Consultation</Link>
-            <Link href="/plans" className={styles.navLink}>Buy Treatment Plan</Link>
+            <Link href="/treatment-plans" className={styles.navLink}>Buy Treatment Plan</Link>
             <Link href="/product-listing" className={styles.navLink}>Buy Products</Link>
             <Link href="/quiz/ques1" className={styles.navLink}>Online Test</Link>
             <Link href="/cliniclogin" className={styles.businessNavLink}>

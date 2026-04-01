@@ -12,7 +12,7 @@ import { API_URL } from "@/config/api";
 import FullPageLoader from "@/components/common/FullPageLoader";
 import { resolveMediaUrl } from "@/lib/media";
 
-const ITEMS_PER_PAGE = 6;
+const ITEMS_PER_PAGE = 5;
 
 interface ClinicCategory {
   _id: string;
@@ -190,12 +190,7 @@ const FindClinicsPage: React.FC = () => {
                     ...clinic,
                     name: clinic.clinicName,
                     mobile: clinic.contactNumber,
-                    image: getImage(clinic.photos?.[0]),
-                    images: [
-                      ...(clinic.photos?.map((p) => getImage(p)) || []),
-                    ].filter((img): img is string => Boolean(img)),
-                    clinicLogo: undefined,
-                    bannerImage: undefined,
+                    photos: clinic.photos || [],
                   }}
                 />
               ))}

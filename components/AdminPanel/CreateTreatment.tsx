@@ -57,6 +57,26 @@ export default function CreateTreatmentPlan() {
   const [isActive, setIsActive] = useState(true);
 
   const [notification, setNotification] = useState("");
+  const numericFields = new Set([
+    "mrp",
+    "offerPrice",
+    "pricePerSession",
+    "discountPercent",
+    "sessions",
+  ]);
+  const textOnlyRegex = /^[A-Za-z ]+$/;
+
+  const stripHtml = (value: string) =>
+    value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+
+  const isValidUrl = (value: string) => {
+    try {
+      const parsed = new URL(value.trim());
+      return parsed.protocol === "http:" || parsed.protocol === "https:";
+    } catch {
+      return false;
+    }
+  };
 
   useEffect(() => {
     const fetchClinics = async () => {
@@ -114,6 +134,22 @@ export default function CreateTreatmentPlan() {
     setAfterImages(files);
   };
 
+  const handleTextChange = (
+    setter: React.Dispatch<React.SetStateAction<string>>,
+    value: string
+  ) => {
+    setter(value);
+    setNotification("");
+  };
+
+  const handleNumericChange = (
+    setter: React.Dispatch<React.SetStateAction<string>>,
+    value: string
+  ) => {
+    setter(value.replace(/\D/g, ""));
+    setNotification("");
+  };
+
   const quillModules = useMemo(
     () => ({
       toolbar: [
@@ -139,6 +175,35 @@ export default function CreateTreatmentPlan() {
     }
     if (!serviceCategory.trim()) {
       setNotification("Please select a treatment category.");
+      return;
+    }
+    if (!textOnlyRegex.test(treatmentName.trim())) {
+      setNotification("Treatment plan name should contain only letters and spaces.");
+      return;
+    }
+    if (!isValidUrl(shortReelUrl)) {
+      setNotification("Treatment short reel must be a valid URL.");
+      return;
+    }
+    if (!stripHtml(description)) {
+      setNotification("Plan description is required.");
+      return;
+    }
+    if (!treatmentImages.length) {
+      setNotification("Please upload at least one treatment image.");
+      return;
+    }
+    if (!mrp || !offerPrice || !discountPercent || !sessions) {
+      setNotification("Pricing fields and sessions are required.");
+      return;
+    }
+    if (
+      !/^\d+$/.test(mrp) ||
+      !/^\d+$/.test(offerPrice) ||
+      !/^\d+$/.test(discountPercent) ||
+      !/^\d+$/.test(sessions)
+    ) {
+      setNotification("Numeric fields must contain numbers only.");
       return;
     }
 
@@ -217,9 +282,11 @@ export default function CreateTreatmentPlan() {
             <label>Treatment Plan Name</label>
             <input
               value={treatmentName}
-              onChange={(e) => setTreatmentName(e.target.value)}
+              onChange={(e) => handleTextChange(setTreatmentName, e.target.value)}
               className={styles.input}
               required
+              pattern="[A-Za-z ]+"
+              title="Use letters and spaces only"
             />
           </div>
 
@@ -245,7 +312,7 @@ export default function CreateTreatmentPlan() {
             <div className={styles.quillWrapper}>
               <ReactQuill
                 value={description}
-                onChange={setDescription}
+                onChange={(value) => handleTextChange(setDescription, value)}
                 modules={quillModules}
               />
             </div>
@@ -258,9 +325,11 @@ export default function CreateTreatmentPlan() {
           <div className={styles.field}>
             <label>Treatment Short Reel URL</label>
             <input
+              type="url"
               value={shortReelUrl}
-              onChange={(e) => setShortReelUrl(e.target.value)}
+              onChange={(e) => handleTextChange(setShortReelUrl, e.target.value)}
               className={styles.input}
+              required
             />
           </div>
 
@@ -271,6 +340,7 @@ export default function CreateTreatmentPlan() {
               multiple
               className={styles.fileInput}
               onChange={(e) => handleFileChange(e, "treatmentImages")}
+              required
             />
           </div>
 
@@ -322,36 +392,55 @@ export default function CreateTreatmentPlan() {
           <div className={styles.field}>
             <label>Gross Price (MRP)</label>
             <input
+              type="text"
               className={styles.input}
               value={mrp}
-              onChange={(e) => setMrp(e.target.value)}
+              onChange={(e) => handleNumericChange(setMrp, e.target.value)}
+              inputMode="numeric"
+              pattern="[0-9]*"
+              required
             />
           </div>
 
           <div className={styles.field}>
             <label>Offer Price (Incl. Taxes)</label>
             <input
+              type="text"
               className={styles.input}
               value={offerPrice}
-              onChange={(e) => setOfferPrice(e.target.value)}
+              onChange={(e) => handleNumericChange(setOfferPrice, e.target.value)}
+              inputMode="numeric"
+              pattern="[0-9]*"
+              required
             />
           </div>
 
           <div className={styles.field}>
             <label>Price Per Session (Optional)</label>
             <input
+              type="text"
               className={styles.input}
               value={pricePerSession}
-              onChange={(e) => setPricePerSession(e.target.value)}
+              onChange={(e) =>
+                handleNumericChange(setPricePerSession, e.target.value)
+              }
+              inputMode="numeric"
+              pattern="[0-9]*"
             />
           </div>
 
           <div className={styles.field}>
             <label>Discount %</label>
             <input
+              type="text"
               className={styles.input}
               value={discountPercent}
-              onChange={(e) => setDiscountPercent(e.target.value)}
+              onChange={(e) =>
+                handleNumericChange(setDiscountPercent, e.target.value)
+              }
+              inputMode="numeric"
+              pattern="[0-9]*"
+              required
             />
           </div>
         </section>
@@ -362,9 +451,13 @@ export default function CreateTreatmentPlan() {
           <div className={styles.field}>
             <label>No. of Sessions</label>
             <input
+              type="text"
               className={styles.input}
               value={sessions}
-              onChange={(e) => setSessions(e.target.value)}
+              onChange={(e) => handleNumericChange(setSessions, e.target.value)}
+              inputMode="numeric"
+              pattern="[0-9]*"
+              required
             />
           </div>
 

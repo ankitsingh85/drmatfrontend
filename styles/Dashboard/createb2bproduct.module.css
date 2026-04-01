@@ -245,3 +245,26 @@
 .quill {
   margin-bottom: 4px;
 }
+
+.fieldError {
+  margin: 2px 0 0;
+  color: #b91c1c;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.success {
+  margin-top: -10px;
+  color: #166534;
+  font-size: 15px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.submitError {
+  margin-top: -10px;
+  color: #b91c1c;
+  font-size: 15px;
+  font-weight: 700;
+  text-align: center;
+}

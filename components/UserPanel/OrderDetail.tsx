@@ -643,7 +643,7 @@ const UserOrderDetail: React.FC<OrderDetailProps> = ({ orderKey }) => {
             Back to Orders
           </button>
           <button className={styles.printBtn} onClick={handlePrintInvoice}>
-            Print Invoice
+            Download Invoice
           </button>
         </div>
 

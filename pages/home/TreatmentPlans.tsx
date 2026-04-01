@@ -123,5 +123,4 @@ const TreatmentPlans = ({
     </div>
   );
 };
-
 export default TreatmentPlans;

@@ -7,7 +7,6 @@ import styles from "@/styles/Dashboard/listofcliniccategory.module.css";
 
 interface ClinicCategory {
   _id: string;
-  categoryId: string;
   name: string;
   imageUrl: string;
 }
@@ -61,7 +60,6 @@ const ListOfClinicCategory = () => {
 
   const handleEdit = (cat: ClinicCategory) => {
     setEditingCategory(cat);
-    setEditCategoryId(cat.categoryId);
     setEditName(cat.name);
     setPreviewUrl(resolveMediaUrl(cat.imageUrl));
     setExistingImageUrl(cat.imageUrl);
@@ -91,11 +89,6 @@ const ListOfClinicCategory = () => {
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!editCategoryId.trim()) {
-      setError("Category ID is required");
-      return;
-    }
-
     if (!editName.trim()) {
       setError("Clinic category name is required");
       return;
@@ -103,7 +96,6 @@ const ListOfClinicCategory = () => {
 
     try {
       const formData = new FormData();
-      formData.append("categoryId", editCategoryId.trim());
       formData.append("name", editName.trim());
       if (editImage) {
         formData.append("imageUrl", editImage);
@@ -147,9 +139,7 @@ const ListOfClinicCategory = () => {
     const q = search.trim().toLowerCase();
     if (!q) return categories;
     return categories.filter(
-      (cat) =>
-        cat.categoryId.toLowerCase().includes(q) ||
-        cat.name.toLowerCase().includes(q)
+      (cat) => cat.name.toLowerCase().includes(q)
     );
   }, [categories, search]);
 
@@ -173,12 +163,8 @@ const ListOfClinicCategory = () => {
 
   const handleDownloadCSV = () => {
     const rows = [
-      ["Category ID", "Name", "Image URL"],
-      ...filteredCategories.map((cat) => [
-        cat.categoryId,
-        cat.name,
-        cat.imageUrl || "",
-      ]),
+      ["Name", "Image URL"],
+      ...filteredCategories.map((cat) => [cat.name, cat.imageUrl || ""]),
     ];
 
     const csv = rows
@@ -218,7 +204,6 @@ const ListOfClinicCategory = () => {
     const rows = filteredCategories
       .map(
         (cat) => `<tr>
-          <td>${escapeHtml(cat.categoryId)}</td>
           <td>${escapeHtml(cat.name)}</td>
           <td>${escapeHtml(cat.imageUrl || "-")}</td>
         </tr>`
@@ -296,17 +281,15 @@ const ListOfClinicCategory = () => {
       <div className={styles.tableWrapper}>
         <table className={styles.table}>
           <thead>
-            <tr>
-              <th>Category ID</th>
-              <th>Name</th>
-              <th>Image</th>
-              <th>Actions</th>
+              <tr>
+                <th>Name</th>
+                <th>Image</th>
+                <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {paginatedCategories.map((cat) => (
               <tr key={cat._id}>
-                <td>{cat.categoryId}</td>
                 <td>{cat.name}</td>
                 <td>
                   <img
@@ -344,9 +327,9 @@ const ListOfClinicCategory = () => {
           flexWrap: "wrap",
         }}
       >
-        <p style={{ margin: 0 }}>
-          Showing {paginatedCategories.length} of {filteredCategories.length}
-        </p>
+          <p style={{ margin: 0 }}>
+            Showing {paginatedCategories.length} of {filteredCategories.length}
+          </p>
         <div style={{ display: "flex", gap: 8 }}>
           <button
             type="button"
@@ -380,14 +363,6 @@ const ListOfClinicCategory = () => {
             <h3>Edit Clinic Category</h3>
             {error && <p className={styles.error}>{error}</p>}
             <form onSubmit={handleEditSubmit}>
-              <label>Category ID (Unique)</label>
-              <input
-                type="text"
-                value={editCategoryId}
-                onChange={(e) => setEditCategoryId(e.target.value)}
-                required
-              />
-
               <label>Category Name</label>
               <input
                 type="text"

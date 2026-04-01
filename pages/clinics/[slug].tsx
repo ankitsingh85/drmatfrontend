@@ -18,9 +18,6 @@ interface Clinic {
   clinicName?: string;
   description?: string;
   address?: string;
-  images?: string[];
-  clinicLogo?: string;
-  bannerImage?: string;
   photos?: string[];
   contactNumber?: string;
   mobile?: string;
@@ -111,16 +108,13 @@ const ClinicDetailPage = () => {
         if (!res.ok) throw new Error("Failed to fetch clinic details");
         const data: Clinic = await res.json();
         const normalizedImages = [
-          getImage(data.clinicLogo),
-          getImage(data.bannerImage),
           ...(data.photos?.map((img) => getImage(img)) || []),
-          ...(data.images?.map((img) => getImage(img)) || []),
         ].filter((img): img is string => Boolean(img));
 
         const normalizedClinic: Clinic = {
           ...data,
           name: data.name || data.clinicName || "Clinic",
-          images:
+          photos:
             normalizedImages.length > 0
               ? Array.from(new Set(normalizedImages))
               : ["/placeholder-clinic.jpg"],

@@ -18,7 +18,7 @@ import {
 import { FiChevronDown } from "react-icons/fi";
 import { useCart } from "@/context/CartContext";
 import styles from "@/styles/pages/treatmentPlanDetail.module.css";
-import { resolveMediaUrl } from "@/lib/media";
+import { resolveUploadedMediaUrl } from "@/lib/media";
 
 interface TreatmentPlan {
   _id: string;
@@ -85,7 +85,7 @@ const TreatmentPlanDetailPage = () => {
   const [selectedImage, setSelectedImage] = useState(0);
 
   const resolveImage = (img?: string) => {
-    return resolveMediaUrl(img) || "/placeholder.png";
+    return resolveUploadedMediaUrl(img) || "/placeholder.png";
   };
 
   useEffect(() => {

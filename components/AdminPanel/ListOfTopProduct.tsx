@@ -23,7 +23,7 @@ interface Product {
   productImages?: string[];
 }
 
-const MAX_TOP_PRODUCTS = 11;
+const MAX_TOP_PRODUCTS = 12;
 
 const ListOfTopProduct: React.FC = () => {
   const [topProducts, setTopProducts] = useState<(Product | null)[]>(
@@ -164,12 +164,6 @@ const ListOfTopProduct: React.FC = () => {
                   )}
                 </Draggable>
               ))}
-
-              {/* FRONTEND PREVIEW SLOT */}
-              <div className={styles.showMoreCard}>
-                <span>Explore More</span>
-                <small>Frontend View</small>
-              </div>
 
               {provided.placeholder}
             </div>

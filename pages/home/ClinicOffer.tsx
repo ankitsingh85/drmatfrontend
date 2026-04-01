@@ -4,22 +4,19 @@ import { useRouter } from "next/router";
 import styles from "@/styles/Offer.module.css";
 import { ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
 import { API_URL } from "@/config/api";
+import { resolveMediaUrl } from "@/lib/media";
 
 interface ClinicRef {
   _id: string;
   slug?: string;
   clinicName?: string;
-  cuc?: string;
 }
 
 interface Offer {
   _id: string;
   imageBase64: string;
-  clinicId?: string | ClinicRef;
+  clinicId?: string | ClinicRef | null;
 }
-
-// const API_BASE =
-//   process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000/api";
 
 const AUTO_DELAY = 3000;
 
@@ -35,13 +32,12 @@ const ClinicOffer = () => {
 
   const [visibleCount, setVisibleCount] = useState(3);
   const [slides, setSlides] = useState<Offer[]>([]);
-  const [index, setIndex] = useState(3); // start after clones
+  const [index, setIndex] = useState(3);
   const [isPlaying, setIsPlaying] = useState(true);
   const [enableTransition, setEnableTransition] = useState(true);
 
   const sliderRef = useRef<HTMLDivElement>(null);
   const autoRef = useRef<NodeJS.Timeout | null>(null);
-  const fetchRef = useRef<NodeJS.Timeout | null>(null);
 
   /* ================= FETCH ================= */
   const fetchOffers = async () => {
@@ -50,9 +46,13 @@ const ClinicOffer = () => {
       const data: Offer[] = await res.json();
       setSlides(data);
     } catch (err) {
-      console.error(err);
+      console.error("Offer fetch error:", err);
     }
   };
+
+  useEffect(() => {
+    fetchOffers();
+  }, []);
 
   useEffect(() => {
     const handleResize = () => setVisibleCount(getVisibleCount());
@@ -65,16 +65,6 @@ const ClinicOffer = () => {
     setIndex(visibleCount);
   }, [visibleCount, slides.length]);
 
-  useEffect(() => {
-    fetchOffers();
-    fetchRef.current = setInterval(fetchOffers, 3000);
-    return () => {
-      if (fetchRef.current) {
-        clearInterval(fetchRef.current);
-      }
-    };
-  }, []);
-
   /* ================= CLONED SLIDES ================= */
   const extendedSlides = [
     ...slides.slice(-visibleCount),
@@ -85,7 +75,6 @@ const ClinicOffer = () => {
   /* ================= AUTOPLAY ================= */
   const clearAuto = () => {
     if (autoRef.current) clearInterval(autoRef.current);
-    autoRef.current = null;
   };
 
   const stopAuto = () => {
@@ -139,17 +128,60 @@ const ClinicOffer = () => {
     setIsPlaying((prev) => !prev);
   };
 
-  const getClinicId = (offer: Offer) =>
-    typeof offer.clinicId === "object" ? offer.clinicId._id : offer.clinicId;
+  /* ================= NAVIGATION FIX ================= */
 
-  const handleSlideClick = (offer: Offer) => {
-    const clinic =
-      typeof offer.clinicId === "object" ? offer.clinicId : undefined;
-    const clinicSlug = clinic?.slug || clinic?._id || getClinicId(offer);
-    if (!clinicSlug) return;
+  const getClinicPath = (offer: Offer) => {
+    if (!offer.clinicId) return null;
 
-    router.push(`/clinics/${clinicSlug}`);
+    if (typeof offer.clinicId === "object") {
+      return offer.clinicId.slug || offer.clinicId._id;
+    }
+
+    return offer.clinicId; // string id
   };
+
+  const handleSlideClick = async (offer: Offer) => {
+  console.log("FULL OFFER:", offer);
+
+  try {
+    let clinicPath = null;
+
+    if (!offer.clinicId) {
+      console.log("No clinicId found");
+      return;
+    }
+
+    // CASE 1: populated object
+    if (typeof offer.clinicId === "object") {
+      clinicPath = offer.clinicId.slug || offer.clinicId._id;
+      console.log("Using object clinic:", clinicPath);
+    }
+
+    // CASE 2: string ID
+    if (typeof offer.clinicId === "string") {
+      console.log("Fetching clinic from API:", offer.clinicId);
+
+      const res = await fetch(`${API_URL}/clinics/${offer.clinicId}`);
+      const data = await res.json();
+
+      console.log("Clinic API response:", data);
+
+      clinicPath = data.slug || data._id;
+    }
+
+    if (!clinicPath) {
+      console.log("No clinicPath generated");
+      return;
+    }
+
+    console.log("FINAL REDIRECT:", `/clinics/${clinicPath}`);
+
+    router.push(`/clinics/${clinicPath}`);
+
+  } catch (err) {
+    console.error("Navigation error:", err);
+  }
+};
 
   if (slides.length === 0) {
     return <p style={{ textAlign: "center" }}>No offers available</p>;
@@ -157,7 +189,7 @@ const ClinicOffer = () => {
 
   return (
     <div className={styles.sliderWrapper}>
-      {/* TOP RIGHT ARROWS */}
+      {/* TOP CONTROLS */}
       <div className={styles.topControls}>
         <button onClick={prev}>
           <ChevronLeft size={18} />
@@ -185,14 +217,11 @@ const ClinicOffer = () => {
               onClick={() => handleSlideClick(slide)}
               role="button"
               tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  handleSlideClick(slide);
-                }
-              }}
             >
-              <img src={slide.imageBase64} alt="Offer" />
+              <img
+                src={resolveMediaUrl(slide.imageBase64) || slide.imageBase64}
+                alt="Offer"
+              />
             </div>
           ))}
         </div>

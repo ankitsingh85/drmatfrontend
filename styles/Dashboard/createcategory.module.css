@@ -277,6 +277,24 @@
   font-weight: 600;
 }
 
+.success {
+  margin-top: 10px;
+  padding: 11px 13px;
+  border-radius: 12px;
+  border: 1px solid #bbf7d0;
+  background: #f0fdf4;
+  color: #166534;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.fieldError {
+  margin: 6px 0 0;
+  color: #b91c1c;
+  font-size: 13px;
+  font-weight: 600;
+}
+
 .submitBtn {
   align-self: flex-start;
   margin-top: 4px;

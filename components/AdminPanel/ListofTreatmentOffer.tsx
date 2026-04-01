@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import styles from "@/styles/UpdateOffer.module.css";
 import { API_URL } from "@/config/api";
+import { resolveMediaUrl } from "@/lib/media";
 
 interface ServiceCategoryOption {
   _id: string;
@@ -36,7 +37,7 @@ interface Offer {
 
 interface PreviewFile {
   file: File;
-  base64: string;
+  previewUrl: string;
   valid: boolean;
   error?: string;
 }
@@ -56,6 +57,9 @@ const ListofTreatementOffer = () => {
   const [selectedCategoryLabel, setSelectedCategoryLabel] = useState("");
   const [selectedTreatmentId, setSelectedTreatmentId] = useState("");
   const [isUploading, setIsUploading] = useState(false);
+  const [updatingOfferId, setUpdatingOfferId] = useState<string | null>(null);
+  const updateFileInputRef = useRef<HTMLInputElement | null>(null);
+  const previewFilesRef = useRef<PreviewFile[]>([]);
 
   const fetchOffers = async () => {
     try {
@@ -83,6 +87,16 @@ const ListofTreatementOffer = () => {
   useEffect(() => {
     fetchOffers();
     fetchPickerData();
+  }, []);
+
+  useEffect(() => {
+    previewFilesRef.current = previewFiles;
+  }, [previewFiles]);
+
+  useEffect(() => {
+    return () => {
+      revokePreviewUrls(previewFilesRef.current);
+    };
   }, []);
 
   useEffect(() => {
@@ -130,56 +144,46 @@ const ListofTreatementOffer = () => {
     [categories, selectedCategoryId, selectedCategoryLabel]
   );
 
+  const revokePreviewUrls = (files: PreviewFile[]) => {
+    files.forEach((preview) => URL.revokeObjectURL(preview.previewUrl));
+  };
+
   const validateImage = (file: File): Promise<PreviewFile> => {
     return new Promise((resolve) => {
+      const previewUrl = URL.createObjectURL(file);
+
       if (file.size > MAX_SIZE_MB * 1024 * 1024) {
         return resolve({
           file,
-          base64: "",
+          previewUrl,
           valid: false,
           error: `Exceeds ${MAX_SIZE_MB}MB limit`,
         });
       }
 
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-
-      reader.onload = (e) => {
-        const base64 = e.target?.result as string;
-        const img = new Image();
-        img.src = base64;
-
-        img.onload = () => {
-          if (img.width !== REQUIRED_WIDTH || img.height !== REQUIRED_HEIGHT) {
-            resolve({
-              file,
-              base64,
-              valid: false,
-              error: `Must be ${REQUIRED_WIDTH}x${REQUIRED_HEIGHT}px (got ${img.width}x${img.height})`,
-            });
-          } else {
-            resolve({ file, base64, valid: true });
-          }
-        };
-
-        img.onerror = () => {
+      const img = new Image();
+      img.onload = () => {
+        if (img.width !== REQUIRED_WIDTH || img.height !== REQUIRED_HEIGHT) {
           resolve({
             file,
-            base64,
+            previewUrl,
             valid: false,
-            error: "Unable to read image dimensions",
+            error: `Must be ${REQUIRED_WIDTH}x${REQUIRED_HEIGHT}px (got ${img.width}x${img.height})`,
           });
-        };
+        } else {
+          resolve({ file, previewUrl, valid: true });
+        }
       };
 
-      reader.onerror = () => {
+      img.onerror = () => {
         resolve({
           file,
-          base64: "",
+          previewUrl,
           valid: false,
-          error: "Failed to read file",
+          error: "Unable to read image dimensions",
         });
       };
+      img.src = previewUrl;
     });
   };
 
@@ -188,6 +192,7 @@ const ListofTreatementOffer = () => {
     if (!e.target.files) return;
 
     const files = Array.from(e.target.files);
+    revokePreviewUrls(previewFilesRef.current);
     const previews: PreviewFile[] = [];
 
     for (const file of files) {
@@ -199,8 +204,9 @@ const ListofTreatementOffer = () => {
     setIsUploadModalOpen(previews.length > 0);
   };
 
-  const closeUploadModal = () => {
-    if (isUploading) return;
+  const closeUploadModal = (force = false) => {
+    if (isUploading && !force) return;
+    revokePreviewUrls(previewFilesRef.current);
     setIsUploadModalOpen(false);
     setPreviewFiles([]);
     setErrorMessage("");
@@ -240,28 +246,16 @@ const ListofTreatementOffer = () => {
       setIsUploading(true);
       setErrorMessage("");
 
-      const results = await Promise.allSettled(
-        validFiles.map((preview) =>
-          axios.post(`${API_URL}/offer2`, {
-            imageBase64: preview.base64,
-            categoryId: selectedCategoryId,
-            treatmentId: selectedTreatmentId,
-          })
-        )
-      );
+      const formData = new FormData();
+      validFiles.forEach((preview) => formData.append("images", preview.file));
+      formData.append("categoryId", selectedCategoryId);
+      formData.append("treatmentId", selectedTreatmentId);
 
-      const failedCount = results.filter((result) => result.status === "rejected").length;
+      await axios.post(`${API_URL}/offer2`, formData);
 
-      if (failedCount === 0) {
-        alert("Offer uploaded successfully");
-        await fetchOffers();
-        closeUploadModal();
-      } else {
-        setErrorMessage(
-          `Uploaded ${validFiles.length - failedCount} of ${validFiles.length} images.`
-        );
-        await fetchOffers();
-      }
+      alert("Offer uploaded successfully");
+      await fetchOffers();
+      closeUploadModal(true);
     } catch (err) {
       console.error("Upload error:", err);
       setErrorMessage("Failed to upload offer image.");
@@ -279,14 +273,42 @@ const ListofTreatementOffer = () => {
     }
   };
 
-  const handleUpdate = (id: string) => {
-    const file = prompt("Enter image URL/Base64 string for update:")?.trim();
-    if (!file) return;
+  const handleUpdateClick = (id: string) => {
+    setUpdatingOfferId(id);
+    updateFileInputRef.current?.click();
+  };
 
-    axios
-      .put(`${API_URL}/offer2/${id}`, { imageBase64: file })
-      .then(() => fetchOffers())
-      .catch((err) => console.error("Update error:", err));
+  const handleUpdateFileChange = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file || !updatingOfferId) return;
+
+    const preview = await validateImage(file);
+    if (!preview.valid) {
+      revokePreviewUrls([preview]);
+      setErrorMessage(preview.error || "Invalid image selected.");
+      setUpdatingOfferId(null);
+      e.target.value = "";
+      return;
+    }
+
+    try {
+      setIsUploading(true);
+      const formData = new FormData();
+      formData.append("image", file);
+
+      await axios.put(`${API_URL}/offer2/${updatingOfferId}`, formData);
+      await fetchOffers();
+    } catch (err) {
+      console.error("Update error:", err);
+      setErrorMessage("Failed to update offer image.");
+    } finally {
+      setIsUploading(false);
+      revokePreviewUrls([preview]);
+      setUpdatingOfferId(null);
+      e.target.value = "";
+    }
   };
 
   const getCategoryLabel = (offer: Offer) =>
@@ -338,9 +360,9 @@ const ListofTreatementOffer = () => {
               key={idx}
               className={`${styles.previewCard} ${preview.valid ? styles.valid : styles.invalid}`}
             >
-              {preview.base64 && (
+              {preview.previewUrl && (
                 <img
-                  src={preview.base64}
+                  src={preview.previewUrl}
                   alt={preview.file.name}
                   className={styles.previewImage}
                 />
@@ -424,7 +446,7 @@ const ListofTreatementOffer = () => {
                 {isUploading ? "Uploading..." : "Upload"}
               </button>
               <button
-                onClick={closeUploadModal}
+                onClick={()=>closeUploadModal()}
                 className={styles.cancelBtn}
                 type="button"
                 disabled={isUploading}
@@ -439,7 +461,11 @@ const ListofTreatementOffer = () => {
       <div className={styles.offersGrid}>
         {offers.map((offer) => (
           <div key={offer._id} className={styles.offerCard}>
-            <img src={offer.imageBase64} alt="offer" className={styles.offerImage} />
+            <img
+              src={resolveMediaUrl(offer.imageBase64) || offer.imageBase64}
+              alt="offer"
+              className={styles.offerImage}
+            />
             <div className={styles.offerMeta}>
               <p>
                 <strong>Category:</strong> {getCategoryLabel(offer)}
@@ -449,7 +475,10 @@ const ListofTreatementOffer = () => {
               </p>
             </div>
             <div className={styles.buttons}>
-              <button onClick={() => handleUpdate(offer._id)} className={styles.updateBtn}>
+              <button
+                onClick={() => handleUpdateClick(offer._id)}
+                className={styles.updateBtn}
+              >
                 Update
               </button>
               <button onClick={() => handleDelete(offer._id)} className={styles.deleteBtn}>
@@ -459,6 +488,14 @@ const ListofTreatementOffer = () => {
           </div>
         ))}
       </div>
+
+      <input
+        ref={updateFileInputRef}
+        type="file"
+        accept="image/*"
+        hidden
+        onChange={handleUpdateFileChange}
+      />
     </div>
   );
 };

@@ -67,14 +67,15 @@ const MobileNavbar = () => {
           <div className={styles.drawerContent}>
             <h4>Your Links</h4>
             <div className={styles.linkGrid}>
-              <a href="#">Your Orders</a>
+              <a href="/UserDashboard?section=yourresult&tab=orders">Your Orders</a>
               <a href="#">Online Consultations</a>
-              <a href="#">Online Test Report</a>
+              <a href="/UserDashboard?section=yourresult&tab=reports">Online Test Report</a>
               <a href="/UserDashboard?section=yourresult&tab=gallery">Your Gallery</a>
               <a href="/UserDashboard?section=yourresult&tab=prescriptions">Upload a Prescription</a>
-              <a href="#">Recommended Products for you</a>
-              <a href="#">Recommended Treatment Plans for you</a>
-              <a href="#">Avail Special Offers & Discount</a>
+              <a href="/UserDashboard?section=yourresult&tab=products">Recommended Products for you</a>
+              <a href="/UserDashboard?section=yourresult&tab=treatments">Recommended Treatment Plans for you</a>
+              <a href="/UserDashboard?section=yourresult&tab=offers">Special Offers</a>
+              <a href="/UserDashboard?section=yourresult&tab=discounts">Discounts</a>
             </div>
           </div>
         </div>

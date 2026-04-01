@@ -19,11 +19,10 @@ type Clinic = {
   whatsapp?: string;
 
   /* 🔥 IMAGE SOURCES (ANY ONE CAN COME) */
-  images?: string[];       // gallery
+  photos?: string[];       // backend clinic photos
+  images?: string[];       // legacy gallery
   image?: string;          // from FindClinic normalize
   imageUrl?: string;       // legacy
-  clinicLogo?: string;     // admin
-  bannerImage?: string;
 
   reviews?: number;
   address?: string;
@@ -75,16 +74,8 @@ const ClinicCard: React.FC<ClinicCardProps> = ({ clinic }) => {
 
   /* ================= IMAGE NORMALIZATION ================= */
   const images: string[] =
-    clinic.images && clinic.images.length > 0
-      ? clinic.images.map((img) => resolveMediaUrl(img) || img)
-      : clinic.image
-      ? [resolveMediaUrl(clinic.image) || clinic.image]
-      : clinic.clinicLogo
-      ? [resolveMediaUrl(clinic.clinicLogo) || clinic.clinicLogo]
-      : clinic.bannerImage
-      ? [resolveMediaUrl(clinic.bannerImage) || clinic.bannerImage]
-      : clinic.imageUrl
-      ? [resolveMediaUrl(clinic.imageUrl) || clinic.imageUrl]
+    clinic.photos && clinic.photos.length > 0
+      ? clinic.photos.map((img) => resolveMediaUrl(img) || img)
       : ["/placeholder-clinic.jpg"];
 
   /* ================= AUTO SLIDE ================= */

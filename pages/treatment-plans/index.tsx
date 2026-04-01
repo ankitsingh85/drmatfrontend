@@ -10,7 +10,7 @@ import MobileNavbar from "@/components/Layout/MobileNavbar";
 import FullPageLoader from "@/components/common/FullPageLoader";
 import { FaEye } from "react-icons/fa";
 import { useCart } from "@/context/CartContext";
-import { resolveMediaUrl } from "@/lib/media";
+import { resolveUploadedMediaUrl } from "@/lib/media";
 
 interface Category {
   _id: string;
@@ -67,7 +67,7 @@ const TreatmentListingPage: React.FC = () => {
   };
 
   const resolveImage = (img?: string) => {
-    return resolveMediaUrl(img) || "/skin_hair.jpg";
+    return resolveUploadedMediaUrl(img) || "/skin_hair.jpg";
   };
 
   const resolveInitialCategoryId = (catData: Category[]): string | null => {

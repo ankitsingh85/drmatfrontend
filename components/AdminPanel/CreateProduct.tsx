@@ -102,6 +102,7 @@ export default function CreateProduct() {
     "discountedPrice",
     "discountPercent",
     "taxPercent",
+    "licenseNumber",
   ]);
 
   const handleChange = (
@@ -128,6 +129,9 @@ export default function CreateProduct() {
       e.preventDefault();
     }
   };
+
+  const stripHtml = (value: string) =>
+    value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -161,6 +165,21 @@ export default function CreateProduct() {
   /* ================= SUBMIT ================= */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (
+      !stripHtml(form.description) ||
+      !stripHtml(form.ingredients) ||
+      !stripHtml(form.targetConcerns) ||
+      !stripHtml(form.usageInstructions)
+    ) {
+      alert("Please fill in description, ingredients, target concerns, and usage instructions");
+      return;
+    }
+
+    if (!form.productImages.length) {
+      alert("Please upload at least one product image");
+      return;
+    }
 
     const payload = {
       productSKU,
@@ -198,16 +217,21 @@ export default function CreateProduct() {
       dermatologistRecommended: form.dermatologistRecommended,
     };
 
-    console.log("✅ FINAL PRODUCT PAYLOAD", payload);
+    try {
+      const res = await fetch(`${API_URL}/products`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
 
-    await fetch(`${API_URL}/products`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to create product");
 
-    alert("Product saved successfully (check console)");
-    window.dispatchEvent(new Event("admin-dashboard:create-success"));
+      alert("Product saved successfully");
+      window.dispatchEvent(new Event("admin-dashboard:create-success"));
+    } catch (err: any) {
+      alert(err.message || "Failed to create product");
+    }
   };
 
   /* ================= UI ================= */
@@ -227,7 +251,14 @@ export default function CreateProduct() {
 
           <div className={styles.field}>
             <label className={styles.label}>Product Name</label>
-            <input className={styles.input} name="productName" onChange={handleChange} />
+            <input
+              className={styles.input}
+              name="productName"
+              onChange={handleChange}
+              required
+              pattern="[A-Za-z ]+"
+              title="Use letters and spaces only"
+            />
           </div>
 
           <div className={styles.field}>
@@ -238,6 +269,7 @@ export default function CreateProduct() {
               value={form.category}
               onChange={handleChange}
               disabled={loadingCategories}
+              required
             >
               <option value="">
                 {loadingCategories ? "Loading categories..." : "Select Category"}
@@ -252,7 +284,14 @@ export default function CreateProduct() {
 
           <div className={styles.field}>
             <label className={styles.label}>Brand Name</label>
-            <input className={styles.input} name="brandName" onChange={handleChange} />
+            <input
+              className={styles.input}
+              name="brandName"
+              onChange={handleChange}
+              required
+              pattern="[A-Za-z ]+"
+              title="Use letters and spaces only"
+            />
           </div>
         </div>
 
@@ -332,6 +371,7 @@ export default function CreateProduct() {
             placeholder="Net Quantity"
             onKeyDown={handleNumberKeyDown}
             onChange={handleChange}
+            required
           />
           <input
             type="number"
@@ -345,6 +385,7 @@ export default function CreateProduct() {
             placeholder="MRP Price"
             onKeyDown={handleNumberKeyDown}
             onChange={handleChange}
+            required
           />
           <input
             type="number"
@@ -358,6 +399,7 @@ export default function CreateProduct() {
             placeholder="Discounted Price"
             onKeyDown={handleNumberKeyDown}
             onChange={handleChange}
+            required
           />
           <input
             type="number"
@@ -371,12 +413,14 @@ export default function CreateProduct() {
             placeholder="Discount (%)"
             onKeyDown={handleNumberKeyDown}
             onChange={handleChange}
+            required
           />
           <select
             className={styles.select}
             name="taxPercent"
             value={form.taxPercent}
             onChange={handleChange}
+            required
           >
             <option value="5">5%</option>
             <option value="12">12%</option>
@@ -389,10 +433,41 @@ export default function CreateProduct() {
         <div className={styles.section}>
           <h3 className={styles.sectionTitle}>Compliance & Packaging</h3>
 
-          <input type="date" className={styles.input} name="expiryDate" onChange={handleChange} />
-          <input className={styles.input} name="manufacturerName" placeholder="Manufacturer Name" onChange={handleChange} />
-          <input className={styles.input} name="licenseNumber" placeholder="License / FSSAI No." onChange={handleChange} />
-          <input className={styles.input} name="packagingType" placeholder="Packaging Type" onChange={handleChange} />
+          <input
+            type="date"
+            className={styles.input}
+            name="expiryDate"
+            onChange={handleChange}
+            required
+          />
+          <input
+            className={styles.input}
+            name="manufacturerName"
+            placeholder="Manufacturer Name"
+            onChange={handleChange}
+            required
+            pattern="[A-Za-z ]+"
+            title="Use letters and spaces only"
+          />
+          <input
+            className={styles.input}
+            name="licenseNumber"
+            placeholder="License / FSSAI No."
+            onChange={handleChange}
+            required
+            inputMode="numeric"
+            pattern="[0-9]+"
+            title="Use digits only"
+          />
+          <input
+            className={styles.input}
+            name="packagingType"
+            placeholder="Packaging Type"
+            onChange={handleChange}
+            required
+            pattern="[A-Za-z ]+"
+            title="Use letters and spaces only"
+          />
         </div>
 
         {/* ===== MEDIA ===== */}
@@ -405,8 +480,16 @@ export default function CreateProduct() {
             accept=".jpg,.jpeg,.png,image/jpeg,image/png,image/webp"
             className={styles.fileInput}
             onChange={handleImageUpload}
+            required
           />
-          <input className={styles.input} name="productShortVideo" placeholder="Product Short Video URL" onChange={handleChange} />
+          <input
+            className={styles.input}
+            type="url"
+            name="productShortVideo"
+            placeholder="Product Short Video URL"
+            onChange={handleChange}
+            required
+          />
         </div>
 
         {/* ===== META ===== */}
@@ -419,8 +502,22 @@ export default function CreateProduct() {
             <option>Female</option>
           </select>
 
-          <input className={styles.input} name="skinHairType" placeholder="Skin / Hair Type" onChange={handleChange} />
-          <input className={styles.input} name="barcode" placeholder="Barcode / SKU" onChange={handleChange} />
+          <input
+            className={styles.input}
+            name="skinHairType"
+            placeholder="Skin / Hair Type"
+            onChange={handleChange}
+            required
+            pattern="[A-Za-z ]+"
+            title="Use letters and spaces only"
+          />
+          <input
+            className={styles.input}
+            name="barcode"
+            placeholder="Barcode / SKU"
+            onChange={handleChange}
+            required
+          />
         </div>
 
         {/* ===== PRODUCT STATUS ===== */}
