@@ -14,8 +14,10 @@ interface B2BCategory {
 }
 
 type FormState = {
+  sku: string;
   productName: string;
   category: string;
+  subCategory: string;
   hsnCode: string;
   brandName: string;
   packSize: string;
@@ -35,23 +37,12 @@ type FormState = {
   discountedPrice: string;
   gst: "5" | "12" | "18" | "28";
   taxIncluded: boolean;
-  countryOfOrigin: string;
-  shippingWeight: string;
-  dispatchTime: string;
-  returnPolicy: string;
-  productImages: string[];
+  productImages: File[];
   productVideoUrl: string;
   msds: string;
   customerReviews: string;
   relatedProducts: string;
   promotionalTags: string;
-  addToCart: boolean;
-  inAppChat: boolean;
-  chooseFromList: string;
-  issueDescription: string;
-  chatOption: boolean;
-  tollFreeNumber: string;
-  email: string;
 };
 
 type ErrorState = Partial<Record<keyof FormState, string>>;
@@ -59,6 +50,7 @@ type TouchedState = Partial<Record<keyof FormState, boolean>>;
 
 const textOnlyRegex = /^[A-Za-z ]+$/;
 const digitsOnlyRegex = /^\d+$/;
+
 const isValidUrl = (value: string) => {
   if (!value.trim()) return false;
   try {
@@ -80,38 +72,34 @@ const validateField = (
   value: FormState[keyof FormState],
   form: FormState
 ) => {
-  if (
-    name === "productImages" &&
-    (!Array.isArray(value) || value.length === 0)
-  ) {
+  if (name === "productImages" && (!Array.isArray(value) || value.length === 0)) {
     return "At least one product image is required";
   }
 
-  if (
-    [
-      "productName",
-      "category",
-      "hsnCode",
-      "brandName",
-      "packSize",
-      "pricePerUnit",
-      "bulkPriceTier",
-      "moq",
-      "stockAvailable",
-      "expiryDate",
-      "description",
-      "ingredients",
-      "usageInstructions",
-      "treatmentIndications",
-      "manufacturerName",
-      "licenseNumber",
-      "mrp",
-      "discountedPrice",
-      "productVideoUrl",
-    ].includes(name)
-  ) {
-    const stringValue = String(value ?? "").trim();
+  const requiredTextFields: Array<keyof FormState> = [
+    "productName",
+    "category",
+    "hsnCode",
+    "brandName",
+    "packSize",
+    "pricePerUnit",
+    "bulkPriceTier",
+    "moq",
+    "stockAvailable",
+    "expiryDate",
+    "description",
+    "ingredients",
+    "usageInstructions",
+    "treatmentIndications",
+    "manufacturerName",
+    "licenseNumber",
+    "mrp",
+    "discountedPrice",
+    "productVideoUrl",
+  ];
 
+  if (requiredTextFields.includes(name)) {
+    const stringValue = String(value ?? "").trim();
     if (!stringValue) {
       const labels: Record<string, string> = {
         productName: "Product name",
@@ -138,32 +126,37 @@ const validateField = (
     }
   }
 
-  if (name === "productName" && !textOnlyRegex.test(value as string)) {
+  if (name === "productName" && !textOnlyRegex.test(String(value))) {
     return "Product name should contain only letters and spaces";
   }
-  if (name === "brandName" && !textOnlyRegex.test(value as string)) {
+
+  if (name === "brandName" && !textOnlyRegex.test(String(value))) {
     return "Brand name should contain only letters and spaces";
   }
-  if (name === "manufacturerName" && !textOnlyRegex.test(value as string)) {
+
+  if (name === "manufacturerName" && !textOnlyRegex.test(String(value))) {
     return "Manufacturer name should contain only letters and spaces";
   }
 
   if (name === "hsnCode" && !digitsOnlyRegex.test(String(value))) {
     return "HSN code must contain digits only";
   }
+
   if (name === "packSize" && !digitsOnlyRegex.test(String(value))) {
     return "Pack size must contain digits only";
   }
+
   if (name === "bulkPriceTier" && !digitsOnlyRegex.test(String(value))) {
     return "Bulk price tier must contain digits only";
   }
+
   if (name === "licenseNumber" && !digitsOnlyRegex.test(String(value))) {
     return "License number must contain digits only";
   }
 
   if (
     ["pricePerUnit", "moq", "stockAvailable", "mrp", "discountedPrice"].includes(
-      name
+      String(name)
     ) &&
     String(value) &&
     Number.isNaN(Number(value))
@@ -177,7 +170,7 @@ const validateField = (
 
   if (
     ["description", "ingredients", "usageInstructions", "treatmentIndications"].includes(
-      name
+      String(name)
     ) &&
     !stripHtml(String(value))
   ) {
@@ -196,7 +189,6 @@ const validateField = (
 };
 
 export default function CreateB2BProduct() {
-  const [sku] = useState(`B2B-${Date.now().toString().slice(-6)}`);
   const [categories, setCategories] = useState<B2BCategory[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(false);
   const [success, setSuccess] = useState("");
@@ -205,8 +197,10 @@ export default function CreateB2BProduct() {
   const [touched, setTouched] = useState<TouchedState>({});
 
   const [form, setForm] = useState<FormState>({
+    sku: `B2B-${Date.now().toString().slice(-6)}`,
     productName: "",
     category: "",
+    subCategory: "",
     hsnCode: "",
     brandName: "",
     packSize: "",
@@ -226,23 +220,12 @@ export default function CreateB2BProduct() {
     discountedPrice: "",
     gst: "5",
     taxIncluded: true,
-    countryOfOrigin: "",
-    shippingWeight: "",
-    dispatchTime: "",
-    returnPolicy: "",
     productImages: [],
     productVideoUrl: "",
     msds: "",
     customerReviews: "",
     relatedProducts: "",
     promotionalTags: "",
-    addToCart: true,
-    inAppChat: true,
-    chooseFromList: "",
-    issueDescription: "",
-    chatOption: true,
-    tollFreeNumber: "",
-    email: "",
   });
 
   useEffect(() => {
@@ -251,21 +234,21 @@ export default function CreateB2BProduct() {
         setLoadingCategories(true);
         const res = await fetch(`${API_URL}/b2b-categories`);
         const data = await res.json();
-        if (Array.isArray(data)) {
-          const normalized = data
-            .map((cat: any) => ({
-              _id: cat._id || cat.id,
-              name: cat.name,
-            }))
-            .filter((cat: B2BCategory) => cat._id && cat.name);
-          setCategories(normalized);
-          setForm((prev) => ({
-            ...prev,
-            category: prev.category || normalized[0]?.name || "",
-          }));
-        }
-      } catch (err) {
-        console.error("Failed to fetch B2B categories:", err);
+        const rawCategories = Array.isArray(data) ? data : data?.categories || data?.data || [];
+        const normalized = rawCategories
+          .map((cat: any) => ({
+            _id: String(cat._id || cat.id || "").trim(),
+            name: String(cat.name || "").trim(),
+          }))
+          .filter((cat: B2BCategory) => cat._id && cat.name);
+
+        setCategories(normalized);
+        setForm((prev) => ({
+          ...prev,
+          category: prev.category || normalized[0]?.name || "",
+        }));
+      } catch (error) {
+        console.error("Failed to fetch B2B categories:", error);
       } finally {
         setLoadingCategories(false);
       }
@@ -286,10 +269,7 @@ export default function CreateB2BProduct() {
     []
   );
 
-  const setField = (
-    name: keyof FormState,
-    value: FormState[keyof FormState]
-  ) => {
+  const setField = (name: keyof FormState, value: FormState[keyof FormState]) => {
     setForm((prev) => {
       const next = { ...prev, [name]: value } as FormState;
       setErrors((prevErrors) => ({
@@ -301,9 +281,7 @@ export default function CreateB2BProduct() {
   };
 
   const handleChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-    >
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     const target = e.target as HTMLInputElement;
     const { name, value, type } = target;
@@ -312,11 +290,7 @@ export default function CreateB2BProduct() {
 
     let nextValue: string | boolean = value;
 
-    if ([
-      "productName",
-      "brandName",
-      "manufacturerName",
-    ].includes(name)) {
+    if (["productName", "brandName", "manufacturerName"].includes(name)) {
       nextValue = sanitizeTextOnly(value);
     }
 
@@ -358,20 +332,14 @@ export default function CreateB2BProduct() {
   };
 
   const handleBlur = (
-    e: React.FocusEvent<
-      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-    >
+    e: React.FocusEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     const { name } = e.target;
     if (!name) return;
     setTouched((prev) => ({ ...prev, [name]: true }));
     setErrors((prev) => ({
       ...prev,
-      [name]: validateField(
-        name as keyof FormState,
-        form[name as keyof FormState],
-        form
-      ),
+      [name]: validateField(name as keyof FormState, form[name as keyof FormState], form),
     }));
   };
 
@@ -385,38 +353,54 @@ export default function CreateB2BProduct() {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
 
-    let acceptedFiles = 0;
-    files.forEach((file) => {
-      if (!/^image\/(jpeg|jpg|png|webp)$/i.test(file.type)) return;
-      acceptedFiles += 1;
-      const reader = new FileReader();
-      reader.onload = () => {
-        setForm((prev) => {
-          const next = {
-            ...prev,
-            productImages: [...prev.productImages, reader.result as string],
-          };
-          setErrors((prevErrors) => ({
-            ...prevErrors,
-            productImages: validateField("productImages", next.productImages, next),
-          }));
-          return next;
-        });
-        setTouched((prev) => ({ ...prev, productImages: true }));
-      };
-      reader.readAsDataURL(file);
-    });
+    const validFiles: File[] = [];
 
-    if (!acceptedFiles) {
+    for (const file of files) {
+      if (!/^image\/(jpeg|jpg|png|webp)$/i.test(file.type)) continue;
+      if (file.size > 5 * 1024 * 1024) {
+        setSubmitError("Each image must be 5MB or smaller");
+        continue;
+      }
+      validFiles.push(file);
+    }
+
+    if (!validFiles.length) {
       setTouched((prev) => ({ ...prev, productImages: true }));
       setErrors((prev) => ({
         ...prev,
         productImages: "Please upload a valid image file",
       }));
+      e.target.value = "";
+      return;
     }
 
-    e.target.value = "";
+    setForm((prev) => {
+      const next = { ...prev, productImages: [...prev.productImages, ...validFiles] };
+      setErrors((prevErrors) => ({
+        ...prevErrors,
+        productImages: validateField("productImages", next.productImages, next),
+      }));
+      return next;
+    });
+
+    setTouched((prev) => ({ ...prev, productImages: true }));
     setSuccess("");
+    setSubmitError("");
+    e.target.value = "";
+  };
+
+  const removeImage = (index: number) => {
+    setForm((prev) => {
+      const nextFiles = prev.productImages.filter((_, i) => i !== index);
+      setErrors((prevErrors) => ({
+        ...prevErrors,
+        productImages: validateField("productImages", nextFiles, {
+          ...prev,
+          productImages: nextFiles,
+        }),
+      }));
+      return { ...prev, productImages: nextFiles };
+    });
   };
 
   const validateAll = (current: FormState) => {
@@ -440,46 +424,46 @@ export default function CreateB2BProduct() {
       }, {} as TouchedState)
     );
 
-    if (Object.keys(nextErrors).length > 0) {
-      return;
-    }
+    if (Object.keys(nextErrors).length > 0) return;
 
-    const payload = {
-      sku,
-      productName: form.productName.trim(),
-      category: form.category.trim(),
-      hsnCode: form.hsnCode.trim(),
-      brandName: form.brandName.trim(),
-      packSize: form.packSize.trim(),
-      pricePerUnit: Number(form.pricePerUnit),
-      bulkPriceTier: form.bulkPriceTier.trim(),
-      moq: Number(form.moq),
-      stockAvailable: Number(form.stockAvailable),
-      expiryDate: form.expiryDate,
-      description: form.description,
-      ingredients: form.ingredients,
-      usageInstructions: form.usageInstructions,
-      treatmentIndications: form.treatmentIndications,
-      certifications: form.certifications,
-      manufacturerName: form.manufacturerName.trim(),
-      licenseNumber: form.licenseNumber.trim(),
-      mrp: Number(form.mrp),
-      discountedPrice: Number(form.discountedPrice),
-      gst: Number(form.gst),
-      taxIncluded: form.taxIncluded,
-      productImages: form.productImages,
-      productVideoUrl: form.productVideoUrl.trim(),
-      msds: form.msds,
-      customerReviews: form.customerReviews,
-      relatedProducts: form.relatedProducts,
-      promotionalTags: form.promotionalTags,
-    };
+    const payload = new FormData();
+    payload.append("sku", form.sku);
+    payload.append("productName", form.productName.trim());
+    payload.append("category", form.category.trim());
+    payload.append("subCategory", form.subCategory.trim());
+    payload.append("hsnCode", form.hsnCode.trim());
+    payload.append("brandName", form.brandName.trim());
+    payload.append("packSize", form.packSize.trim());
+    payload.append("pricePerUnit", form.pricePerUnit.trim());
+    payload.append("bulkPriceTier", form.bulkPriceTier.trim());
+    payload.append("moq", form.moq.trim());
+    payload.append("stockAvailable", form.stockAvailable.trim());
+    payload.append("expiryDate", form.expiryDate);
+    payload.append("description", form.description);
+    payload.append("ingredients", form.ingredients);
+    payload.append("usageInstructions", form.usageInstructions);
+    payload.append("treatmentIndications", form.treatmentIndications);
+    payload.append("certifications", form.certifications);
+    payload.append("manufacturerName", form.manufacturerName.trim());
+    payload.append("licenseNumber", form.licenseNumber.trim());
+    payload.append("mrp", form.mrp.trim());
+    payload.append("discountedPrice", form.discountedPrice.trim());
+    payload.append("gst", form.gst);
+    payload.append("taxIncluded", String(form.taxIncluded));
+    payload.append("productVideoUrl", form.productVideoUrl.trim());
+    payload.append("msds", form.msds);
+    payload.append("customerReviews", form.customerReviews);
+    payload.append("relatedProducts", form.relatedProducts);
+    payload.append("promotionalTags", form.promotionalTags);
+
+    form.productImages.forEach((file) => {
+      payload.append("productImages", file);
+    });
 
     try {
       const res = await fetch(`${API_URL}/b2b-products`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: payload,
       });
 
       const data = await res.json();
@@ -490,8 +474,10 @@ export default function CreateB2BProduct() {
       window.dispatchEvent(new Event("admin-dashboard:create-success"));
 
       setForm({
+        sku: `B2B-${Date.now().toString().slice(-6)}`,
         productName: "",
         category: categories[0]?.name || "",
+        subCategory: "",
         hsnCode: "",
         brandName: "",
         packSize: "",
@@ -511,23 +497,12 @@ export default function CreateB2BProduct() {
         discountedPrice: "",
         gst: "5",
         taxIncluded: true,
-        countryOfOrigin: "",
-        shippingWeight: "",
-        dispatchTime: "",
-        returnPolicy: "",
         productImages: [],
         productVideoUrl: "",
         msds: "",
         customerReviews: "",
         relatedProducts: "",
         promotionalTags: "",
-        addToCart: true,
-        inAppChat: true,
-        chooseFromList: "",
-        issueDescription: "",
-        chatOption: true,
-        tollFreeNumber: "",
-        email: "",
       });
       setErrors({});
       setTouched({});
@@ -536,8 +511,7 @@ export default function CreateB2BProduct() {
     }
   };
 
-  const showError = (name: keyof FormState) =>
-    touched[name] ? errors[name] : "";
+  const showError = (name: keyof FormState) => (touched[name] ? errors[name] : "");
 
   return (
     <div className={styles.container}>
@@ -547,7 +521,7 @@ export default function CreateB2BProduct() {
 
           <div className={styles.field}>
             <label className={styles.label}>SKU / Product Code</label>
-            <input className={styles.readonlyInput} value={sku} disabled />
+            <input className={styles.readonlyInput} value={form.sku} disabled />
           </div>
 
           <div className={styles.field}>
@@ -561,9 +535,7 @@ export default function CreateB2BProduct() {
               placeholder="Product Name"
               required
             />
-            {showError("productName") && (
-              <p className={styles.fieldError}>{showError("productName")}</p>
-            )}
+            {showError("productName") && <p className={styles.fieldError}>{showError("productName")}</p>}
           </div>
 
           <div className={styles.field}>
@@ -586,9 +558,19 @@ export default function CreateB2BProduct() {
                 </option>
               ))}
             </select>
-            {showError("category") && (
-              <p className={styles.fieldError}>{showError("category")}</p>
-            )}
+            {showError("category") && <p className={styles.fieldError}>{showError("category")}</p>}
+          </div>
+
+          <div className={styles.field}>
+            <label className={styles.label}>Sub Category</label>
+            <input
+              className={styles.input}
+              name="subCategory"
+              value={form.subCategory}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              placeholder="Sub Category"
+            />
           </div>
 
           <div className={styles.field}>
@@ -605,9 +587,7 @@ export default function CreateB2BProduct() {
               onKeyDown={handleNumberKeyDown}
               required
             />
-            {showError("hsnCode") && (
-              <p className={styles.fieldError}>{showError("hsnCode")}</p>
-            )}
+            {showError("hsnCode") && <p className={styles.fieldError}>{showError("hsnCode")}</p>}
           </div>
 
           <div className={styles.field}>
@@ -621,9 +601,7 @@ export default function CreateB2BProduct() {
               placeholder="Brand Name"
               required
             />
-            {showError("brandName") && (
-              <p className={styles.fieldError}>{showError("brandName")}</p>
-            )}
+            {showError("brandName") && <p className={styles.fieldError}>{showError("brandName")}</p>}
           </div>
         </div>
 
@@ -654,9 +632,7 @@ export default function CreateB2BProduct() {
                 required
               />
               {showError(name as keyof FormState) && (
-                <p className={styles.fieldError}>
-                  {showError(name as keyof FormState)}
-                </p>
+                <p className={styles.fieldError}>{showError(name as keyof FormState)}</p>
               )}
             </div>
           ))}
@@ -672,9 +648,7 @@ export default function CreateB2BProduct() {
               onBlur={handleBlur}
               required
             />
-            {showError("expiryDate") && (
-              <p className={styles.fieldError}>{showError("expiryDate")}</p>
-            )}
+            {showError("expiryDate") && <p className={styles.fieldError}>{showError("expiryDate")}</p>}
           </div>
         </div>
 
@@ -697,9 +671,7 @@ export default function CreateB2BProduct() {
                 modules={quillModules}
               />
               {showError(name as keyof FormState) && (
-                <p className={styles.fieldError}>
-                  {showError(name as keyof FormState)}
-                </p>
+                <p className={styles.fieldError}>{showError(name as keyof FormState)}</p>
               )}
             </div>
           ))}
@@ -771,9 +743,7 @@ export default function CreateB2BProduct() {
               onBlur={handleBlur}
               required
             />
-            {showError("mrp") && (
-              <p className={styles.fieldError}>{showError("mrp")}</p>
-            )}
+            {showError("mrp") && <p className={styles.fieldError}>{showError("mrp")}</p>}
           </div>
 
           <div className={styles.field}>
@@ -811,9 +781,7 @@ export default function CreateB2BProduct() {
               <option value="18">18%</option>
               <option value="28">28%</option>
             </select>
-            {showError("gst") && (
-              <p className={styles.fieldError}>{showError("gst")}</p>
-            )}
+            {showError("gst") && <p className={styles.fieldError}>{showError("gst")}</p>}
           </div>
 
           <div className={styles.field}>
@@ -832,16 +800,7 @@ export default function CreateB2BProduct() {
         </div>
 
         <div className={styles.section}>
-          <h3 className={styles.sectionTitle}>Logistics</h3>
-
-          <input className={styles.input} disabled placeholder="Country of Origin" />
-          <input className={styles.input} disabled placeholder="Shipping Weight" />
-          <input className={styles.input} disabled placeholder="Dispatch Time" />
-          <input className={styles.input} disabled placeholder="Return Policy" />
-        </div>
-
-        <div className={styles.section}>
-          <h3 className={styles.sectionTitle}>Media & Support</h3>
+          <h3 className={styles.sectionTitle}>Media</h3>
 
           <div className={styles.field}>
             <label className={styles.label}>Product Images</label>
@@ -854,6 +813,32 @@ export default function CreateB2BProduct() {
             />
             {showError("productImages") && (
               <p className={styles.fieldError}>{showError("productImages")}</p>
+            )}
+            {form.productImages.length > 0 && (
+              <div className={styles.uploadSummary}>
+                <div className={styles.uploadSummaryHeader}>
+                  <span className={styles.uploadCount}>
+                    {form.productImages.length} images uploaded
+                  </span>
+                  <span className={styles.uploadHint}>Files ready for submission</span>
+                </div>
+
+                <div className={styles.uploadChips}>
+                  {form.productImages.map((file, index) => (
+                    <div key={`${file.name}-${index}`} className={styles.uploadChip}>
+                      <span className={styles.uploadChipName}>{file.name}</span>
+                      <button
+                        type="button"
+                        className={styles.uploadChipRemove}
+                        onClick={() => removeImage(index)}
+                        aria-label={`Remove ${file.name}`}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
           </div>
 
@@ -921,30 +906,6 @@ export default function CreateB2BProduct() {
               placeholder="Promotional Tags"
             />
           </div>
-        </div>
-
-        <div className={styles.section}>
-          <h3 className={styles.sectionTitle}>Actions & Contact</h3>
-
-          <div className={styles.switchRow}>
-            <label>
-              <input type="checkbox" disabled checked />
-              Add to Cart
-            </label>
-            <label>
-              <input type="checkbox" disabled checked />
-              In-App Chat with Supplier
-            </label>
-            <label>
-              <input type="checkbox" disabled checked />
-              Chat Option
-            </label>
-          </div>
-
-          <input className={styles.input} disabled placeholder="Choose from list" />
-          <textarea className={styles.textarea} disabled placeholder="Describe your issue in detail" />
-          <input className={styles.input} disabled placeholder="Toll Free Number" />
-          <input className={styles.input} disabled placeholder="Write an Email" />
         </div>
 
         {submitError && <p className={styles.submitError}>{submitError}</p>}

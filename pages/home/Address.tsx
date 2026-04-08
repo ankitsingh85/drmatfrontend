@@ -41,6 +41,24 @@ interface IUserProfile {
   profileImage?: string;
 }
 
+interface IClinicProfile {
+  _id?: string;
+  clinicName: string;
+  email?: string;
+  contactNumber?: string;
+  address?: string;
+  clinicLogo?: string;
+  ownerName?: string;
+}
+
+interface IClinicEditForm {
+  clinicName: string;
+  email: string;
+  contactNumber: string;
+  address: string;
+  ownerName: string;
+}
+
 const ADDRESS_TYPES = ["Home", "Work", "Office"] as const;
 type AddressType = (typeof ADDRESS_TYPES)[number];
 const TREATMENT_CHECKOUT_KEY = "treatmentCheckout";
@@ -56,6 +74,14 @@ const emptyAddress: Address = {
   pincode: "",
   district: "",
   state: "",
+};
+
+const emptyClinicEditForm: IClinicEditForm = {
+  clinicName: "",
+  email: "",
+  contactNumber: "",
+  address: "",
+  ownerName: "",
 };
 
 const sanitizeAddressType = (value?: string): AddressType => {
@@ -116,6 +142,32 @@ const normalizeAddress = (addr: any): Address => {
   };
 };
 
+const addressSignature = (addr: Address) =>
+  [
+    addr.type,
+    addr.fullName,
+    addr.mobileNo,
+    addr.houseNo,
+    addr.street,
+    addr.localArea,
+    addr.pincode,
+    addr.district,
+    addr.state,
+  ]
+    .map((value) => String(value || "").trim().toLowerCase())
+    .join("|");
+
+const mergeAddresses = (base: Address[], next: Address[]) => {
+  const seen = new Set<string>();
+  return [...base, ...next].filter((addr) => {
+    const normalized = normalizeAddress(addr);
+    const key = addressSignature(normalized);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+};
+
 const toBackendAddress = (addr: Address): Address => ({
   ...addr,
   type: sanitizeAddressType(addr.type),
@@ -132,17 +184,22 @@ const toBackendAddress = (addr: Address): Address => ({
 
 const AddressPage: React.FC = () => {
   const router = useRouter();
+  const currentRole = Cookies.get("role")?.toLowerCase();
+  const isClinicMode = currentRole === "clinic";
   const { cartItems, hydrated: cartHydrated } = useCart();
 
   const [user, setUser] = useState<IUserProfile | null>(null);
+  const [clinic, setClinic] = useState<IClinicProfile | null>(null);
   const [checkoutItems, setCheckoutItems] = useState<CartItem[]>([]);
   const [checkoutLoaded, setCheckoutLoaded] = useState(false);
   const [selectedAddressIndex, setSelectedAddressIndex] = useState(0);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showClinicEditModal, setShowClinicEditModal] = useState(false);
   const [editingAddressIndex, setEditingAddressIndex] = useState<number | null>(null);
   const [editAddress, setEditAddress] = useState<Address>({ ...emptyAddress });
   const [newAddress, setNewAddress] = useState<Address>({ ...emptyAddress });
+  const [clinicEditForm, setClinicEditForm] = useState<IClinicEditForm>({ ...emptyClinicEditForm });
   const [isLoadingUser, setIsLoadingUser] = useState(true);
 
   const fetchPincodeMeta = async (pincode: string, mode: "new" | "edit") => {
@@ -164,6 +221,7 @@ const AddressPage: React.FC = () => {
   };
 
   const fetchUser = useCallback(async () => {
+    if (isClinicMode) return;
     const email = Cookies.get("email");
     const token = Cookies.get("token");
     if (!email || !token) {
@@ -177,7 +235,7 @@ const AddressPage: React.FC = () => {
       if (res.ok) {
         const data = await res.json();
         const rawAddresses = Array.isArray(data.addresses) ? data.addresses : [];
-        const addresses = rawAddresses.length ? rawAddresses.map(normalizeAddress) : [];
+        const addresses = mergeAddresses([], rawAddresses.map(normalizeAddress));
         setUser({
           _id: data._id,
           email: data.email,
@@ -196,9 +254,49 @@ const AddressPage: React.FC = () => {
     }
   }, [router]);
 
+  const fetchClinic = useCallback(async () => {
+    if (!isClinicMode) return;
+    const clinicId = Cookies.get("clinicId") || localStorage.getItem("clinicId");
+    if (!clinicId) {
+      router.replace("/cliniclogin?next=/home/Address");
+      return;
+    }
+
+    try {
+      setIsLoadingUser(true);
+      const res = await fetch(`${API_URL}/clinics/${clinicId}`);
+      if (!res.ok) throw new Error("Failed to fetch clinic profile");
+      const data = await res.json();
+      setClinic({
+        _id: data._id,
+        clinicName: data.clinicName || Cookies.get("clinicName") || "Clinic",
+        email: data.email || Cookies.get("email") || "",
+        contactNumber: data.contactNumber || Cookies.get("contactNo") || "",
+        address: data.address || "",
+        clinicLogo: data.clinicLogo || "",
+        ownerName: data.ownerName || "",
+      });
+      setClinicEditForm({
+        clinicName: data.clinicName || Cookies.get("clinicName") || "",
+        email: data.email || Cookies.get("email") || "",
+        contactNumber: data.contactNumber || Cookies.get("contactNo") || "",
+        address: data.address || "",
+        ownerName: data.ownerName || "",
+      });
+    } catch {
+      router.replace("/cliniclogin?next=/home/Address");
+    } finally {
+      setIsLoadingUser(false);
+    }
+  }, [isClinicMode, router]);
+
   useEffect(() => {
-    fetchUser();
-  }, [fetchUser]);
+    if (isClinicMode) {
+      fetchClinic();
+    } else {
+      fetchUser();
+    }
+  }, [fetchClinic, fetchUser, isClinicMode]);
 
   useEffect(() => {
     try {
@@ -226,7 +324,11 @@ const AddressPage: React.FC = () => {
 
   useEffect(() => {
     const handleAddressUpdated = () => {
-      fetchUser();
+      if (isClinicMode) {
+        fetchClinic();
+      } else {
+        fetchUser();
+      }
     };
     window.addEventListener("addresses-updated", handleAddressUpdated);
     window.addEventListener("profile-updated", handleAddressUpdated);
@@ -234,7 +336,7 @@ const AddressPage: React.FC = () => {
       window.removeEventListener("addresses-updated", handleAddressUpdated);
       window.removeEventListener("profile-updated", handleAddressUpdated);
     };
-  }, [fetchUser]);
+  }, [fetchClinic, fetchUser, isClinicMode]);
 
   const activeItems = cartItems.length > 0 ? cartItems : checkoutItems;
   const isTreatmentCheckout = checkoutItems.length > 0 && cartItems.length === 0;
@@ -242,9 +344,250 @@ const AddressPage: React.FC = () => {
   useEffect(() => {
     if (isLoadingUser || !checkoutLoaded || !cartHydrated) return;
     if (activeItems.length === 0) {
-      router.replace("/home/Cart");
+      router.replace(isClinicMode ? "/home" : "/home/Cart");
     }
-  }, [activeItems.length, cartHydrated, checkoutLoaded, isLoadingUser, router]);
+  }, [activeItems.length, cartHydrated, checkoutLoaded, isClinicMode, isLoadingUser, router]);
+
+  if (isClinicMode && (isLoadingUser || !checkoutLoaded || !cartHydrated)) {
+    return (
+      <div className={styles.page}>
+        <Topbar />
+        <p className={styles.message}>Loading...</p>
+      </div>
+    );
+  }
+
+  if (isClinicMode) {
+    const clinicSubtotalMrp = activeItems.reduce(
+      (acc, item) => acc + (item.mrp != null ? item.mrp : item.price) * item.quantity,
+      0
+    );
+    const clinicOfferTotal = activeItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
+    const clinicTotalDiscount = Math.max(0, clinicSubtotalMrp - clinicOfferTotal);
+    const clinicTotalPayable = clinicOfferTotal;
+
+    if (!clinic) {
+      return (
+        <div className={styles.page}>
+          <Topbar />
+          <p className={styles.message}>Loading...</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className={styles.page}>
+        <Topbar />
+        <div className={styles.header}>
+          <div className={styles.logo}>
+            <h1>Clinic Address</h1>
+          </div>
+          <div className={styles.steps}>
+            <div className={styles.step}>
+              <div className={styles.circleFilled}>
+                <FaShoppingCart />
+              </div>
+              <div className={styles.labelActive}>Cart</div>
+            </div>
+            <div className={styles.line}></div>
+            <div className={styles.step}>
+              <div className={styles.circleOutlined}>
+                <FaCreditCard />
+              </div>
+              <div className={styles.labelActive}>Clinic Address</div>
+            </div>
+            <div className={styles.line}></div>
+            <div className={styles.step}>
+              <div className={styles.circleGrey}>
+                <FaCreditCard />
+              </div>
+              <div className={styles.labelDisabled}>Payment</div>
+            </div>
+          </div>
+        </div>
+
+        <div className={styles.heroBand}>
+          <div>
+            <p className={styles.heroEyebrow}>Secure checkout</p>
+            <h2 className={styles.heroTitle}>Confirm your clinic billing details</h2>
+            <p className={styles.heroCopy}>
+              We will use your clinic profile details for billing and payment.
+            </p>
+          </div>
+          <div className={styles.heroBadge}>
+            <BsShieldCheck />
+            <span>Address verified</span>
+          </div>
+        </div>
+
+        <div className={styles.wrapper}>
+          <div className={styles.left}>
+            <div className={styles.userCard}>
+              {clinic.clinicLogo ? (
+                <img
+                  src={resolveMediaUrl(clinic.clinicLogo) || ""}
+                  alt={clinic.clinicName}
+                  className={styles.avatarImage}
+                />
+              ) : (
+                <FaUserCircle className={styles.avatar} />
+              )}
+              <div className={styles.userInfo}>
+                <div className={styles.username}>{clinic.clinicName}</div>
+                <div className={styles.secureLogin}>
+                  <BsShieldCheck /> Billing as clinic account
+                </div>
+              </div>
+              <div className={styles.phone}>Email: {clinic.email || "-"}</div>
+            </div>
+
+            <div className={styles.addressBox}>
+              <div className={styles.addressHeader}>
+                <h3>Clinic Billing Address</h3>
+                <span className={styles.addLink} onClick={handleOpenClinicEditModal}>
+                  Edit Address
+                </span>
+              </div>
+              <div className={styles.addressCard}>
+                <div className={styles.addressText}>
+                  <strong>{clinic.clinicName}</strong>
+                  <p>{clinic.address || "-"}</p>
+                  <small>Phone: {clinic.contactNumber || "-"}</small>
+                </div>
+                <strong>{clinic.ownerName || "Clinic"}</strong>
+              </div>
+            </div>
+          </div>
+
+          <div className={styles.right}>
+            <div className={styles.summaryTop}>
+              <div>
+                <p className={styles.summaryKicker}>Review your order</p>
+                <h3 className={styles.summaryTitle}>Clinic cart summary</h3>
+              </div>
+              <div className={styles.summaryPill}>{activeItems.length} item(s)</div>
+            </div>
+
+            <div className={styles.summaryItems}>
+              {activeItems.map((item) => (
+                <div key={item.id} className={styles.summaryItem}>
+                  <div className={styles.summaryItemCopy}>
+                    <span>{item.name}</span>
+                    <small>Qty {item.quantity}</small>
+                  </div>
+                  <strong>Rs. {(item.price * item.quantity).toLocaleString("en-IN")}</strong>
+                </div>
+              ))}
+            </div>
+
+            <div className={styles.summaryBreakdown}>
+              <div className={styles.summaryRow}>
+                <span>Subtotal (MRP)</span>
+                <span>Rs. {clinicSubtotalMrp.toLocaleString("en-IN")}</span>
+              </div>
+              <div className={styles.summaryRow}>
+                <span>Offer Price</span>
+                <span>Rs. {clinicOfferTotal.toLocaleString("en-IN")}</span>
+              </div>
+              <div className={styles.savingsNote}>
+                You save Rs. {clinicTotalDiscount.toLocaleString("en-IN")}
+              </div>
+              <div className={styles.summaryTotal}>
+                <span>Total</span>
+                <span>Rs. {clinicTotalPayable.toLocaleString("en-IN")}</span>
+              </div>
+            </div>
+
+            <button
+              className={styles.saveDeliver}
+              onClick={() => {
+                router.push({
+                  pathname: "/home/PaymentPage",
+                  query: {
+                    type: "Clinic",
+                    address: clinic.address,
+                    clinicName: clinic.clinicName,
+                    clinicId: clinic._id || Cookies.get("clinicId") || "",
+                    flow: "clinic",
+                  },
+                });
+              }}
+            >
+              Proceed to Pay Rs. {clinicTotalPayable.toLocaleString("en-IN")}
+            </button>
+          </div>
+        </div>
+
+        {showClinicEditModal && (
+          <div className={styles.modalOverlay}>
+            <div className={styles.modalBox}>
+              <h3>Edit Clinic Address</h3>
+              <div className={styles.modalBody}>
+                <div className={styles.modalGrid}>
+                  <div>
+                    <label>Clinic Name</label>
+                    <input
+                      value={clinicEditForm.clinicName}
+                      onChange={(e) =>
+                        setClinicEditForm((prev) => ({ ...prev, clinicName: e.target.value }))
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label>Email</label>
+                    <input
+                      value={clinicEditForm.email}
+                      onChange={(e) =>
+                        setClinicEditForm((prev) => ({ ...prev, email: e.target.value }))
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label>Contact Number</label>
+                    <input
+                      value={clinicEditForm.contactNumber}
+                      onChange={(e) =>
+                        setClinicEditForm((prev) => ({
+                          ...prev,
+                          contactNumber: e.target.value.replace(/\D/g, "").slice(0, 10),
+                        }))
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label>Owner Name</label>
+                    <input
+                      value={clinicEditForm.ownerName}
+                      onChange={(e) =>
+                        setClinicEditForm((prev) => ({ ...prev, ownerName: e.target.value }))
+                      }
+                    />
+                  </div>
+                  <div style={{ gridColumn: "1 / -1" }}>
+                    <label>Clinic Address</label>
+                    <textarea
+                      value={clinicEditForm.address}
+                      onChange={(e) =>
+                        setClinicEditForm((prev) => ({ ...prev, address: e.target.value }))
+                      }
+                      rows={4}
+                    />
+                  </div>
+                </div>
+                <button onClick={handleSaveClinicAddress}>Save Clinic Details</button>
+              </div>
+              <IoClose
+                className={styles.closeBtn}
+                onClick={() => setShowClinicEditModal(false)}
+              />
+            </div>
+          </div>
+        )}
+
+        <MobileNavbar />
+      </div>
+    );
+  }
 
   if (isLoadingUser || !user || !checkoutLoaded || !cartHydrated) {
     return (
@@ -259,7 +602,7 @@ const AddressPage: React.FC = () => {
     if (!user?._id) return;
     const effectiveSelected = selectedIndex ?? selectedAddressIndex;
     try {
-      const payloadAddresses = addresses.map(toBackendAddress);
+      const payloadAddresses = mergeAddresses([], addresses.map(normalizeAddress)).map(toBackendAddress);
       const res = await fetch(`${API_URL}/users/${user._id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -308,7 +651,7 @@ const AddressPage: React.FC = () => {
   const handleAddAddress = async () => {
     if (!validateAddress(newAddress)) return;
     const payload = toBackendAddress(newAddress);
-    const updatedAddresses = [...(user?.addresses || []), payload];
+    const updatedAddresses = mergeAddresses(user?.addresses || [], [payload]);
     const nextIndex = updatedAddresses.length - 1;
     setUser((prev) => (prev ? { ...prev, addresses: updatedAddresses } : null));
     setSelectedAddressIndex(nextIndex);
@@ -322,10 +665,10 @@ const AddressPage: React.FC = () => {
     if (!validateAddress(editAddress)) return;
     const updatedAddresses = [...user.addresses];
     updatedAddresses[selectedAddressIndex] = toBackendAddress(editAddress);
-    setUser({ ...user, addresses: updatedAddresses });
+    setUser({ ...user, addresses: mergeAddresses([], updatedAddresses) });
     setShowEditModal(false);
     setEditingAddressIndex(null);
-    await saveAddressesToBackend(updatedAddresses, selectedAddressIndex);
+    await saveAddressesToBackend(mergeAddresses([], updatedAddresses), selectedAddressIndex);
   };
 
   const handleOpenEditModal = (index: number) => {
@@ -337,7 +680,105 @@ const AddressPage: React.FC = () => {
     setShowEditModal(true);
   };
 
+  function handleOpenClinicEditModal() {
+    if (!clinic) return;
+    setClinicEditForm({
+      clinicName: clinic.clinicName || "",
+      email: clinic.email || "",
+      contactNumber: clinic.contactNumber || "",
+      address: clinic.address || "",
+      ownerName: clinic.ownerName || "",
+    });
+    setShowClinicEditModal(true);
+  }
+
+  async function handleSaveClinicAddress() {
+    if (!clinic?._id) return;
+
+    const nextClinicName = clinicEditForm.clinicName.trim();
+    const nextEmail = clinicEditForm.email.trim();
+    const nextAddress = clinicEditForm.address.trim();
+
+    if (!nextClinicName || !nextEmail || !nextAddress) {
+      alert("Please fill clinic name, email, and address.");
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append("clinicName", nextClinicName);
+      formData.append("email", nextEmail);
+      formData.append("contactNumber", clinicEditForm.contactNumber.trim());
+      formData.append("address", nextAddress);
+      formData.append("ownerName", clinicEditForm.ownerName.trim());
+
+      const res = await fetch(`${API_URL}/clinics/${clinic._id}`, {
+        method: "PUT",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to update clinic");
+      }
+
+      const updatedClinic = await res.json();
+      const nextClinic: IClinicProfile = {
+        _id: updatedClinic._id,
+        clinicName: updatedClinic.clinicName || nextClinicName,
+        email: updatedClinic.email || nextEmail,
+        contactNumber: updatedClinic.contactNumber || clinicEditForm.contactNumber.trim(),
+        address: updatedClinic.address || nextAddress,
+        clinicLogo: updatedClinic.clinicLogo || clinic?.clinicLogo || "",
+        ownerName: updatedClinic.ownerName || clinicEditForm.ownerName.trim(),
+      };
+
+      setClinic(nextClinic);
+      setClinicEditForm({
+        clinicName: nextClinic.clinicName,
+        email: nextClinic.email || "",
+        contactNumber: nextClinic.contactNumber || "",
+        address: nextClinic.address || "",
+        ownerName: nextClinic.ownerName || "",
+      });
+
+      if (nextClinic.clinicName) {
+        Cookies.set("clinicName", nextClinic.clinicName, { expires: 7 });
+      }
+      if (nextClinic.email) {
+        Cookies.set("email", nextClinic.email, { expires: 7 });
+      }
+      if (nextClinic.contactNumber) {
+        Cookies.set("contactNo", nextClinic.contactNumber, { expires: 7 });
+      }
+
+      window.dispatchEvent(new CustomEvent("profile-updated"));
+      setShowClinicEditModal(false);
+    } catch (err) {
+      console.error("Failed to update clinic profile:", err);
+      alert("Could not update clinic details. Please try again.");
+    }
+  }
+
   const handleProceedPayment = () => {
+    if (isClinicMode) {
+      if (!clinic?.clinicName || !clinic.address) {
+        alert("Clinic profile is incomplete.");
+        return;
+      }
+
+      router.push({
+        pathname: "/home/PaymentPage",
+        query: {
+          type: "Clinic",
+          address: clinic.address,
+          clinicName: clinic.clinicName,
+          clinicId: clinic._id || Cookies.get("clinicId") || "",
+          flow: "clinic",
+        },
+      });
+      return;
+    }
+
     if (!user || !user.addresses.length) {
       alert("Please add at least one delivery address.");
       return;
@@ -373,9 +814,8 @@ const AddressPage: React.FC = () => {
       <Topbar />
       <div className={styles.header}>
         <div className={styles.logo}>
-          
-                  <h1>Address</h1>
-                  </div>
+          <h1>{isClinicMode ? "Clinic Address" : "Address"}</h1>
+        </div>
         <div className={styles.steps}>
           <div className={styles.step}>
             <div className={styles.circleFilled}>
@@ -390,7 +830,9 @@ const AddressPage: React.FC = () => {
             <div className={styles.circleOutlined}>
               <FaCreditCard />
             </div>
-            <div className={styles.labelActive}>Address</div>
+            <div className={styles.labelActive}>
+              {isClinicMode ? "Clinic Address" : "Address"}
+            </div>
           </div>
           <div className={styles.line}></div>
           <div className={styles.step}>
@@ -406,13 +848,16 @@ const AddressPage: React.FC = () => {
         <div>
           <p className={styles.heroEyebrow}>Secure checkout</p>
           <h2 className={styles.heroTitle}>
-            {isTreatmentCheckout
+            {isClinicMode
+              ? "Confirm your clinic billing details"
+              : isTreatmentCheckout
               ? "Confirm your treatment booking details"
               : "Choose your delivery address"}
           </h2>
           <p className={styles.heroCopy}>
-            Review your saved addresses, select the one you want, and continue
-            to a clean payment step.
+            {isClinicMode
+              ? "We will use your clinic profile details for billing and payment."
+              : "Review your saved addresses, select the one you want, and continue to a clean payment step."}
           </p>
         </div>
         <div className={styles.heroBadge}>
@@ -423,69 +868,92 @@ const AddressPage: React.FC = () => {
 
       <div className={styles.wrapper}>
         <div className={styles.left}>
-          <div className={styles.userCard}>
-            {user.profileImage ? (
-              <img
-                src={resolveMediaUrl(user.profileImage) || ""}
-                alt={user.name}
-                className={styles.avatarImage}
-              />
-            ) : (
-              <FaUserCircle className={styles.avatar} />
-            )}
-            <div className={styles.userInfo}>
-              <div className={styles.username}>{user.name}</div>
-              <div className={styles.secureLogin}>
-                <BsShieldCheck /> You are securely logged in
+          {isClinicMode ? (
+            <div className={styles.userCard}>
+              {clinic?.clinicLogo ? (
+                <img
+                  src={resolveMediaUrl(clinic.clinicLogo) || ""}
+                  alt={clinic.clinicName}
+                  className={styles.avatarImage}
+                />
+              ) : (
+                <FaUserCircle className={styles.avatar} />
+              )}
+              <div className={styles.userInfo}>
+                <div className={styles.username}>{clinic?.clinicName}</div>
+                <div className={styles.secureLogin}>
+                  <BsShieldCheck /> Billing as clinic account
+                </div>
               </div>
+              <div className={styles.phone}>Email: {clinic?.email || "-"}</div>
             </div>
-            <div className={styles.phone}>Email: {user.email}</div>
-          </div>
-
-          <div className={styles.addressBox}>
-            <div className={styles.addressHeader}>
-              <h3>Delivery Address</h3>
-              <span className={styles.addLink} onClick={() => setShowAddModal(true)}>
-                + Add Address
-              </span>
-            </div>
-
-            {user.addresses.map((addr, index) => {
-              const isSelected = selectedAddressIndex === index;
-              return (
-                <div
-                  key={index}
-                  className={`${styles.addressCard} ${isSelected ? styles.addressSelected : ""}`}
-                >
-                  <div className={styles.radioRow}>
-                    {isSelected ? (
-                      <MdOutlineRadioButtonChecked
-                        className={styles.radio}
-                        onClick={() => setSelectedAddressIndex(index)}
-                      />
-                    ) : (
-                      <MdOutlineRadioButtonUnchecked
-                        className={styles.radio}
-                        onClick={() => setSelectedAddressIndex(index)}
-                      />
-                    )}
-                    <div className={styles.addressText}>
-                      <strong>{addr.fullName || user.name}</strong>
-                      <p>{formatAddressText(addr) || addr.address || "-"}</p>
-                      <small>Phone: {addr.mobileNo || "-"}</small>
-                    </div>
-                    <MdOutlineEdit
-                      className={styles.editIcon}
-                      onClick={() => handleOpenEditModal(index)}
-                    />
-                  </div>
-                  <div className={styles.tagRow}>
-                    <strong>{sanitizeAddressType(addr.type)}</strong>
+          ) : (
+            <>
+              <div className={styles.userCard}>
+                {user.profileImage ? (
+                  <img
+                    src={resolveMediaUrl(user.profileImage) || ""}
+                    alt={user.name}
+                    className={styles.avatarImage}
+                  />
+                ) : (
+                  <FaUserCircle className={styles.avatar} />
+                )}
+                <div className={styles.userInfo}>
+                  <div className={styles.username}>{user.name}</div>
+                  <div className={styles.secureLogin}>
+                    <BsShieldCheck /> You are securely logged in with {user.email}
                   </div>
                 </div>
-              );
-            })}
-          </div>
+                <div className={styles.phone}>Email: {user.email}</div>
+              </div>
+
+              <div className={styles.addressBox}>
+                <div className={styles.addressHeader}>
+                  <h3>Delivery Address</h3>
+                  <span className={styles.addLink} onClick={() => setShowAddModal(true)}>
+                    + Add Address
+                  </span>
+                </div>
+
+                {user.addresses.map((addr, index) => {
+                  const isSelected = selectedAddressIndex === index;
+                  return (
+                    <div
+                      key={index}
+                      className={`${styles.addressCard} ${isSelected ? styles.addressSelected : ""}`}
+                    >
+                      <div className={styles.radioRow}>
+                        {isSelected ? (
+                          <MdOutlineRadioButtonChecked
+                            className={styles.radio}
+                            onClick={() => setSelectedAddressIndex(index)}
+                          />
+                        ) : (
+                          <MdOutlineRadioButtonUnchecked
+                            className={styles.radio}
+                            onClick={() => setSelectedAddressIndex(index)}
+                          />
+                        )}
+                        <div className={styles.addressText}>
+                          <strong>{addr.fullName || user.name}</strong>
+                          <p>{formatAddressText(addr) || addr.address || "-"}</p>
+                          <small>Phone: {addr.mobileNo || "-"}</small>
+                        </div>
+                        <MdOutlineEdit
+                          className={styles.editIcon}
+                          onClick={() => handleOpenEditModal(index)}
+                        />
+                      </div>
+                      <div className={styles.tagRow}>
+                        <strong>{sanitizeAddressType(addr.type)}</strong>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
         </div>
 
         <div className={styles.right}>

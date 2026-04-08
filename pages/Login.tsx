@@ -30,6 +30,9 @@ export default function Login() {
       secure: typeof window !== "undefined" && window.location.protocol === "https:",
     };
 
+    Cookies.remove("clinicId");
+    Cookies.remove("clinicName");
+
     Cookies.set("token", data.token, cookieOptions);
     Cookies.set("email", data.user.email || "", cookieOptions);
     Cookies.set("username", data.user.name || "", cookieOptions);
@@ -45,7 +48,9 @@ export default function Login() {
     }
     const userId = String(data.user?.id || data.user?._id || "");
     Cookies.set("userId", userId, cookieOptions);
+    Cookies.set("cartScope", `user:${userId || data.user.email || fallbackMobile}`, cookieOptions);
     localStorage.setItem("userId", userId);
+    localStorage.setItem("cartScope", `user:${userId || data.user.email || fallbackMobile}`);
 
     window.dispatchEvent(new CustomEvent("user-logged-in"));
     window.location.replace(nextPath.startsWith("/") ? nextPath : `/${nextPath}`);
@@ -235,7 +240,7 @@ export default function Login() {
               )}
 
               <p className={styles.terms}>
-                By proceeding, you consent to share your information with Dr.Dermat and agree to privacy policy and terms of service.
+               
               </p>
             </div>
           </div>

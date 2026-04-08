@@ -58,6 +58,34 @@
   cursor: not-allowed;
 }
 
+.paginationBar {
+  margin-top: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.paginationInfo {
+  margin: 0;
+  color: #334155;
+  font-weight: 600;
+}
+
+.paginationControls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.pageIndicator {
+  align-self: center;
+  color: #475569;
+  font-weight: 600;
+}
+
 /* ===== STATES ===== */
 .loading,
 .noData {
@@ -221,6 +249,118 @@
   box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
 }
 
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  z-index: 60;
+}
+
+.modal {
+  width: min(680px, 100%);
+  max-height: calc(100vh - 40px);
+  overflow: auto;
+  background: #fff;
+  border-radius: 24px;
+  box-shadow: 0 30px 90px rgba(15, 23, 42, 0.25);
+  padding: 24px;
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.modalTitle {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 900;
+  color: #0f172a;
+}
+
+.closeBtn {
+  border: 0;
+  background: #eef2ff;
+  color: #1e293b;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  font-size: 22px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.modalForm {
+  display: grid;
+  gap: 14px;
+}
+
+.modalLabel {
+  font-size: 14px;
+  font-weight: 700;
+  color: #334155;
+  margin-top: 4px;
+}
+
+.modalInput,
+.fileInput {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 14px;
+  padding: 14px 16px;
+  font-size: 14px;
+  background: #fff;
+}
+
+.preview {
+  width: 100%;
+  max-width: 260px;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: 18px;
+  margin-top: 4px;
+  border: 1px solid #e2e8f0;
+}
+
+.noImage {
+  margin: 8px 0 0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.modalActions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.saveBtn,
+.cancelBtn {
+  border: 0;
+  border-radius: 999px;
+  padding: 12px 18px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.saveBtn {
+  background: linear-gradient(180deg, #16a34a 0%, #15803d 100%);
+  color: #fff;
+}
+
+.cancelBtn {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
 
 /* ===== RESPONSIVE ===== */
 @media (max-width: 1024px) {
@@ -256,5 +396,18 @@
   .image {
     width: 36px;
     height: 36px;
+  }
+
+  .modal {
+    padding: 18px;
+  }
+
+  .modalActions {
+    justify-content: stretch;
+  }
+
+  .saveBtn,
+  .cancelBtn {
+    width: 100%;
   }
 }

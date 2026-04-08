@@ -33,14 +33,10 @@ const CartPage: React.FC = () => {
   const token = Cookies.get("token");
 
   useEffect(() => {
-    if (!email || !token) {
-      router.replace("/Login?next=/home/Cart");
-      return;
-    }
-  }, [email, token, router]);
+    // Guests can review cart items; login is required at checkout.
+  }, []);
 
   if (!cartHydrated) return <FullPageLoader />;
-  if (!email || !token) return <FullPageLoader />;
 
   const totalMRP = cartItems.reduce(
     (acc, item) => acc + (item.mrp ?? item.price) * item.quantity,
@@ -255,7 +251,13 @@ const CartPage: React.FC = () => {
           </div>
           <button
             className={styles.payBtn}
-            onClick={() => router.push("/home/Address")}
+            onClick={() => {
+              if (!email || !token) {
+                router.push("/Login?next=/home/Address");
+                return;
+              }
+              router.push("/home/Address");
+            }}
           >
             Proceed to Pay ₹{totalPrice}
           </button>

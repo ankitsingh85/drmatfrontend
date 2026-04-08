@@ -93,10 +93,17 @@ const resolveFileUrl = (value?: string) => {
   return `${apiBaseUrl}/${value}`;
 };
 
+const slugify = (value: string) =>
+  value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .replace(/-{2,}/g, "-");
+
 const CourseDetailPage = () => {
   const router = useRouter();
-  const { courseId } = router.query;
-  const resolvedCourseId = Array.isArray(courseId) ? courseId[0] : courseId;
+  const { slug } = router.query;
+  const resolvedSlug = Array.isArray(slug) ? slug[0] : slug;
   const { addToCart, cartItems } = useCart();
 
   const [course, setCourse] = useState<Course | null>(null);
@@ -105,20 +112,35 @@ const CourseDetailPage = () => {
   const [showAllLearning, setShowAllLearning] = useState(false);
 
   useEffect(() => {
-    if (!resolvedCourseId) return;
+    if (!resolvedSlug) return;
 
     const fetchCourse = async () => {
       try {
         setLoading(true);
         setError("");
-        const res = await fetch(`${API_URL}/courses/${resolvedCourseId}`);
+
+        const res = await fetch(`${API_URL}/courses`);
         const data = await res.json().catch(() => null);
 
         if (!res.ok) {
           throw new Error(data?.message || "Failed to fetch course");
         }
 
-        setCourse(data);
+        const list: Course[] = Array.isArray(data)
+          ? data
+          : Array.isArray(data?.courses)
+          ? data.courses
+          : Array.isArray(data?.data)
+          ? data.data
+          : [];
+
+        const key = slugify(String(resolvedSlug));
+        const matched =
+          list.find((item) => item._id === resolvedSlug) ||
+          list.find((item) => slugify(item.courseName) === key) ||
+          list.find((item) => slugify(item.courseUniqueCode || "") === key);
+
+        setCourse(matched || null);
       } catch (err: any) {
         setError(err?.message || "Failed to fetch course");
       } finally {
@@ -127,7 +149,7 @@ const CourseDetailPage = () => {
     };
 
     fetchCourse();
-  }, [resolvedCourseId]);
+  }, [resolvedSlug]);
 
   const price = useMemo(() => {
     const mrp = Number(course?.feesInr || 0);
@@ -453,7 +475,7 @@ const CourseDetailPage = () => {
                 Buy Now
               </button>
 
-              <p className={styles.guaranteeText}>30 day learner assistance included</p>
+              {/* <p className={styles.guaranteeText}>30 day learner assistance included</p> */}
 
               <div className={styles.sidebarMeta}>
                 <div className={styles.sidebarRow}>

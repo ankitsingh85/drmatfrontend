@@ -26,17 +26,26 @@ const PaymentPage: React.FC = () => {
   const { cartItems, clearCart, hydrated: cartHydrated } = useCart();
   const { createOrder } = useOrder();
 
+  const [isHydrated, setIsHydrated] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
   const [checkoutItems, setCheckoutItems] = useState<CartItem[]>([]);
   const [checkoutLoaded, setCheckoutLoaded] = useState(false);
+  const [clinicName, setClinicName] = useState("");
+  const [clinicAddress, setClinicAddress] = useState("");
+  const [clinicId, setClinicId] = useState("");
   const [paymentSnapshot, setPaymentSnapshot] = useState<{
     items: CartItem[];
     total: number;
     addressType: string;
     addressText: string;
     flowLabel: string;
+    clinicName?: string;
   } | null>(null);
+
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
 
   useEffect(() => {
     try {
@@ -53,6 +62,8 @@ const PaymentPage: React.FC = () => {
   }, []);
 
   const flowMode = Array.isArray(flow) ? flow[0] : flow;
+  const currentRole = isHydrated ? Cookies.get("role")?.toLowerCase() : null;
+  const isClinicCheckout = flowMode === "clinic" || currentRole === "clinic";
   const activeItems = checkoutItems.length > 0 ? checkoutItems : cartItems;
   const hasProductItems = activeItems.some((item) => item.itemType !== "treatment");
   const hasTreatmentItems = activeItems.some((item) => item.itemType === "treatment");
@@ -71,15 +82,39 @@ const PaymentPage: React.FC = () => {
   const deliveryType = Array.isArray(type) ? type[0] : type;
   const deliveryAddress = Array.isArray(address) ? address[0] : address;
 
-  const orderAddressType = isTreatmentCheckout ? "Other" : deliveryType;
+  const orderAddressType = isClinicCheckout ? "Clinic" : isTreatmentCheckout ? "Other" : deliveryType;
   const orderAddressText = isTreatmentCheckout
     ? "Treatment booking - no delivery address required"
+    : isClinicCheckout
+    ? clinicAddress || deliveryAddress
     : deliveryAddress;
 
-  const displayAddressType = isTreatmentCheckout ? "Treatment booking" : deliveryType;
+  const displayAddressType = isClinicCheckout
+    ? "Clinic"
+    : isTreatmentCheckout
+    ? "Treatment booking"
+    : deliveryType;
   const displayAddressText = isTreatmentCheckout
     ? "No delivery address required"
+    : isClinicCheckout
+    ? clinicAddress || deliveryAddress
     : deliveryAddress;
+
+  useEffect(() => {
+    if (!isHydrated || !isClinicCheckout) return;
+    const nextClinicName = Array.isArray(router.query.clinicName)
+      ? router.query.clinicName[0]
+      : (router.query.clinicName as string) || Cookies.get("clinicName") || "";
+    const nextClinicAddress = Array.isArray(router.query.address)
+      ? router.query.address[0]
+      : (router.query.address as string) || "";
+    const nextClinicId = Array.isArray(router.query.clinicId)
+      ? router.query.clinicId[0]
+      : (router.query.clinicId as string) || Cookies.get("clinicId") || "";
+    setClinicName(nextClinicName);
+    setClinicAddress(nextClinicAddress);
+    setClinicId(nextClinicId);
+  }, [isClinicCheckout, isHydrated, router.query.address, router.query.clinicId, router.query.clinicName]);
 
   const handlePayment = async () => {
     if (!orderAddressType || !orderAddressText) {
@@ -96,12 +131,25 @@ const PaymentPage: React.FC = () => {
         total: snapshotTotal,
         addressType: String(displayAddressType || orderAddressType),
         addressText: String(displayAddressText || orderAddressText),
-        flowLabel: isTreatmentCheckout ? "Treatment booking" : "Delivery address",
+        flowLabel: isClinicCheckout
+          ? "Clinic billing"
+          : isTreatmentCheckout
+          ? "Treatment booking"
+          : "Delivery address",
+        clinicName: clinicName || Cookies.get("clinicName") || "",
       });
-      await createOrder(activeItems, grandTotal, {
-        type: String(orderAddressType),
-        address: String(orderAddressText),
-      }, isTreatmentCheckout ? "treatment" : "product");
+      await createOrder(
+        activeItems,
+        grandTotal,
+        {
+          type: String(orderAddressType),
+          address: String(orderAddressText),
+        },
+        isTreatmentCheckout ? "treatment" : "product",
+        isClinicCheckout
+          ? { ownerType: "clinic", clinicId: clinicId || Cookies.get("clinicId") || "" }
+          : { ownerType: "user" }
+      );
 
       if (isTreatmentCheckout) {
         sessionStorage.removeItem(TREATMENT_CHECKOUT_KEY);
@@ -119,10 +167,16 @@ const PaymentPage: React.FC = () => {
 
   useEffect(() => {
     if (!Cookies.get("token")) {
-      const nextPath = isTreatmentCheckout
+      const nextPath = isClinicCheckout
+        ? "/home/PaymentPage?flow=clinic"
+        : isTreatmentCheckout
         ? "/home/PaymentPage?flow=treatment"
         : "/home/Address";
-      router.replace(`/Login?next=${encodeURIComponent(nextPath)}`);
+      router.replace(
+        isClinicCheckout
+          ? `/cliniclogin?next=${encodeURIComponent(nextPath)}`
+          : `/Login?next=${encodeURIComponent(nextPath)}`
+      );
       return;
     }
 
@@ -130,7 +184,7 @@ const PaymentPage: React.FC = () => {
     if (activeItems.length === 0 && !paymentSuccess) {
       router.push(isTreatmentCheckout ? "/home/TreatmentPlans" : "/home/Cart");
     }
-  }, [activeItems.length, checkoutLoaded, cartHydrated, isTreatmentCheckout, paymentSuccess, router]);
+  }, [activeItems.length, checkoutLoaded, cartHydrated, isClinicCheckout, isTreatmentCheckout, paymentSuccess, router]);
 
   if (!checkoutLoaded || !cartHydrated) {
     return <FullPageLoader />;
@@ -152,24 +206,40 @@ const PaymentPage: React.FC = () => {
               <FaCheckCircle />
             </div>
             <p className={styles.successPill}>
-              {isTreatmentCheckout ? "Treatment booked" : "Payment complete"}
+              {isClinicCheckout
+                ? "Clinic payment complete"
+                : isTreatmentCheckout
+                ? "Treatment booked"
+                : "Payment complete"}
             </p>
             <h2>
-              {isTreatmentCheckout
+              {isClinicCheckout
+                ? "Your clinic purchase is confirmed"
+                : isTreatmentCheckout
                 ? "Your treatment booking is confirmed"
                 : "Payment successful"}
             </h2>
             <p className={styles.successText}>
-              {isTreatmentCheckout
+              {isClinicCheckout
+                ? "We have received your clinic order and will process it shortly."
+                : isTreatmentCheckout
                 ? "We have received your treatment booking and will contact you with the next steps shortly."
                 : "Your order has been placed successfully. Thank you for shopping with us."}
             </p>
 
             <div className={styles.successMeta}>
               <div className={styles.successMetaItem}>
-                <span>{paymentSnapshot?.flowLabel || (isTreatmentCheckout ? "Booking type" : "Delivery address")}</span>
+                <span>
+                  {paymentSnapshot?.flowLabel ||
+                    (isClinicCheckout
+                      ? "Clinic details"
+                      : isTreatmentCheckout
+                      ? "Booking type"
+                      : "Delivery address")}
+                </span>
                 <strong>{summaryAddressType}</strong>
                 <p>{summaryAddressText}</p>
+                {paymentSnapshot?.clinicName && <p>{paymentSnapshot.clinicName}</p>}
               </div>
               <div className={styles.successMetaItem}>
                 <span>Amount paid</span>
@@ -248,15 +318,23 @@ const PaymentPage: React.FC = () => {
       <div className={styles.heroBand}>
         <div>
           <p className={styles.heroEyebrow}>
-            {isTreatmentCheckout ? "Treatment checkout" : "Order checkout"}
+            {isClinicCheckout
+              ? "Clinic checkout"
+              : isTreatmentCheckout
+              ? "Treatment checkout"
+              : "Order checkout"}
           </p>
           <h2 className={styles.heroTitle}>
-            {isTreatmentCheckout
+            {isClinicCheckout
+              ? "Confirm your clinic purchase and pay securely"
+              : isTreatmentCheckout
               ? "Confirm your treatment booking and pay securely"
               : "Review your order and complete payment"}
           </h2>
           <p className={styles.heroCopy}>
-            {isTreatmentCheckout
+            {isClinicCheckout
+              ? "Your clinic profile and billing address will be used for this payment."
+              : isTreatmentCheckout
               ? "No address selection is needed here. Review the treatment summary and continue to secure payment."
               : "Double-check the items below, confirm the address, and finish the payment securely."}
           </p>
@@ -272,11 +350,17 @@ const PaymentPage: React.FC = () => {
           <div className={styles.cardHeader}>
             <div>
               <p className={styles.sectionKicker}>Delivery details</p>
-              <h3>{isTreatmentCheckout ? "Booking details" : "Confirm the address"}</h3>
+              <h3>
+                {isClinicCheckout
+                  ? "Clinic details"
+                  : isTreatmentCheckout
+                  ? "Booking details"
+                  : "Confirm the address"}
+              </h3>
             </div>
             <div className={styles.cardStatus}>
               <FaMapMarkerAlt />
-              <span>{isTreatmentCheckout ? "Booking flow" : "Verified flow"}</span>
+              <span>{isClinicCheckout ? "Clinic flow" : isTreatmentCheckout ? "Booking flow" : "Verified flow"}</span>
             </div>
           </div>
 
@@ -286,13 +370,23 @@ const PaymentPage: React.FC = () => {
             </div>
             <div>
               <p className={styles.addressLabel}>
-                {isTreatmentCheckout ? "Treatment booking" : "Deliver to"}
+                {isClinicCheckout
+                  ? "Clinic billing"
+                  : isTreatmentCheckout
+                  ? "Treatment booking"
+                  : "Deliver to"}
               </p>
               <p className={styles.addressType}>
-                {isTreatmentCheckout ? "No address required" : deliveryType}
+                {isClinicCheckout
+                  ? clinicName || Cookies.get("clinicName") || "Clinic"
+                  : isTreatmentCheckout
+                  ? "No address required"
+                  : deliveryType}
               </p>
               <p className={styles.addressText}>
-                {isTreatmentCheckout
+                {isClinicCheckout
+                  ? clinicAddress || deliveryAddress
+                  : isTreatmentCheckout
                   ? "You are paying directly for the treatment plan. No address selection is needed."
                   : deliveryAddress}
               </p>
@@ -306,7 +400,7 @@ const PaymentPage: React.FC = () => {
           <div className={styles.cardHeader}>
             <div>
               <p className={styles.sectionKicker}>Order summary</p>
-              <h3>{isTreatmentCheckout ? "Treatment booking" : "Cart checkout"}</h3>
+              <h3>{isClinicCheckout ? "Clinic checkout" : isTreatmentCheckout ? "Treatment booking" : "Cart checkout"}</h3>
             </div>
             <div className={styles.summaryPill}>{activeItems.length} items</div>
           </div>

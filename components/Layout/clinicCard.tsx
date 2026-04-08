@@ -4,10 +4,12 @@ import React, { useEffect, useState } from "react";
 import styles from "@/styles/components/Layout/clinicCard.module.css";
 import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
+import { jwtDecode } from "jwt-decode";
 import { FaWhatsapp, FaMap } from "react-icons/fa";
 import { IoCall } from "react-icons/io5";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { resolveMediaUrl } from "@/lib/media";
+import { API_URL } from "@/config/api";
 
 /* ================= TYPES ================= */
 type Clinic = {
@@ -36,6 +38,14 @@ interface ClinicCardProps {
   clinic: Clinic;
 }
 
+type LeadActionType = "call" | "whatsapp";
+
+type JwtPayload = {
+  id: string;
+  role: string;
+  exp: number;
+};
+
 /* ================= COMPONENT ================= */
 const ClinicCard: React.FC<ClinicCardProps> = ({ clinic }) => {
   const router = useRouter();
@@ -53,23 +63,57 @@ const ClinicCard: React.FC<ClinicCardProps> = ({ clinic }) => {
     setLoginModalAction(null);
   };
 
+  const recordLead = async (actionType: LeadActionType) => {
+    const token = Cookies.get("token");
+    const role = Cookies.get("role")?.toLowerCase();
+
+    if (!token || role !== "user") return;
+
+    try {
+      const decoded = jwtDecode<JwtPayload>(token);
+      if (decoded.role?.toLowerCase() !== "user") return;
+
+      await fetch(`${API_URL}/leads`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          clinicId: clinic._id,
+          actionType,
+        }),
+        keepalive: true,
+      });
+    } catch (error) {
+      console.error("Failed to record lead:", error);
+    }
+  };
+
   const requireUserLogin = (
     e: React.MouseEvent<HTMLAnchorElement>,
     actionLabel: string,
-    href?: string
   ) => {
     e.stopPropagation();
 
-    if (!href) {
-      e.preventDefault();
-      return;
-    }
-
     const token = Cookies.get("token");
-    if (!token) {
+    const role = Cookies.get("role")?.toLowerCase();
+
+    if (!token || role !== "user") {
       e.preventDefault();
       setLoginModalAction(actionLabel);
+      return false;
     }
+
+    return true;
+  };
+
+  const handleCallClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    const allowed = requireUserLogin(e, "call this clinic");
+    if (!allowed || !callNumber) return;
+    e.preventDefault();
+    void recordLead("call");
+    window.location.href = `tel:${callNumber}`;
   };
 
   /* ================= IMAGE NORMALIZATION ================= */
@@ -216,13 +260,7 @@ const ClinicCard: React.FC<ClinicCardProps> = ({ clinic }) => {
         <div className={styles.buttons}>
           <a
             href={callNumber ? `tel:${callNumber}` : undefined}
-            onClick={(e) =>
-              requireUserLogin(
-                e,
-                "call this clinic",
-                callNumber ? `tel:${callNumber}` : undefined
-              )
-            }
+            onClick={handleCallClick}
             className={styles.call}
           >
             <IoCall className={styles.icons} /> Call
@@ -235,13 +273,17 @@ const ClinicCard: React.FC<ClinicCardProps> = ({ clinic }) => {
                 : undefined
             }
             onClick={(e) =>
-              requireUserLogin(
-                e,
-                "chat on WhatsApp",
-                clinic.whatsapp
-                  ? `https://wa.me/${clinic.whatsapp.replace(/\D/g, "")}`
-                  : undefined
-              )
+              (() => {
+                const allowed = requireUserLogin(e, "chat on WhatsApp");
+                if (!allowed || !clinic.whatsapp) return;
+                e.preventDefault();
+                void recordLead("whatsapp");
+                window.open(
+                  `https://wa.me/${clinic.whatsapp.replace(/\D/g, "")}`,
+                  "_blank",
+                  "noopener,noreferrer"
+                );
+              })()
             }
             className={styles.whatsapp}
             target="_blank"
@@ -328,6 +370,7 @@ const ClinicCard: React.FC<ClinicCardProps> = ({ clinic }) => {
           </div>
         </div>
       )}
+
     </div>
   );
 };

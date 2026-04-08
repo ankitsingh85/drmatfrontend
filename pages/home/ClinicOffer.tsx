@@ -12,10 +12,18 @@ interface ClinicRef {
   clinicName?: string;
 }
 
+interface ClinicLight {
+  _id: string;
+  slug?: string;
+  clinicName?: string;
+  dermaCategory?: string | { _id?: string; id?: string; name?: string };
+}
+
 interface Offer {
   _id: string;
   imageBase64: string;
   clinicId?: string | ClinicRef | null;
+  categoryId?: string | { _id?: string; id?: string; name?: string } | null;
 }
 
 const AUTO_DELAY = 3000;
@@ -32,6 +40,7 @@ const ClinicOffer = () => {
 
   const [visibleCount, setVisibleCount] = useState(3);
   const [slides, setSlides] = useState<Offer[]>([]);
+  const [clinics, setClinics] = useState<ClinicLight[]>([]);
   const [index, setIndex] = useState(3);
   const [isPlaying, setIsPlaying] = useState(true);
   const [enableTransition, setEnableTransition] = useState(true);
@@ -50,8 +59,19 @@ const ClinicOffer = () => {
     }
   };
 
+  const fetchClinics = async () => {
+    try {
+      const res = await fetch(`${API_URL}/clinics?light=true`);
+      const data = await res.json();
+      setClinics(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Clinic fetch error:", err);
+    }
+  };
+
   useEffect(() => {
     fetchOffers();
+    fetchClinics();
   }, []);
 
   useEffect(() => {
@@ -129,59 +149,79 @@ const ClinicOffer = () => {
   };
 
   /* ================= NAVIGATION FIX ================= */
-
-  const getClinicPath = (offer: Offer) => {
+  const resolveClinicPath = (offer: Offer) => {
     if (!offer.clinicId) return null;
 
     if (typeof offer.clinicId === "object") {
-      return offer.clinicId.slug || offer.clinicId._id;
+      return offer.clinicId.slug || offer.clinicId._id || null;
     }
 
-    return offer.clinicId; // string id
+    return offer.clinicId;
+  };
+
+  const resolveCategoryId = (offer: Offer) => {
+    if (!offer.categoryId) return null;
+    if (typeof offer.categoryId === "object") {
+      return offer.categoryId._id || offer.categoryId.id || offer.categoryId.name || null;
+    }
+    return offer.categoryId;
+  };
+
+  const resolveClinicFromCategory = (offer: Offer) => {
+    const categoryKey = resolveCategoryId(offer);
+    if (!categoryKey) return null;
+
+    const normalized = String(categoryKey).trim().toLowerCase();
+    return (
+      clinics.find((clinic) => {
+        const clinicCategory =
+          typeof clinic.dermaCategory === "object"
+            ? clinic.dermaCategory?._id ||
+              clinic.dermaCategory?.id ||
+              clinic.dermaCategory?.name ||
+              ""
+            : clinic.dermaCategory || "";
+
+        return String(clinicCategory).trim().toLowerCase() === normalized;
+      }) || null
+    );
   };
 
   const handleSlideClick = async (offer: Offer) => {
-  console.log("FULL OFFER:", offer);
+    const directClinicPath = resolveClinicPath(offer);
+    let categoryClinic = directClinicPath ? null : resolveClinicFromCategory(offer);
 
-  try {
-    let clinicPath = null;
+    if (!directClinicPath && !categoryClinic && clinics.length === 0) {
+      try {
+        const res = await fetch(`${API_URL}/clinics?light=true`);
+        const data = await res.json();
+        const nextClinics = Array.isArray(data) ? data : [];
+        setClinics(nextClinics);
+        categoryClinic =
+          nextClinics.find((clinic) => {
+            const categoryKey = resolveCategoryId(offer);
+            if (!categoryKey) return false;
+            const normalized = String(categoryKey).trim().toLowerCase();
+            const clinicCategory =
+              typeof clinic.dermaCategory === "object"
+                ? clinic.dermaCategory?._id ||
+                  clinic.dermaCategory?.id ||
+                  clinic.dermaCategory?.name ||
+                  ""
+                : clinic.dermaCategory || "";
 
-    if (!offer.clinicId) {
-      console.log("No clinicId found");
-      return;
+            return String(clinicCategory).trim().toLowerCase() === normalized;
+          }) || null;
+      } catch (err) {
+        console.error("Clinic fallback fetch error:", err);
+      }
     }
 
-    // CASE 1: populated object
-    if (typeof offer.clinicId === "object") {
-      clinicPath = offer.clinicId.slug || offer.clinicId._id;
-      console.log("Using object clinic:", clinicPath);
-    }
-
-    // CASE 2: string ID
-    if (typeof offer.clinicId === "string") {
-      console.log("Fetching clinic from API:", offer.clinicId);
-
-      const res = await fetch(`${API_URL}/clinics/${offer.clinicId}`);
-      const data = await res.json();
-
-      console.log("Clinic API response:", data);
-
-      clinicPath = data.slug || data._id;
-    }
-
-    if (!clinicPath) {
-      console.log("No clinicPath generated");
-      return;
-    }
-
-    console.log("FINAL REDIRECT:", `/clinics/${clinicPath}`);
+    const clinicPath = directClinicPath || categoryClinic?.slug || categoryClinic?._id || null;
+    if (!clinicPath) return;
 
     router.push(`/clinics/${clinicPath}`);
-
-  } catch (err) {
-    console.error("Navigation error:", err);
-  }
-};
+  };
 
   if (slides.length === 0) {
     return <p style={{ textAlign: "center" }}>No offers available</p>;
@@ -213,10 +253,16 @@ const ClinicOffer = () => {
             <div
               className={styles.slide}
               key={`${slide._id}-${i}`}
-              style={{ flex: `0 0 calc(100% / ${visibleCount})` }}
               onClick={() => handleSlideClick(slide)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  handleSlideClick(slide);
+                }
+              }}
               role="button"
               tabIndex={0}
+              style={{ flex: `0 0 calc(100% / ${visibleCount})`, cursor: "pointer" }}
             >
               <img
                 src={resolveMediaUrl(slide.imageBase64) || slide.imageBase64}

@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
+import Cookies from "js-cookie";
 import {
   FaCalendarAlt,
   FaCartPlus,
@@ -78,12 +79,26 @@ const resolveAssetUrl = (value?: string) => {
   return `${apiBaseUrl}/${value}`;
 };
 
+const slugify = (value: string) =>
+  value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .replace(/-{2,}/g, "-");
+
 const CourseListing = () => {
   const router = useRouter();
   const { addToCart } = useCart();
+  const [isHydrated, setIsHydrated] = useState(false);
+  const currentRole = isHydrated ? Cookies.get("role")?.toLowerCase() : null;
+  const isClinicMode = currentRole === "clinic";
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -143,11 +158,21 @@ const CourseListing = () => {
                 className={styles.card}
                 role="link"
                 tabIndex={0}
-                onClick={() => router.push(`/courses/${course._id}`)}
+                onClick={() =>
+                  router.push(
+                    `/courses/${slugify(
+                      `${course.courseName || course.courseUniqueCode || course._id}`
+                    )}`
+                  )
+                }
                 onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === " ") {
                     event.preventDefault();
-                    router.push(`/courses/${course._id}`);
+                    router.push(
+                      `/courses/${slugify(
+                        `${course.courseName || course.courseUniqueCode || course._id}`
+                      )}`
+                    );
                   }
                 }}
               >
@@ -228,28 +253,34 @@ const CourseListing = () => {
                   </div>
 
                   <div className={styles.cardFooter}>
-                    <button
-                      type="button"
-                      className={styles.actionBtn}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        const image =
-                          resolveAssetUrl(course.courseImage) ||
-                          getYoutubeThumbnail(course.courseDemoVideo);
-                        const amount = getCourseAmount(course);
-                        addToCart({
-                          id: `course:${course._id}`,
-                          name: course.courseName,
-                          price: amount,
-                          mrp: course.feesInr || amount,
-                          company: course.instituteName || course.courseType || "Course",
-                          image: image || undefined,
-                        });
-                      }}
-                    >
-                      <span>Add to Cart</span>
-                      <FaCartPlus />
-                    </button>
+                    {isClinicMode ? (
+                      <button
+                        type="button"
+                        className={styles.actionBtn}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          const image =
+                            resolveAssetUrl(course.courseImage) ||
+                            getYoutubeThumbnail(course.courseDemoVideo);
+                          const amount = getCourseAmount(course);
+                          addToCart({
+                            id: `course:${course._id}`,
+                            name: course.courseName,
+                            price: amount,
+                            mrp: course.feesInr || amount,
+                            company: course.instituteName || course.courseType || "Course",
+                            image: image || undefined,
+                          });
+                        }}
+                      >
+                        <span>Add to Cart</span>
+                        <FaCartPlus />
+                      </button>
+                    ) : (
+                      <button type="button" className={styles.actionBtn} disabled>
+                        <span>Clinic Only</span>
+                      </button>
+                    )}
                   </div>
                 </div>
               </article>

@@ -1,6 +1,13 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  ReactNode,
+} from "react";
 import Cookies from "js-cookie";
 import { API_URL } from "@/config/api";
 
@@ -16,6 +23,17 @@ export interface CartItem {
   itemType?: "product" | "treatment";
   quantity: number;
 }
+
+export const CART_TOAST_EVENT = "cart-item-added";
+
+export const emitCartToast = (message: string) => {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(
+    new CustomEvent(CART_TOAST_EVENT, {
+      detail: { message },
+    })
+  );
+};
 
 interface CartContextType {
   cartItems: CartItem[];
@@ -93,21 +111,42 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [wishlistItems, setWishlistItems] = useState<CartItem[]>([]);
   const [identityKey, setIdentityKey] = useState("guest");
   const [userEmail, setUserEmail] = useState("");
+  const [currentRole, setCurrentRole] = useState("guest");
   const [hydrated, setHydrated] = useState(false);
+  const scopeRef = useRef("guest");
 
   const refreshIdentity = () => {
     const email = Cookies.get("email") || "";
     const userId = Cookies.get("userId") || localStorage.getItem("userId") || "";
-    const key = userId || email || "guest";
+    const clinicId = Cookies.get("clinicId") || localStorage.getItem("clinicId") || "";
+    const role = Cookies.get("role")?.toLowerCase() || "guest";
+    const storedScope =
+      Cookies.get("cartScope") || localStorage.getItem("cartScope") || "";
+    const fallbackScope =
+      role === "clinic"
+        ? `clinic:${clinicId || email || "guest"}`
+        : role === "user"
+        ? `user:${userId || email || "guest"}`
+        : `guest:${userId || email || clinicId || "guest"}`;
+    const scope = storedScope || fallbackScope;
+    const key = `cart:${scope}`;
+
+    if (scope !== scopeRef.current) {
+      setCartItems([]);
+      setWishlistItems([]);
+    }
+
+    scopeRef.current = scope;
     setIdentityKey(key);
     setUserEmail(email);
+    setCurrentRole(role);
   };
 
   const cartStorageKey = `cart:${identityKey}`;
   const wishlistStorageKey = `wishlist:${identityKey}`;
 
   const persistBackend = async (nextCart: CartItem[], nextWishlist: CartItem[]) => {
-    if (!userEmail) return;
+    if (currentRole !== "user" || !userEmail) return;
     try {
       const res = await fetch(`${API_URL}/users/by-email/${encodeURIComponent(userEmail)}`);
       if (!res.ok) return;
@@ -153,7 +192,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     setWishlistItems(localWishlist);
 
     const hydrateFromBackend = async () => {
-      if (!userEmail) return;
+      if (currentRole !== "user" || !userEmail) return;
       try {
         const res = await fetch(`${API_URL}/users/by-email/${encodeURIComponent(userEmail)}`);
         if (!res.ok) return;
@@ -177,7 +216,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     hydrateFromBackend().finally(() => {
       setHydrated(true);
     });
-  }, [identityKey, userEmail, cartStorageKey, wishlistStorageKey]);
+  }, [identityKey, userEmail, cartStorageKey, wishlistStorageKey, currentRole]);
 
   useEffect(() => {
     safeSetStorageItems(cartStorageKey, cartItems);
@@ -186,23 +225,28 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   }, [cartItems, wishlistItems, cartStorageKey, wishlistStorageKey]);
 
   const addToCart = (product: Omit<CartItem, "quantity">, quantity = 1) => {
+    if (currentRole !== "clinic" && currentRole !== "user" && currentRole !== "guest") {
+      return;
+    }
+
+    const normalizedProduct: Omit<CartItem, "quantity"> = {
+      ...product,
+      itemType: product.itemType === "treatment" ? "treatment" : "product",
+    };
+
     setCartItems((prev) => {
-      const normalizedProduct: Omit<CartItem, "quantity"> = {
-        ...product,
-        itemType: product.itemType === "treatment" ? "treatment" : "product",
-      };
       const existing = prev.find((item) => item.id === normalizedProduct.id);
       if (existing) {
-        // alert(`${normalizedProduct.name} is added`);
         return prev.map((item) =>
           item.id === normalizedProduct.id
             ? { ...item, quantity: item.quantity + quantity, itemType: item.itemType || normalizedProduct.itemType }
             : item
         );
       }
-      // alert(`${normalizedProduct.name} is added`);
       return [...prev, { ...normalizedProduct, quantity }];
     });
+
+    emitCartToast(`${normalizedProduct.name} added to cart`);
   };
 
   const removeFromCart = (id: string) => {

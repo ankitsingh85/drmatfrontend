@@ -127,6 +127,32 @@ const normalizeAddress = (addr: any): IUserAddress => {
   };
 };
 
+const addressSignature = (addr: IUserAddress) =>
+  [
+    addr.type,
+    addr.fullName,
+    addr.mobileNo,
+    addr.houseNo,
+    addr.street,
+    addr.localArea,
+    addr.pincode,
+    addr.district,
+    addr.state,
+  ]
+    .map((value) => String(value || "").trim().toLowerCase())
+    .join("|");
+
+const mergeAddresses = (base: IUserAddress[], next: IUserAddress[]) => {
+  const seen = new Set<string>();
+  return [...base, ...next].filter((addr) => {
+    const normalized = normalizeAddress(addr);
+    const key = addressSignature(normalized);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+};
+
 const toBackendAddress = (addr: IUserAddress): IUserAddress => ({
   ...addr,
   type: sanitizeAddressType(addr.type),
@@ -200,7 +226,9 @@ const UserProfile: React.FC<UserProfileProps> = ({
       if (!res.ok) throw new Error("User not found");
 
       const data = await res.json();
-      const addresses = Array.isArray(data.addresses) ? data.addresses.map(normalizeAddress) : [];
+      const addresses = Array.isArray(data.addresses)
+        ? mergeAddresses([], data.addresses.map(normalizeAddress))
+        : [];
       const primary = addresses[0] || normalizeAddress({ address: data.address || "" });
 
       setForm({
@@ -330,8 +358,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
       state: form.state.trim(),
     });
 
-    const existing = Array.isArray(form.addresses) ? [...form.addresses] : [];
-    const addresses = existing.length ? [primaryAddress, ...existing.slice(1)] : [primaryAddress];
+    const addresses = mergeAddresses(form.addresses || [], [primaryAddress]);
 
     setSaving(true);
     try {
@@ -361,7 +388,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
       setForm((prev) => ({
         ...prev,
         ...data.user,
-        addresses,
+        addresses: mergeAddresses([], addresses),
         profileImage: resolveMediaUrl(data.user?.profileImage) || prev.profileImage,
         profileImageFile: null,
       }));

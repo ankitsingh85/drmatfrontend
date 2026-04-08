@@ -1,6 +1,7 @@
 // pages/index.tsx
 "use client";
 import { API_URL } from "@/config/api";
+import Cookies from "js-cookie";
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/router";
@@ -28,9 +29,13 @@ import ProductCategory from "@/components/homePage/productCategories";
 import FullPageLoader from "@/components/common/FullPageLoader";
 import CourseListing from "@/components/Layout/CourseListing";
 import ClinicOffer from "./ClinicOffer";
+import B2BProductCategories from "@/components/homePage/B2BProductCategories";
 
 const Index = () => {
   const router = useRouter();
+  const [isHydrated, setIsHydrated] = useState(false);
+  const currentRole = isHydrated ? Cookies.get("role")?.toLowerCase() : null;
+  const isClinicMode = currentRole === "clinic";
 
   // loader / prefetch state
   const [appReady, setAppReady] = useState(false);
@@ -38,6 +43,15 @@ const Index = () => {
   const [message, setMessage] = useState("Preparing...");
 
   useEffect(() => {
+    setIsHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (isClinicMode) {
+      setAppReady(true);
+      return;
+    }
+
     let mounted = true;
 
     // const API_BASE =
@@ -108,7 +122,22 @@ const Index = () => {
       mounted = false;
       clearTimeout(safetyTimeout);
     };
-  }, []);
+  }, [isClinicMode]);
+
+  if (isClinicMode) {
+    return (
+      <>
+        <Topbar />
+        <div style={{ backgroundColor: "#ffffff" }}>
+          <div style={{ padding: "30px 60px" }}>
+            <CourseListing />
+          <B2BProductCategories/>
+          </div>
+        </div>
+        <Footer />
+      </>
+    );
+  }
 
   return (
     <>
@@ -357,35 +386,6 @@ const Index = () => {
           }}
         >
           <HappyStories />
-        </div>
-      </div>
-<div
-        style={{
-          padding: "10px 20px",
-          backgroundColor: "#ffffff",
-          marginTop: "-40px",
-        }}
-      >
-        <h2
-          style={{
-            textAlign: "center",
-            marginBottom: "14px",
-            marginTop: "32px",
-            fontWeight: "700",
-            fontSize: "26px",
-          }}
-        >
-          {/* Courses */}
-        </h2>
-        <div
-          style={{
-            display: "flex",
-            gap: "20px",
-            justifyContent: "center",
-            flexWrap: "wrap",
-          }}
-        >
-          <CourseListing/>
         </div>
       </div>
       <Footer />

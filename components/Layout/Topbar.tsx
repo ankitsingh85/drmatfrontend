@@ -1,4 +1,3 @@
-// ...existing code...
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
@@ -17,7 +16,7 @@ import {
 import { useCart } from "@/context/CartContext";
 import { useTopbarProfile } from "@/context/TopbarProfileContext";
 import Cookies from "js-cookie";
-import TreatmentPlans from "@/pages/home/TreatmentPlans";
+
 interface TopbarProps {
   hideHamburgerOnMobile?: boolean;
 }
@@ -29,6 +28,7 @@ const Topbar: React.FC<TopbarProps> = ({ hideHamburgerOnMobile }) => {
   const profile = useTopbarProfile();
   const cartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
 
+  const [isHydrated, setIsHydrated] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [location, setLocation] = useState<string>("");
   const [profileOpen, setProfileOpen] = useState(false);
@@ -38,7 +38,12 @@ const Topbar: React.FC<TopbarProps> = ({ hideHamburgerOnMobile }) => {
   const profileImage = profile?.profileImage ?? null;
   const email = profile?.email ?? null;
   const contactNo = profile?.contactNo ?? null;
-  const currentRole = Cookies.get("role")?.toLowerCase();
+  const currentRole = isHydrated ? Cookies.get("role")?.toLowerCase() : null;
+  const isClinicMode = currentRole === "clinic";
+
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
 
   useEffect(() => {
     const storedLocation = Cookies.get("location");
@@ -139,6 +144,8 @@ const Topbar: React.FC<TopbarProps> = ({ hideHamburgerOnMobile }) => {
   }, [styles.profileDropdown]);
 
   const handleLogout = () => {
+    const roleBeforeLogout = currentRole;
+
     Cookies.remove("token");
     Cookies.remove("username");
     Cookies.remove("clinicName");
@@ -149,17 +156,19 @@ const Topbar: React.FC<TopbarProps> = ({ hideHamburgerOnMobile }) => {
     Cookies.remove("contactNo");
     Cookies.remove("profileImage");
     Cookies.remove("role");
+    Cookies.remove("cartScope");
 
     localStorage.removeItem("userId");
     localStorage.removeItem("clinicId");
     localStorage.removeItem("profileImage");
+    localStorage.removeItem("cartScope");
     profile?.clearProfile();
 
     setLocation("");
     window.dispatchEvent(new CustomEvent("user-logged-out"));
-    router.replace("/Login");
+    router.replace(roleBeforeLogout === "clinic" ? "/cliniclogin" : "/Login");
   };
-console.log("data");
+
   const renderLoginOptions = () => (
     <button
       type="button"
@@ -170,177 +179,324 @@ console.log("data");
     </button>
   );
 
-  return (
-    <>
-      <div className={styles.topbar}>
-        {/* LEFT SECTION */}
-        <div className={styles.leftSection}>
-          <Image
-            className={styles.logo}
-            src="/logo.jpeg"
-            alt="Logo"
-            width={120}
-            height={30}
-            onClick={() => router.push("/home")}
-          />
+  const renderDefaultTopbar = () => (
+    <div className={styles.topbar}>
+      <div className={styles.leftSection}>
+        <Image
+          className={styles.logo}
+          src="/logo.jpeg"
+          alt="Logo"
+          width={120}
+          height={30}
+          onClick={() => router.push("/home")}
+        />
 
-          <div
-            className={`${styles.hamburger} ${
-              hideHamburgerOnMobile ? styles.hideOnMobile : ""
-            }`}
-            onClick={() => setMenuOpen(!menuOpen)}
-          >
-            <Menu size={26} />
-          </div>
-
-          <nav className={`${styles.navLinks} ${menuOpen ? styles.open : ""}`}>
-            <Link href="/home" className={styles.navLink}>Home</Link>
-            <Link href="/home/findClinicsPage" className={styles.navLink}>Book Appointment</Link>
-            {/* <Link href="/user/profile" className={styles.navLink}>Care Plan</Link> */}
-            {/* <Link href="/home/findClinicsPage" className={styles.navLink}>Find Derma Clinic</Link> */}
-            <Link href="/video-consultation" className={styles.navLink}>Book Video Consultation</Link>
-            <Link href="/treatment-plans" className={styles.navLink}>Buy Treatment Plan</Link>
-            <Link href="/product-listing" className={styles.navLink}>Buy Products</Link>
-            <Link href="/quiz/ques1" className={styles.navLink}>Online Test</Link>
-            <Link href="/cliniclogin" className={styles.businessNavLink}>
-              <span className={styles.businessTag}>BUSINESS</span>
-              <span className={styles.businessText}>
-                <span>Free Listing</span>
-                <ArrowUpRight size={15} className={styles.businessIcon} />
-              </span>
-            </Link>
-
-          </nav>
+        <div
+          className={`${styles.hamburger} ${
+            hideHamburgerOnMobile ? styles.hideOnMobile : ""
+          }`}
+          onClick={() => setMenuOpen(!menuOpen)}
+        >
+          <Menu size={26} />
         </div>
 
-        {/* RIGHT SECTION */}
-        <div className={styles.rightSection}>
-          {isDashboard ? (
-            username ? (
-              <button className={styles.logoutBtn} onClick={handleLogout}>Logout</button>
+        <nav className={`${styles.navLinks} ${menuOpen ? styles.open : ""}`}>
+          <Link href="/home" className={styles.navLink}>
+            Home
+          </Link>
+          <Link href="/home/findClinicsPage" className={styles.navLink}>
+            Book Appointment
+          </Link>
+          {/* <Link href="/user/profile" className={styles.navLink}>Care Plan</Link> */}
+          {/* <Link href="/home/findClinicsPage" className={styles.navLink}>Find Derma Clinic</Link> */}
+          <Link href="/video-consultation" className={styles.navLink}>
+            Book Video Consultation
+          </Link>
+          <Link href="/treatment-plans" className={styles.navLink}>
+            Buy Treatment Plan
+          </Link>
+          <Link href="/product-listing" className={styles.navLink}>
+            Buy Products
+          </Link>
+          <Link href="/quiz/ques1" className={styles.navLink}>
+            Online Test
+          </Link>
+          <Link href="/cliniclogin" className={styles.businessNavLink}>
+            <span className={styles.businessTag}>BUSINESS</span>
+            <span className={styles.businessText}>
+              <span>Free Listing</span>
+              <ArrowUpRight size={15} className={styles.businessIcon} />
+            </span>
+          </Link>
+        </nav>
+      </div>
+
+      <div className={styles.rightSection}>
+        {isDashboard ? (
+          username ? (
+            <button className={styles.logoutBtn} onClick={handleLogout}>
+              Logout
+            </button>
+          ) : (
+            renderLoginOptions()
+          )
+        ) : (
+          <>
+            <div className={styles.location} onClick={() => fetchLocation(false)}>
+              <MapPin size={18} />
+              {location && <span className={styles.locationText}>{location}</span>}
+            </div>
+
+            {username ? (
+              <div className={styles.userSection} style={{ position: "relative" }}>
+                <button
+                  ref={userBtnRef}
+                  className={styles.userIconBtn}
+                  onClick={() => setProfileOpen((s) => !s)}
+                  aria-label="Open user profile"
+                  title={username}
+                  style={{ padding: 0, border: "none", background: "transparent" }}
+                >
+                  {profileImage ? (
+                    <img
+                      src={profileImage}
+                      alt={username}
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: "50%",
+                        objectFit: "cover",
+                      }}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: "50%",
+                        background: "#e6eef8",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "#0a4b83",
+                        fontWeight: 700,
+                      }}
+                    >
+                      {username.slice(0, 1).toUpperCase()}
+                    </div>
+                  )}
+                </button>
+
+                {profileOpen && (
+                  <div
+                    className={styles.profileDropdown}
+                    role="dialog"
+                    aria-modal="false"
+                    onMouseLeave={() => setProfileOpen(false)}
+                  >
+                    <div className={styles.profileDropdownHeader}>
+                      <div className={styles.profileAvatarWrap}>
+                        {profileImage ? (
+                          <img
+                            src={profileImage}
+                            alt={username || "User"}
+                            className={styles.profileAvatar}
+                          />
+                        ) : (
+                          <div className={styles.profileAvatarPlaceholder}>
+                            {username?.slice(0, 1).toUpperCase() || "U"}
+                          </div>
+                        )}
+                      </div>
+                      <h3 className={styles.profileDropdownName}>{username}</h3>
+                      <p className={styles.profileDropdownContact}>
+                        {contactNo ? `+91 ${contactNo}` : email || "—"}
+                      </p>
+                    </div>
+
+                    <div className={styles.profileDropdownDivider} />
+
+                    <div className={styles.profileDropdownActions}>
+                      <button
+                        className={styles.profileActionBtn}
+                        onClick={() => {
+                          setProfileOpen(false);
+                          if (currentRole === "clinic") {
+                            router.push("/ClinicDashboard");
+                            return;
+                          }
+                          router.push("/UserDashboard");
+                        }}
+                      >
+                        <User size={18} />
+                        <span>View Profile</span>
+                      </button>
+
+                      <button
+                        className={`${styles.profileActionBtn} ${styles.profileActionLogout}`}
+                        onClick={handleLogout}
+                      >
+                        <LogOut size={18} />
+                        <span>Logout</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             ) : (
               renderLoginOptions()
-            )
-          ) : (
-            <>
-              <div className={styles.location} onClick={() => fetchLocation(false)}>
-                <MapPin size={18} />
-                {location && <span className={styles.locationText}>{location}</span>}
-              </div>
+            )}
 
-              {username ? (
-                // userSection is position:relative in CSS so popover can be absolutely positioned under the avatar
-                <div className={styles.userSection} style={{ position: "relative" }}>
-                  <button
-                    ref={userBtnRef}
-                    className={styles.userIconBtn}
-                    onClick={() => setProfileOpen((s) => !s)}
-                    aria-label="Open user profile"
-                    title={username}
-                    style={{ padding: 0, border: "none", background: "transparent" }}
-                  >
+            <div className={styles.cartInfo} onClick={handleClickCart}>
+              <ShoppingCart size={18} />
+              {cartCount > 0 && <span className={styles.cartBadge}>{cartCount}</span>}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+
+  const renderClinicTopbar = () => (
+    <div className={styles.topbar}>
+      <div className={styles.leftSection}>
+        <Image
+          className={styles.logo}
+          src="/logo.jpeg"
+          alt="Logo"
+          width={120}
+          height={30}
+          onClick={() => router.push("/home")}
+        />
+
+        <nav className={styles.navLinks}>
+          <Link href="/home" className={styles.navLink}>
+            Home
+          </Link>
+          <Link href="/course-listing" className={styles.navLink}>
+           Buy Courses
+          </Link>
+          <Link href="/home/B2bProductsList" className={styles.navLink}>
+            Buy B2B Products
+          </Link>
+        </nav>
+      </div>
+
+      <div className={styles.rightSection}>
+        <div className={styles.location} onClick={() => fetchLocation(false)}>
+          <MapPin size={18} />
+          {location && <span className={styles.locationText}>{location}</span>}
+        </div>
+
+        {username ? (
+          <div className={styles.userSection} style={{ position: "relative" }}>
+            <button
+              ref={userBtnRef}
+              className={styles.userIconBtn}
+              onClick={() => setProfileOpen((s) => !s)}
+              aria-label="Open clinic profile"
+              title={username}
+              style={{ padding: 0, border: "none", background: "transparent" }}
+            >
+              {profileImage ? (
+                <img
+                  src={profileImage}
+                  alt={username}
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: "50%",
+                    objectFit: "cover",
+                  }}
+                />
+              ) : (
+                <div
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: "50%",
+                    background: "#e6eef8",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#0a4b83",
+                    fontWeight: 700,
+                  }}
+                >
+                  {username.slice(0, 1).toUpperCase()}
+                </div>
+              )}
+            </button>
+
+            {profileOpen && (
+              <div
+                className={styles.profileDropdown}
+                role="dialog"
+                aria-modal="false"
+                onMouseLeave={() => setProfileOpen(false)}
+              >
+                <div className={styles.profileDropdownHeader}>
+                  <div className={styles.profileAvatarWrap}>
                     {profileImage ? (
                       <img
                         src={profileImage}
-                        alt={username}
-                        style={{
-                          width: 36,
-                          height: 36,
-                          borderRadius: "50%",
-                          objectFit: "cover",
-                        }}
+                        alt={username || "Clinic"}
+                        className={styles.profileAvatar}
                       />
                     ) : (
-                      <div
-                        style={{
-                          width: 36,
-                          height: 36,
-                          borderRadius: "50%",
-                          background: "#e6eef8",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          color: "#0a4b83",
-                          fontWeight: 700,
-                        }}
-                      >
-                        {username.slice(0, 1).toUpperCase()}
+                      <div className={styles.profileAvatarPlaceholder}>
+                        {username?.slice(0, 1).toUpperCase() || "C"}
                       </div>
                     )}
+                  </div>
+                  <h3 className={styles.profileDropdownName}>{username}</h3>
+                  <p className={styles.profileDropdownContact}>
+                    {contactNo ? `+91 ${contactNo}` : email || "—"}
+                  </p>
+                </div>
+
+                <div className={styles.profileDropdownDivider} />
+
+                <div className={styles.profileDropdownActions}>
+                  <button
+                    className={styles.profileActionBtn}
+                    onClick={() => {
+                      setProfileOpen(false);
+                      router.push("/ClinicDashboard");
+                    }}
+                  >
+                    <User size={18} />
+                    <span>View Profile</span>
                   </button>
 
-                  {/* Vertical profile dropdown – enhanced design */}
-                  {profileOpen && (
-                    <div
-                      className={styles.profileDropdown}
-                      role="dialog"
-                      aria-modal="false"
-                      onMouseLeave={() => setProfileOpen(false)}
-                    >
-                      <div className={styles.profileDropdownHeader}>
-                        <div className={styles.profileAvatarWrap}>
-                          {profileImage ? (
-                            <img
-                              src={profileImage}
-                              alt={username || "User"}
-                              className={styles.profileAvatar}
-                            />
-                          ) : (
-                            <div className={styles.profileAvatarPlaceholder}>
-                              {username?.slice(0, 1).toUpperCase() || "U"}
-                            </div>
-                          )}
-                        </div>
-                        <h3 className={styles.profileDropdownName}>{username}</h3>
-                        <p className={styles.profileDropdownContact}>
-                          {contactNo ? `+91 ${contactNo}` : email || "—"}
-                        </p>
-                      </div>
-
-                      <div className={styles.profileDropdownDivider} />
-
-                      <div className={styles.profileDropdownActions}>
-                        <button
-                          className={styles.profileActionBtn}
-                          onClick={() => {
-                            setProfileOpen(false);
-                            if (currentRole === "clinic") {
-                              router.push("/ClinicDashboard");
-                              return;
-                            }
-                            router.push("/UserDashboard");
-                          }}
-                        >
-                          <User size={18} />
-                          <span>View Profile</span>
-                        </button>
-
-                        <button
-                          className={`${styles.profileActionBtn} ${styles.profileActionLogout}`}
-                          onClick={handleLogout}
-                        >
-                          <LogOut size={18} />
-                          <span>Logout</span>
-                        </button>
-                      </div>
-                    </div>
-                  )}
+                  <button
+                    className={`${styles.profileActionBtn} ${styles.profileActionLogout}`}
+                    onClick={handleLogout}
+                  >
+                    <LogOut size={18} />
+                    <span>Logout</span>
+                  </button>
                 </div>
-              ) : (
-                renderLoginOptions()
-              )}
-
-              <div className={styles.cartInfo} onClick={handleClickCart}>
-                <ShoppingCart size={18} />
-                {cartCount > 0 && <span className={styles.cartBadge}>{cartCount}</span>}
               </div>
-            </>
-          )}
+            )}
+          </div>
+        ) : (
+          renderLoginOptions()
+        )}
+
+        <div className={styles.cartInfo} onClick={handleClickCart}>
+          <ShoppingCart size={18} />
+          {cartCount > 0 && <span className={styles.cartBadge}>{cartCount}</span>}
         </div>
       </div>
+    </div>
+  );
+
+  return (
+    <>
+      {isClinicMode ? renderClinicTopbar() : renderDefaultTopbar()}
     </>
   );
 };
 
 export default Topbar;
-// ...existing code...

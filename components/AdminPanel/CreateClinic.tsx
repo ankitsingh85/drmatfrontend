@@ -22,7 +22,7 @@ interface ClinicCategory {
 
 /* ================= BASE64 HELPER ================= */
 export default function CreateClinic() {
-  const [cuc] = useState(`CUC-${Date.now().toString().slice(-6)}`);
+  const [cuc, setCuc] = useState("Auto-assigned on save");
   const [videoUrls, setVideoUrls] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -77,6 +77,7 @@ export default function CreateClinic() {
     whatsapp: "",
     email: "",
     workingHours: "",
+    clinicDescription: "",
 
     licenseNo: "",
     experience: "",
@@ -200,7 +201,6 @@ export default function CreateClinic() {
     try {
       setSubmitting(true);
       const formData = new FormData();
-      formData.append("cuc", cuc);
       formData.append("clinicName", form.clinicName);
       formData.append("dermaCategory", form.dermaCategory);
       formData.append("clinicType", form.clinicType);
@@ -216,6 +216,7 @@ export default function CreateClinic() {
       formData.append("whatsapp", form.whatsapp);
       formData.append("email", form.email);
       formData.append("workingHours", form.workingHours);
+      formData.append("clinicDescription", form.clinicDescription);
       formData.append("licenseNo", form.licenseNo);
       formData.append("experience", form.experience);
       formData.append("treatmentsAvailable", form.treatmentsAvailable);
@@ -256,7 +257,9 @@ export default function CreateClinic() {
         throw new Error(message);
       }
 
-      alert("Clinic created successfully");
+      const createdCuc = data?.clinic?.cuc || "Auto-assigned on save";
+      alert(`Clinic created successfully. CUC: ${createdCuc}`);
+      setCuc(createdCuc);
       window.dispatchEvent(new Event("admin-dashboard:create-success"));
     } catch (error) {
       console.error("Failed to create clinic:", error);
@@ -424,7 +427,25 @@ export default function CreateClinic() {
             <input className={styles.input} name="workingHours" placeholder="Working Hours / Days" onChange={handleChange} />
           </section>
 
-          {/* 5. OPERATIONS & LEGAL */}
+          {/* 5. DESCRIPTION */}
+          <section className={styles.section}>
+            <h2 className={styles.sectionTitle}>Clinic Description</h2>
+
+            <div className={styles.field}>
+              <label>Description</label>
+              <ReactQuill
+                className={styles.ql_Container}
+                theme="snow"
+                value={form.clinicDescription}
+                onChange={(value) =>
+                  setForm((prev) => ({ ...prev, clinicDescription: value }))
+                }
+                modules={quillModules}
+              />
+            </div>
+          </section>
+
+          {/* 6. OPERATIONS & LEGAL */}
           <section className={styles.section}>
             <h2 className={styles.sectionTitle}>Operations & Legal</h2>
 
@@ -432,7 +453,7 @@ export default function CreateClinic() {
             <input className={styles.input} name="experience" placeholder="Years of Experience" onChange={handleChange} />
           </section>
 
-          {/* 6. SERVICES & TREATMENTS */}
+          {/* 7. SERVICES & TREATMENTS */}
           <section className={styles.section}>
             <h2 className={styles.sectionTitle}>Services & Treatments</h2>
 
@@ -461,7 +482,7 @@ export default function CreateClinic() {
             </div>
           </section>
 
-          {/* 7. PRICING & BOOKING */}
+          {/* 8. PRICING & BOOKING */}
           <section className={styles.section}>
             <h2 className={styles.sectionTitle}>Pricing & Booking</h2>
 

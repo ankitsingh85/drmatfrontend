@@ -4,6 +4,7 @@ import { useRouter } from "next/router";
 import { Product } from "../types/product";
 import fallbackImg from "@/public/product1.png";
 import { resolveMediaUrl } from "@/lib/media";
+import { useCart } from "@/context/CartContext";
 
 interface ProductCardProps {
   products: Product[];
@@ -11,6 +12,7 @@ interface ProductCardProps {
 
 const ProductCard: React.FC<ProductCardProps> = ({ products }) => {
   const router = useRouter();
+  const { addToCart, cartItems } = useCart();
   const slugify = (value: string) =>
     value
       .toLowerCase()
@@ -19,7 +21,23 @@ const ProductCard: React.FC<ProductCardProps> = ({ products }) => {
 
   const handleAddToCart = (event: React.MouseEvent<HTMLButtonElement>, product: Product) => {
     event.stopPropagation();
-    alert(`${product.name} added to cart!`);
+    const payload = {
+      id: String(product.id),
+      name: product.name,
+      price: Number(product.price || 0),
+      mrp: product.mrp,
+      discount: product.discount,
+      company: product.category?.name,
+      image: product.image?.[0] || fallbackImg.src,
+      itemType: "product" as const,
+    };
+
+    if (cartItems.some((item) => item.id === payload.id)) {
+      router.push("/home/Cart");
+      return;
+    }
+
+    addToCart(payload);
   };
 
   return (

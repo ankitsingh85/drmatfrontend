@@ -17,7 +17,6 @@ const ListOfClinicCategory = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [editingCategory, setEditingCategory] = useState<ClinicCategory | null>(null);
-  const [editCategoryId, setEditCategoryId] = useState("");
   const [editName, setEditName] = useState("");
   const [editImage, setEditImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -318,19 +317,12 @@ const ListOfClinicCategory = () => {
       </div>
 
       <div
-        style={{
-          marginTop: 12,
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          gap: 12,
-          flexWrap: "wrap",
-        }}
+        className={styles.paginationBar}
       >
-          <p style={{ margin: 0 }}>
+          <p className={styles.paginationInfo}>
             Showing {paginatedCategories.length} of {filteredCategories.length}
           </p>
-        <div style={{ display: "flex", gap: 8 }}>
+        <div className={styles.paginationControls}>
           <button
             type="button"
             className={`${styles.premiumButton} ${
@@ -341,7 +333,7 @@ const ListOfClinicCategory = () => {
           >
             Prev
           </button>
-          <span style={{ alignSelf: "center" }}>
+          <span className={styles.pageIndicator}>
             Page {currentPage} of {totalPages}
           </span>
           <button
@@ -360,22 +352,26 @@ const ListOfClinicCategory = () => {
       {editingCategory && (
         <div className={styles.modalOverlay}>
           <div className={styles.modal}>
-            <h3>Edit Clinic Category</h3>
+            <div className={styles.modalHeader}>
+              <h3 className={styles.modalTitle}>Edit Clinic Category</h3>
+              <button type="button" className={styles.closeBtn} onClick={handleCloseModal}>
+                ×
+              </button>
+            </div>
             {error && <p className={styles.error}>{error}</p>}
-            <form onSubmit={handleEditSubmit}>
-              <label>Category Name</label>
+            <form onSubmit={handleEditSubmit} className={styles.modalForm}>
+              <label className={styles.modalLabel}>Category Name</label>
               <input
                 type="text"
                 value={editName}
+                className={styles.modalInput}
                 onChange={(e) => setEditName(e.target.value)}
                 required
               />
 
-              <label>Category Image (Max 1MB)</label>
-              <input type="file" accept="image/*" onChange={handleImageChange} />
-              {previewUrl && (
-                <img src={previewUrl} className={styles.preview} alt="Preview" />
-              )}
+              <label className={styles.modalLabel}>Category Image (Max 1MB)</label>
+              <input className={styles.fileInput} type="file" accept="image/*" onChange={handleImageChange} />
+              {previewUrl && <img src={previewUrl} className={styles.preview} alt="Preview" />}
               {!editImage && existingImageUrl && (
                 <p className={styles.noImage}>Using existing uploaded image</p>
               )}

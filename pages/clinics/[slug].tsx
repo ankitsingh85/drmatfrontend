@@ -17,6 +17,7 @@ interface Clinic {
   name: string;
   clinicName?: string;
   description?: string;
+  clinicDescription?: string;
   address?: string;
   photos?: string[];
   contactNumber?: string;
@@ -38,6 +39,21 @@ interface ClinicService {
   id: string;
   name: string;
 }
+
+const stripHtml = (value?: string) => {
+  if (!value) return "";
+
+  if (typeof window !== "undefined" && typeof DOMParser !== "undefined") {
+    const parsed = new DOMParser().parseFromString(value, "text/html");
+    return parsed.body.textContent?.replace(/\s+/g, " ").trim() || "";
+  }
+
+  return value
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+};
 
 const ClinicDetailPage = () => {
   const router = useRouter();
@@ -114,6 +130,7 @@ const ClinicDetailPage = () => {
         const normalizedClinic: Clinic = {
           ...data,
           name: data.name || data.clinicName || "Clinic",
+          description: stripHtml(data.description || data.clinicDescription || ""),
           photos:
             normalizedImages.length > 0
               ? Array.from(new Set(normalizedImages))

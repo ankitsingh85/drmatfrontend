@@ -264,6 +264,262 @@
   box-shadow: 0 16px 40px rgba(23, 43, 73, 0.06);
 }
 
+.dashboardLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+  gap: 16px;
+  margin-top: 18px;
+}
+
+.dashboardPanel,
+.leadPanel,
+.checklistPanel {
+  border-radius: 22px;
+  padding: 18px;
+}
+
+.checklistPanel {
+  background: linear-gradient(180deg, #f8fbff 0%, #eef5ff 100%);
+  border: 1px solid rgba(153, 169, 192, 0.2);
+}
+
+.leadPanel {
+  background: #fff;
+  border: 1px solid rgba(153, 169, 192, 0.2);
+}
+
+.sectionHeading {
+  margin: 0;
+  color: #163252;
+}
+
+.sectionSubtext {
+  margin: 6px 0 0;
+  color: #5f718a;
+}
+
+.completionBadge {
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: #fff;
+  color: #173252;
+  font-weight: 800;
+  border: 1px solid rgba(153, 169, 192, 0.22);
+}
+
+.progressCard {
+  margin-top: 14px;
+  padding: 12px;
+  border-radius: 16px;
+  background: #fff;
+  border: 1px solid rgba(153, 169, 192, 0.18);
+}
+
+.progressHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.progressTitle {
+  font-weight: 700;
+  color: #173252;
+}
+
+.progressHint {
+  color: #5f718a;
+  font-size: 0.9rem;
+}
+
+.progressTrack {
+  width: 100%;
+  height: 12px;
+  border-radius: 999px;
+  background: #e8eef7;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.3s ease;
+  background: linear-gradient(90deg, #2563eb 0%, #60a5fa 100%);
+}
+
+.progressFillHigh {
+  background: linear-gradient(90deg, #16a34a 0%, #22c55e 100%);
+}
+
+.progress25 {
+  width: 25%;
+}
+
+.progress50 {
+  width: 50%;
+}
+
+.progress75 {
+  width: 75%;
+}
+
+.progress100 {
+  width: 100%;
+}
+
+.checklistGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.checklistItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: #fff;
+  border: 1px solid rgba(153, 169, 192, 0.18);
+  color: #314461;
+  font-weight: 600;
+}
+
+.checklistStatusDone {
+  color: #15803d;
+}
+
+.checklistStatusMissing {
+  color: #b45309;
+}
+
+.quickActionsGrid {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.quickActionBtn {
+  width: 100%;
+  border: 1px solid rgba(153, 169, 192, 0.22);
+  border-radius: 16px;
+  background: linear-gradient(180deg, #fff 0%, #f7faff 100%);
+  padding: 14px 16px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.quickActionRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.quickActionTitle {
+  font-weight: 800;
+  color: #163252;
+}
+
+.quickActionDesc {
+  font-size: 0.9rem;
+  color: #5f718a;
+  margin-top: 4px;
+}
+
+.recentList {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.leadEmptyState {
+  padding: 16px;
+  border-radius: 16px;
+  background: #f9fbff;
+  border: 1px dashed rgba(114, 130, 154, 0.35);
+  color: #41556f;
+}
+
+.recentLeadCard {
+  padding: 14px;
+  border-radius: 16px;
+  background: #f9fbff;
+  border: 1px solid rgba(153, 169, 192, 0.18);
+}
+
+.recentLeadHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.recentLeadTitle {
+  color: #163252;
+  font-weight: 700;
+}
+
+.recentLeadDate {
+  font-size: 0.85rem;
+  color: #6d7f98;
+}
+
+.recentLeadUser {
+  margin: 8px 0 0;
+  color: #314461;
+}
+
+.sectionSpacer {
+  margin-top: 18px;
+}
+
+.inlineCenter {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dashboardActionButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dashboardRightHeader {
+  margin: 0;
+  color: #163252;
+}
+
+.sectionNoInline {
+  display: block;
+}
+
+.sectionStack {
+  display: grid;
+  gap: 18px;
+}
+
+.sectionFocus {
+  margin-top: 18px;
+}
+
+.placeholderBoxTitle {
+  margin: 0 0 10px;
+  font-size: 1.2rem;
+  color: #163252;
+}
+
+.placeholderBoxInline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sectionShelll{display: none;}
 .placeholderBox {
   padding: 28px;
   border-radius: 22px;
@@ -325,6 +581,10 @@
 
   .heroStats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dashboardLayout {
+    grid-template-columns: 1fr;
   }
 
   .mobileHeader {

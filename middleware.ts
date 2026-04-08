@@ -42,7 +42,7 @@ export function middleware(req: NextRequest) {
 
   if (token) {
     if (lowerPath.startsWith("/cliniclogin") && role === "clinic") {
-      return NextResponse.redirect(new URL("/ClinicDashboard", req.url));
+      return NextResponse.redirect(new URL("/home", req.url));
     }
 
     if (lowerPath.startsWith("/clinicdashboard") && role !== "clinic") {

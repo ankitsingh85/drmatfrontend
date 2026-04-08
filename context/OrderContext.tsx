@@ -9,6 +9,8 @@ import { API_URL } from "@/config/api";
 export interface IOrder {
   _id?: string;
   userId?: string;
+  clinicId?: string;
+  ownerType?: "user" | "clinic";
   orderType?: "product" | "treatment";
   products: {
     id: string;
@@ -29,7 +31,8 @@ interface OrderContextType {
     items: CartItem[],
     total: number,
     address: { type: string; address: string },
-    orderType?: "product" | "treatment"
+    orderType?: "product" | "treatment",
+    options?: { ownerType?: "user" | "clinic"; clinicId?: string }
   ) => Promise<void>;
   setOrders: React.Dispatch<React.SetStateAction<IOrder[]>>;
 }
@@ -45,24 +48,32 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({
     items: CartItem[],
     total: number,
     address: { type: string; address: string },
-    orderType: "product" | "treatment" = "product"
+    orderType: "product" | "treatment" = "product",
+    options?: { ownerType?: "user" | "clinic"; clinicId?: string }
   ) => {
+    const ownerType = options?.ownerType || (Cookies.get("role")?.toLowerCase() === "clinic" ? "clinic" : "user");
+    const clinicId = options?.clinicId || Cookies.get("clinicId") || localStorage.getItem("clinicId") || "";
+
     let userId = Cookies.get("userId") || localStorage.getItem("userId");
-    if (!userId) {
-      const token = Cookies.get("token");
-      if (!token) throw new Error("Please log in to place an order");
-      const res = await fetch(`${API_URL}/users/me`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error("Please log in to place an order");
-      const data = await res.json();
-      const resolvedId = data._id || data.id;
-      if (!resolvedId) throw new Error("User not logged in");
-      userId = resolvedId;
-      Cookies.set("userId", resolvedId);
-      localStorage.setItem("userId", resolvedId);
+    if (ownerType === "user") {
+      if (!userId) {
+        const token = Cookies.get("token");
+        if (!token) throw new Error("Please log in to place an order");
+        const res = await fetch(`${API_URL}/users/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) throw new Error("Please log in to place an order");
+        const data = await res.json();
+        const resolvedId = data._id || data.id;
+        if (!resolvedId) throw new Error("User not logged in");
+        userId = resolvedId;
+        Cookies.set("userId", resolvedId);
+        localStorage.setItem("userId", resolvedId);
+      }
+      if (!userId) throw new Error("User not logged in");
+    } else if (!clinicId) {
+      throw new Error("Clinic not logged in");
     }
-    if (!userId) throw new Error("User not logged in");
 
     try {
       const formattedProducts = items.map((item) => ({
@@ -80,7 +91,9 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({
           : orderType;
 
       const res = await axios.post(`${API_URL}/orders`, {
-        userId,
+        userId: ownerType === "user" ? userId : undefined,
+        clinicId: ownerType === "clinic" ? clinicId : undefined,
+        ownerType,
         products: formattedProducts,
         totalAmount: total,
         address,

@@ -102,14 +102,15 @@
   letter-spacing: 0.6px;
   color: #475569;
   display: inline-block;
-  margin-top: 4px;
+  margin-top: 20px;
 }
 
 /* ===== INPUTS ===== */
 .input,
 .select,
 .readonlyInput,
-.textarea {
+.textarea,
+.fileInput {
   padding: 16px 18px;
   border-radius: 16px;
   border: 1px solid #cbd5f5;
@@ -251,6 +252,78 @@
   color: #b91c1c;
   font-size: 13px;
   font-weight: 600;
+}
+
+.uploadSummary {
+  margin-top: 14px;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid #cbd5f5;
+  background: linear-gradient(180deg, #ffffff, #f8fafc);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+}
+
+.uploadSummaryHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.uploadCount {
+  font-size: 15px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.uploadHint {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.uploadChips {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.uploadChip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+}
+
+.uploadChipName {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.uploadChipRemove {
+  border: none;
+  background: #fee2e2;
+  color: #991b1b;
+  padding: 6px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.uploadChipRemove:hover {
+  background: #fecaca;
 }
 
 .success {

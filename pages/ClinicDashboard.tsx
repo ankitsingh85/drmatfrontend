@@ -8,7 +8,6 @@ import {
   FiHome,
   FiCalendar,
   FiUsers,
-  FiClipboard,
   FiHelpCircle,
   FiSettings,
   FiStar,
@@ -17,22 +16,18 @@ import {
   FiMenu,
   FiX,
   FiLogOut,
-  FiPhone,
-  FiMail,
 } from "react-icons/fi";
 
 import styles from "@/styles/clinicdashboard/clinicportal.module.css";
 import { API_URL } from "@/config/api";
+import Topbar from "@/components/Layout/Topbar";
+import Footer from "@/components/Layout/Footer";
 
-import ClinicOverview from "@/components/ClinicAdmin/ClinicDashboardList";
-import Appointment from "@/components/ClinicAdmin/Appointment";
-import Doctors from "@/components/ClinicAdmin/Doctors";
+// import ClinicOverview from "@/components/ClinicAdmin/ClinicDashboardList";
+// import Appointment from "@/components/ClinicAdmin/Appointment";
+import Lead from "@/components/ClinicAdmin/Lead";
 import EditClinic from "@/components/ClinicAdmin/EditClinic";
-import ClinicServices from "@/components/ClinicAdmin/CreateServices";
-import ListOfAppointments from "@/components/ClinicAdmin/ListOfAppointments";
-import ListOfDoctors from "@/components/ClinicAdmin/ListOfDoctors";
-import ListOfServices from "@/components/ClinicAdmin/ListOfServices";
-import PurchasedServices from "@/components/ClinicAdmin/PurchasedServices";
+
 
 type JwtPayload = {
   id: string;
@@ -59,7 +54,7 @@ type SectionId =
   | "dashboard"
   | "profile"
   | "appointments"
-  | "doctors"
+  | "lead"
   | "services"
   | "purchased"
   | "help"
@@ -106,6 +101,15 @@ export default function ClinicDashboard() {
   const router = useRouter();
   const [clinicId, setClinicId] = useState("");
   const [clinic, setClinic] = useState<ClinicRecord | null>(null);
+  const [leadCount, setLeadCount] = useState(0);
+  const [recentLeads, setRecentLeads] = useState<
+    Array<{
+      _id: string;
+      actionType?: "call" | "whatsapp";
+      userName?: string;
+      createdAt?: string;
+    }>
+  >([]);
   const [activeSection, setActiveSection] = useState<SectionId>("dashboard");
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [loadingClinic, setLoadingClinic] = useState(false);
@@ -169,9 +173,33 @@ export default function ClinicDashboard() {
     }
   };
 
+  const fetchLeadSummary = async (id: string) => {
+    const token = Cookies.get("token");
+    if (!id || !token) return;
+
+    try {
+      const res = await fetch(`${API_URL}/leads/clinic/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!res.ok) return;
+
+      const data = await res.json();
+      const items = Array.isArray(data) ? data : [];
+      setLeadCount(items.length);
+      setRecentLeads(items.slice(0, 3));
+    } catch {
+      setLeadCount(0);
+      setRecentLeads([]);
+    }
+  };
+
   useEffect(() => {
     if (clinicId) {
       fetchClinic(clinicId);
+      void fetchLeadSummary(clinicId);
     }
   }, [clinicId]);
 
@@ -201,9 +229,10 @@ export default function ClinicDashboard() {
     () => [
       { id: "dashboard" as const, label: "Dashboard", icon: FiHome },
       { id: "appointments" as const, label: "Appointments", icon: FiCalendar },
-      { id: "doctors" as const, label: "Doctors", icon: FiUsers },
-      { id: "services" as const, label: "Services", icon: FiClipboard },
-      { id: "purchased" as const, label: "Purchased Services", icon: FiClipboard },
+      { id: "lead" as const, label: "Lead", icon: FiUsers },
+      // { id: "doctors" as const, label: "Doctors", icon: FiUsers },
+      // { id: "services" as const, label: "Services", icon: FiClipboard },
+      // { id: "purchased" as const, label: "Purchased Services", icon: FiClipboard },
       { id: "help" as const, label: "Help Center", icon: FiHelpCircle },
       { id: "settings" as const, label: "Settings", icon: FiSettings },
       { id: "rating" as const, label: "Like Us? Give us 5 Stars", icon: FiStar },
@@ -215,11 +244,208 @@ export default function ClinicDashboard() {
     (countFilledProfileFields(clinic) / 10) * 100
   );
 
+  const dashboardCards = [
+    {
+      label: "Profile completion",
+      value: `${profileCompletion}%`,
+      detail:
+        profileCompletion >= 80
+          ? "Your listing looks strong."
+          : "Fill a few more details to improve visibility.",
+    },
+    {
+      label: "Doctors added",
+      value: String(clinic?.doctors?.length || 0),
+      detail: "Team members listed in your clinic profile.",
+    },
+    {
+      label: "Lead count",
+      value: String(leadCount),
+      detail: "Users who tapped Call or WhatsApp.",
+    },
+    {
+      label: "Contact status",
+      value: clinic?.contactNumber || clinic?.email || "Pending",
+      detail: "Primary contact shown to patients.",
+    },
+  ];
+
+  const profileChecklist = [
+    { label: "Clinic name", done: Boolean(clinic?.clinicName) },
+    { label: "Contact number", done: Boolean(clinic?.contactNumber) },
+    { label: "Email", done: Boolean(clinic?.email) },
+    { label: "Website", done: Boolean(clinic?.website) },
+    { label: "Logo", done: Boolean(clinic?.clinicLogo) },
+    { label: "Doctors", done: Boolean(clinic?.doctors?.length) },
+    { label: "Photos", done: Boolean(clinic?.photos?.length) },
+    { label: "Offers", done: Boolean(clinic?.specialOffers?.length) },
+    { label: "Certifications", done: Boolean(clinic?.certifications?.length) },
+  ];
+
+  const quickActions = [
+    {
+      label: "Edit Profile",
+      description: "Update clinic info",
+      action: () => setActiveSection("profile"),
+    },
+    {
+      label: "View Leads",
+      description: "Open lead inbox",
+      action: () => setActiveSection("lead"),
+    },
+  ];
+
+  const renderDashboardOverview = () => (
+    <div className={styles.sectionShell}>
+      <div className={styles.heroTop}>
+        <div>
+          <p className={styles.kicker}>Business Workspace</p>
+          <h2 className={styles.title}>{activeTitle}</h2>
+          <p className={styles.subtitle}>
+            Manage your clinic details, track user interest, and keep the
+            profile complete from one place. Your dashboard now highlights the
+            most useful signals first.
+          </p>
+        </div>
+
+        <div>
+          <button
+            type="button"
+            className={styles.editProfileBtn}
+            onClick={() => setActiveSection("profile")}
+          >
+            <span className={styles.inlineCenter}>
+              <FiEdit3 />
+              Edit Profile
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <div className={styles.heroStats}>
+        {dashboardCards.map((card) => (
+          <div key={card.label} className={styles.statCard}>
+            <p className={styles.statLabel}>{card.label}</p>
+            <p className={styles.statValue}>{card.value}</p>
+            <p className={styles.sectionSubtext}>{card.detail}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className={styles.dashboardLayout}>
+        <div className={styles.checklistPanel}>
+          <div className={styles.heroTop}>
+            <div>
+              <h3 className={styles.sectionHeading}>Profile checklist</h3>
+              <p className={styles.sectionSubtext}>
+                These are the fields we use to build a stronger clinic profile.
+              </p>
+            </div>
+            <span className={styles.completionBadge}>
+              {profileCompletion}% complete
+            </span>
+          </div>
+
+          <div className={styles.progressCard}>
+            <div className={styles.progressHeader}>
+              <span className={styles.progressTitle}>Profile progress</span>
+              <span className={styles.progressHint}>
+                Keep filling the missing items
+              </span>
+            </div>
+            <div className={styles.progressTrack}>
+              <div
+                className={`${styles.progressFill} ${
+                  profileCompletion >= 80 ? styles.progressFillHigh : ""
+                } ${
+                  profileCompletion >= 90
+                    ? styles.progress100
+                    : profileCompletion >= 75
+                    ? styles.progress75
+                    : profileCompletion >= 50
+                    ? styles.progress50
+                    : profileCompletion >= 25
+                    ? styles.progress25
+                    : ""
+                }`}
+              />
+            </div>
+          </div>
+
+          <div className={styles.checklistGrid}>
+            {profileChecklist.map((item) => (
+              <div key={item.label} className={styles.checklistItem}>
+                <span>{item.label}</span>
+                <span
+                  className={
+                    item.done ? styles.checklistStatusDone : styles.checklistStatusMissing
+                  }
+                >
+                  {item.done ? "Done" : "Missing"}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className={styles.leadPanel}>
+          <h3 className={styles.sectionHeading}>Recent leads</h3>
+          <p className={styles.sectionSubtext}>
+            Latest user actions from your clinic card.
+          </p>
+
+          <div className={styles.quickActionsGrid}>
+            {quickActions.map((item) => (
+              <button
+                key={item.label}
+                type="button"
+                onClick={item.action}
+                className={styles.quickActionBtn}
+              >
+                <div className={styles.quickActionRow}>
+                  <div>
+                    <div className={styles.quickActionTitle}>{item.label}</div>
+                    <div className={styles.quickActionDesc}>{item.description}</div>
+                  </div>
+                  <FiChevronRight color="#64748b" />
+                </div>
+              </button>
+            ))}
+          </div>
+
+          <div className={styles.recentList}>
+            {recentLeads.length === 0 ? (
+              <div className={styles.leadEmptyState}>No lead activity yet.</div>
+            ) : (
+              recentLeads.map((item) => (
+                <div key={item._id} className={styles.recentLeadCard}>
+                  <div className={styles.recentLeadHeader}>
+                    <strong className={styles.recentLeadTitle}>
+                      {item.actionType === "whatsapp" ? "WhatsApp" : "Call"}
+                    </strong>
+                    <span className={styles.recentLeadDate}>
+                      {item.createdAt
+                        ? new Date(item.createdAt).toLocaleString()
+                        : ""}
+                    </span>
+                  </div>
+                  <p className={styles.recentLeadUser}>
+                    {item.userName || "Unknown user"}
+                  </p>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   const activeTitle = {
     dashboard: "Clinic Dashboard",
     profile: "Edit Profile",
     appointments: "Appointments",
-    doctors: "Doctors",
+    lead: "Lead",
     services: "Services",
     purchased: "Purchased Services",
     help: "Help Center",
@@ -229,11 +455,7 @@ export default function ClinicDashboard() {
 
   const renderContent = () => {
     if (activeSection === "dashboard") {
-      return (
-        <div className={styles.sectionShell}>
-          <ClinicOverview />
-        </div>
-      );
+      return renderDashboardOverview();
     }
 
     if (activeSection === "profile") {
@@ -244,47 +466,21 @@ export default function ClinicDashboard() {
       );
     }
 
-    if (activeSection === "appointments") {
-      return (
-        <div className={styles.sectionShell}>
-          <Appointment />
-        </div>
-      );
-    }
-
-    if (activeSection === "doctors") {
-      return (
-        <div className={styles.sectionShell}>
-          <Doctors />
-        </div>
-      );
-    }
-
-    if (activeSection === "services") {
-      return (
-        <div className={styles.sectionShell}>
-          <ClinicServices />
-        </div>
-      );
-    }
-
-    if (activeSection === "purchased") {
-      return (
-        <div className={styles.sectionShell}>
-          <PurchasedServices />
-        </div>
-      );
-    }
-
     return (
       <div className={styles.sectionShell}>
         <div className={styles.placeholderBox}>
           <h3>{activeTitle}</h3>
           <p>
-            This section is ready for your clinic workspace. You can keep using
-            the dashboard tools on the left while we wire more actions here.
+            This section opens in a focused view so the Dashboard stays clean
+            and the important summary remains only on the main tab.
           </p>
         </div>
+
+        {activeSection === "lead" && (
+          <div className={styles.sectionSpacer}>
+            <Lead clinicId={clinicId} />
+          </div>
+        )}
       </div>
     );
   };
@@ -360,7 +556,7 @@ export default function ClinicDashboard() {
 
       <div className={styles.sidebarFooter}>
         <button type="button" className={styles.logoutBtn} onClick={handleLogout}>
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+          <span className={styles.inlineCenter}>
             <FiLogOut />
             Logout
           </span>
@@ -370,127 +566,49 @@ export default function ClinicDashboard() {
   );
 
   return (
-    <div className={styles.page}>
-      {isMobile && sidebarOpen && (
-        <div
-          className={styles.mobileSidebarBackdrop}
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
+    <>
+      <Topbar />
 
-      {isMobile && (
-        <div className={styles.mobileHeader}>
-          <button
-            type="button"
-            className={styles.menuToggle}
-            onClick={() => setSidebarOpen((prev) => !prev)}
-            aria-label="Toggle clinic menu"
-          >
-            {sidebarOpen ? <FiX /> : <FiMenu />}
-          </button>
+      <div className={styles.page}>
+        {isMobile && sidebarOpen && (
+          <div
+            className={styles.mobileSidebarBackdrop}
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+
+        {isMobile && (
+          <div className={styles.mobileHeader}>
+            <button
+              type="button"
+              className={styles.menuToggle}
+              onClick={() => setSidebarOpen((prev) => !prev)}
+              aria-label="Toggle clinic menu"
+            >
+              {sidebarOpen ? <FiX /> : <FiMenu />}
+            </button>
+          </div>
+        )}
+
+        <div className={styles.shell}>
+          {sidebar}
+
+          <main className={styles.content}>
+            {loadingClinic ? (
+              <div className={styles.sectionShell}>
+                <div className={styles.placeholderBox}>
+                  <h3>Loading clinic profile</h3>
+                  <p>Please wait while we fetch your clinic details.</p>
+                </div>
+              </div>
+            ) : (
+              renderContent()
+            )}
+          </main>
         </div>
-      )}
-
-      <div className={styles.shell}>
-        {sidebar}
-
-        <main className={styles.content}>
-          <section className={styles.contentHero}>
-            <div className={styles.heroTop}>
-              <div>
-                <p className={styles.kicker}>Business Workspace</p>
-                <h2 className={styles.title}>{activeTitle}</h2>
-                <p className={styles.subtitle}>
-                  Manage your clinic details, content, and daily operations from
-                  one clean workspace. Update your profile whenever you need to
-                  keep the clinic listing complete and current.
-                </p>
-              </div>
-
-              <div>
-                <button
-                  type="button"
-                  className={styles.editProfileBtn}
-                  onClick={() => setActiveSection("profile")}
-                >
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-                    <FiEdit3 />
-                    Edit Profile
-                  </span>
-                </button>
-              </div>
-            </div>
-
-            <div className={styles.heroStats}>
-              <div className={styles.statCard}>
-                <p className={styles.statLabel}>Profile completion</p>
-                <p className={styles.statValue}>{profileCompletion}%</p>
-              </div>
-              <div className={styles.statCard}>
-                <p className={styles.statLabel}>Doctors added</p>
-                <p className={styles.statValue}>{clinic?.doctors?.length || 0}</p>
-              </div>
-              <div className={styles.statCard}>
-                <p className={styles.statLabel}>Contact</p>
-                <p className={styles.statValue}>
-                  {clinic?.contactNumber || clinic?.email || "Pending"}
-                </p>
-              </div>
-              <div className={styles.statCard}>
-                <p className={styles.statLabel}>Support</p>
-                <p className={styles.statValue}>Ready</p>
-              </div>
-            </div>
-
-            <div style={{ display: "flex", gap: 12, marginTop: 18, flexWrap: "wrap" }}>
-              <span
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 8,
-                  padding: "10px 14px",
-                  borderRadius: 999,
-                  background: "#fff",
-                  border: "1px solid rgba(153, 169, 192, 0.25)",
-                  color: "#39506b",
-                  fontWeight: 600,
-                }}
-              >
-                <FiPhone />
-                {clinic?.contactNumber || "No mobile number"}
-              </span>
-
-              <span
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 8,
-                  padding: "10px 14px",
-                  borderRadius: 999,
-                  background: "#fff",
-                  border: "1px solid rgba(153, 169, 192, 0.25)",
-                  color: "#39506b",
-                  fontWeight: 600,
-                }}
-              >
-                <FiMail />
-                {clinic?.email || "No email yet"}
-              </span>
-            </div>
-          </section>
-
-          {loadingClinic ? (
-            <div className={styles.sectionShell}>
-              <div className={styles.placeholderBox}>
-                <h3>Loading clinic profile</h3>
-                <p>Please wait while we fetch your clinic details.</p>
-              </div>
-            </div>
-          ) : (
-            renderContent()
-          )}
-        </main>
       </div>
-    </div>
+
+      <Footer />
+    </>
   );
 }

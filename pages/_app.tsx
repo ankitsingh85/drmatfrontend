@@ -11,6 +11,7 @@ import { TopbarProfileProvider } from "@/context/TopbarProfileContext";
 
 // Global Loader
 import { LoaderProvider } from "@/components/global/LoderProvider";
+import CartToast from "@/components/common/CartToast";
 
 export default function App({ Component, pageProps }: AppProps) {
   const [isDesktop, setIsDesktop] = useState(false);
@@ -33,6 +34,7 @@ export default function App({ Component, pageProps }: AppProps) {
           <OrderProvider>
             <LoaderProvider>
               <Component {...pageProps} />
+              <CartToast />
 
             {/* Optional cursor */}
             {/* {isDesktop && (
