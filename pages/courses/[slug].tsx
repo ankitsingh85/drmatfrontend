@@ -100,6 +100,31 @@ const slugify = (value: string) =>
     .replace(/^-+|-+$/g, "")
     .replace(/-{2,}/g, "-");
 
+const getYoutubeEmbedUrl = (value?: string) => {
+  if (!value) return "";
+
+  try {
+    const url = new URL(value);
+
+    if (url.hostname.includes("youtu.be")) {
+      const videoId = url.pathname.split("/").filter(Boolean)[0];
+      return videoId ? `https://www.youtube.com/embed/${videoId}` : "";
+    }
+
+    if (url.hostname.includes("youtube.com")) {
+      const videoId = url.searchParams.get("v");
+      if (videoId) return `https://www.youtube.com/embed/${videoId}`;
+
+      const embedMatch = url.pathname.match(/\/embed\/([^/]+)/);
+      if (embedMatch?.[1]) return `https://www.youtube.com/embed/${embedMatch[1]}`;
+    }
+  } catch {
+    return "";
+  }
+
+  return "";
+};
+
 const CourseDetailPage = () => {
   const router = useRouter();
   const { slug } = router.query;
@@ -110,6 +135,14 @@ const CourseDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showAllLearning, setShowAllLearning] = useState(false);
+  const [isVideoOpen, setIsVideoOpen] = useState(false);
+
+  useEffect(() => {
+    document.body.style.overflow = isVideoOpen ? "hidden" : "auto";
+    return () => {
+      document.body.style.overflow = "auto";
+    };
+  }, [isVideoOpen]);
 
   useEffect(() => {
     if (!resolvedSlug) return;
@@ -238,6 +271,9 @@ const CourseDetailPage = () => {
     router.push("/home/Cart");
   };
 
+  const demoVideoEmbedUrl = getYoutubeEmbedUrl(course.courseDemoVideo);
+  const demoVideoFallbackUrl = course.courseDemoVideo || "";
+
   return (
     <>
       <Topbar />
@@ -361,14 +397,13 @@ const CourseDetailPage = () => {
                 </div>
 
                 {course.courseDemoVideo ? (
-                  <a
-                    href={course.courseDemoVideo}
-                    target="_blank"
-                    rel="noreferrer"
+                  <button
+                    type="button"
                     className={styles.downloadButton}
+                    onClick={() => setIsVideoOpen(true)}
                   >
                     Watch Demo Video
-                  </a>
+                  </button>
                 ) : (
                   <button type="button" className={styles.downloadButtonDisabled} disabled>
                     Demo Unavailable
@@ -530,6 +565,57 @@ const CourseDetailPage = () => {
             </article>
           </aside>
         </section>
+
+        {isVideoOpen && (
+          <div
+            className={styles.videoModalBackdrop}
+            onClick={() => setIsVideoOpen(false)}
+          >
+            <div
+              className={styles.videoModal}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className={styles.videoModalHeader}>
+                <div>
+                  <p className={styles.videoModalKicker}>Course Demo</p>
+                  <h3 className={styles.videoModalTitle}>{course.courseName}</h3>
+                </div>
+
+                <button
+                  type="button"
+                  className={styles.videoModalClose}
+                  onClick={() => setIsVideoOpen(false)}
+                  aria-label="Close demo video"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className={styles.videoFrame}>
+                {demoVideoEmbedUrl ? (
+                  <iframe
+                    src={demoVideoEmbedUrl}
+                    title={`${course.courseName} demo video`}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowFullScreen
+                  />
+                ) : (
+                  <div className={styles.videoFallback}>
+                    <p>Preview is unavailable for this video link.</p>
+                    <a
+                      href={demoVideoFallbackUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className={styles.videoFallbackLink}
+                    >
+                      Open video
+                    </a>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </main>
       <Footer />
     </>
