@@ -12,6 +12,7 @@ import { FaUserCircle, FaShoppingCart, FaCreditCard } from "react-icons/fa";
 import { BsShieldCheck } from "react-icons/bs";
 import {
   MdOutlineEdit,
+  MdOutlineDelete,
   MdOutlineRadioButtonChecked,
   MdOutlineRadioButtonUnchecked,
 } from "react-icons/md";
@@ -47,6 +48,7 @@ interface IClinicProfile {
   email?: string;
   contactNumber?: string;
   address?: string;
+  addresses?: Address[];
   clinicLogo?: string;
   ownerName?: string;
 }
@@ -55,8 +57,13 @@ interface IClinicEditForm {
   clinicName: string;
   email: string;
   contactNumber: string;
-  address: string;
   ownerName: string;
+  houseNo: string;
+  street: string;
+  localArea: string;
+  pincode: string;
+  district: string;
+  state: string;
 }
 
 const ADDRESS_TYPES = ["Home", "Work", "Office"] as const;
@@ -80,8 +87,13 @@ const emptyClinicEditForm: IClinicEditForm = {
   clinicName: "",
   email: "",
   contactNumber: "",
-  address: "",
   ownerName: "",
+  houseNo: "",
+  street: "",
+  localArea: "",
+  pincode: "",
+  district: "",
+  state: "",
 };
 
 const sanitizeAddressType = (value?: string): AddressType => {
@@ -89,7 +101,15 @@ const sanitizeAddressType = (value?: string): AddressType => {
   return "Home";
 };
 
-const formatAddressText = (addr: Address) => {
+const formatAddressText = (addr: {
+  houseNo?: string;
+  street?: string;
+  localArea?: string;
+  pincode?: string;
+  district?: string;
+  state?: string;
+  address?: string;
+}) => {
   const parts = [
     addr.houseNo,
     addr.street,
@@ -100,7 +120,7 @@ const formatAddressText = (addr: Address) => {
   ]
     .map((v) => (v || "").trim())
     .filter(Boolean);
-  return parts.join(", ");
+  return parts.join(", ") || (addr.address || "").trim();
 };
 
 const parseLegacyAddress = (value?: string) => {
@@ -142,6 +162,20 @@ const normalizeAddress = (addr: any): Address => {
   };
 };
 
+const createClinicAddress = (clinic: Partial<IClinicProfile> & Partial<Address>) =>
+  normalizeAddress({
+    type: clinic.type || "Office",
+    fullName: clinic.fullName || clinic.clinicName || "",
+    mobileNo: clinic.mobileNo || clinic.contactNumber || "",
+    houseNo: clinic.houseNo || "",
+    street: clinic.street || "",
+    localArea: clinic.localArea || "",
+    pincode: clinic.pincode || "",
+    district: clinic.district || "",
+    state: clinic.state || "",
+    address: clinic.address || "",
+  });
+
 const addressSignature = (addr: Address) =>
   [
     addr.type,
@@ -182,6 +216,30 @@ const toBackendAddress = (addr: Address): Address => ({
   address: formatAddressText(addr),
 });
 
+const clinicAddressStorageKey = (clinicId?: string) =>
+  `clinic-addresses:${clinicId || "guest"}`;
+
+const clinicSelectedAddressStorageKey = (clinicId?: string) =>
+  `clinic-address-index:${clinicId || "guest"}`;
+
+const readStoredClinicAddresses = (clinicId?: string) => {
+  if (typeof window === "undefined") return [] as Address[];
+  try {
+    const stored = localStorage.getItem(clinicAddressStorageKey(clinicId));
+    if (!stored) return [];
+    const parsed = JSON.parse(stored);
+    return Array.isArray(parsed) ? mergeAddresses([], parsed.map(normalizeAddress)) : [];
+  } catch {
+    return [];
+  }
+};
+
+const readStoredClinicAddressIndex = (clinicId?: string) => {
+  if (typeof window === "undefined") return 0;
+  const value = Number(localStorage.getItem(clinicSelectedAddressStorageKey(clinicId)));
+  return Number.isFinite(value) && value >= 0 ? value : 0;
+};
+
 const AddressPage: React.FC = () => {
   const router = useRouter();
   const currentRole = Cookies.get("role")?.toLowerCase();
@@ -196,29 +254,109 @@ const AddressPage: React.FC = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showClinicEditModal, setShowClinicEditModal] = useState(false);
+  const [showClinicAddModal, setShowClinicAddModal] = useState(false);
+  const [showClinicAddressEditModal, setShowClinicAddressEditModal] = useState(false);
   const [editingAddressIndex, setEditingAddressIndex] = useState<number | null>(null);
+  const [editingClinicAddressIndex, setEditingClinicAddressIndex] = useState<number | null>(null);
   const [editAddress, setEditAddress] = useState<Address>({ ...emptyAddress });
   const [newAddress, setNewAddress] = useState<Address>({ ...emptyAddress });
+  const [clinicAddresses, setClinicAddresses] = useState<Address[]>([]);
+  const [selectedClinicAddressIndex, setSelectedClinicAddressIndex] = useState(0);
+  const [clinicNewAddress, setClinicNewAddress] = useState<Address>({
+    ...emptyAddress,
+    type: "Office",
+  });
+  const [clinicEditAddress, setClinicEditAddress] = useState<Address>({
+    ...emptyAddress,
+    type: "Office",
+  });
   const [clinicEditForm, setClinicEditForm] = useState<IClinicEditForm>({ ...emptyClinicEditForm });
   const [isLoadingUser, setIsLoadingUser] = useState(true);
 
-  const fetchPincodeMeta = async (pincode: string, mode: "new" | "edit") => {
+  const fetchPincodeMeta = async (pincode: string, setter: (patch: Partial<Address>) => void) => {
     if (pincode.length !== 6) return;
     try {
       const res = await fetch(`https://api.postalpincode.in/pincode/${pincode}`);
       const data = await res.json();
       const office = data?.[0]?.PostOffice?.[0];
       if (!office) return;
-      const patch = { district: office.District || "", state: office.State || "" };
-      if (mode === "new") {
-        setNewAddress((prev) => ({ ...prev, ...patch }));
-      } else {
-        setEditAddress((prev) => ({ ...prev, ...patch }));
-      }
+      setter({ district: office.District || "", state: office.State || "" });
     } catch {
       // Ignore pincode lookup failures and allow manual entry.
     }
   };
+
+  const updateClinicAddresses = useCallback(
+    async (nextAddresses: Address[], selectedIndex: number, options?: { skipBackend?: boolean }) => {
+      const normalized = mergeAddresses([], nextAddresses.map(normalizeAddress));
+      const safeIndex = normalized.length
+        ? Math.min(Math.max(selectedIndex, 0), normalized.length - 1)
+        : 0;
+
+      setClinicAddresses(normalized);
+      setSelectedClinicAddressIndex(safeIndex);
+
+      if (typeof window !== "undefined") {
+        const clinicId = clinic?._id || Cookies.get("clinicId") || localStorage.getItem("clinicId") || "";
+        localStorage.setItem(clinicAddressStorageKey(clinicId), JSON.stringify(normalized));
+        localStorage.setItem(clinicSelectedAddressStorageKey(clinicId), String(safeIndex));
+      }
+
+      const selectedAddress = normalized[safeIndex] || normalized[0] || emptyAddress;
+      setClinic((prev) =>
+        prev
+          ? {
+              ...prev,
+              address: formatAddressText(selectedAddress),
+              addresses: normalized,
+            }
+          : prev
+      );
+
+      if (options?.skipBackend) return;
+
+      if (clinic?._id) {
+        try {
+          const formData = new FormData();
+          formData.append("clinicName", clinicEditForm.clinicName || clinic?.clinicName || "");
+          formData.append("email", clinicEditForm.email || clinic?.email || "");
+          formData.append(
+            "contactNumber",
+            clinicEditForm.contactNumber || clinic?.contactNumber || ""
+          );
+          formData.append("ownerName", clinicEditForm.ownerName || clinic?.ownerName || "");
+          formData.append("address", formatAddressText(selectedAddress));
+          formData.append("addresses", JSON.stringify(normalized.map(toBackendAddress)));
+
+          const res = await fetch(`${API_URL}/clinics/${clinic._id}`, {
+            method: "PUT",
+            body: formData,
+          });
+
+          if (res.ok) {
+            const updatedClinic = await res.json();
+            setClinic((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    clinicName: updatedClinic.clinicName || prev.clinicName,
+                    email: updatedClinic.email || prev.email,
+                    contactNumber: updatedClinic.contactNumber || prev.contactNumber,
+                    ownerName: updatedClinic.ownerName || prev.ownerName,
+                    address: updatedClinic.address || formatAddressText(selectedAddress),
+                    addresses: normalized,
+                    clinicLogo: updatedClinic.clinicLogo || prev.clinicLogo,
+                  }
+                : prev
+            );
+          }
+        } catch (err) {
+          console.error("Failed to persist clinic addresses:", err);
+        }
+      }
+    },
+    [clinic?._id, clinic?.address, clinic?.clinicName, clinic?.contactNumber, clinic?.email, clinic?.ownerName, clinicEditForm]
+  );
 
   const fetchUser = useCallback(async () => {
     if (isClinicMode) return;
@@ -267,21 +405,54 @@ const AddressPage: React.FC = () => {
       const res = await fetch(`${API_URL}/clinics/${clinicId}`);
       if (!res.ok) throw new Error("Failed to fetch clinic profile");
       const data = await res.json();
+      const apiAddresses = Array.isArray(data.addresses)
+        ? mergeAddresses([], data.addresses.map(normalizeAddress))
+        : [];
+      const fallbackAddress = data.address || "";
+      const initialAddresses =
+        apiAddresses.length > 0
+          ? apiAddresses
+          : fallbackAddress
+          ? [createClinicAddress({
+              clinicName: data.clinicName || Cookies.get("clinicName") || "Clinic",
+              contactNumber: data.contactNumber || Cookies.get("contactNo") || "",
+              address: fallbackAddress,
+            })]
+          : [];
+      const storedAddresses = readStoredClinicAddresses(clinicId);
+      const mergedAddresses = mergeAddresses(initialAddresses, storedAddresses);
+      const selectedIndex = Math.min(
+        readStoredClinicAddressIndex(clinicId),
+        Math.max(0, mergedAddresses.length - 1)
+      );
       setClinic({
         _id: data._id,
         clinicName: data.clinicName || Cookies.get("clinicName") || "Clinic",
         email: data.email || Cookies.get("email") || "",
         contactNumber: data.contactNumber || Cookies.get("contactNo") || "",
         address: data.address || "",
+        addresses: mergedAddresses,
         clinicLogo: data.clinicLogo || "",
         ownerName: data.ownerName || "",
       });
+      setClinicAddresses(mergedAddresses);
+      setSelectedClinicAddressIndex(selectedIndex);
       setClinicEditForm({
         clinicName: data.clinicName || Cookies.get("clinicName") || "",
         email: data.email || Cookies.get("email") || "",
         contactNumber: data.contactNumber || Cookies.get("contactNo") || "",
-        address: data.address || "",
         ownerName: data.ownerName || "",
+        ...(() => {
+          const selected = mergedAddresses[selectedIndex] || mergedAddresses[0] || emptyAddress;
+          return {
+            houseNo: selected.houseNo || "",
+            street: selected.street || "",
+            localArea: selected.localArea || "",
+            pincode: selected.pincode || "",
+            district: selected.district || "",
+            state: selected.state || "",
+          };
+        })(),
       });
     } catch {
       router.replace("/cliniclogin?next=/home/Address");
@@ -365,6 +536,15 @@ const AddressPage: React.FC = () => {
     const clinicOfferTotal = activeItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
     const clinicTotalDiscount = Math.max(0, clinicSubtotalMrp - clinicOfferTotal);
     const clinicTotalPayable = clinicOfferTotal;
+    const clinicProfile = clinic;
+    const selectedClinicAddress =
+      clinicAddresses[selectedClinicAddressIndex] ||
+      clinicAddresses[0] ||
+      createClinicAddress({
+        clinicName: clinicProfile!.clinicName,
+        contactNumber: clinicProfile!.contactNumber || "",
+        address: clinicProfile!.address || "",
+      });
 
     if (!clinic) {
       return (
@@ -444,18 +624,75 @@ const AddressPage: React.FC = () => {
             <div className={styles.addressBox}>
               <div className={styles.addressHeader}>
                 <h3>Clinic Billing Address</h3>
-                <span className={styles.addLink} onClick={handleOpenClinicEditModal}>
-                  Edit Address
-                </span>
-              </div>
-              <div className={styles.addressCard}>
-                <div className={styles.addressText}>
-                  <strong>{clinic.clinicName}</strong>
-                  <p>{clinic.address || "-"}</p>
-                  <small>Phone: {clinic.contactNumber || "-"}</small>
+                <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+                  <span className={styles.addLink} onClick={() => handleOpenClinicAddressModal()}>
+                    + Add Address
+                  </span>
+                  {/* <span className={styles.addLink} onClick={handleOpenClinicEditModal}>
+                    Edit Selected Address
+                  </span> */}
                 </div>
-                <strong>{clinic.ownerName || "Clinic"}</strong>
               </div>
+              {clinicAddresses.length > 0 ? (
+                clinicAddresses.map((addr, index) => {
+                  const isSelected = selectedClinicAddressIndex === index;
+                  return (
+                    <div
+                      key={`${addr.fullName || clinic.clinicName}-${index}`}
+                      className={`${styles.addressCard} ${
+                        isSelected ? styles.addressSelected : ""
+                      }`}
+                    >
+                      <div className={styles.radioRow}>
+                        {isSelected ? (
+                          <MdOutlineRadioButtonChecked
+                            className={styles.radio}
+                            onClick={() => {
+                              setSelectedClinicAddressIndex(index);
+                              updateClinicAddresses(clinicAddresses, index, { skipBackend: true });
+                            }}
+                          />
+                        ) : (
+                          <MdOutlineRadioButtonUnchecked
+                            className={styles.radio}
+                            onClick={() => {
+                              setSelectedClinicAddressIndex(index);
+                              updateClinicAddresses(clinicAddresses, index, { skipBackend: true });
+                            }}
+                          />
+                        )}
+                        <div className={styles.addressText}>
+                          <strong>{addr.fullName || clinic.clinicName}</strong>
+                          <p>{formatAddressText(addr) || addr.address || "-"}</p>
+                          <small>Phone: {addr.mobileNo || clinic.contactNumber || "-"}</small>
+                        </div>
+                        <div className={styles.addressActions}>
+                          <MdOutlineEdit
+                            className={styles.editIcon}
+                            onClick={() => handleOpenClinicAddressModal(index)}
+                          />
+                          <MdOutlineDelete
+                            className={styles.deleteIcon}
+                            onClick={() => handleDeleteClinicAddress(index)}
+                          />
+                        </div>
+                      </div>
+                      <div className={styles.tagRow}>
+                        <strong>{sanitizeAddressType(addr.type)}</strong>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className={styles.addressCard}>
+                  <div className={styles.addressText}>
+                    <strong>{clinic.clinicName}</strong>
+                    <p>{clinic.address || "-"}</p>
+                    <small>Phone: {clinic.contactNumber || "-"}</small>
+                  </div>
+                  <strong>{clinic.ownerName || "Clinic"}</strong>
+                </div>
+              )}
             </div>
           </div>
 
@@ -505,7 +742,7 @@ const AddressPage: React.FC = () => {
                   pathname: "/home/PaymentPage",
                   query: {
                     type: "Clinic",
-                    address: clinic.address,
+                    address: formatAddressText(selectedClinicAddress) || clinic.address,
                     clinicName: clinic.clinicName,
                     clinicId: clinic._id || Cookies.get("clinicId") || "",
                     flow: "clinic",
@@ -521,7 +758,7 @@ const AddressPage: React.FC = () => {
         {showClinicEditModal && (
           <div className={styles.modalOverlay}>
             <div className={styles.modalBox}>
-              <h3>Edit Clinic Address</h3>
+              <h3>Edit Clinic Profile</h3>
               <div className={styles.modalBody}>
                 <div className={styles.modalGrid}>
                   <div>
@@ -563,14 +800,62 @@ const AddressPage: React.FC = () => {
                       }
                     />
                   </div>
-                  <div style={{ gridColumn: "1 / -1" }}>
-                    <label>Clinic Address</label>
-                    <textarea
-                      value={clinicEditForm.address}
+                  <div>
+                    <label>House No</label>
+                    <input
+                      value={clinicEditForm.houseNo}
                       onChange={(e) =>
-                        setClinicEditForm((prev) => ({ ...prev, address: e.target.value }))
+                        setClinicEditForm((prev) => ({ ...prev, houseNo: e.target.value }))
                       }
-                      rows={4}
+                    />
+                  </div>
+                  <div>
+                    <label>Street</label>
+                    <input
+                      value={clinicEditForm.street}
+                      onChange={(e) =>
+                        setClinicEditForm((prev) => ({ ...prev, street: e.target.value }))
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label>Local Area</label>
+                    <input
+                      value={clinicEditForm.localArea}
+                      onChange={(e) =>
+                        setClinicEditForm((prev) => ({ ...prev, localArea: e.target.value }))
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label>Pincode</label>
+                    <input
+                      value={clinicEditForm.pincode}
+                      onChange={(e) => {
+                        const pincode = e.target.value.replace(/\D/g, "").slice(0, 6);
+                        setClinicEditForm((prev) => ({ ...prev, pincode }));
+                        fetchPincodeMeta(pincode, (patch) =>
+                          setClinicEditForm((prev) => ({ ...prev, ...patch }))
+                        );
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label>District</label>
+                    <input
+                      value={clinicEditForm.district}
+                      onChange={(e) =>
+                        setClinicEditForm((prev) => ({ ...prev, district: e.target.value }))
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label>State</label>
+                    <input
+                      value={clinicEditForm.state}
+                      onChange={(e) =>
+                        setClinicEditForm((prev) => ({ ...prev, state: e.target.value }))
+                      }
                     />
                   </div>
                 </div>
@@ -579,6 +864,241 @@ const AddressPage: React.FC = () => {
               <IoClose
                 className={styles.closeBtn}
                 onClick={() => setShowClinicEditModal(false)}
+              />
+            </div>
+          </div>
+        )}
+
+        {showClinicAddModal && (
+          <div className={styles.modalOverlay}>
+            <div className={styles.modalBox}>
+              <h3>Add Clinic Address</h3>
+              <div className={styles.modalBody}>
+                <div className={styles.modalGrid}>
+                  <div>
+                    <label>Full Name</label>
+                    <input
+                      value={clinicNewAddress.fullName || ""}
+                      onChange={(e) =>
+                        setClinicNewAddress((prev) => ({ ...prev, fullName: e.target.value }))
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <label>Mobile No</label>
+                    <input
+                      value={clinicNewAddress.mobileNo || ""}
+                      onChange={(e) =>
+                        setClinicNewAddress((prev) => ({
+                          ...prev,
+                          mobileNo: e.target.value.replace(/\D/g, "").slice(0, 10),
+                        }))
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <label>House No</label>
+                    <input
+                      value={clinicNewAddress.houseNo || ""}
+                      onChange={(e) =>
+                        setClinicNewAddress((prev) => ({ ...prev, houseNo: e.target.value }))
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label>Street</label>
+                    <input
+                      value={clinicNewAddress.street || ""}
+                      onChange={(e) =>
+                        setClinicNewAddress((prev) => ({ ...prev, street: e.target.value }))
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label>Local Area</label>
+                    <input
+                      value={clinicNewAddress.localArea || ""}
+                      onChange={(e) =>
+                        setClinicNewAddress((prev) => ({ ...prev, localArea: e.target.value }))
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label>Pincode</label>
+                    <input
+                      value={clinicNewAddress.pincode || ""}
+                      onChange={(e) => {
+                        const pincode = e.target.value.replace(/\D/g, "").slice(0, 6);
+                        setClinicNewAddress((prev) => ({ ...prev, pincode }));
+                        fetchPincodeMeta(pincode, (patch) =>
+                          setClinicNewAddress((prev) => ({ ...prev, ...patch }))
+                        );
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label>District</label>
+                    <input
+                      value={clinicNewAddress.district || ""}
+                      onChange={(e) =>
+                        setClinicNewAddress((prev) => ({ ...prev, district: e.target.value }))
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label>State</label>
+                    <input
+                      value={clinicNewAddress.state || ""}
+                      onChange={(e) =>
+                        setClinicNewAddress((prev) => ({ ...prev, state: e.target.value }))
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label>Address Type</label>
+                    <select
+                      value={clinicNewAddress.type || "Office"}
+                      onChange={(e) =>
+                        setClinicNewAddress((prev) => ({
+                          ...prev,
+                          type: sanitizeAddressType(e.target.value),
+                        }))
+                      }
+                    >
+                      {ADDRESS_TYPES.map((type) => (
+                        <option key={type} value={type}>
+                          {type}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <button onClick={handleSaveClinicNewAddress}>Save Address</button>
+              </div>
+              <IoClose
+                className={styles.closeBtn}
+                onClick={() => setShowClinicAddModal(false)}
+              />
+            </div>
+          </div>
+        )}
+
+        {showClinicAddressEditModal && (
+          <div className={styles.modalOverlay}>
+            <div className={styles.modalBox}>
+              <h3>Edit Clinic Address</h3>
+              <div className={styles.modalBody}>
+                <div className={styles.modalGrid}>
+                  <div>
+                    <label>Full Name</label>
+                    <input
+                      value={clinicEditAddress.fullName || ""}
+                      onChange={(e) =>
+                        setClinicEditAddress((prev) => ({ ...prev, fullName: e.target.value }))
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <label>Mobile No</label>
+                    <input
+                      value={clinicEditAddress.mobileNo || ""}
+                      onChange={(e) =>
+                        setClinicEditAddress((prev) => ({
+                          ...prev,
+                          mobileNo: e.target.value.replace(/\D/g, "").slice(0, 10),
+                        }))
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <label>House No</label>
+                    <input
+                      value={clinicEditAddress.houseNo || ""}
+                      onChange={(e) =>
+                        setClinicEditAddress((prev) => ({ ...prev, houseNo: e.target.value }))
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label>Street</label>
+                    <input
+                      value={clinicEditAddress.street || ""}
+                      onChange={(e) =>
+                        setClinicEditAddress((prev) => ({ ...prev, street: e.target.value }))
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label>Local Area</label>
+                    <input
+                      value={clinicEditAddress.localArea || ""}
+                      onChange={(e) =>
+                        setClinicEditAddress((prev) => ({ ...prev, localArea: e.target.value }))
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label>Pincode</label>
+                    <input
+                      value={clinicEditAddress.pincode || ""}
+                      onChange={(e) => {
+                        const pincode = e.target.value.replace(/\D/g, "").slice(0, 6);
+                        setClinicEditAddress((prev) => ({ ...prev, pincode }));
+                        fetchPincodeMeta(pincode, (patch) =>
+                          setClinicEditAddress((prev) => ({ ...prev, ...patch }))
+                        );
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label>District</label>
+                    <input
+                      value={clinicEditAddress.district || ""}
+                      onChange={(e) =>
+                        setClinicEditAddress((prev) => ({ ...prev, district: e.target.value }))
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label>State</label>
+                    <input
+                      value={clinicEditAddress.state || ""}
+                      onChange={(e) =>
+                        setClinicEditAddress((prev) => ({ ...prev, state: e.target.value }))
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label>Address Type</label>
+                    <select
+                      value={clinicEditAddress.type || "Office"}
+                      onChange={(e) =>
+                        setClinicEditAddress((prev) => ({
+                          ...prev,
+                          type: sanitizeAddressType(e.target.value),
+                        }))
+                      }
+                    >
+                      {ADDRESS_TYPES.map((type) => (
+                        <option key={type} value={type}>
+                          {type}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <button onClick={handleSaveClinicEditedAddress}>Save Address</button>
+              </div>
+              <IoClose
+                className={styles.closeBtn}
+                onClick={() => {
+                  setShowClinicAddressEditModal(false);
+                  setEditingClinicAddressIndex(null);
+                }}
               />
             </div>
           </div>
@@ -623,7 +1143,7 @@ const AddressPage: React.FC = () => {
     }
   };
 
-  const validateAddress = (addr: Address) => {
+  function validateAddress(addr: Address) {
     if (
       !addr.fullName?.trim() ||
       !addr.mobileNo?.trim() ||
@@ -646,7 +1166,7 @@ const AddressPage: React.FC = () => {
       return false;
     }
     return true;
-  };
+  }
 
   const handleAddAddress = async () => {
     if (!validateAddress(newAddress)) return;
@@ -671,6 +1191,23 @@ const AddressPage: React.FC = () => {
     await saveAddressesToBackend(mergeAddresses([], updatedAddresses), selectedAddressIndex);
   };
 
+  const handleDeleteAddress = async (index: number) => {
+    if (!user) return;
+    const nextAddresses = user.addresses.filter((_, addressIndex) => addressIndex !== index);
+    const nextSelectedIndex =
+      nextAddresses.length === 0
+        ? 0
+        : selectedAddressIndex > index
+        ? selectedAddressIndex - 1
+        : selectedAddressIndex === index
+        ? Math.min(index, nextAddresses.length - 1)
+        : selectedAddressIndex;
+
+    setUser((prev) => (prev ? { ...prev, addresses: nextAddresses } : null));
+    setSelectedAddressIndex(nextSelectedIndex);
+    await saveAddressesToBackend(nextAddresses, nextSelectedIndex);
+  };
+
   const handleOpenEditModal = (index: number) => {
     const selected = user?.addresses?.[index];
     if (!selected) return;
@@ -681,15 +1218,43 @@ const AddressPage: React.FC = () => {
   };
 
   function handleOpenClinicEditModal() {
-    if (!clinic) return;
-    setClinicEditForm({
-      clinicName: clinic.clinicName || "",
-      email: clinic.email || "",
-      contactNumber: clinic.contactNumber || "",
-      address: clinic.address || "",
-      ownerName: clinic.ownerName || "",
+    handleOpenClinicAddressModal(selectedClinicAddressIndex);
+  }
+
+  function handleOpenClinicAddressModal(index?: number) {
+    const selectedIndex =
+      typeof index === "number" ? index : selectedClinicAddressIndex;
+    const selected = clinicAddresses[selectedIndex] || emptyAddress;
+    setEditingClinicAddressIndex(typeof index === "number" ? index : null);
+    setClinicNewAddress({
+      ...emptyAddress,
+      type: selected.type || "Office",
+      fullName: clinic?.clinicName || selected.fullName || "",
+      mobileNo: clinic?.contactNumber || selected.mobileNo || "",
+      houseNo: selected.houseNo || "",
+      street: selected.street || "",
+      localArea: selected.localArea || "",
+      pincode: selected.pincode || "",
+      district: selected.district || "",
+      state: selected.state || "",
     });
-    setShowClinicEditModal(true);
+    setClinicEditAddress({
+      ...emptyAddress,
+      type: selected.type || "Office",
+      fullName: clinic?.clinicName || selected.fullName || "",
+      mobileNo: clinic?.contactNumber || selected.mobileNo || "",
+      houseNo: selected.houseNo || "",
+      street: selected.street || "",
+      localArea: selected.localArea || "",
+      pincode: selected.pincode || "",
+      district: selected.district || "",
+      state: selected.state || "",
+    });
+    if (typeof index === "number") {
+      setShowClinicAddressEditModal(true);
+    } else {
+      setShowClinicAddModal(true);
+    }
   }
 
   async function handleSaveClinicAddress() {
@@ -697,12 +1262,24 @@ const AddressPage: React.FC = () => {
 
     const nextClinicName = clinicEditForm.clinicName.trim();
     const nextEmail = clinicEditForm.email.trim();
-    const nextAddress = clinicEditForm.address.trim();
+    const nextClinicAddress = normalizeAddress({
+      type: "Office",
+      fullName: clinicEditForm.clinicName || clinic?.clinicName || "",
+      mobileNo: clinicEditForm.contactNumber || clinic?.contactNumber || "",
+      houseNo: clinicEditForm.houseNo,
+      street: clinicEditForm.street,
+      localArea: clinicEditForm.localArea,
+      pincode: clinicEditForm.pincode,
+      district: clinicEditForm.district,
+      state: clinicEditForm.state,
+    });
+    const nextAddress = formatAddressText(nextClinicAddress);
 
     if (!nextClinicName || !nextEmail || !nextAddress) {
-      alert("Please fill clinic name, email, and address.");
+      alert("Please fill clinic name, email, and address details.");
       return;
     }
+    if (!validateAddress(nextClinicAddress)) return;
 
     try {
       const formData = new FormData();
@@ -711,6 +1288,7 @@ const AddressPage: React.FC = () => {
       formData.append("contactNumber", clinicEditForm.contactNumber.trim());
       formData.append("address", nextAddress);
       formData.append("ownerName", clinicEditForm.ownerName.trim());
+      formData.append("addresses", JSON.stringify(clinicAddresses.map(toBackendAddress)));
 
       const res = await fetch(`${API_URL}/clinics/${clinic._id}`, {
         method: "PUT",
@@ -728,6 +1306,7 @@ const AddressPage: React.FC = () => {
         email: updatedClinic.email || nextEmail,
         contactNumber: updatedClinic.contactNumber || clinicEditForm.contactNumber.trim(),
         address: updatedClinic.address || nextAddress,
+        addresses: clinicAddresses,
         clinicLogo: updatedClinic.clinicLogo || clinic?.clinicLogo || "",
         ownerName: updatedClinic.ownerName || clinicEditForm.ownerName.trim(),
       };
@@ -737,9 +1316,23 @@ const AddressPage: React.FC = () => {
         clinicName: nextClinic.clinicName,
         email: nextClinic.email || "",
         contactNumber: nextClinic.contactNumber || "",
-        address: nextClinic.address || "",
         ownerName: nextClinic.ownerName || "",
+        ...(() => {
+          const selected = clinicAddresses[selectedClinicAddressIndex] || clinicAddresses[0] || emptyAddress;
+          return {
+            houseNo: selected.houseNo || "",
+            street: selected.street || "",
+            localArea: selected.localArea || "",
+            pincode: selected.pincode || "",
+            district: selected.district || "",
+            state: selected.state || "",
+          };
+        })(),
       });
+
+      if (clinicAddresses.length === 0) {
+        await updateClinicAddresses([nextClinicAddress], 0, { skipBackend: true });
+      }
 
       if (nextClinic.clinicName) {
         Cookies.set("clinicName", nextClinic.clinicName, { expires: 7 });
@@ -759,9 +1352,63 @@ const AddressPage: React.FC = () => {
     }
   }
 
+  async function handleSaveClinicNewAddress() {
+    const nextAddress = normalizeAddress({
+      ...clinicNewAddress,
+      fullName: clinicNewAddress.fullName || clinic?.clinicName || "",
+      mobileNo: clinicNewAddress.mobileNo || clinic?.contactNumber || "",
+    });
+    if (!validateAddress(nextAddress)) return;
+    const nextAddresses = mergeAddresses(clinicAddresses, [nextAddress]);
+    const nextSelectedIndex = nextAddresses.length - 1;
+    await updateClinicAddresses(nextAddresses, nextSelectedIndex);
+    setShowClinicAddModal(false);
+    setClinicNewAddress({ ...emptyAddress, type: "Office" });
+  }
+
+  async function handleSaveClinicEditedAddress() {
+    const nextAddress = normalizeAddress({
+      ...clinicEditAddress,
+      fullName: clinicEditAddress.fullName || clinic?.clinicName || "",
+      mobileNo: clinicEditAddress.mobileNo || clinic?.contactNumber || "",
+    });
+    if (!validateAddress(nextAddress)) return;
+    if (editingClinicAddressIndex === null || !clinicAddresses[editingClinicAddressIndex]) {
+      return;
+    }
+    const nextAddresses = [...clinicAddresses];
+    nextAddresses[editingClinicAddressIndex] = nextAddress;
+    await updateClinicAddresses(nextAddresses, editingClinicAddressIndex);
+    setShowClinicAddressEditModal(false);
+    setEditingClinicAddressIndex(null);
+  }
+
+  async function handleDeleteClinicAddress(index: number) {
+    const nextAddresses = clinicAddresses.filter((_, addressIndex) => addressIndex !== index);
+    const nextSelectedIndex =
+      nextAddresses.length === 0
+        ? 0
+        : selectedClinicAddressIndex > index
+        ? selectedClinicAddressIndex - 1
+        : selectedClinicAddressIndex === index
+        ? Math.min(index, nextAddresses.length - 1)
+        : selectedClinicAddressIndex;
+
+    await updateClinicAddresses(nextAddresses, nextSelectedIndex);
+  }
+
   const handleProceedPayment = () => {
     if (isClinicMode) {
-      if (!clinic?.clinicName || !clinic.address) {
+      const clinicPaymentAddress =
+        clinicAddresses[selectedClinicAddressIndex] ||
+        clinicAddresses[0] ||
+        createClinicAddress({
+          clinicName: clinic?.clinicName || "",
+          contactNumber: clinic?.contactNumber || "",
+          address: clinic?.address || "",
+        });
+
+      if (!clinic?.clinicName || !formatAddressText(clinicPaymentAddress)) {
         alert("Clinic profile is incomplete.");
         return;
       }
@@ -770,7 +1417,7 @@ const AddressPage: React.FC = () => {
         pathname: "/home/PaymentPage",
         query: {
           type: "Clinic",
-          address: clinic.address,
+          address: formatAddressText(clinicPaymentAddress) || clinic.address || "",
           clinicName: clinic.clinicName,
           clinicId: clinic._id || Cookies.get("clinicId") || "",
           flow: "clinic",
@@ -940,10 +1587,16 @@ const AddressPage: React.FC = () => {
                           <p>{formatAddressText(addr) || addr.address || "-"}</p>
                           <small>Phone: {addr.mobileNo || "-"}</small>
                         </div>
-                        <MdOutlineEdit
-                          className={styles.editIcon}
-                          onClick={() => handleOpenEditModal(index)}
-                        />
+                        <div className={styles.addressActions}>
+                          <MdOutlineEdit
+                            className={styles.editIcon}
+                            onClick={() => handleOpenEditModal(index)}
+                          />
+                          <MdOutlineDelete
+                            className={styles.deleteIcon}
+                            onClick={() => handleDeleteAddress(index)}
+                          />
+                        </div>
                       </div>
                       <div className={styles.tagRow}>
                         <strong>{sanitizeAddressType(addr.type)}</strong>
@@ -1056,7 +1709,7 @@ const AddressPage: React.FC = () => {
                     onChange={(e) => {
                       const pincode = e.target.value.replace(/\D/g, "").slice(0, 6);
                       setNewAddress((p) => ({ ...p, pincode }));
-                      fetchPincodeMeta(pincode, "new");
+                      fetchPincodeMeta(pincode, (patch) => setNewAddress((p) => ({ ...p, ...patch })));
                     }}
                   />
                 </div>
@@ -1152,7 +1805,9 @@ const AddressPage: React.FC = () => {
                     onChange={(e) => {
                       const pincode = e.target.value.replace(/\D/g, "").slice(0, 6);
                       setEditAddress((p) => ({ ...p, pincode }));
-                      fetchPincodeMeta(pincode, "edit");
+                      fetchPincodeMeta(pincode, (patch) =>
+                        setEditAddress((p) => ({ ...p, ...patch }))
+                      );
                     }}
                   />
                 </div>

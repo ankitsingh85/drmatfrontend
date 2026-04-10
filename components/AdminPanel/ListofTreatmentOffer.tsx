@@ -31,8 +31,8 @@ interface OfferTreatmentRef {
 interface Offer {
   _id: string;
   imageBase64: string;
-  categoryId?: string | OfferCategoryRef;
-  treatmentId?: string | OfferTreatmentRef;
+  categoryId?: string | OfferCategoryRef | null;
+  treatmentId?: string | OfferTreatmentRef | null;
 }
 
 interface PreviewFile {
@@ -311,20 +311,29 @@ const ListofTreatementOffer = () => {
     }
   };
 
-  const getCategoryLabel = (offer: Offer) =>
-    typeof offer.categoryId === "object"
-      ? offer.categoryId.name || offer.categoryId._id || "-"
-      : categories.find((category) => category._id === offer.categoryId)?.name ||
-        offer.categoryId ||
-        "-";
+  const getCategoryLabel = (offer: Offer) => {
+    if (offer.categoryId && typeof offer.categoryId === "object") {
+      return offer.categoryId.name || offer.categoryId._id || "-";
+    }
 
-  const getTreatmentLabel = (offer: Offer) =>
-    typeof offer.treatmentId === "object"
-      ? offer.treatmentId.treatmentName || offer.treatmentId._id || "-"
-      : treatments.find((treatment) => treatment._id === offer.treatmentId)
-          ?.treatmentName ||
-        offer.treatmentId ||
-        "-";
+    return (
+      categories.find((category) => category._id === offer.categoryId)?.name ||
+      offer.categoryId ||
+      "-"
+    );
+  };
+
+  const getTreatmentLabel = (offer: Offer) => {
+    if (offer.treatmentId && typeof offer.treatmentId === "object") {
+      return offer.treatmentId.treatmentName || offer.treatmentId._id || "-";
+    }
+
+    return (
+      treatments.find((treatment) => treatment._id === offer.treatmentId)?.treatmentName ||
+      offer.treatmentId ||
+      "-"
+    );
+  };
 
   return (
     <div className={styles.container}>

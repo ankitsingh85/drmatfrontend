@@ -344,6 +344,26 @@
   transform: translateY(-1px);
 }
 
+.addressActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.deleteIcon {
+  cursor: pointer;
+  color: #ef4444;
+  transition: color 0.2s ease, transform 0.2s ease;
+  margin-top: 2px;
+}
+
+.deleteIcon:hover {
+  color: #b91c1c;
+  transform: translateY(-1px);
+}
+
 .tagRow {
   margin-top: 0.45rem;
   font-size: 0.82rem;
