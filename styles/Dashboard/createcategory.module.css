@@ -101,6 +101,40 @@
   box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.18);
 }
 
+.select {
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid #c7d2fe;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 14px;
+}
+
+.select:focus {
+  border-color: #818cf8;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.18);
+}
+
+.textarea {
+  width: 100%;
+  min-height: 110px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid #c7d2fe;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 14px;
+  resize: vertical;
+}
+
+.textarea:focus {
+  border-color: #818cf8;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.18);
+}
+
 .readOnlyInput {
   background: #eef2ff;
   font-weight: 700;

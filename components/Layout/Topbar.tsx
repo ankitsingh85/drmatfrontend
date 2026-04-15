@@ -2,13 +2,12 @@
 
   import React, { useEffect, useRef, useState } from "react";
   import Link from "next/link";
-  import styles from "@/styles/components/Layout/Topbar.module.css";
-  import Image from "next/image";
-  import { useRouter, usePathname } from "next/navigation";
-  import { GoogleMap, Marker, useJsApiLoader } from "@react-google-maps/api";
-  import {
-    ShoppingCart,
-    MapPin,
+import styles from "@/styles/components/Layout/Topbar.module.css";
+import Image from "next/image";
+import { useRouter, usePathname } from "next/navigation";
+import {
+  ShoppingCart,
+  MapPin,
     Menu,
     User,
     LogOut,
@@ -17,7 +16,6 @@
   import { useCart } from "@/context/CartContext";
   import { useTopbarProfile } from "@/context/TopbarProfileContext";
   import Cookies from "js-cookie";
-  import { getGoogleMapsLoaderOptions } from "@/lib/googleMaps";
 
   interface TopbarProps {
     hideHamburgerOnMobile?: boolean;
@@ -33,24 +31,9 @@
     const [isHydrated, setIsHydrated] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [location, setLocation] = useState<string>("");
-  const [locationCoords, setLocationCoords] = useState<{ lat: number; lng: number } | null>(null);
-  const [locationModalOpen, setLocationModalOpen] = useState(false);
-  const [locationDebug, setLocationDebug] = useState<{
-    status?: string;
-    formattedAddress?: string;
-    rawAddress?: string;
-    componentSummary?: string;
-    error?: string;
-    origin?: string;
-    keySuffix?: string;
-  } | null>(null);
     const [profileOpen, setProfileOpen] = useState(false);
     const userBtnRef = useRef<HTMLButtonElement | null>(null);
     const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAP_KEY || "";
-
-    const { isLoaded: isGoogleMapsLoaded } = useJsApiLoader(
-      getGoogleMapsLoaderOptions(googleMapsApiKey)
-    );
 
     const username = profile?.username ?? null;
     const profileImage = profile?.profileImage ?? null;
@@ -153,14 +136,7 @@
   };
 
   const reverseGeocodeWithGoogle = async (latitude: number, longitude: number) => {
-    if (!googleMapsApiKey) {
-      setLocationDebug({
-        error: "Missing NEXT_PUBLIC_GOOGLE_MAP_KEY",
-        origin: window.location.origin,
-        keySuffix: "n/a",
-      });
-      return "Location unavailable";
-    }
+    if (!googleMapsApiKey) return "Location unavailable";
 
     const res = await fetch(
       `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${encodeURIComponent(
@@ -177,16 +153,6 @@
       result_count: data?.results?.length || 0,
       formatted_address: result?.formatted_address || "",
     };
-    console.log("[Topbar geocode debug]", debugPayload, data);
-    setLocationDebug({
-      status: data?.status,
-      formattedAddress: result?.formatted_address || "",
-      rawAddress: result?.address_components?.map((part: any) => part.long_name).join(", ") || "",
-      componentSummary: summarizeAddressComponents(result),
-      error: data?.error_message || "",
-      origin: window.location.origin,
-      keySuffix: googleMapsApiKey.slice(-4),
-    });
     if (!result) return "Location unavailable";
     return formatDetailedAddress(result, latitude, longitude);
   };
@@ -199,9 +165,6 @@
       navigator.geolocation.getCurrentPosition(
         async (position) => {
           const { latitude, longitude } = position.coords;
-          const coords = { lat: latitude, lng: longitude };
-          setLocationCoords(coords);
-          setLocationModalOpen(true);
           try {
             const finalLocation = await reverseGeocodeWithGoogle(latitude, longitude);
             setLocation(finalLocation);
@@ -454,63 +417,6 @@
         </div>
       </div>
 
-      {locationModalOpen && (
-        <div className={styles.locationModalOverlay} onClick={() => setLocationModalOpen(false)}>
-          <div className={styles.locationModal} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.locationModalHeader}>
-              <div>
-              <p className={styles.locationModalKicker}>Address details</p>
-              <h3 className={styles.locationModalTitle}>Your Google Map</h3>
-              </div>
-              <button
-                type="button"
-                className={styles.locationModalClose}
-                onClick={() => setLocationModalOpen(false)}
-              >
-                Close
-              </button>
-            </div>
-
-            <div className={styles.locationModalBody}>
-              <div className={styles.locationAddress}>
-                <MapPin size={16} />
-                <span>{location || "Fetching address..."}</span>
-              </div>
-
-              {locationDebug && (
-                <div className={styles.locationDebugBox}>
-                  <div><strong>Origin:</strong> {locationDebug.origin || "-"}</div>
-                  <div><strong>Key:</strong> {locationDebug.keySuffix || "-"}</div>
-                  <div><strong>Status:</strong> {locationDebug.status || "-"}</div>
-                  <div><strong>Formatted:</strong> {locationDebug.formattedAddress || "-"}</div>
-                  <div><strong>Raw:</strong> {locationDebug.rawAddress || "-"}</div>
-                  <div><strong>Components:</strong> {locationDebug.componentSummary || "-"}</div>
-                  {locationDebug.error && (
-                    <div><strong>Error:</strong> {locationDebug.error}</div>
-                  )}
-                </div>
-              )}
-
-              {isGoogleMapsLoaded && locationCoords ? (
-                <GoogleMap
-                  mapContainerClassName={styles.locationMap}
-                  center={locationCoords}
-                  zoom={16}
-                  options={{
-                    disableDefaultUI: true,
-                    gestureHandling: "greedy",
-                    clickableIcons: false,
-                  }}
-                >
-                  <Marker position={locationCoords} />
-                </GoogleMap>
-              ) : (
-                <div className={styles.locationMapPlaceholder}>Loading map...</div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
       </>
     );
 
@@ -649,63 +555,6 @@
         </div>
       </div>
 
-      {locationModalOpen && (
-        <div className={styles.locationModalOverlay} onClick={() => setLocationModalOpen(false)}>
-          <div className={styles.locationModal} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.locationModalHeader}>
-              <div>
-              <p className={styles.locationModalKicker}>Address details</p>
-              <h3 className={styles.locationModalTitle}>Your Google Map</h3>
-              </div>
-              <button
-                type="button"
-                className={styles.locationModalClose}
-                onClick={() => setLocationModalOpen(false)}
-              >
-                Close
-              </button>
-            </div>
-
-            <div className={styles.locationModalBody}>
-              <div className={styles.locationAddress}>
-                <MapPin size={16} />
-                <span>{location || "Fetching address..."}</span>
-              </div>
-
-              {locationDebug && (
-                <div className={styles.locationDebugBox}>
-                  <div><strong>Origin:</strong> {locationDebug.origin || "-"}</div>
-                  <div><strong>Key:</strong> {locationDebug.keySuffix || "-"}</div>
-                  <div><strong>Status:</strong> {locationDebug.status || "-"}</div>
-                  <div><strong>Formatted:</strong> {locationDebug.formattedAddress || "-"}</div>
-                  <div><strong>Raw:</strong> {locationDebug.rawAddress || "-"}</div>
-                  <div><strong>Components:</strong> {locationDebug.componentSummary || "-"}</div>
-                  {locationDebug.error && (
-                    <div><strong>Error:</strong> {locationDebug.error}</div>
-                  )}
-                </div>
-              )}
-
-              {isGoogleMapsLoaded && locationCoords ? (
-                <GoogleMap
-                  mapContainerClassName={styles.locationMap}
-                  center={locationCoords}
-                  zoom={16}
-                  options={{
-                    disableDefaultUI: true,
-                    gestureHandling: "greedy",
-                    clickableIcons: false,
-                  }}
-                >
-                  <Marker position={locationCoords} />
-                </GoogleMap>
-              ) : (
-                <div className={styles.locationMapPlaceholder}>Loading map...</div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
       </>
     );
 

@@ -34,6 +34,8 @@ import CreateB2BProduct from "@/components/AdminPanel/CreateB2BProduct";
 import CreateSupport from "@/components/AdminPanel/CreateSupport";
 import CreateCourse from "@/components/AdminPanel/CreateCourse";
 import CreateCourseType from "@/components/AdminPanel/CreateCourseType";
+import CreateTrainingType from "@/components/AdminPanel/CreateTrainingType";
+import CreateWorkshopTraning from "@/components/AdminPanel/CreateWorkshopTraning";
 // import UserOrderHistory from "@/components/AdminPanel/UserOrderHistory";
 
 import CreateUser from "@/components/AdminPanel/CreateUser";
@@ -41,6 +43,8 @@ import ListOfUser from "@/components/AdminPanel/ListOfUser";
 import ListOfB2BProduct from "@/components/AdminPanel/ListOfB2BProduct";
 import ListOfCourse from "@/components/AdminPanel/ListOfCourse";
 import ListOfCourseType from "@/components/AdminPanel/ListOfCourseType";
+import ListOfTrainingType from "@/components/AdminPanel/ListOfTrainingType";
+import ListOfWorkshopTraning from "@/components/AdminPanel/ListOfWorkshopTraning";
 
 /* ✅ DOCTOR */
 import CreateDoctor from "@/components/AdminPanel/CreateDoctor";
@@ -202,7 +206,7 @@ export default function SuperAdminDashboard() {
       ListComponent: ListOfProduct,
       CreateComponent: CreateProduct,
     },
-      {
+    {
       id: "courseType",
       label: "COURSE TYPE",
       listLabel: "List of Course Type",
@@ -211,12 +215,28 @@ export default function SuperAdminDashboard() {
       CreateComponent: CreateCourseType,
     },
     {
+      id: "trainingType",
+      label: "TRAINING TYPE",
+      listLabel: "List of Training Type",
+      createLabel: "Create Training Type",
+      ListComponent: ListOfTrainingType,
+      CreateComponent: CreateTrainingType,
+    },
+    {
       id: "course",
       label: "COURSE",
       listLabel: "List of Course",
       createLabel: "Create Course",
       ListComponent: ListOfCourse,
       CreateComponent: CreateCourse,
+    },
+    {
+      id: "workshopTraning",
+      label: "WORKSHOP TRANING",
+      listLabel: "List of Workshop Traning",
+      createLabel: "Create Workshop Traning",
+      ListComponent: ListOfWorkshopTraning,
+      CreateComponent: CreateWorkshopTraning,
     },
     {
       id: "doctor",

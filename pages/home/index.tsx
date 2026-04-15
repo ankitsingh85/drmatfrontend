@@ -30,6 +30,7 @@ import FullPageLoader from "@/components/common/FullPageLoader";
 import CourseListing from "@/components/Layout/CourseListing";
 import ClinicOffer from "./ClinicOffer";
 import B2BProductCategories from "@/components/homePage/B2BProductCategories";
+import TraningWorkshop from "./TraningWorkshop";
 
 const Index = () => {
   const router = useRouter();
@@ -130,6 +131,7 @@ const Index = () => {
         <Topbar />
         <div style={{ backgroundColor: "#ffffff" }}>
           <div style={{ padding: "30px 60px" }}>
+            <TraningWorkshop/>
             <CourseListing />
           <B2BProductCategories/>
           </div>
