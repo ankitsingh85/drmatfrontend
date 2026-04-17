@@ -10,6 +10,7 @@ import {
   FiUsers,
   FiHelpCircle,
   FiSettings,
+  FiShoppingBag,
   FiStar,
   FiChevronRight,
   FiEdit3,
@@ -27,6 +28,7 @@ import Footer from "@/components/Layout/Footer";
 // import Appointment from "@/components/ClinicAdmin/Appointment";
 import Lead from "@/components/ClinicAdmin/Lead";
 import EditClinic from "@/components/ClinicAdmin/EditClinic";
+import ClinicOrderHistory from "@/components/ClinicAdmin/ClinicOrderHistory";
 
 
 type JwtPayload = {
@@ -55,6 +57,7 @@ type SectionId =
   | "profile"
   | "appointments"
   | "lead"
+  | "orders"
   | "services"
   | "purchased"
   | "help"
@@ -102,6 +105,7 @@ export default function ClinicDashboard() {
   const [clinicId, setClinicId] = useState("");
   const [clinic, setClinic] = useState<ClinicRecord | null>(null);
   const [leadCount, setLeadCount] = useState(0);
+  const [orderCount, setOrderCount] = useState(0);
   const [recentLeads, setRecentLeads] = useState<
     Array<{
       _id: string;
@@ -153,6 +157,26 @@ export default function ClinicDashboard() {
   }, []);
 
   useEffect(() => {
+    const section = new URLSearchParams(window.location.search).get("section");
+    const allowedSections: SectionId[] = [
+      "dashboard",
+      "profile",
+      "appointments",
+      "lead",
+      "orders",
+      "services",
+      "purchased",
+      "help",
+      "settings",
+      "rating",
+    ];
+
+    if (section && allowedSections.includes(section as SectionId)) {
+      setActiveSection(section as SectionId);
+    }
+  }, []);
+
+  useEffect(() => {
     document.body.style.overflow = isMobile && sidebarOpen ? "hidden" : "auto";
   }, [isMobile, sidebarOpen]);
 
@@ -196,10 +220,33 @@ export default function ClinicDashboard() {
     }
   };
 
+  const fetchOrderSummary = async (id: string) => {
+    const token = Cookies.get("token");
+    if (!id || !token) return;
+
+    try {
+      const res = await fetch(`${API_URL}/orders/my`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "x-clinic-id": id,
+          "x-owner-type": "clinic",
+        },
+      });
+
+      if (!res.ok) return;
+
+      const data = await res.json();
+      setOrderCount(Array.isArray(data) ? data.length : 0);
+    } catch {
+      setOrderCount(0);
+    }
+  };
+
   useEffect(() => {
     if (clinicId) {
       fetchClinic(clinicId);
       void fetchLeadSummary(clinicId);
+      void fetchOrderSummary(clinicId);
     }
   }, [clinicId]);
 
@@ -230,6 +277,7 @@ export default function ClinicDashboard() {
       { id: "dashboard" as const, label: "Dashboard", icon: FiHome },
       { id: "appointments" as const, label: "Appointments", icon: FiCalendar },
       { id: "lead" as const, label: "Lead", icon: FiUsers },
+      { id: "orders" as const, label: "Orders", icon: FiShoppingBag },
       // { id: "doctors" as const, label: "Doctors", icon: FiUsers },
       // { id: "services" as const, label: "Services", icon: FiClipboard },
       // { id: "purchased" as const, label: "Purchased Services", icon: FiClipboard },
@@ -264,6 +312,11 @@ export default function ClinicDashboard() {
       detail: "Users who tapped Call or WhatsApp.",
     },
     {
+      label: "Orders placed",
+      value: String(orderCount),
+      detail: "Clinic purchases across products, courses, and workshops.",
+    },
+    {
       label: "Contact status",
       value: clinic?.contactNumber || clinic?.email || "Pending",
       detail: "Primary contact shown to patients.",
@@ -292,6 +345,11 @@ export default function ClinicDashboard() {
       label: "View Leads",
       description: "Open lead inbox",
       action: () => setActiveSection("lead"),
+    },
+    {
+      label: "View Orders",
+      description: "Open clinic purchases",
+      action: () => setActiveSection("orders"),
     },
   ];
 
@@ -446,6 +504,7 @@ export default function ClinicDashboard() {
     profile: "Edit Profile",
     appointments: "Appointments",
     lead: "Lead",
+    orders: "Orders",
     services: "Services",
     purchased: "Purchased Services",
     help: "Help Center",
@@ -462,6 +521,14 @@ export default function ClinicDashboard() {
       return (
         <div className={styles.sectionShell}>
           <EditClinic clinicId={clinicId} clinic={clinic} onSaved={handleClinicSaved} />
+        </div>
+      );
+    }
+
+    if (activeSection === "orders") {
+      return (
+        <div className={styles.sectionShell}>
+          <ClinicOrderHistory clinicId={clinicId} />
         </div>
       );
     }

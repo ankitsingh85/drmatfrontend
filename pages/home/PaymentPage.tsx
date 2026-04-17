@@ -249,20 +249,39 @@ const PaymentPage: React.FC = () => {
             </div>
 
             <div className={styles.successActions}>
-              <button
-                onClick={() => router.push("/home")}
-                className={styles.primaryAction}
-              >
-                Continue Shopping
-              </button>
-              <button
-                onClick={() =>
-                  router.push(isTreatmentCheckout ? "/home/TreatmentPlans" : "/home")
-                }
-                className={styles.secondaryAction}
-              >
-                {isTreatmentCheckout ? "Browse Treatments" : "Explore More"}
-              </button>
+              {isClinicCheckout ? (
+                <>
+                  <button
+                    onClick={() => router.push("/ClinicDashboard?section=orders")}
+                    className={styles.primaryAction}
+                  >
+                    Open Clinic Orders
+                  </button>
+                  <button
+                    onClick={() => router.push("/home")}
+                    className={styles.secondaryAction}
+                  >
+                    Back to Home
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => router.push("/home")}
+                    className={styles.primaryAction}
+                  >
+                    Continue Shopping
+                  </button>
+                  <button
+                    onClick={() =>
+                      router.push(isTreatmentCheckout ? "/home/TreatmentPlans" : "/home")
+                    }
+                    className={styles.secondaryAction}
+                  >
+                    {isTreatmentCheckout ? "Browse Treatments" : "Explore More"}
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>

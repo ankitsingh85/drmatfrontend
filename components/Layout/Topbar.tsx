@@ -440,6 +440,9 @@ import {
             <Link href="/course-listing" className={styles.navLink}>
             Buy Courses
             </Link>
+            <Link href="/home" className={styles.navLink}>
+              Workshop Training
+            </Link>
             <Link href="/home/B2bProductsList" className={styles.navLink}>
               Buy B2B Products
             </Link>

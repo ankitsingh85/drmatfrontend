@@ -40,6 +40,13 @@ const getPrice = (item: WorkshopTraining) => {
   return Number.isFinite(price) && price > 0 ? price : 0;
 };
 
+const slugify = (value: string) =>
+  value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .replace(/-{2,}/g, "-");
+
 const cardLabelStyle: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
@@ -50,12 +57,19 @@ const cardLabelStyle: React.CSSProperties = {
   fontWeight: 700,
 };
 
+const FEATURED_CARD_COUNT = 4;
+
 export default function TraningWorkshop() {
   const router = useRouter();
   const { addToCart, cartItems } = useCart();
   const [items, setItems] = useState<WorkshopTraining[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const displayItems: Array<WorkshopTraining | null> = [...items];
+  while (displayItems.length < FEATURED_CARD_COUNT) {
+    displayItems.push(null);
+  }
 
   useEffect(() => {
     let mounted = true;
@@ -116,6 +130,11 @@ export default function TraningWorkshop() {
     });
   };
 
+  const handleOpenDetails = (training: WorkshopTraining) => {
+    const slugSource = training.trainingName || training.trainingUniqueCode || training._id;
+    router.push(`/workshop-trainings/${slugify(String(slugSource))}`);
+  };
+
   return (
     <section
       style={{
@@ -158,11 +177,26 @@ export default function TraningWorkshop() {
           style={{
             display: "grid",
             gap: 22,
-            justifyContent: "center",
-            gridTemplateColumns: "repeat(auto-fit, minmax(290px, 320px))",
+            alignItems: "stretch",
+            gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
           }}
         >
-          {items.map((item) => {
+          {displayItems.map((item, index) => {
+            if (!item) {
+              return (
+                <article
+                  key={`workshop-placeholder-${index}`}
+                  aria-hidden="true"
+                  style={{
+                    visibility: "hidden",
+                    pointerEvents: "none",
+                    borderRadius: 28,
+                    minHeight: "100%",
+                  }}
+                />
+              );
+            }
+
             const cartId = `workshop:${item._id}`;
             const inCart = cartItems.some((entry) => entry.id === cartId);
             const price = getPrice(item);
@@ -170,6 +204,15 @@ export default function TraningWorkshop() {
             return (
               <article
                 key={item._id}
+                role="link"
+                tabIndex={0}
+                onClick={() => handleOpenDetails(item)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    handleOpenDetails(item);
+                  }
+                }}
                 style={{
                   background: "#fff",
                   border: "1px solid #e5e7eb",
@@ -178,6 +221,8 @@ export default function TraningWorkshop() {
                   boxShadow: "0 14px 35px rgba(15, 23, 42, 0.08)",
                   display: "flex",
                   flexDirection: "column",
+                  cursor: "pointer",
+                  minHeight: "100%",
                 }}
               >
                 <div
@@ -285,7 +330,7 @@ export default function TraningWorkshop() {
 
                     <div
                       style={{
-                        background: "#111827",
+                        background: "#0d5d8f",
                         borderRadius: 16,
                         padding: "8px 10px",
                       }}
@@ -316,7 +361,10 @@ export default function TraningWorkshop() {
 
                   <button
                     type="button"
-                    onClick={() => handleAddToCart(item)}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      handleAddToCart(item);
+                    }}
                     style={{
                       border: "none",
                       borderRadius: 14,
