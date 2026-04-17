@@ -146,20 +146,30 @@ export default function TraningWorkshop() {
     >
       <div
         style={{
-          marginBottom: 20,
-          padding: "18px 22px",
-          borderRadius: 24,
-          background: "linear-gradient(135deg, #111827 0%, #1d4ed8 100%)",
-          color: "#fff",
-          boxShadow: "0 18px 40px rgba(15, 23, 42, 0.14)",
+          marginBottom: 18,
+          padding: "10px 0 12px",
+          borderRadius: 0,
+          background: "transparent",
+          color: "#111827",
+          boxShadow: "none",
+          textAlign: "center",
         }}
       >
-        <h2 style={{ margin: 0, fontSize: 28, lineHeight: 1.15, fontWeight: 800 }}>
+        <h2
+          style={{
+            margin: 0,
+            display: "inline-block",
+            fontSize: 28,
+            lineHeight: 1.15,
+            fontWeight: 800,
+            textDecorationLine: "underline",
+            textDecorationThickness: "3px",
+            textUnderlineOffset: "8px",
+            // textDecorationColor: "#1d4ed8",
+          }}
+        >
           Workshop Trainings
         </h2>
-        <p style={{ margin: "8px 0 0", maxWidth: 760, color: "rgba(255,255,255,0.84)" }}>
-          Browse available training programs and add the one you want to your cart.
-        </p>
       </div>
 
       {error ? (

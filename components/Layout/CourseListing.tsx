@@ -129,11 +129,11 @@ const CourseListing = () => {
   return (
     <section className={styles.section}>
       <div className={styles.headingWrap}>
-        <p className={styles.eyebrow}>Learning Tracks</p>
+        {/* <p className={styles.eyebrow}>Learning Tracks</p> */}
         <h2 className={styles.heading}>Featured Courses</h2>
-        <p className={styles.subheading}>
+        {/* <p className={styles.subheading}>
           Discover high-impact dermatology programs crafted for practical learning, career growth, and clinical confidence.
-        </p>
+        </p> */}
       </div>
 
       {loading && <FullPageLoader />}
