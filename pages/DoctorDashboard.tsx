@@ -229,7 +229,7 @@ export default function DoctorDashboard() {
   const menuItems = useMemo(
     () => [
       { id: "dashboard" as const, label: "Dashboard", icon: FiHome },
-      { id: "appointments" as const, label: "Appointments", icon: FiCalendar },
+      // { id: "appointments" as const, label: "Appointments", icon: FiCalendar },
       { id: "profile" as const, label: "Edit Profile", icon: FiUser },
       { id: "orders" as const, label: "Orders", icon: FiShoppingBag },
       // { id: "chat" as const, label: "Chat", icon: FiMessageSquare },

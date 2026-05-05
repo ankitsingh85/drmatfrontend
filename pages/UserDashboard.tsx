@@ -180,7 +180,7 @@ const UserDashboard: React.FC = () => {
     { id: "treatmentorders", label: "Treatment Orders", icon: <FiHome /> },
     { id: "yourresult", label: "Your Result", icon: <FiActivity /> },
     // { id: "appointmenthistory", label: "Appointments", icon: <FiActivity /> },
-    { id: "chat", label: "My Consultation", icon: <FiUser /> },
+    // { id: "chat", label: "My Consultation", icon: <FiUser /> },
     // { id: "chat", label: "Chat", icon: <FiMessageSquare /> },
     { id: "helpcenter", label: "Help Center", icon: <FiHelpCircle /> },
     { id: "settings", label: "Settings", icon: <FiSettings /> },
