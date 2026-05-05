@@ -130,7 +130,7 @@ export default function DoctorLogin() {
       setError("Doctor is not registered");
       return;
     }
-
+console.log("log");
     // ✅ REGISTERED → GO TO OTP
     setOtp("");
     setStep("otp");
