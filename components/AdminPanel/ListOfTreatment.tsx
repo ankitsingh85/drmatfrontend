@@ -12,6 +12,7 @@ interface Treatment {
   gender?: string;
   mrp?: number;
   offerPrice?: number;
+  isActive?: boolean;
   createdAt?: string;
   clinic?:
     | {
@@ -51,7 +52,7 @@ const ListOfTreatment = () => {
 
   const fetchTreatments = async () => {
     try {
-      const res = await fetch(`${API_URL}/treatment-plans`);
+      const res = await fetch(`${API_URL}/treatment-plans?includeInactive=true`);
       const data = await res.json();
       if (Array.isArray(data)) {
         setTreatments(data);
@@ -118,6 +119,7 @@ const ListOfTreatment = () => {
         "Gender",
         "MRP",
         "Offer",
+        "Status",
       ],
       ...filteredTreatments.map((treatment) => [
         treatment.treatmentName || "",
@@ -128,6 +130,7 @@ const ListOfTreatment = () => {
         treatment.gender || "",
         treatment.mrp ?? "",
         treatment.offerPrice ?? "",
+        treatment.isActive === false ? "Inactive" : "Active",
       ]),
     ];
 
@@ -178,6 +181,7 @@ const ListOfTreatment = () => {
           <td>${escapeHtml(treatment.gender || "-")}</td>
           <td>${escapeHtml(String(treatment.mrp ?? "-"))}</td>
           <td>${escapeHtml(String(treatment.offerPrice ?? "-"))}</td>
+          <td>${treatment.isActive === false ? "Inactive" : "Active"}</td>
         </tr>`
       )
       .join("");
@@ -205,6 +209,7 @@ const ListOfTreatment = () => {
                 <th>Gender</th>
                 <th>MRP</th>
                 <th>Offer</th>
+                <th>Status</th>
               </tr>
             </thead>
             <tbody>${rows}</tbody>
@@ -234,6 +239,45 @@ const ListOfTreatment = () => {
       }
     } catch (err) {
       setError("Failed to delete treatment");
+    }
+  };
+
+  const handleToggleStatus = async (treatment: Treatment) => {
+    const nextIsActive = treatment.isActive === false;
+    setError("");
+
+    setTreatments((prev) =>
+      prev.map((item) =>
+        item._id === treatment._id ? { ...item, isActive: nextIsActive } : item
+      )
+    );
+
+    try {
+      const res = await fetch(`${API_URL}/treatment-plans/${treatment._id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isActive: nextIsActive }),
+      });
+
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(data?.message || "Failed to update treatment status");
+      }
+
+      setTreatments((prev) =>
+        prev.map((item) =>
+          item._id === treatment._id ? { ...item, ...data } : item
+        )
+      );
+    } catch (err: any) {
+      setTreatments((prev) =>
+        prev.map((item) =>
+          item._id === treatment._id
+            ? { ...item, isActive: treatment.isActive !== false }
+            : item
+        )
+      );
+      setError(err?.message || "Failed to update treatment status");
     }
   };
 
@@ -396,6 +440,7 @@ const ListOfTreatment = () => {
               <th>Gender</th>
               <th>MRP</th>
               <th>Offer</th>
+              <th>Status</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -412,6 +457,26 @@ const ListOfTreatment = () => {
                 <td>{treatment.gender || "-"}</td>
                 <td>{treatment.mrp ?? "-"}</td>
                 <td>{treatment.offerPrice ?? "-"}</td>
+                <td>
+                  <button
+                    type="button"
+                    className={`${styles.toggleSwitch} ${
+                      treatment.isActive === false ? "" : styles.toggleSwitchOn
+                    }`}
+                    onClick={() => handleToggleStatus(treatment)}
+                    aria-pressed={treatment.isActive !== false}
+                    title={
+                      treatment.isActive === false
+                        ? "Inactive. Click to activate"
+                        : "Active. Click to deactivate"
+                    }
+                  >
+                    <span className={styles.toggleKnob} />
+                    <span className={styles.toggleText}>
+                      {treatment.isActive === false ? "Inactive" : "Active"}
+                    </span>
+                  </button>
+                </td>
                 <td>
                   <>
                     <button
@@ -436,7 +501,7 @@ const ListOfTreatment = () => {
             ))}
             {paginatedTreatments.length === 0 && (
             <tr>
-              <td colSpan={7}>No treatment plans found.</td>
+              <td colSpan={8}>No treatment plans found.</td>
             </tr>
           )}
           </tbody>

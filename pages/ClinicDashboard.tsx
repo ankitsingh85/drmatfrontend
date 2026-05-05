@@ -187,7 +187,17 @@ export default function ClinicDashboard() {
     try {
       const res = await fetch(`${API_URL}/clinics/${id}`);
       if (!res.ok) throw new Error("Failed to fetch clinic profile");
-      const data = await res.json();
+    const data = await res.json();
+      const profileImage = resolveMediaUrl(data?.clinicLogo);
+      if (profileImage) {
+        Cookies.set("profileImage", profileImage, { path: "/" });
+        localStorage.setItem("profileImage", profileImage);
+        window.dispatchEvent(new CustomEvent("profile-updated"));
+      } else {
+        Cookies.remove("profileImage", { path: "/" });
+        localStorage.removeItem("profileImage");
+        window.dispatchEvent(new CustomEvent("profile-updated"));
+      }
       setClinic(data);
     } catch (error) {
       console.error("Failed to load clinic profile:", error);
@@ -256,7 +266,7 @@ export default function ClinicDashboard() {
     } else if (clinicId) {
       void fetchClinic(clinicId);
     }
-    setActiveSection("dashboard");
+    setActiveSection("profile");
     setSidebarOpen(false);
   };
 
@@ -268,7 +278,10 @@ export default function ClinicDashboard() {
     Cookies.remove("clinicId");
     Cookies.remove("email");
     Cookies.remove("contactNo");
+    Cookies.remove("profileImage");
     localStorage.removeItem("clinicId");
+    localStorage.removeItem("profileImage");
+    window.dispatchEvent(new CustomEvent("user-logged-out"));
     router.replace("/cliniclogin");
   };
 

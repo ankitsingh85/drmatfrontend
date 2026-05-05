@@ -15,6 +15,7 @@ import {
   FiStar,
   FiActivity,
   FiUser,
+  FiMessageSquare,
 } from "react-icons/fi";
 
 import ServiceHistory from "@/components/UserPanel/ServiceHistory";
@@ -23,6 +24,7 @@ import TreatmentOrderHistory from "@/components/UserPanel/TreatmentOrderHistory"
 import AppointmentHistory from "@/components/UserPanel/AppointmentHistory";
 import UserProfile from "@/components/UserPanel/UserProfile";
 import YourResult from "@/components/UserPanel/YourResult";
+import UserChat from "@/components/UserPanel/Chat";
 
 import Topbar from "@/components/Layout/Topbar";
 import Footer from "@/components/Layout/Footer";
@@ -154,10 +156,8 @@ const UserDashboard: React.FC = () => {
     localStorage.removeItem("userId");
     localStorage.removeItem("clinicId");
     localStorage.removeItem("profileImage");
-
     profile?.clearProfile();
     window.dispatchEvent(new CustomEvent("user-logged-out"));
-
     router.replace("/Login");
   };
 
@@ -180,7 +180,8 @@ const UserDashboard: React.FC = () => {
     { id: "treatmentorders", label: "Treatment Orders", icon: <FiHome /> },
     { id: "yourresult", label: "Your Result", icon: <FiActivity /> },
     // { id: "appointmenthistory", label: "Appointments", icon: <FiActivity /> },
-    { id: "servicehistory", label: "My Consultation", icon: <FiUser /> },
+    { id: "chat", label: "My Consultation", icon: <FiUser /> },
+    // { id: "chat", label: "Chat", icon: <FiMessageSquare /> },
     { id: "helpcenter", label: "Help Center", icon: <FiHelpCircle /> },
     { id: "settings", label: "Settings", icon: <FiSettings /> },
     { id: "rating", label: "Like Us? Give us 5 Stars", icon: <FiStar /> },
@@ -210,6 +211,7 @@ const UserDashboard: React.FC = () => {
     }
     if (activeSection === "appointmenthistory") return <AppointmentHistory />;
     if (activeSection === "servicehistory") return <ServiceHistory />;
+    if (activeSection === "chat") return <UserChat />;
 
     return (
       <div className={styles.comingSoonCard}>

@@ -70,7 +70,9 @@ const formatDate = (value?: string) => {
         year: "numeric",
       });
 };
-
+const cleanText = (text: string) => {
+  return text.replace(/<\/?p>/g, "");
+};
 const formatPrice = (value?: number) => `Rs. ${Number(value || 0).toLocaleString("en-IN")}`;
 
 const getSalePrice = (course?: Course | null) => {
@@ -327,7 +329,7 @@ const CourseDetailPage = () => {
                   visibleLearningPoints.map((point) => (
                     <div key={point} className={styles.learnItem}>
                       <FaCheck />
-                      <span>{point}</span>
+                     <span>{cleanText(point)}</span>
                     </div>
                   ))
                 ) : (

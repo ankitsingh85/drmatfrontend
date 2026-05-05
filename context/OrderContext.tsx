@@ -10,7 +10,8 @@ export interface IOrder {
   _id?: string;
   userId?: string;
   clinicId?: string;
-  ownerType?: "user" | "clinic";
+  doctorId?: string;
+  ownerType?: "user" | "clinic" | "doctor";
   orderType?: "product" | "treatment";
   products: {
     id: string;
@@ -32,7 +33,7 @@ interface OrderContextType {
     total: number,
     address: { type: string; address: string },
     orderType?: "product" | "treatment",
-    options?: { ownerType?: "user" | "clinic"; clinicId?: string }
+    options?: { ownerType?: "user" | "clinic" | "doctor"; clinicId?: string; doctorId?: string }
   ) => Promise<void>;
   setOrders: React.Dispatch<React.SetStateAction<IOrder[]>>;
 }
@@ -49,10 +50,14 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({
     total: number,
     address: { type: string; address: string },
     orderType: "product" | "treatment" = "product",
-    options?: { ownerType?: "user" | "clinic"; clinicId?: string }
+    options?: { ownerType?: "user" | "clinic" | "doctor"; clinicId?: string; doctorId?: string }
   ) => {
-    const ownerType = options?.ownerType || (Cookies.get("role")?.toLowerCase() === "clinic" ? "clinic" : "user");
+    const role = Cookies.get("role")?.toLowerCase();
+    const ownerType =
+      options?.ownerType ||
+      (role === "clinic" ? "clinic" : role === "doctor" ? "doctor" : "user");
     const clinicId = options?.clinicId || Cookies.get("clinicId") || localStorage.getItem("clinicId") || "";
+    const doctorId = options?.doctorId || Cookies.get("doctorId") || localStorage.getItem("doctorId") || "";
 
     let userId = Cookies.get("userId") || localStorage.getItem("userId");
     if (ownerType === "user") {
@@ -71,8 +76,10 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({
         localStorage.setItem("userId", resolvedId);
       }
       if (!userId) throw new Error("User not logged in");
-    } else if (!clinicId) {
+    } else if (ownerType === "clinic" && !clinicId) {
       throw new Error("Clinic not logged in");
+    } else if (ownerType === "doctor" && !doctorId) {
+      throw new Error("Doctor not logged in");
     }
 
     try {
@@ -90,15 +97,29 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({
           ? "treatment"
           : orderType;
 
-      const res = await axios.post(`${API_URL}/orders`, {
-        userId: ownerType === "user" ? userId : undefined,
-        clinicId: ownerType === "clinic" ? clinicId : undefined,
-        ownerType,
-        products: formattedProducts,
-        totalAmount: total,
-        address,
-        orderType: derivedOrderType,
-      });
+      const endpoint =
+        ownerType === "doctor" ? `${API_URL}/doctor-orders` : `${API_URL}/orders`;
+      const payload =
+        ownerType === "doctor"
+          ? {
+              doctorId,
+              ownerType: "doctor",
+              products: formattedProducts,
+              totalAmount: total,
+              address,
+              orderType: derivedOrderType,
+            }
+          : {
+              userId: ownerType === "user" ? userId : undefined,
+              clinicId: ownerType === "clinic" ? clinicId : undefined,
+              ownerType,
+              products: formattedProducts,
+              totalAmount: total,
+              address,
+              orderType: derivedOrderType,
+            };
+
+      const res = await axios.post(endpoint, payload);
 
       setOrders((prev) => [...prev, res.data]);
     } catch (err) {

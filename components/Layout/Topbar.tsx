@@ -8,11 +8,11 @@ import { useRouter, usePathname } from "next/navigation";
 import {
   ShoppingCart,
   MapPin,
-    Menu,
-    User,
-    LogOut,
-    ArrowUpRight,
-  } from "lucide-react";
+  Menu,
+  User,
+  LogOut,
+  ArrowUpRight,
+} from "lucide-react";
   import { useCart } from "@/context/CartContext";
   import { useTopbarProfile } from "@/context/TopbarProfileContext";
   import Cookies from "js-cookie";
@@ -23,24 +23,26 @@ import {
 
   const Topbar: React.FC<TopbarProps> = ({ hideHamburgerOnMobile }) => {
     const router = useRouter();
-    const pathname = usePathname();
-    const { cartItems } = useCart();
-    const profile = useTopbarProfile();
-    const cartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
+  const pathname = usePathname();
+  const { cartItems } = useCart();
+  const profile = useTopbarProfile();
+  const cartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
 
-    const [isHydrated, setIsHydrated] = useState(false);
+  const [isHydrated, setIsHydrated] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [location, setLocation] = useState<string>("");
-    const [profileOpen, setProfileOpen] = useState(false);
-    const userBtnRef = useRef<HTMLButtonElement | null>(null);
-    const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAP_KEY || "";
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [businessMenuOpen, setBusinessMenuOpen] = useState(false);
+  const userBtnRef = useRef<HTMLButtonElement | null>(null);
+  const businessMenuRef = useRef<HTMLDivElement | null>(null);
+  const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAP_KEY || "";
 
     const username = profile?.username ?? null;
     const profileImage = profile?.profileImage ?? null;
     const email = profile?.email ?? null;
     const contactNo = profile?.contactNo ?? null;
     const currentRole = isHydrated ? Cookies.get("role")?.toLowerCase() : null;
-    const isClinicMode = currentRole === "clinic";
+    const isBusinessMode = currentRole === "clinic" || currentRole === "doctor";
 
     useEffect(() => {
       setIsHydrated(true);
@@ -51,14 +53,27 @@ import {
       if (storedLocation && storedLocation !== "Current location") setLocation(storedLocation);
     }, []);
 
-    const isDashboard =
+  const isDashboard =
       pathname?.startsWith("/ClinicDashboard") ||
       pathname?.startsWith("/DoctorDashboard") ||
       pathname?.startsWith("/AdminDashboard") ||
       pathname?.includes("Dashboard");
 
+  const getLoginPath = () => {
+    if (currentRole === "clinic") return "/cliniclogin";
+    if (currentRole === "doctor") return "/doctorlogin";
+    return "/Login";
+  };
+
   const handleClickCart = () => {
+    setBusinessMenuOpen(false);
     router.push("/home/Cart");
+  };
+
+  const handleBusinessLogin = (path: string) => {
+    setBusinessMenuOpen(false);
+    setMenuOpen(false);
+    router.push(path);
   };
 
   const getComponent = (components: any[] | undefined, type: string) =>
@@ -203,41 +218,112 @@ import {
       return () => document.removeEventListener("mousedown", handleClickOutside);
     }, [styles.profileDropdown]);
 
+    useEffect(() => {
+      if (!businessMenuOpen) return;
+
+      const handleBusinessClickOutside = (event: MouseEvent) => {
+        const target = event.target as Node;
+        if (businessMenuRef.current && !businessMenuRef.current.contains(target)) {
+          setBusinessMenuOpen(false);
+        }
+      };
+
+      const handleEscape = (event: KeyboardEvent) => {
+        if (event.key === "Escape") {
+          setBusinessMenuOpen(false);
+        }
+      };
+
+      document.addEventListener("mousedown", handleBusinessClickOutside);
+      document.addEventListener("keydown", handleEscape);
+
+      return () => {
+        document.removeEventListener("mousedown", handleBusinessClickOutside);
+        document.removeEventListener("keydown", handleEscape);
+      };
+    }, [businessMenuOpen]);
+
     const handleLogout = () => {
       const roleBeforeLogout = currentRole;
 
-      Cookies.remove("token");
-      Cookies.remove("username");
-      Cookies.remove("clinicName");
-      Cookies.remove("clinicId");
-      Cookies.remove("email");
-      Cookies.remove("userId");
-      Cookies.remove("location");
-      Cookies.remove("contactNo");
-      Cookies.remove("profileImage");
-      Cookies.remove("role");
-      Cookies.remove("cartScope");
+      [
+        "token",
+        "username",
+        "clinicName",
+        "clinicId",
+        "doctorId",
+        "email",
+        "userId",
+        "location",
+        "contactNo",
+        "profileImage",
+        "role",
+        "cartScope",
+      ].forEach((key) => {
+        Cookies.remove(key, { path: "/" });
+      });
 
       localStorage.removeItem("userId");
       localStorage.removeItem("clinicId");
+      localStorage.removeItem("doctorId");
       localStorage.removeItem("profileImage");
       localStorage.removeItem("cartScope");
       profile?.clearProfile();
 
       setLocation("");
       window.dispatchEvent(new CustomEvent("user-logged-out"));
-      router.replace(roleBeforeLogout === "clinic" ? "/cliniclogin" : "/Login");
+      router.replace(
+        roleBeforeLogout === "clinic"
+          ? "/cliniclogin"
+          : roleBeforeLogout === "doctor"
+          ? "/doctorlogin"
+          : "/Login"
+      );
     };
 
-    const renderLoginOptions = () => (
+  const renderLoginOptions = () => (
       <button
         type="button"
         className={styles.loginLink}
-        onClick={() => router.push("/Login")}
+        onClick={() => {
+          setMenuOpen(false);
+          setBusinessMenuOpen(false);
+          router.push(getLoginPath());
+        }}
       >
         Login
       </button>
     );
+
+    const renderProfileAvatar = (fallback = "U") =>
+      profileImage ? (
+        <img
+          src={profileImage}
+          alt={username || "Profile"}
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: "50%",
+            objectFit: "cover",
+          }}
+        />
+      ) : (
+        <div
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: "50%",
+            background: "#e6eef8",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "#0a4b83",
+            fontWeight: 700,
+          }}
+        >
+          {(username || fallback).slice(0, 1).toUpperCase()}
+        </div>
+      );
 
     const renderDefaultTopbar = () => (
       <>
@@ -256,7 +342,10 @@ import {
             className={`${styles.hamburger} ${
               hideHamburgerOnMobile ? styles.hideOnMobile : ""
             }`}
-            onClick={() => setMenuOpen(!menuOpen)}
+            onClick={() => {
+              setMenuOpen((prev) => !prev);
+              setBusinessMenuOpen(false);
+            }}
           >
             <Menu size={26} />
           </div>
@@ -282,22 +371,86 @@ import {
             <Link href="/quiz/ques1" className={styles.navLink}>
               Online Test
             </Link>
-            <Link href="/cliniclogin" className={styles.businessNavLink}>
-              <span className={styles.businessTag}>BUSINESS</span>
-              <span className={styles.businessText}>
-                <span>Free Listing</span>
-                <ArrowUpRight size={15} className={styles.businessIcon} />
-              </span>
-            </Link>
+            <div className={styles.businessNavWrap} ref={businessMenuRef}>
+              <button
+                type="button"
+                className={styles.businessNavLink}
+                onClick={() => setBusinessMenuOpen((prev) => !prev)}
+                aria-haspopup="menu"
+                aria-expanded={businessMenuOpen}
+                aria-controls="business-login-menu"
+              >
+                <span className={styles.businessTag}>BUSINESS</span>
+                <span className={styles.businessText}>
+                  <span>Free Listing</span>
+                  <ArrowUpRight size={15} className={styles.businessIcon} />
+                </span>
+              </button>
+
+              {businessMenuOpen && (
+                <div
+                  id="business-login-menu"
+                  className={styles.businessDropdown}
+                  role="menu"
+                  aria-label="Business login options"
+                >
+                  <button
+                    type="button"
+                    className={styles.businessDropdownItem}
+                    onClick={() => handleBusinessLogin("/cliniclogin")}
+                    role="menuitem"
+                  >
+                    <span className={styles.businessDropdownTitle}>Login as Clinic</span>
+                    <span className={styles.businessDropdownDesc}>
+                      Continue to the clinic login page
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className={styles.businessDropdownItem}
+                    onClick={() => handleBusinessLogin("/doctorlogin")}
+                    role="menuitem"
+                  >
+                    <span className={styles.businessDropdownTitle}>Login as Doctor</span>
+                    <span className={styles.businessDropdownDesc}>
+                      Continue to the doctor login page
+                    </span>
+                  </button>
+                </div>
+              )}
+            </div>
           </nav>
         </div>
 
         <div className={styles.rightSection}>
           {isDashboard ? (
             username ? (
-              <button className={styles.logoutBtn} onClick={handleLogout}>
-                Logout
-              </button>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                }}
+              >
+                {renderProfileAvatar(currentRole === "clinic" ? "C" : "D")}
+                <span
+                  style={{
+                    maxWidth: 180,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                    fontWeight: 700,
+                    color: "#173252",
+                  }}
+                  title={username}
+                >
+                  {username}
+                </span>
+                <button className={styles.logoutBtn} onClick={handleLogout}>
+                  Logout
+                </button>
+              </div>
             ) : (
               renderLoginOptions()
             )
@@ -319,32 +472,9 @@ import {
                     style={{ padding: 0, border: "none", background: "transparent" }}
                   >
                     {profileImage ? (
-                      <img
-                        src={profileImage}
-                        alt={username}
-                        style={{
-                          width: 36,
-                          height: 36,
-                          borderRadius: "50%",
-                          objectFit: "cover",
-                        }}
-                      />
+                      renderProfileAvatar("U")
                     ) : (
-                      <div
-                        style={{
-                          width: 36,
-                          height: 36,
-                          borderRadius: "50%",
-                          background: "#e6eef8",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          color: "#0a4b83",
-                          fontWeight: 700,
-                        }}
-                      >
-                        {username.slice(0, 1).toUpperCase()}
-                      </div>
+                      renderProfileAvatar("U")
                     )}
                   </button>
 
@@ -420,7 +550,7 @@ import {
       </>
     );
 
-    const renderClinicTopbar = () => (
+    const renderBusinessTopbar = () => (
       <>
       <div className={styles.topbar}>
         <div className={styles.leftSection}>
@@ -440,7 +570,7 @@ import {
             <Link href="/course-listing" className={styles.navLink}>
             Buy Courses
             </Link>
-            <Link href="/home" className={styles.navLink}>
+            <Link href="/workshop-trainings" className={styles.navLink}>
               Workshop Training
             </Link>
             <Link href="/home/B2bProductsList" className={styles.navLink}>
@@ -461,37 +591,14 @@ import {
                 ref={userBtnRef}
                 className={styles.userIconBtn}
                 onClick={() => setProfileOpen((s) => !s)}
-                aria-label="Open clinic profile"
+                aria-label="Open business profile"
                 title={username}
                 style={{ padding: 0, border: "none", background: "transparent" }}
               >
                 {profileImage ? (
-                  <img
-                    src={profileImage}
-                    alt={username}
-                    style={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: "50%",
-                      objectFit: "cover",
-                    }}
-                  />
+                  renderProfileAvatar("B")
                 ) : (
-                  <div
-                    style={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: "50%",
-                      background: "#e6eef8",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: "#0a4b83",
-                      fontWeight: 700,
-                    }}
-                  >
-                    {username.slice(0, 1).toUpperCase()}
-                  </div>
+                  renderProfileAvatar("B")
                 )}
               </button>
 
@@ -505,16 +612,16 @@ import {
                   <div className={styles.profileDropdownHeader}>
                     <div className={styles.profileAvatarWrap}>
                       {profileImage ? (
-                        <img
-                          src={profileImage}
-                          alt={username || "Clinic"}
-                          className={styles.profileAvatar}
-                        />
-                      ) : (
-                        <div className={styles.profileAvatarPlaceholder}>
-                          {username?.slice(0, 1).toUpperCase() || "C"}
-                        </div>
-                      )}
+                            <img
+                              src={profileImage}
+                              alt={username || "Business profile"}
+                              className={styles.profileAvatar}
+                            />
+                          ) : (
+                            <div className={styles.profileAvatarPlaceholder}>
+                              {username?.slice(0, 1).toUpperCase() || "B"}
+                            </div>
+                          )}
                     </div>
                     <h3 className={styles.profileDropdownName}>{username}</h3>
                     <p className={styles.profileDropdownContact}>
@@ -529,7 +636,11 @@ import {
                       className={styles.profileActionBtn}
                       onClick={() => {
                         setProfileOpen(false);
-                        router.push("/ClinicDashboard");
+                        router.push(
+                          currentRole === "doctor"
+                            ? "/DoctorDashboard"
+                            : "/ClinicDashboard"
+                        );
                       }}
                     >
                       <User size={18} />
@@ -563,7 +674,7 @@ import {
 
     return (
       <>
-        {isClinicMode ? renderClinicTopbar() : renderDefaultTopbar()}
+        {isBusinessMode ? renderBusinessTopbar() : renderDefaultTopbar()}
       </>
     );
   };

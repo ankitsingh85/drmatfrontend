@@ -36,7 +36,7 @@ const Index = () => {
   const router = useRouter();
   const [isHydrated, setIsHydrated] = useState(false);
   const currentRole = isHydrated ? Cookies.get("role")?.toLowerCase() : null;
-  const isClinicMode = currentRole === "clinic";
+  const isBusinessMode = currentRole === "clinic" || currentRole === "doctor";
 
   // loader / prefetch state
   const [appReady, setAppReady] = useState(false);
@@ -48,7 +48,7 @@ const Index = () => {
   }, []);
 
   useEffect(() => {
-    if (isClinicMode) {
+    if (isBusinessMode) {
       setAppReady(true);
       return;
     }
@@ -123,17 +123,18 @@ const Index = () => {
       mounted = false;
       clearTimeout(safetyTimeout);
     };
-  }, [isClinicMode]);
+  }, [isBusinessMode]);
 
-  if (isClinicMode) {
+  if (isBusinessMode) {
     return (
       <>
         <Topbar />
         <div style={{ backgroundColor: "#ffffff" }}>
           <div style={{ padding: "30px 60px" }}>
+                      <B2BProductCategories/>
+
             <TraningWorkshop/>
             <CourseListing />
-          <B2BProductCategories/>
           </div>
         </div>
         <Footer />

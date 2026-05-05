@@ -40,9 +40,9 @@ const writeStoredProfileImage = (value: string | null) => {
   }
 
   if (value && !/^data:image\//i.test(value)) {
-    Cookies.set("profileImage", value);
+    Cookies.set("profileImage", value, { path: "/" });
   } else {
-    Cookies.remove("profileImage");
+    Cookies.remove("profileImage", { path: "/" });
   }
 };
 
@@ -74,7 +74,8 @@ export const TopbarProfileProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const refetchProfile = useCallback(async () => {
     const token = Cookies.get("token");
-    if (!token) return;
+    const role = Cookies.get("role")?.toLowerCase();
+    if (!token || role !== "user") return;
 
     try {
       const res = await fetch(`${API_URL}/users/me`, {
@@ -84,9 +85,9 @@ export const TopbarProfileProvider: React.FC<{ children: React.ReactNode }> = ({
       const data = await res.json();
       if (!data) return;
 
-      Cookies.set("username", data.name || "");
-      Cookies.set("email", data.email || "");
-      Cookies.set("contactNo", data.contactNo || "");
+      Cookies.set("username", data.name || "", { path: "/" });
+      Cookies.set("email", data.email || "", { path: "/" });
+      Cookies.set("contactNo", data.contactNo || "", { path: "/" });
 
       const normalizedProfile = resolveMediaUrl(data.profileImage);
       writeStoredProfileImage(normalizedProfile);

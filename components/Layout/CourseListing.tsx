@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/router";
 import Cookies from "js-cookie";
 import {
@@ -26,96 +27,88 @@ interface Course {
   courseDuration?: string;
   modeOfTraining?: string;
   startDate?: string;
-  registrationDeadline?: string;
-  targetAudience?: string[];
-  certificationProvided?: string;
-  feesInr?: number;
-  netFeesInr?: number;
   currentAvailability?: string;
   maximumSeatsBatchSize?: number;
   trainerInstructorName?: string;
   languageOfDelivery?: string;
   courseDemoVideo?: string;
+  feesInr?: number;
+  netFeesInr?: number;
+  targetAudience?: string[];
 }
 
 const MAX_VISIBLE_TILES = 8;
 const apiBaseUrl = API_URL.replace(/\/api\/?$/, "");
 
-const getYoutubeThumbnail = (url?: string) => {
-  if (!url) return "";
-
-  try {
-    const parsed = new URL(url);
-    if (parsed.hostname.includes("youtu.be")) {
-      const id = parsed.pathname.split("/").filter(Boolean)[0];
-      return id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : "";
-    }
-
-    if (parsed.hostname.includes("youtube.com")) {
-      const id = parsed.searchParams.get("v");
-      return id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : "";
-    }
-  } catch {
-    return "";
-  }
-
-  return "";
-};
-
-const formatPrice = (course: Course) => {
-  const value =
-    course.netFeesInr && course.netFeesInr > 0 ? course.netFeesInr : course.feesInr || 0;
-
-  return `Rs. ${Number(value).toLocaleString("en-IN")}`;
-};
-
-const getCourseAmount = (course: Course) =>
-  course.netFeesInr && course.netFeesInr > 0 ? course.netFeesInr : course.feesInr || 0;
-
 const resolveAssetUrl = (value?: string) => {
   if (!value) return "";
-  if (value.startsWith("http://") || value.startsWith("https://")) return value;
+  if (value.startsWith("http")) return value;
   if (value.startsWith("/")) return `${apiBaseUrl}${value}`;
   return `${apiBaseUrl}/${value}`;
 };
 
-const slugify = (value: string) =>
-  value
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .replace(/-{2,}/g, "-");
+const getYoutubeThumbnail = (url?: string) => {
+  if (!url) return "";
+  try {
+    const parsed = new URL(url);
+    const id = parsed.searchParams.get("v");
+    return id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : "";
+  } catch {
+    return "";
+  }
+};
 
-const CourseListing = () => {
+const formatPrice = (course: Course) => {
+  const value =
+    course.netFeesInr && course.netFeesInr > 0
+      ? course.netFeesInr
+      : course.feesInr || 0;
+
+  return `₹ ${Number(value).toLocaleString("en-IN")}`;
+};
+
+const getCourseAmount = (course: Course) =>
+  course.netFeesInr && course.netFeesInr > 0
+    ? course.netFeesInr
+    : course.feesInr || 0;
+
+export default function CourseListing({
+  title = "Featured Courses",
+  showAll = false,
+  showSeeMore = true,
+  seeMoreHref = "/course-listing",
+  seeMoreLabel = "See More",
+}) {
   const router = useRouter();
   const { addToCart } = useCart();
-  const [isHydrated, setIsHydrated] = useState(false);
-  const currentRole = isHydrated ? Cookies.get("role")?.toLowerCase() : null;
-  const isClinicMode = currentRole === "clinic";
+
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [isHydrated, setIsHydrated] = useState(false);
 
-  useEffect(() => {
-    setIsHydrated(true);
-  }, []);
+  const currentRole = isHydrated
+    ? Cookies.get("role")?.toLowerCase()
+    : null;
+
+  const isBusinessMode =
+    currentRole === "clinic" || currentRole === "doctor";
+
+  const dynamicSeeMorePath = isBusinessMode
+    ? "/course-listing"
+    : "/courses";
+
+  const isSamePage = router.pathname === dynamicSeeMorePath;
+
+  useEffect(() => setIsHydrated(true), []);
 
   useEffect(() => {
     const fetchCourses = async () => {
       try {
-        setLoading(true);
-        setError("");
-
         const res = await fetch(`${API_URL}/courses`);
-        const data = await res.json().catch(() => []);
-
-        if (!res.ok) {
-          throw new Error(data.message || "Failed to fetch courses");
-        }
-
-        setCourses(Array.isArray(data) ? data : []);
-      } catch (err: any) {
-        setError(err.message || "Failed to fetch courses");
+        const data = await res.json();
+        setCourses(data || []);
+      } catch (err) {
+        console.error(err);
       } finally {
         setLoading(false);
       }
@@ -124,172 +117,143 @@ const CourseListing = () => {
     fetchCourses();
   }, []);
 
-  const visibleCourses = useMemo(() => courses.slice(0, MAX_VISIBLE_TILES), [courses]);
+  const visibleCourses = useMemo(
+    () => (showAll ? courses : courses.slice(0, MAX_VISIBLE_TILES)),
+    [courses, showAll]
+  );
+
+  if (loading) return <FullPageLoader />;
 
   return (
     <section className={styles.section}>
       <div className={styles.headingWrap}>
-        {/* <p className={styles.eyebrow}>Learning Tracks</p> */}
-        <h2 className={styles.heading}>Featured Courses</h2>
-        {/* <p className={styles.subheading}>
-          Discover high-impact dermatology programs crafted for practical learning, career growth, and clinical confidence.
-        </p> */}
+        <h2 className={styles.heading}>{title}</h2>
       </div>
 
-      {loading && <FullPageLoader />}
-      {!loading && error && <p className={styles.error}>{error}</p>}
+      <div className={styles.grid}>
+        {visibleCourses.map((course) => {
+          const image =
+            resolveAssetUrl(course.courseImage) ||
+            getYoutubeThumbnail(course.courseDemoVideo);
 
-      {!loading && !error && (
-        <div className={styles.grid}>
-          {visibleCourses.map((course) => {
-            const image =
-              resolveAssetUrl(course.courseImage) ||
-              getYoutubeThumbnail(course.courseDemoVideo);
-            const audience =
-              Array.isArray(course.targetAudience) && course.targetAudience.length > 0
-                ? course.targetAudience.slice(0, 2).join(" | ")
-                : "Open for learners";
-            const learnerCount = course.maximumSeatsBatchSize || course.targetAudience?.length || 1;
-            const ratingText = course.certificationProvided === "Yes" ? "5 Stars" : "4 Stars";
+          return (
+            <article
+              key={course._id}
+              className={styles.card}
+              onClick={() => router.push(`/courses/${course._id}`)}
+            >
+              {/* IMAGE */}
+              <div className={styles.imageWrap}>
+                {image ? (
+                  <img src={image} className={styles.image} />
+                ) : (
+                  <div className={styles.fallbackImage}>
+                    <span>{course.courseType}</span>
+                    <strong>{course.courseUniqueCode}</strong>
+                  </div>
+                )}
+                <span className={styles.codeBadge}>
+                  {course.courseUniqueCode}
+                </span>
+              </div>
 
-            return (
-              <article
-                key={course._id}
-                className={styles.card}
-                role="link"
-                tabIndex={0}
-                onClick={() =>
-                  router.push(
-                    `/courses/${slugify(
-                      `${course.courseName || course.courseUniqueCode || course._id}`
-                    )}`
-                  )
-                }
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" || event.key === " ") {
-                    event.preventDefault();
-                    router.push(
-                      `/courses/${slugify(
-                        `${course.courseName || course.courseUniqueCode || course._id}`
-                      )}`
-                    );
-                  }
-                }}
-              >
-                <div className={styles.imageWrap}>
-                  {image ? (
-                    <img
-                      src={image}
-                      alt={course.courseName}
-                      className={styles.image}
-                      loading="lazy"
-                    />
+              {/* CONTENT */}
+              <div className={styles.content}>
+                {/* Trainer Avatar */}
+                <div className={styles.avatar}>
+                  {course.trainerInstructorName?.charAt(0) || "C"}
+                </div>
+
+                <p className={styles.trainerName}>
+                  {course.trainerInstructorName || "Expert Trainer"}
+                </p>
+
+                <p className={styles.trainerRole}>
+                  {course.instituteName || "Institute"}
+                </p>
+
+                <div className={styles.featuredBadge}>
+                  <FaStar /> <span>Featured</span>
+                </div>
+
+                <h3 className={styles.title}>{course.courseName}</h3>
+
+                {/* DETAILS */}
+                <div className={styles.details}>
+                  <span>
+                    <FaGlobe />
+                    {course.modeOfTraining || "Online"}
+                  </span>
+
+                  <span>
+                    <FaCalendarAlt />
+                    {course.courseDuration || "N/A"}
+                  </span>
+                </div>
+
+                <p className={styles.summary}>
+                  {course.startDate
+                    ? new Date(course.startDate).toLocaleDateString()
+                    : course.currentAvailability || "Open"}
+                </p>
+
+                {/* META */}
+                <div className={styles.bottomMeta}>
+                  <div className={styles.statGroup}>
+                    <span className={styles.statItem}>
+                      <FaUserFriends />
+                      {course.maximumSeatsBatchSize || 0}
+                    </span>
+
+                    <span className={styles.statItem}>
+                      <FaStar /> 4.5
+                    </span>
+                  </div>
+
+                  <span className={styles.priceTag}>
+                    {formatPrice(course)}
+                  </span>
+                </div>
+
+                {/* BUTTON */}
+                <div className={styles.cardFooter}>
+                  {isBusinessMode ? (
+                    <button
+                      className={styles.actionBtn}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        addToCart({
+                          id: `course:${course._id}`,
+                          name: course.courseName,
+                          price: getCourseAmount(course),
+                          mrp: course.feesInr || 0,
+                          company: course.instituteName,
+                          image,
+                        });
+                      }}
+                    >
+                      Add to Cart <FaCartPlus />
+                    </button>
                   ) : (
-                    <div className={styles.fallbackImage}>
-                      <span>{course.courseType || "Course"}</span>
-                      <strong>{course.courseUniqueCode}</strong>
-                    </div>
+                    <button className={styles.actionBtn} disabled>
+                      Business Only
+                    </button>
                   )}
-
-                  <span className={styles.codeBadge}>{course.courseUniqueCode}</span>
                 </div>
+              </div>
+            </article>
+          );
+        })}
+      </div>
 
-                <div className={styles.content}>
-                  <div className={styles.avatar}>
-                    {course.trainerImage ? (
-                      <img
-                        src={resolveAssetUrl(course.trainerImage)}
-                        alt={course.trainerInstructorName || "Trainer"}
-                        className={styles.avatarImage}
-                      />
-                    ) : (
-                      (course.trainerInstructorName || course.instituteName || "C")
-                        .slice(0, 1)
-                        .toUpperCase()
-                    )}
-                  </div>
-
-                  <p className={styles.trainerName}>
-                    {course.trainerInstructorName || "Expert Faculty"}
-                  </p>
-                  <p className={styles.trainerRole}>
-                    {course.instituteName || course.courseType || "Consultant"}
-                  </p>
-
-                  <div className={styles.featuredBadge}>
-                    <FaStar />
-                    <span>Featured</span>
-                  </div>
-
-                  <h3 className={styles.title}>{course.courseName}</h3>
-
-                  <div className={styles.details}>
-                    <span>
-                      <FaGlobe />
-                      {course.languageOfDelivery || "English"}
-                    </span>
-                    <span>
-                      <FaCalendarAlt />
-                      {course.startDate
-                        ? new Date(course.startDate).toLocaleDateString()
-                        : course.currentAvailability || "Open now"}
-                    </span>
-                  </div>
-
-                  <p className={styles.summary}>{audience}</p>
-
-                  <div className={styles.bottomMeta}>
-                    <div className={styles.statGroup}>
-                      <span className={styles.statItem}>
-                        <FaUserFriends />
-                        {learnerCount}
-                      </span>
-                      <span className={styles.statItem}>
-                        <FaStar />
-                        {ratingText}
-                      </span>
-                    </div>
-                    <span className={styles.priceTag}>{formatPrice(course)}</span>
-                  </div>
-
-                  <div className={styles.cardFooter}>
-                    {isClinicMode ? (
-                      <button
-                        type="button"
-                        className={styles.actionBtn}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          const image =
-                            resolveAssetUrl(course.courseImage) ||
-                            getYoutubeThumbnail(course.courseDemoVideo);
-                          const amount = getCourseAmount(course);
-                          addToCart({
-                            id: `course:${course._id}`,
-                            name: course.courseName,
-                            price: amount,
-                            mrp: course.feesInr || amount,
-                            company: course.instituteName || course.courseType || "Course",
-                            image: image || undefined,
-                          });
-                        }}
-                      >
-                        <span>Add to Cart</span>
-                        <FaCartPlus />
-                      </button>
-                    ) : (
-                      <button type="button" className={styles.actionBtn} disabled>
-                        <span>Clinic Only</span>
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </article>
-            );
-          })}
+      {/* SEE MORE */}
+      {!showAll && !isSamePage && showSeeMore && (
+        <div className={styles.footerActions}>
+          <Link href={dynamicSeeMorePath} className={styles.seeMoreLink}>
+            {seeMoreLabel}
+          </Link>
         </div>
       )}
     </section>
   );
-};
-
-export default CourseListing;
+}

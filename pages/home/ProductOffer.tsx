@@ -21,7 +21,8 @@ interface OfferCategoryRef {
 
 interface Offer {
   _id: string;
-  imageBase64: string;
+  imageUrl: string;
+  imageBase64?: string;
   productId?: string | OfferProductRef;
   categoryId?: string | OfferCategoryRef;
 }
@@ -158,6 +159,9 @@ const OfferComponent = () => {
       ? offer.categoryId.name || offer.categoryId.id || "Category"
       : "Category";
 
+  const getOfferImage = (offer: Offer) =>
+    offer.imageUrl || offer.imageBase64 || "";
+
   const handleSlideClick = (offer: Offer) => {
     const product =
       typeof offer.productId === "object" ? offer.productId : undefined;
@@ -206,7 +210,7 @@ const OfferComponent = () => {
               }}
             >
               <img
-                src={resolveMediaUrl(slide.imageBase64) || slide.imageBase64}
+                src={resolveMediaUrl(getOfferImage(slide)) || getOfferImage(slide)}
                 alt="Offer"
               />
               <div className={styles.slideMeta}>

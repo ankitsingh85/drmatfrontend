@@ -42,9 +42,12 @@ const ListOfCategory = () => {
           id: cat.id,
           name: cat.name,
           imageUrl: cat.imageUrl,
+          
         }))
-        .filter((cat: Category) => cat._id && cat.id);
-
+        .filter((cat: Category) => cat._id && cat.id)
+.sort((a: Category, b: Category) => {
+  return b._id.localeCompare(a._id);
+});
       setCategories(validCategories);
     } catch (error) {
       console.error("Failed to fetch categories:", error);

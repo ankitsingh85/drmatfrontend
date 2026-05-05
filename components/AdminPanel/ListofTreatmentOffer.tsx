@@ -30,7 +30,8 @@ interface OfferTreatmentRef {
 
 interface Offer {
   _id: string;
-  imageBase64: string;
+  imageUrl: string;
+  imageBase64?: string;
   categoryId?: string | OfferCategoryRef | null;
   treatmentId?: string | OfferTreatmentRef | null;
 }
@@ -335,6 +336,9 @@ const ListofTreatementOffer = () => {
     );
   };
 
+  const getOfferImage = (offer: Offer) =>
+    offer.imageUrl || offer.imageBase64 || "";
+
   return (
     <div className={styles.container}>
       <h1>Offer 2</h1>
@@ -471,7 +475,7 @@ const ListofTreatementOffer = () => {
         {offers.map((offer) => (
           <div key={offer._id} className={styles.offerCard}>
             <img
-              src={resolveMediaUrl(offer.imageBase64) || offer.imageBase64}
+              src={resolveMediaUrl(getOfferImage(offer)) || getOfferImage(offer)}
               alt="offer"
               className={styles.offerImage}
             />

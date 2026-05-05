@@ -290,12 +290,18 @@
   padding: 0.95rem;
   border-radius: 18px;
   margin-top: 0.8rem;
+  cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .addressCard:hover {
   transform: translateY(-1px);
   box-shadow: 0 8px 18px rgba(15, 23, 42, 0.1);
+}
+
+.addressCard:focus-visible {
+  outline: 3px solid rgba(29, 139, 216, 0.2);
+  outline-offset: 2px;
 }
 
 .addressSelected {
@@ -310,11 +316,37 @@
   align-items: flex-start;
 }
 
+.radioButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border: 1px solid rgba(29, 139, 216, 0.16);
+  border-radius: 999px;
+  background: rgba(29, 139, 216, 0.08);
+  color: #0f4c75;
+  cursor: pointer;
+  transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+}
+
+.radioButton:hover {
+  transform: translateY(-1px);
+  border-color: rgba(29, 139, 216, 0.24);
+  background: rgba(29, 139, 216, 0.12);
+}
+
+.radioButton:focus-visible {
+  outline: 3px solid rgba(29, 139, 216, 0.22);
+  outline-offset: 2px;
+}
+
 .radio {
   color: #0f4c75;
-  margin-top: 0.15rem;
   font-size: 1.15rem;
-  cursor: pointer;
+  line-height: 1;
+  pointer-events: none;
 }
 
 .addressText {

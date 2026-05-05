@@ -14,7 +14,8 @@ interface TreatmentRef {
 
 interface Offer {
   _id: string;
-  imageBase64: string;
+  imageUrl: string;
+  imageBase64?: string;
   treatmentId?: string | TreatmentRef;
 }
 
@@ -160,6 +161,9 @@ const TreatmentOffer = () => {
     router.push(targetPath);
   };
 
+  const getOfferImage = (offer: Offer) =>
+    offer.imageUrl || offer.imageBase64 || "";
+
   if (slides.length === 0) {
     return <p style={{ textAlign: "center" }}>No offers available</p>;
   }
@@ -206,7 +210,7 @@ const TreatmentOffer = () => {
                   aria-label="Open treatment details"
                 >
                 <img
-                  src={resolveMediaUrl(slide.imageBase64) || slide.imageBase64}
+                  src={resolveMediaUrl(getOfferImage(slide)) || getOfferImage(slide)}
                   alt="Offer"
                 />
               </button>

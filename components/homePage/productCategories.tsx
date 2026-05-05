@@ -1,6 +1,5 @@
 "use client";
 import { API_URL } from "@/config/api";
-
 import React, { useEffect, useState } from "react";
 import styles from "@/styles/components/homePage/categories.module.css";
 import { useRouter } from "next/navigation";
@@ -49,14 +48,18 @@ const ProductCategory: React.FC<ProductCategoryProps> = ({
         if (!Array.isArray(data)) return;
 
         // Format categories
-        const formatted: Category[] = data.map((cat: any) => ({
-          id: cat.id ?? cat._id,
-          name: cat.name,
-          imageUrl: cat.imageUrl,
-        }));
+      const formatted = data.map((cat: any) => ({
+  _id: cat._id,
+  id: cat.id ?? cat._id,
+  name: cat.name,
+  imageUrl: cat.imageUrl,
+}));
 
-        setCategories(formatted);
+const sorted = formatted.sort((a, b) =>
+  b._id.localeCompare(a._id)
+);
 
+setCategories(sorted);
       } catch (err) {
         if ((err as any).name !== "AbortError") {
           console.error("Error fetching categories:", err);

@@ -34,6 +34,9 @@ const PaymentPage: React.FC = () => {
   const [clinicName, setClinicName] = useState("");
   const [clinicAddress, setClinicAddress] = useState("");
   const [clinicId, setClinicId] = useState("");
+  const [doctorName, setDoctorName] = useState("");
+  const [doctorAddress, setDoctorAddress] = useState("");
+  const [doctorId, setDoctorId] = useState("");
   const [paymentSnapshot, setPaymentSnapshot] = useState<{
     items: CartItem[];
     total: number;
@@ -41,6 +44,7 @@ const PaymentPage: React.FC = () => {
     addressText: string;
     flowLabel: string;
     clinicName?: string;
+    doctorName?: string;
   } | null>(null);
 
   useEffect(() => {
@@ -64,6 +68,8 @@ const PaymentPage: React.FC = () => {
   const flowMode = Array.isArray(flow) ? flow[0] : flow;
   const currentRole = isHydrated ? Cookies.get("role")?.toLowerCase() : null;
   const isClinicCheckout = flowMode === "clinic" || currentRole === "clinic";
+  const isDoctorCheckout = flowMode === "doctor" || currentRole === "doctor";
+  const isBusinessCheckout = isClinicCheckout || isDoctorCheckout;
   const activeItems = checkoutItems.length > 0 ? checkoutItems : cartItems;
   const hasProductItems = activeItems.some((item) => item.itemType !== "treatment");
   const hasTreatmentItems = activeItems.some((item) => item.itemType === "treatment");
@@ -82,15 +88,25 @@ const PaymentPage: React.FC = () => {
   const deliveryType = Array.isArray(type) ? type[0] : type;
   const deliveryAddress = Array.isArray(address) ? address[0] : address;
 
-  const orderAddressType = isClinicCheckout ? "Clinic" : isTreatmentCheckout ? "Other" : deliveryType;
+  const orderAddressType = isClinicCheckout
+    ? "Clinic"
+    : isDoctorCheckout
+    ? "Doctor"
+    : isTreatmentCheckout
+    ? "Other"
+    : deliveryType;
   const orderAddressText = isTreatmentCheckout
     ? "Treatment booking - no delivery address required"
     : isClinicCheckout
     ? clinicAddress || deliveryAddress
+    : isDoctorCheckout
+    ? doctorAddress || deliveryAddress
     : deliveryAddress;
 
   const displayAddressType = isClinicCheckout
     ? "Clinic"
+    : isDoctorCheckout
+    ? "Doctor"
     : isTreatmentCheckout
     ? "Treatment booking"
     : deliveryType;
@@ -98,6 +114,8 @@ const PaymentPage: React.FC = () => {
     ? "No delivery address required"
     : isClinicCheckout
     ? clinicAddress || deliveryAddress
+    : isDoctorCheckout
+    ? doctorAddress || deliveryAddress
     : deliveryAddress;
 
   useEffect(() => {
@@ -116,6 +134,22 @@ const PaymentPage: React.FC = () => {
     setClinicId(nextClinicId);
   }, [isClinicCheckout, isHydrated, router.query.address, router.query.clinicId, router.query.clinicName]);
 
+  useEffect(() => {
+    if (!isHydrated || !isDoctorCheckout) return;
+    const nextDoctorName = Array.isArray(router.query.doctorName)
+      ? router.query.doctorName[0]
+      : (router.query.doctorName as string) || Cookies.get("username") || "";
+    const nextDoctorAddress = Array.isArray(router.query.address)
+      ? router.query.address[0]
+      : (router.query.address as string) || "";
+    const nextDoctorId = Array.isArray(router.query.doctorId)
+      ? router.query.doctorId[0]
+      : (router.query.doctorId as string) || Cookies.get("doctorId") || "";
+    setDoctorName(nextDoctorName);
+    setDoctorAddress(nextDoctorAddress);
+    setDoctorId(nextDoctorId);
+  }, [isDoctorCheckout, isHydrated, router.query.address, router.query.doctorId, router.query.doctorName]);
+
   const handlePayment = async () => {
     if (!orderAddressType || !orderAddressText) {
       alert("Please go back and select a delivery address.");
@@ -133,10 +167,13 @@ const PaymentPage: React.FC = () => {
         addressText: String(displayAddressText || orderAddressText),
         flowLabel: isClinicCheckout
           ? "Clinic billing"
+          : isDoctorCheckout
+          ? "Doctor billing"
           : isTreatmentCheckout
           ? "Treatment booking"
           : "Delivery address",
         clinicName: clinicName || Cookies.get("clinicName") || "",
+        doctorName: doctorName || Cookies.get("username") || "",
       });
       await createOrder(
         activeItems,
@@ -148,6 +185,8 @@ const PaymentPage: React.FC = () => {
         isTreatmentCheckout ? "treatment" : "product",
         isClinicCheckout
           ? { ownerType: "clinic", clinicId: clinicId || Cookies.get("clinicId") || "" }
+          : isDoctorCheckout
+          ? { ownerType: "doctor", doctorId: doctorId || Cookies.get("doctorId") || "" }
           : { ownerType: "user" }
       );
 
@@ -169,12 +208,16 @@ const PaymentPage: React.FC = () => {
     if (!Cookies.get("token")) {
       const nextPath = isClinicCheckout
         ? "/home/PaymentPage?flow=clinic"
+        : isDoctorCheckout
+        ? "/home/PaymentPage?flow=doctor"
         : isTreatmentCheckout
         ? "/home/PaymentPage?flow=treatment"
         : "/home/Address";
       router.replace(
         isClinicCheckout
           ? `/cliniclogin?next=${encodeURIComponent(nextPath)}`
+          : isDoctorCheckout
+          ? `/doctorlogin?next=${encodeURIComponent(nextPath)}`
           : `/Login?next=${encodeURIComponent(nextPath)}`
       );
       return;
@@ -184,7 +227,7 @@ const PaymentPage: React.FC = () => {
     if (activeItems.length === 0 && !paymentSuccess) {
       router.push(isTreatmentCheckout ? "/home/TreatmentPlans" : "/home/Cart");
     }
-  }, [activeItems.length, checkoutLoaded, cartHydrated, isClinicCheckout, isTreatmentCheckout, paymentSuccess, router]);
+  }, [activeItems.length, checkoutLoaded, cartHydrated, isClinicCheckout, isDoctorCheckout, isTreatmentCheckout, paymentSuccess, router]);
 
   if (!checkoutLoaded || !cartHydrated) {
     return <FullPageLoader />;
@@ -208,6 +251,8 @@ const PaymentPage: React.FC = () => {
             <p className={styles.successPill}>
               {isClinicCheckout
                 ? "Clinic payment complete"
+                : isDoctorCheckout
+                ? "Doctor payment complete"
                 : isTreatmentCheckout
                 ? "Treatment booked"
                 : "Payment complete"}
@@ -215,6 +260,8 @@ const PaymentPage: React.FC = () => {
             <h2>
               {isClinicCheckout
                 ? "Your clinic purchase is confirmed"
+                : isDoctorCheckout
+                ? "Your doctor purchase is confirmed"
                 : isTreatmentCheckout
                 ? "Your treatment booking is confirmed"
                 : "Payment successful"}
@@ -222,6 +269,8 @@ const PaymentPage: React.FC = () => {
             <p className={styles.successText}>
               {isClinicCheckout
                 ? "We have received your clinic order and will process it shortly."
+                : isDoctorCheckout
+                ? "We have received your doctor order and will process it shortly."
                 : isTreatmentCheckout
                 ? "We have received your treatment booking and will contact you with the next steps shortly."
                 : "Your order has been placed successfully. Thank you for shopping with us."}
@@ -240,6 +289,7 @@ const PaymentPage: React.FC = () => {
                 <strong>{summaryAddressType}</strong>
                 <p>{summaryAddressText}</p>
                 {paymentSnapshot?.clinicName && <p>{paymentSnapshot.clinicName}</p>}
+                {paymentSnapshot?.doctorName && <p>{paymentSnapshot.doctorName}</p>}
               </div>
               <div className={styles.successMetaItem}>
                 <span>Amount paid</span>
@@ -249,13 +299,19 @@ const PaymentPage: React.FC = () => {
             </div>
 
             <div className={styles.successActions}>
-              {isClinicCheckout ? (
+              {isBusinessCheckout ? (
                 <>
                   <button
-                    onClick={() => router.push("/ClinicDashboard?section=orders")}
+                    onClick={() =>
+                      router.push(
+                        isDoctorCheckout
+                          ? "/DoctorDashboard?section=orders"
+                          : "/ClinicDashboard?section=orders"
+                      )
+                    }
                     className={styles.primaryAction}
                   >
-                    Open Clinic Orders
+                    {isDoctorCheckout ? "Open Doctor Orders" : "Open Clinic Orders"}
                   </button>
                   <button
                     onClick={() => router.push("/home")}
@@ -339,6 +395,8 @@ const PaymentPage: React.FC = () => {
           <p className={styles.heroEyebrow}>
             {isClinicCheckout
               ? "Clinic checkout"
+              : isDoctorCheckout
+              ? "Doctor checkout"
               : isTreatmentCheckout
               ? "Treatment checkout"
               : "Order checkout"}
@@ -346,6 +404,8 @@ const PaymentPage: React.FC = () => {
           <h2 className={styles.heroTitle}>
             {isClinicCheckout
               ? "Confirm your clinic purchase and pay securely"
+              : isDoctorCheckout
+              ? "Confirm your doctor purchase and pay securely"
               : isTreatmentCheckout
               ? "Confirm your treatment booking and pay securely"
               : "Review your order and complete payment"}
@@ -353,6 +413,8 @@ const PaymentPage: React.FC = () => {
           <p className={styles.heroCopy}>
             {isClinicCheckout
               ? "Your clinic profile and billing address will be used for this payment."
+              : isDoctorCheckout
+              ? "Your doctor profile and billing address will be used for this payment."
               : isTreatmentCheckout
               ? "No address selection is needed here. Review the treatment summary and continue to secure payment."
               : "Double-check the items below, confirm the address, and finish the payment securely."}
@@ -372,6 +434,8 @@ const PaymentPage: React.FC = () => {
               <h3>
                 {isClinicCheckout
                   ? "Clinic details"
+                  : isDoctorCheckout
+                  ? "Doctor details"
                   : isTreatmentCheckout
                   ? "Booking details"
                   : "Confirm the address"}
@@ -379,7 +443,7 @@ const PaymentPage: React.FC = () => {
             </div>
             <div className={styles.cardStatus}>
               <FaMapMarkerAlt />
-              <span>{isClinicCheckout ? "Clinic flow" : isTreatmentCheckout ? "Booking flow" : "Verified flow"}</span>
+              <span>{isBusinessCheckout ? "Business flow" : isTreatmentCheckout ? "Booking flow" : "Verified flow"}</span>
             </div>
           </div>
 
@@ -391,6 +455,8 @@ const PaymentPage: React.FC = () => {
               <p className={styles.addressLabel}>
                 {isClinicCheckout
                   ? "Clinic billing"
+                  : isDoctorCheckout
+                  ? "Doctor billing"
                   : isTreatmentCheckout
                   ? "Treatment booking"
                   : "Deliver to"}
@@ -398,6 +464,8 @@ const PaymentPage: React.FC = () => {
               <p className={styles.addressType}>
                 {isClinicCheckout
                   ? clinicName || Cookies.get("clinicName") || "Clinic"
+                  : isDoctorCheckout
+                  ? doctorName || Cookies.get("username") || "Doctor"
                   : isTreatmentCheckout
                   ? "No address required"
                   : deliveryType}
@@ -405,6 +473,8 @@ const PaymentPage: React.FC = () => {
               <p className={styles.addressText}>
                 {isClinicCheckout
                   ? clinicAddress || deliveryAddress
+                  : isDoctorCheckout
+                  ? doctorAddress || deliveryAddress
                   : isTreatmentCheckout
                   ? "You are paying directly for the treatment plan. No address selection is needed."
                   : deliveryAddress}
@@ -419,7 +489,7 @@ const PaymentPage: React.FC = () => {
           <div className={styles.cardHeader}>
             <div>
               <p className={styles.sectionKicker}>Order summary</p>
-              <h3>{isClinicCheckout ? "Clinic checkout" : isTreatmentCheckout ? "Treatment booking" : "Cart checkout"}</h3>
+              <h3>{isClinicCheckout ? "Clinic checkout" : isDoctorCheckout ? "Doctor checkout" : isTreatmentCheckout ? "Treatment booking" : "Cart checkout"}</h3>
             </div>
             <div className={styles.summaryPill}>{activeItems.length} items</div>
           </div>

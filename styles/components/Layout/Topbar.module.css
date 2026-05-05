@@ -41,6 +41,12 @@
     transition: color 0.2s ease;
 }
 
+.businessNavWrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
 .businessNavLink {
   display: inline-flex;
   flex-direction: column;
@@ -49,6 +55,13 @@
   gap: 2px;
   text-decoration: none;
   line-height: 1;
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  appearance: none;
 }
 
 .businessTag {
@@ -86,6 +99,63 @@
 
 .businessNavLink:hover .businessText {
   color: #1f49be;
+}
+
+.businessNavLink:focus-visible {
+  outline: 2px solid rgba(31, 73, 190, 0.35);
+  outline-offset: 4px;
+  border-radius: 8px;
+}
+
+.businessDropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  width: min(300px, calc(100vw - 24px));
+  padding: 10px;
+  border-radius: 18px;
+  background: #ffffff;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.16);
+  z-index: 150;
+  display: grid;
+  gap: 8px;
+}
+
+.businessDropdownItem {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+  color: #1a2238;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+}
+
+.businessDropdownItem:hover,
+.businessDropdownItem:focus-visible {
+  transform: translateY(-1px);
+  background: #eef4fb;
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.12);
+  outline: none;
+}
+
+.businessDropdownTitle {
+  font-size: 14px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.businessDropdownDesc {
+  font-size: 12px;
+  line-height: 1.4;
+  color: #64748b;
 }
 
 /* Right section (icons + auth) */
@@ -237,23 +307,25 @@
 }
 
 .loginLink {
-     display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid #dbe3ef;
-    background: rgb(105, 122, 233);
-    color: #1a2238;
-    padding: 10px 14px;
-    border-radius: 999px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;  
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(10, 75, 131, 0.18);
+  background: linear-gradient(135deg, #0a4b83 0%, #1557d6 100%);
+  color: #ffffff;
+  padding: 10px 16px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+  box-shadow: 0 12px 26px rgba(10, 75, 131, 0.22);
 }
 
 .loginLink:hover {
-  border-color: #b9c9e3;
-  box-shadow: 0 6px 18px rgba(19, 87, 139, 0.08);
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+  box-shadow: 0 16px 30px rgba(10, 75, 131, 0.28);
 }
 
 .separator {

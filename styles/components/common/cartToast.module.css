@@ -1,54 +1,325 @@
 .toast {
   position: fixed;
-  left: 50%;
-  bottom: 20px;
+  left: 16px;
+  top: 96px;
   z-index: 9999;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: min(92vw, 340px);
-  max-width: min(92vw, 420px);
-  padding: 14px 18px;
-  border-radius: 999px;
-  background: rgba(15, 23, 42, 0.96);
-  color: #fff;
-  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.28);
-  transform: translateX(-50%) translateY(140%);
+  width: min(320px, calc(100vw - 32px));
+  transform: translateX(-120%);
   opacity: 0;
-  transition: transform 220ms ease, opacity 220ms ease;
   pointer-events: none;
-  backdrop-filter: blur(10px);
+  transition: transform 240ms ease, opacity 240ms ease;
 }
 
 .toastVisible {
-  transform: translateX(-50%) translateY(0);
+  transform: translateX(0);
   opacity: 1;
+  pointer-events: auto;
 }
 
-.dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 999px;
-  background: #22c55e;
-  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.18);
+.toastHidden {
+  transform: translateX(-120%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.card {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 24px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: rgba(255, 255, 255, 0.98);
+  color: #0f172a;
+  box-shadow: 0 22px 48px rgba(15, 23, 42, 0.18);
+  backdrop-filter: blur(14px);
+  max-height: calc(100vh - 120px);
+  overflow: auto;
+}
+
+.topRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.statusWrap {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+
+.statusIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
   flex-shrink: 0;
+  color: #0d5d8f;
+  background: linear-gradient(135deg, rgba(13, 93, 143, 0.12), rgba(24, 214, 162, 0.18));
+  box-shadow: inset 0 0 0 1px rgba(13, 93, 143, 0.08);
 }
 
-.message {
-  font-size: 14px;
+.statusTextWrap {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.statusText {
+  font-size: 15px;
+  line-height: 1.3;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.statusSubtext {
+  font-size: 12px;
+  line-height: 1.45;
+  color: #64748b;
+}
+
+.closeButton {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #0f172a;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform 180ms ease, background-color 180ms ease, box-shadow 180ms ease;
+}
+
+.closeButton:hover,
+.closeButton:focus-visible {
+  transform: translateY(-1px);
+  background: #e2e8f0;
+  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.12);
+  outline: none;
+}
+
+.badgeRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.typeBadge,
+.discountBadge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 7px 10px;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.typeBadge {
+  background: rgba(13, 93, 143, 0.12);
+  color: #0d5d8f;
+}
+
+.discountBadge {
+  background: rgba(22, 163, 74, 0.12);
+  color: #166534;
+}
+
+.content {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.imageWrap {
+  width: 96px;
+  height: 96px;
+  border-radius: 20px;
+  overflow: hidden;
+  flex-shrink: 0;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: linear-gradient(135deg, rgba(13, 93, 143, 0.1), rgba(24, 214, 162, 0.18));
+}
+
+.image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.placeholder {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  padding: 12px;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 800;
+  color: #0d5d8f;
+}
+
+.info {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.itemName {
+  font-size: 17px;
   line-height: 1.35;
+  font-weight: 800;
+  color: #0f172a;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.itemMeta {
+  font-size: 13px;
+  line-height: 1.45;
+  color: #64748b;
+}
+
+.priceRow {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.price {
+  font-size: 16px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.mrp {
+  font-size: 13px;
+  color: #94a3b8;
+  text-decoration: line-through;
+}
+
+.quantityRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.01em;
+  color: #475569;
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  margin-top: 2px;
+}
+
+.primaryButton,
+.secondaryButton {
+  border-radius: 14px;
+  padding: 12px 14px;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 180ms ease, box-shadow 180ms ease, opacity 180ms ease,
+    background-color 180ms ease, border-color 180ms ease;
+}
+
+.primaryButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: none;
+  color: #fff;
+  background: linear-gradient(135deg, #0d5d8f 0%, #18d6a2 100%);
+  box-shadow: 0 12px 24px rgba(13, 93, 143, 0.22);
+}
+
+.secondaryButton {
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #0f172a;
+}
+
+.primaryButton:hover,
+.primaryButton:focus-visible,
+.secondaryButton:hover,
+.secondaryButton:focus-visible {
+  transform: translateY(-1px);
+  outline: none;
+}
+
+.primaryButton:hover,
+.primaryButton:focus-visible {
+  box-shadow: 0 16px 28px rgba(13, 93, 143, 0.3);
+}
+
+.secondaryButton:hover,
+.secondaryButton:focus-visible {
+  border-color: #94a3b8;
+  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.08);
 }
 
 @media (max-width: 640px) {
   .toast {
-    bottom: 16px;
-    padding: 12px 16px;
-    border-radius: 18px;
+    left: 12px;
+    top: 16px;
+    width: min(320px, calc(100vw - 24px));
   }
 
-  .message {
-    font-size: 13px;
+  .card {
+    padding: 14px;
+    border-radius: 22px;
+    max-height: calc(100vh - 32px);
+  }
+
+  .content {
+    grid-template-columns: 76px minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .imageWrap {
+    width: 76px;
+    height: 76px;
+    border-radius: 16px;
+  }
+
+  .itemName {
+    font-size: 16px;
+  }
+
+  .quantityRow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .actions {
+    grid-template-columns: 1fr;
+  }
+
+  .secondaryButton {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast,
+  .closeButton,
+  .primaryButton,
+  .secondaryButton {
+    transition: none;
   }
 }

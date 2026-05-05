@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import Link from "next/link";
+import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
 import { API_URL } from "@/config/api";
 import { useCart } from "@/context/CartContext";
@@ -21,6 +22,14 @@ type WorkshopTraining = {
   currentAvailability?: string;
   feesInr?: number;
   trainingImage?: string;
+};
+
+type TraningWorkshopProps = {
+  title?: string;
+  showAll?: boolean;
+  showSeeMore?: boolean;
+  seeMoreHref?: string;
+  seeMoreLabel?: string;
 };
 
 const endpointCandidates = [
@@ -59,17 +68,51 @@ const cardLabelStyle: React.CSSProperties = {
 
 const FEATURED_CARD_COUNT = 4;
 
-export default function TraningWorkshop() {
+const footerActionStyle: React.CSSProperties = {
+  marginTop: 24,
+  display: "flex",
+  justifyContent: "center",
+};
+
+const seeMoreLinkStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  minWidth: 180,
+  padding: "12px 22px",
+  borderRadius: 999,
+  background: "linear-gradient(90deg, #0d5d8f 0%, #18d6a2 100%)",
+  color: "#ffffff",
+  fontSize: 15,
+  fontWeight: 800,
+  textDecoration: "none",
+  boxShadow: "0 14px 26px rgba(13, 93, 143, 0.24)",
+  transition: "transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease",
+};
+
+export default function TraningWorkshop({
+  title = "Workshop Trainings",
+  showAll = false,
+  showSeeMore = true,
+  seeMoreHref = "/workshop-trainings",
+  seeMoreLabel = "See More",
+}: TraningWorkshopProps) {
   const router = useRouter();
   const { addToCart, cartItems } = useCart();
   const [items, setItems] = useState<WorkshopTraining[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [isWideScreen, setIsWideScreen] = useState(false);
 
-  const displayItems: Array<WorkshopTraining | null> = [...items];
-  while (displayItems.length < FEATURED_CARD_COUNT) {
-    displayItems.push(null);
-  }
+  const displayItems = useMemo<Array<WorkshopTraining | null>>(() => {
+    if (showAll) return items;
+
+    const paddedItems: Array<WorkshopTraining | null> = [...items];
+    while (paddedItems.length < FEATURED_CARD_COUNT) {
+      paddedItems.push(null);
+    }
+    return paddedItems;
+  }, [items, showAll]);
 
   useEffect(() => {
     let mounted = true;
@@ -111,6 +154,17 @@ export default function TraningWorkshop() {
     };
   }, []);
 
+  useEffect(() => {
+    const updateScreenState = () => {
+      setIsWideScreen(window.innerWidth >= 1200);
+    };
+
+    updateScreenState();
+    window.addEventListener("resize", updateScreenState);
+
+    return () => window.removeEventListener("resize", updateScreenState);
+  }, []);
+
   const handleAddToCart = (training: WorkshopTraining) => {
     const cartId = `workshop:${training._id}`;
     if (cartItems.some((item) => item.id === cartId)) {
@@ -138,8 +192,8 @@ export default function TraningWorkshop() {
   return (
     <section
       style={{
-        width: "100%",
-        maxWidth: 1380,
+        width: "91%",
+        maxWidth: 1290,
         margin: "0 auto",
         padding: "10px 0 26px",
       }}
@@ -159,16 +213,16 @@ export default function TraningWorkshop() {
           style={{
             margin: 0,
             display: "inline-block",
-            fontSize: 28,
+            fontSize: 31,
             lineHeight: 1.15,
-            fontWeight: 800,
+            fontWeight: 700,
             textDecorationLine: "underline",
             textDecorationThickness: "3px",
             textUnderlineOffset: "8px",
             // textDecorationColor: "#1d4ed8",
           }}
         >
-          Workshop Trainings
+          {title}
         </h2>
       </div>
 
@@ -188,7 +242,10 @@ export default function TraningWorkshop() {
             display: "grid",
             gap: 22,
             alignItems: "stretch",
-            gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+            gridTemplateColumns:
+              showAll && isWideScreen
+                ? "repeat(4, minmax(0, 1fr))"
+                : "repeat(auto-fit, minmax(260px, 1fr))",
           }}
         >
           {displayItems.map((item, index) => {
@@ -247,7 +304,7 @@ export default function TraningWorkshop() {
                       style={{
                         width: "100%",
                         height: 150,
-                        objectFit: "cover",
+                        objectFit: "fill",
                         display: "block",
                       }}
                     />
@@ -394,6 +451,14 @@ export default function TraningWorkshop() {
               </article>
             );
           })}
+        </div>
+      ) : null}
+
+      {!loading && !error && showSeeMore && !showAll ? (
+        <div style={footerActionStyle}>
+          <Link href={seeMoreHref} style={seeMoreLinkStyle}>
+            {seeMoreLabel}
+          </Link>
         </div>
       ) : null}
     </section>

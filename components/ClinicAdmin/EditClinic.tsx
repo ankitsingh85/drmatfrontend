@@ -399,10 +399,12 @@ export default function EditClinic({ clinicId, clinic, onSaved }: EditClinicProp
           })
         : null;
       const storedAddresses = readStoredClinicAddresses(data._id);
-      const nextAddresses = mergeAddresses(
-        apiAddresses.length > 0 ? apiAddresses : legacyAddress ? [legacyAddress] : [],
-        storedAddresses
-      );
+      const nextAddresses =
+        apiAddresses.length > 0
+          ? apiAddresses
+          : legacyAddress
+          ? [legacyAddress]
+          : storedAddresses;
       const selected = nextAddresses[0] || legacyAddress || normalizeAddress({ type: "Clinic" });
 
       setClinicRecord({
@@ -610,6 +612,9 @@ export default function EditClinic({ clinicId, clinic, onSaved }: EditClinicProp
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data?.message || "Failed to update clinic");
+    const persistedAddresses = Array.isArray(data?.addresses)
+      ? mergeAddresses([], data.addresses.map(normalizeAddress))
+      : normalizedAddresses;
 
     const updatedClinic: ClinicRecord = {
       ...(clinicRecord || clinic || {}),
@@ -619,13 +624,29 @@ export default function EditClinic({ clinicId, clinic, onSaved }: EditClinicProp
       contactNumber: data?.contactNumber || form.contactNumber,
       ownerName: data?.ownerName || form.ownerName,
       address: data?.address || form.address.trim() || formatAddressText(selected),
-      addresses: normalizedAddresses,
+      addresses: persistedAddresses,
     };
 
     setClinicRecord(updatedClinic);
-    setAddresses(normalizedAddresses);
-    setSelectedAddressIndex(safeIndex);
-    storeClinicAddresses(clinicKey, normalizedAddresses, safeIndex);
+    setAddresses(persistedAddresses);
+    setSelectedAddressIndex(Math.min(safeIndex, Math.max(0, persistedAddresses.length - 1)));
+    Cookies.set("username", updatedClinic.clinicName || "", { path: "/" });
+    Cookies.set("clinicName", updatedClinic.clinicName || "", { path: "/" });
+    Cookies.set("email", updatedClinic.email || "", { path: "/" });
+    Cookies.set("contactNo", updatedClinic.contactNumber || "", { path: "/" });
+    const profileImage = resolveMediaUrl(updatedClinic.clinicLogo);
+    if (profileImage) {
+      Cookies.set("profileImage", profileImage, { path: "/" });
+      localStorage.setItem("profileImage", profileImage);
+    } else {
+      Cookies.remove("profileImage", { path: "/" });
+      localStorage.removeItem("profileImage");
+    }
+    storeClinicAddresses(
+      clinicKey,
+      persistedAddresses,
+      Math.min(safeIndex, Math.max(0, persistedAddresses.length - 1))
+    );
     onSaved?.(updatedClinic);
     window.dispatchEvent(new CustomEvent("addresses-updated"));
     window.dispatchEvent(new CustomEvent("profile-updated"));
@@ -711,9 +732,11 @@ export default function EditClinic({ clinicId, clinic, onSaved }: EditClinicProp
     }
   };
 
-  const handleSelectAddress = async (index: number) => {
+  const handleSelectAddress = (index: number) => {
     setSelectedAddressIndex(index);
-    await persistClinic(addresses, index);
+    void persistClinic(addresses, index).catch((error) => {
+      console.error("Failed to update selected address:", error);
+    });
   };
 
   const handleDeleteAddress = async (index: number) => {
@@ -1013,12 +1036,24 @@ export default function EditClinic({ clinicId, clinic, onSaved }: EditClinicProp
               <div
                 key={`${addr.fullName || form.clinicName || "clinic"}-${index}`}
                 className={`${styles.addressCard} ${isSelected ? styles.addressSelected : ""}`}
+                role="button"
+                tabIndex={0}
+                onClick={() => handleSelectAddress(index)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    handleSelectAddress(index);
+                  }
+                }}
               >
                 <div className={styles.addressTopRow}>
                   <button
                     type="button"
                     className={styles.radioButton}
-                    onClick={() => handleSelectAddress(index)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSelectAddress(index);
+                    }}
                     aria-label="Select address"
                   >
                     {isSelected ? <MdOutlineRadioButtonChecked /> : <MdOutlineRadioButtonUnchecked />}
@@ -1029,10 +1064,24 @@ export default function EditClinic({ clinicId, clinic, onSaved }: EditClinicProp
                     <small>Phone: {addr.mobileNo || form.contactNumber || clinicRecord?.contactNumber || "-"}</small>
                   </div>
                   <div style={{ display: "flex", gap: 8 }}>
-                    <button type="button" className={styles.iconBtn} onClick={() => openEditAddress(index)}>
+                    <button
+                      type="button"
+                      className={styles.iconBtn}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openEditAddress(index);
+                      }}
+                    >
                       <MdOutlineEdit />
                     </button>
-                    <button type="button" className={styles.iconBtn} onClick={() => handleDeleteAddress(index)}>
+                    <button
+                      type="button"
+                      className={styles.iconBtn}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteAddress(index);
+                      }}
+                    >
                       <MdOutlineDelete />
                     </button>
                   </div>

@@ -315,21 +315,32 @@ export default function ProductDetail() {
             </div>
 
             <div className={styles.priceBox}>
-              {product.discountPrice && (
-                <p className={styles.mrp}>
-                  MRP: <span>₹{product.discountPrice}</span>
-                </p>
-              )}
-              {product.price && (
-                <p className={styles.price}>
-                  Price: <span>₹{product.price}</span>
-                  {product.discountPrice && (
-                    <span className={styles.discount}>
-                      {Math.round(((product.discountPrice - product.price) / product.discountPrice) * 100)}% off
-                    </span>
-                  )}
-                </p>
-              )}
+              <div className={styles.priceBox}>
+  {/* MRP */}
+  {product.price && (
+    <p className={styles.mrp}>
+      MRP: <span>₹{product.price}</span>
+    </p>
+  )}
+
+  {/* Selling Price */}
+  {product.discountPrice && (
+    <p className={styles.price}>
+      Price: <span>₹{product.discountPrice}</span>
+
+      {product.price && product.discountPrice < product.price && (
+        <span className={styles.discount}>
+          {Math.round(
+            ((product.price - product.discountPrice) / product.price) * 100
+          )}
+          % off
+        </span>
+      )}
+    </p>
+  )}
+
+  <p className={styles.tax}>Inclusive of all taxes</p>
+</div>
               <p className={styles.tax}>Inclusive of all taxes</p>
             </div>
 

@@ -26,11 +26,23 @@ export interface CartItem {
 
 export const CART_TOAST_EVENT = "cart-item-added";
 
-export const emitCartToast = (message: string) => {
+export type CartToastDetail = {
+  message?: string;
+  item?: CartItem;
+  action?: "added" | "updated";
+};
+
+export type CartPreview = CartToastDetail;
+
+export const emitCartToast = (detail: string | CartToastDetail) => {
   if (typeof window === "undefined") return;
+
+  const payload: CartToastDetail =
+    typeof detail === "string" ? { message: detail } : detail;
+
   window.dispatchEvent(
-    new CustomEvent(CART_TOAST_EVENT, {
-      detail: { message },
+    new CustomEvent<CartToastDetail>(CART_TOAST_EVENT, {
+      detail: payload,
     })
   );
 };
@@ -39,10 +51,12 @@ interface CartContextType {
   cartItems: CartItem[];
   wishlistItems: CartItem[];
   hydrated: boolean;
+  cartPreview: CartPreview | null;
   addToCart: (product: Omit<CartItem, "quantity">, quantity?: number) => void;
   removeFromCart: (id: string) => void;
   updateQuantity: (id: string, quantity: number) => void;
   clearCart: () => void;
+  dismissCartPreview: () => void;
   addToWishlist: (product: Omit<CartItem, "quantity">) => void;
   removeFromWishlist: (id: string) => void;
   toggleWishlist: (product: Omit<CartItem, "quantity">) => void;
@@ -109,6 +123,7 @@ const safeSetStorageItems = (key: string, items: CartItem[]) => {
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [wishlistItems, setWishlistItems] = useState<CartItem[]>([]);
+  const [cartPreview, setCartPreview] = useState<CartPreview | null>(null);
   const [identityKey, setIdentityKey] = useState("guest");
   const [userEmail, setUserEmail] = useState("");
   const [currentRole, setCurrentRole] = useState("guest");
@@ -125,6 +140,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     const fallbackScope =
       role === "clinic"
         ? `clinic:${clinicId || email || "guest"}`
+        : role === "doctor"
+        ? `doctor:${email || "guest"}`
         : role === "user"
         ? `user:${userId || email || "guest"}`
         : `guest:${userId || email || clinicId || "guest"}`;
@@ -134,6 +151,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     if (scope !== scopeRef.current) {
       setCartItems([]);
       setWishlistItems([]);
+      setCartPreview(null);
     }
 
     scopeRef.current = scope;
@@ -225,7 +243,12 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   }, [cartItems, wishlistItems, cartStorageKey, wishlistStorageKey]);
 
   const addToCart = (product: Omit<CartItem, "quantity">, quantity = 1) => {
-    if (currentRole !== "clinic" && currentRole !== "user" && currentRole !== "guest") {
+    if (
+      currentRole !== "clinic" &&
+      currentRole !== "doctor" &&
+      currentRole !== "user" &&
+      currentRole !== "guest"
+    ) {
       return;
     }
 
@@ -234,19 +257,32 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       itemType: product.itemType === "treatment" ? "treatment" : "product",
     };
 
+    const existingItem = cartItems.find((item) => item.id === normalizedProduct.id);
+    const nextQuantity = existingItem ? existingItem.quantity + quantity : quantity;
+    const preview: CartPreview = {
+      message: existingItem ? "Cart updated" : "Added to cart",
+      item: { ...normalizedProduct, quantity: nextQuantity },
+      action: existingItem ? "updated" : "added",
+    };
+
     setCartItems((prev) => {
       const existing = prev.find((item) => item.id === normalizedProduct.id);
       if (existing) {
         return prev.map((item) =>
           item.id === normalizedProduct.id
-            ? { ...item, quantity: item.quantity + quantity, itemType: item.itemType || normalizedProduct.itemType }
+            ? {
+                ...item,
+                quantity: item.quantity + quantity,
+                itemType: item.itemType || normalizedProduct.itemType,
+              }
             : item
         );
       }
       return [...prev, { ...normalizedProduct, quantity }];
     });
 
-    emitCartToast(`${normalizedProduct.name} added to cart`);
+    setCartPreview(preview);
+    emitCartToast(preview);
   };
 
   const removeFromCart = (id: string) => {
@@ -262,6 +298,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const clearCart = () => setCartItems([]);
+  const dismissCartPreview = () => setCartPreview(null);
 
   const addToWishlist = (product: Omit<CartItem, "quantity">) => {
     setWishlistItems((prev) => {
@@ -293,10 +330,12 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         cartItems,
         wishlistItems,
         hydrated,
+        cartPreview,
         addToCart,
         removeFromCart,
         updateQuantity,
         clearCart,
+        dismissCartPreview,
         addToWishlist,
         removeFromWishlist,
         toggleWishlist,

@@ -104,7 +104,8 @@ interface OfferProductRef {
 
 interface Offer {
   _id: string;
-  imageBase64: string;
+  imageUrl: string;
+  imageBase64?: string;
   clinicId?: string | OfferClinicRef | null;
   productId?: string | OfferProductRef | null;
 }
@@ -464,6 +465,9 @@ export default function YourResult({ userId, userName, initialTab }: UserResultP
     const slugSource = product?.productName || product?._id || productId || offer._id;
     router.push(`/product/${slugify(String(slugSource))}`);
   };
+
+  const getOfferImage = (offer: Offer) =>
+    offer.imageUrl || offer.imageBase64 || "";
 
   const getProductCartPayload = (product: RecommendedProduct) => {
     const salePrice = Number(
@@ -1243,7 +1247,7 @@ export default function YourResult({ userId, userName, initialTab }: UserResultP
                 >
                   <div className={styles.topProductImageWrap}>
                     <img
-                      src={resolveMediaUrl(offer.imageBase64) || offer.imageBase64}
+                      src={resolveMediaUrl(getOfferImage(offer)) || getOfferImage(offer)}
                       alt="Special offer"
                       className={styles.topProductImage}
                     />

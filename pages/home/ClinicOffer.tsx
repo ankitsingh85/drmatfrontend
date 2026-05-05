@@ -21,7 +21,8 @@ interface ClinicLight {
 
 interface Offer {
   _id: string;
-  imageBase64: string;
+  imageUrl: string;
+  imageBase64?: string;
   clinicId?: string | ClinicRef | null;
   categoryId?: string | { _id?: string; id?: string; name?: string } | null;
 }
@@ -223,6 +224,9 @@ const ClinicOffer = () => {
     router.push(`/clinics/${clinicPath}`);
   };
 
+  const getOfferImage = (offer: Offer) =>
+    offer.imageUrl || offer.imageBase64 || "";
+
   if (slides.length === 0) {
     return <p style={{ textAlign: "center" }}>No offers available</p>;
   }
@@ -265,7 +269,7 @@ const ClinicOffer = () => {
               style={{ flex: `0 0 calc(100% / ${visibleCount})`, cursor: "pointer" }}
             >
               <img
-                src={resolveMediaUrl(slide.imageBase64) || slide.imageBase64}
+                src={resolveMediaUrl(getOfferImage(slide)) || getOfferImage(slide)}
                 alt="Offer"
               />
             </div>

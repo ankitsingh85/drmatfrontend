@@ -1,14 +1,14 @@
 import type { GetServerSideProps } from "next";
 
-const CourseListingRedirectPage = () => null;
+const WorkshopListingRedirectPage = () => null;
 
 export const getServerSideProps: GetServerSideProps = async () => {
   return {
     redirect: {
-      destination: "/courses",
+      destination: "/workshop-trainings",
       permanent: false,
     },
   };
 };
 
-export default CourseListingRedirectPage;
+export default WorkshopListingRedirectPage;

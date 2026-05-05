@@ -10,6 +10,7 @@ import illustration from "../public/login.jpg";
 import registerIllustration from "../public/register.jpg";
 import otpIllustration from "../public/otp.jpg";
 import { API_URL } from "@/config/api";
+import { resolveMediaUrl } from "@/lib/media";
 
 export default function ClinicLogin() {
   const router = useRouter();
@@ -34,12 +35,18 @@ export default function ClinicLogin() {
 
     Cookies.remove("userId");
     Cookies.remove("profileImage");
+    localStorage.removeItem("profileImage");
 
     const name = data?.clinic?.clinicName || "";
     const id = String(data?.clinic?.id || data?.clinic?._id || "");
     const clinicEmail = data?.clinic?.email || "";
     const contactNo =
       data?.clinic?.contactNo || data?.clinic?.contactNumber || fallbackMobile;
+    const profileImage =
+      resolveMediaUrl(data?.clinic?.profileImage || data?.clinic?.clinicLogo) ||
+      data?.clinic?.profileImage ||
+      data?.clinic?.clinicLogo ||
+      "";
 
     Cookies.set("token", data.token, cookieOptions);
     Cookies.set("role", "clinic", cookieOptions);
@@ -49,9 +56,15 @@ export default function ClinicLogin() {
     Cookies.set("email", clinicEmail, cookieOptions);
     Cookies.set("contactNo", contactNo, cookieOptions);
     Cookies.set("cartScope", `clinic:${id || clinicEmail || contactNo}`, cookieOptions);
+    if (profileImage) {
+      Cookies.set("profileImage", profileImage, cookieOptions);
+    }
 
     localStorage.setItem("clinicId", id);
     localStorage.setItem("cartScope", `clinic:${id || clinicEmail || contactNo}`);
+    if (profileImage) {
+      localStorage.setItem("profileImage", profileImage);
+    }
     window.dispatchEvent(new CustomEvent("user-logged-in"));
     window.location.replace(nextPath.startsWith("/") ? nextPath : `/${nextPath}`);
   };

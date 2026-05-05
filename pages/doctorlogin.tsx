@@ -1,111 +1,284 @@
 "use client";
-import React, { useState } from "react";
-import { useRouter } from "next/navigation";
+
+import { useState } from "react";
 import Cookies from "js-cookie";
-import styles from "@/styles/clinicdashboard/doctors.module.css";
+import Image from "next/image";
+import Topbar from "@/components/Layout/Topbar";
+import styles from "@/styles/components/forms/MobileLogin.module.css";
+import illustration from "../public/login.jpg";
+import otpIllustration from "../public/otp.jpg";
 import { API_URL } from "@/config/api";
+import { resolveMediaUrl } from "@/lib/media";
 
-// ✅ Use environment variable for API base URL
-// const API_URL = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000/api";
+type LoginStep = "mobile" | "otp";
 
-const LoginDoctor = () => {
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-  });
-
-  const [message, setMessage] = useState<string | null>(null);
+export default function DoctorLogin() {
+  const [mobile, setMobile] = useState("");
+  const [otp, setOtp] = useState("");
+  const [step, setStep] = useState<LoginStep>("mobile");
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  const [error, setError] = useState("");
+  const cookieOptions = {
+    path: "/",
+    sameSite: "lax" as const,
+    secure:
+      typeof window !== "undefined" && window.location.protocol === "https:",
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setMessage(null);
+  const normalizeMobile = () => {
+    const normalized = mobile.replace(/\D/g, "");
+    if (normalized.length !== 10) {
+      alert("Please enter a valid 10 digit mobile number");
+      return null;
+    }
+    return normalized;
+  };
 
+  const clearExistingSession = () => {
+    [
+      "token",
+      "role",
+      "username",
+      "email",
+      "contactNo",
+      "doctorId",
+      "userId",
+      "clinicId",
+      "clinicName",
+      "profileImage",
+      "location",
+      "cartScope",
+    ].forEach((key) => {
+      Cookies.remove(key, { path: "/" });
+    });
+
+    ["doctorId", "userId", "clinicId", "profileImage", "cartScope"].forEach(
+      (key) => {
+        localStorage.removeItem(key);
+      },
+    );
+  };
+
+  const completeLogin = (data: any, fallbackMobile: string) => {
+    const doctor = data?.doctor || {};
+    const doctorId = String(doctor.id || doctor._id || "").trim();
+    const displayName = String(
+      doctor.name ||
+        [doctor.title, doctor.firstName, doctor.lastName]
+          .filter(Boolean)
+          .join(" ") ||
+        "Doctor",
+    ).trim();
+    const email = String(doctor.email || "")
+      .trim()
+      .toLowerCase();
+    const contactNo = String(
+      doctor.contactNo || doctor.phone || fallbackMobile || "",
+    )
+      .replace(/\D/g, "")
+      .trim();
+    const cartScope = `doctor:${doctorId || email || contactNo || fallbackMobile}`;
+    const profileImage = resolveMediaUrl(doctor.profileImage) || doctor.profileImage || "";
+
+    clearExistingSession();
+
+    Cookies.set("token", data.token, cookieOptions);
+    Cookies.set("role", "doctor", cookieOptions);
+    Cookies.set("username", displayName, cookieOptions);
+    Cookies.set("email", email, cookieOptions);
+    Cookies.set("contactNo", contactNo || fallbackMobile, cookieOptions);
+    Cookies.set("doctorId", doctorId, cookieOptions);
+    Cookies.set("cartScope", cartScope, cookieOptions);
+    if (profileImage) {
+      Cookies.set("profileImage", profileImage, cookieOptions);
+    }
+
+    localStorage.setItem("doctorId", doctorId);
+    localStorage.setItem("cartScope", cartScope);
+    if (profileImage) {
+      localStorage.setItem("profileImage", profileImage);
+    }
+
+    window.dispatchEvent(new CustomEvent("user-logged-in"));
+    window.location.replace("/home");
+  };
+
+  const handleSendOtp = async (e?: React.FormEvent) => {
+  e?.preventDefault();
+
+  const normalizedMobile = normalizeMobile();
+  if (!normalizedMobile) return;
+
+  setLoading(true);
+  setError("");
+
+  try {
+    const res = await fetch(`${API_URL}/doctors/check-mobile`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        contactNo: normalizedMobile,
+      }),
+    });
+
+    const data = await res.json();
+
+    // ❌ NOT REGISTERED → STOP HERE
+    if (!res.ok || data?.exists === false) {
+      setError("Doctor is not registered");
+      return;
+    }
+
+    // ✅ REGISTERED → GO TO OTP
+    setOtp("");
+    setStep("otp");
+
+  } catch (err) {
+    setError("Something went wrong");
+  } finally {
+    setLoading(false);
+  }
+};
+
+  const handleConfirmOtp = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (otp !== "1234") {
+      alert("Invalid OTP. Use 1234");
+      return;
+    }
+
+    const normalizedMobile = normalizeMobile();
+    if (!normalizedMobile) return;
+
+    setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/doctors/login`, {
+      const res = await fetch(`${API_URL}/doctors/mobile-login`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contactNo: normalizedMobile,
+        }),
       });
 
       const data = await res.json();
 
       if (res.ok) {
-        setMessage("✅ Login successful!");
-
-        // ✅ Save cookies so middleware can read
-        Cookies.set("token", data.token, { expires: 1, path: "/" });
-        Cookies.set("role", "doctor", { expires: 1, path: "/" });
-
-        // ✅ Reset form
-        setFormData({ email: "", password: "" });
-
-        // ✅ Force reload so middleware immediately sees cookies
-        window.location.href = "/DoctorDashboard";
-      } else {
-        setMessage(`❌ Error: ${data.message || "Invalid credentials"}`);
+        completeLogin(data, normalizedMobile);
+        return;
       }
-    } catch (error) {
-      console.error("Error logging in:", error);
-      setMessage("❌ Server error. Please try again later.");
+
+      if (res.status === 404 || data?.message === "Doctor is not registered") {
+        setError("Doctor is not registered");
+        setStep("mobile");
+        setOtp("");
+        return;
+      }
+
+      throw new Error(data?.message || "Login failed");
+    } catch (err: any) {
+      alert(err.message || "Login failed");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className={styles.doctorContainer}>
-      <h1 className={styles.pageTitle}>Doctor Login</h1>
+    <>
+      <Topbar />
+      <div className={styles.page}>
+        <div className={styles.splitCard}>
+          <div className={styles.imagePane}>
+            <Image
+              src={step === "otp" ? otpIllustration : illustration}
+              alt="Doctor login"
+              className={styles.heroImage}
+              priority
+            />
+          </div>
 
-      {message && <p className={styles.message}>{message}</p>}
+          <div className={styles.formPane}>
+            <div className={styles.formCard}>
+              {step !== "mobile" && (
+                <button
+                  type="button"
+                  className={styles.backBtn}
+                  onClick={() => {
+                    setStep("mobile");
+                    setOtp("");
+                  }}
+                >
+                  {"<"}
+                </button>
+              )}
 
-      <form className={styles.form} onSubmit={handleSubmit}>
-        {/* Email */}
-        <div className={styles.formGroup}>
-          <label htmlFor="email" className={styles.label}>
-            Email
-          </label>
-          <input
-            type="email"
-            id="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            className={styles.inputField}
-            required
-          />
+              {step === "mobile" && (
+                <>
+                  <h1 className={styles.title}>Doctor Sign in</h1>
+                  <p className={styles.subtitle}>
+                    Enter your registered 10 digit mobile number.
+                  </p>
+
+                  <form onSubmit={handleSendOtp}>
+                    <div className={styles.mobileRow}>
+                      <span className={styles.countryCode}>+91</span>
+                      <input
+                        className={styles.mobileInput}
+                        placeholder="Mobile Number"
+                        value={mobile}
+                        maxLength={10}
+                        inputMode="numeric"
+                        autoFocus
+                        onChange={(e) => {
+                          setMobile(e.target.value.replace(/\D/g, ""));
+                          setError("");
+                        }}
+                      />
+                    </div>
+                    {error && (
+                      <p style={{ color: "red", marginTop: "8px" }}>{error}</p>
+                    )}
+                    <button type="submit" className={styles.primaryBtn}>
+                      Get Verification Code
+                    </button>
+                  </form>
+                </>
+              )}
+
+              {step === "otp" && (
+                <>
+                  <h2 className={styles.modalTitle}>Verify mobile number</h2>
+                  <p className={styles.modalText}>
+                    Enter OTP. For now use 1234. Only registered doctors can log
+                    in.
+                  </p>
+                  <form onSubmit={handleConfirmOtp}>
+                    <input
+                      className={styles.otpInput}
+                      maxLength={4}
+                      inputMode="numeric"
+                      placeholder="____"
+                      value={otp}
+                      autoFocus
+                      onChange={(e) =>
+                        setOtp(e.target.value.replace(/\D/g, ""))
+                      }
+                    />
+                    <button
+                      type="submit"
+                      className={styles.primaryBtn}
+                      disabled={loading}
+                    >
+                      {loading ? "Please wait..." : "Confirm OTP"}
+                    </button>
+                  </form>
+                </>
+              )}
+            </div>
+          </div>
         </div>
-
-        {/* Password */}
-        <div className={styles.formGroup}>
-          <label htmlFor="password" className={styles.label}>
-            Password
-          </label>
-          <input
-            type="password"
-            id="password"
-            name="password"
-            value={formData.password}
-            onChange={handleChange}
-            className={styles.inputField}
-            required
-          />
-        </div>
-
-        <button type="submit" className={styles.submitButton} disabled={loading}>
-          {loading ? "Logging in..." : "Login"}
-        </button>
-      </form>
-    </div>
+      </div>
+    </>
   );
-};
-
-export default LoginDoctor;
+}

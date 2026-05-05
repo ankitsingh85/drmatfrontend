@@ -1,13 +1,15 @@
 "use client";
 import { API_URL } from "@/config/api";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import styles from "@/styles/Dashboard/createdoctor.module.css";
+import { resolveMediaUrl } from "@/lib/media";
 
 // const API_URL =
 //   process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000/api";
 
 const CreateDoctor = () => {
+  const [nextDoctorCode, setNextDoctorCode] = useState("ODUC0001");
   const [formData, setFormData] = useState({
     title: "",
     firstName: "",
@@ -18,6 +20,8 @@ const CreateDoctor = () => {
     password: "",
     description: "",
   });
+  const [profileImage, setProfileImage] = useState<File | null>(null);
+  const [profilePreview, setProfilePreview] = useState("");
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -30,6 +34,23 @@ const CreateDoctor = () => {
     "Pediatrician",
     "Orthopedic",
   ];
+
+  useEffect(() => {
+    const fetchNextDoctorCode = async () => {
+      try {
+        const res = await fetch(`${API_URL}/doctors/next-code`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data?.doctorCode) {
+          setNextDoctorCode(data.doctorCode);
+        }
+      } catch {
+        setNextDoctorCode("ODUC0001");
+      }
+    };
+
+    void fetchNextDoctorCode();
+  }, []);
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -46,17 +67,34 @@ const CreateDoctor = () => {
     setMessage(null);
 
     try {
+      const payload = new FormData();
+      Object.entries(formData).forEach(([key, value]) => {
+        payload.append(key, value);
+      });
+      if (profileImage) {
+        payload.append("profileImage", profileImage);
+      }
+
       const res = await fetch(`${API_URL}/doctors`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: payload,
       });
 
       const data = await res.json();
 
       if (res.ok) {
-        setMessage("✅ Doctor created successfully");
+        setMessage(
+          data?.doctor?.doctorCode
+            ? `Doctor created successfully. Code: ${data.doctor.doctorCode}`
+            : "Doctor created successfully"
+        );
         window.dispatchEvent(new Event("admin-dashboard:create-success"));
+        const createdCodeNumber = Number(
+          String(data?.doctor?.doctorCode || nextDoctorCode).replace(/\D/g, "")
+        );
+        if (Number.isFinite(createdCodeNumber)) {
+          setNextDoctorCode(`ODUC${String(createdCodeNumber + 1).padStart(4, "0")}`);
+        }
         setFormData({
           title: "",
           firstName: "",
@@ -67,6 +105,8 @@ const CreateDoctor = () => {
           password: "",
           description: "",
         });
+        setProfileImage(null);
+        setProfilePreview("");
       } else {
         setMessage(data.message || "❌ Failed to create doctor");
       }
@@ -76,6 +116,19 @@ const CreateDoctor = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleProfileImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setMessage("Please upload an image file.");
+      return;
+    }
+
+    setProfileImage(file);
+    setProfilePreview(URL.createObjectURL(file));
+    setMessage(null);
   };
 
   return (
@@ -88,6 +141,17 @@ const CreateDoctor = () => {
         {/* ===== BASIC INFO ===== */}
         <div className={styles.section}>
           <h2 className={styles.sectionTitle}>Basic Information</h2>
+
+          
+          <div className={styles.field}>
+            <label className={styles.label}>Doctor Code</label>
+            <input
+              name="doctorCode"
+              value={nextDoctorCode}
+              className={styles.input}
+              readOnly
+            />
+          </div>
 
           <div className={styles.field}>
             <label className={styles.label}>Title</label>
@@ -146,6 +210,25 @@ const CreateDoctor = () => {
               ))}
             </select>
           </div>
+          <div className={styles.profileImageField}>
+            <label className={styles.label}>Profile Picture</label>
+            <div className={styles.profileImageRow}>
+              <div className={styles.profilePreview}>
+                {profilePreview ? (
+                  <img src={resolveMediaUrl(profilePreview) || profilePreview} alt="Doctor profile preview" />
+                ) : (
+                  <span>Photo</span>
+                )}
+              </div>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleProfileImageChange}
+                className={styles.input}
+              />
+            </div>
+          </div>
+
         </div>
 
         {/* ===== CREDENTIALS ===== */}
