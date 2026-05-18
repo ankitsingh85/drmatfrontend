@@ -31,6 +31,7 @@ import CourseListing from "@/components/Layout/CourseListing";
 import ClinicOffer from "./ClinicOffer";
 import B2BProductCategories from "@/components/homePage/B2BProductCategories";
 import TraningWorkshop from "./TraningWorkshop";
+import ClinicHiringPortal from "./ClinicHiringPortal";
 
 const Index = () => {
   const router = useRouter();
@@ -133,8 +134,10 @@ const Index = () => {
           <div style={{ padding: "30px 60px" }}>
                       <B2BProductCategories/>
 
+            
             <TraningWorkshop/>
             <CourseListing />
+            <ClinicHiringPortal />
           </div>
         </div>
         <Footer />

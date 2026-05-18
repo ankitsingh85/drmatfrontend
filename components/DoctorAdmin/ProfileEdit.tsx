@@ -338,7 +338,7 @@ function ProfileEdit({ doctor, onSaved }: ProfileEditProps) {
           Mobile Number
           <input value={form.phone} onChange={(e) => updateField("phone", e.target.value)} />
         </label>
-        <label className={styles.field}>
+        {/* <label className={styles.field}>
           New Password
           <input
             type="password"
@@ -346,7 +346,7 @@ function ProfileEdit({ doctor, onSaved }: ProfileEditProps) {
             onChange={(e) => updateField("password", e.target.value)}
             placeholder="Leave blank to keep current password"
           />
-        </label>
+        </label> */}
         <label className={styles.field} style={{ gridColumn: "1 / -1" }}>
           Description
           <textarea
