@@ -370,6 +370,10 @@
   z-index: 101;
 }
 
+.hideOnMobile {
+  display: none;
+}
+
 /* ===================== */
 /* 📱 Responsive Styles  */
 /* ===================== */
@@ -382,6 +386,10 @@
 
   .hamburger {
     display: block;
+  }
+
+  .hamburger.hideOnMobile {
+    display: none;
   }
 
   .navLinks {
@@ -411,11 +419,14 @@
 /* Small tablets & large phones (landscape) */
 @media (max-width: 768px) {
   .topbar {
-    padding: 10px 20px;
+    padding: 10px 14px;
+    justify-content: space-between;
+    gap: 10px;
   }
 
   .leftSection {
     gap: 20px;
+    min-width: 0;
   }
 
   .navLink {
@@ -427,7 +438,8 @@
   }
 
   .rightSection {
-    gap: 12px;
+    gap: 10px;
+    min-width: 0;
   }
 
   .locationText {
@@ -440,16 +452,18 @@
 /* Phones (portrait) */
 @media (max-width: 480px) {
   .topbar {
-    padding: 8px 16px;
+    padding: 8px 12px;
   }
 
   .logo {
     max-width: 90px;
+    margin-left: 0;
   }
 
   .navLinks {
     padding: 15px 20px;
     gap: 15px;
+    top: 58px;
   }
 
   .navLink {
@@ -465,7 +479,7 @@
   }
 
   .rightSection {
-    gap: 10px;
+    gap: 8px;
   }
 
   .userName {
@@ -548,10 +562,6 @@
   transform: scale(0.95);
 }
 @media (max-width: 480px) {
-  .hamburger {
-    display: none; /* hide hamburger on mobile */
-  }
-
   .cartInfo {
     width: 30px;
     height: 30px;

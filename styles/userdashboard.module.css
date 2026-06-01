@@ -737,13 +737,24 @@
 }
 
 @media (max-width: 768px) {
+  .wrapper {
+    min-height: auto;
+  }
+
+  .mainArea {
+    min-height: auto;
+    overflow: visible;
+  }
+
   .menuToggle {
     display: inline-block;
     left: 1rem;
   }
 
   .mainContent {
-    padding: 12px;
+    width: 100%;
+    padding: 12px 10px 86px;
+    overflow: visible;
   }
 
   .topProfileStrip {

@@ -417,7 +417,7 @@ const ListOfTreatment = () => {
           className={styles.premiumButton}
           onClick={handleDownloadCSV}
         >
-          Download Excel
+          Download CSV
         </button>
         <button
           type="button"

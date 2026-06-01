@@ -152,6 +152,92 @@ const ListOfCourseType = () => {
     return filteredCourseTypes.slice(start, start + itemsPerPage);
   }, [filteredCourseTypes, currentPage, itemsPerPage]);
 
+  const handleDownloadCSV = () => {
+    const rows = [
+      ["ID", "Name", "Image URL"],
+      ...filteredCourseTypes.map((item) => [
+        item.id,
+        item.name,
+        item.imageUrl || "",
+      ]),
+    ];
+
+    const csv = rows
+      .map((row) =>
+        row
+          .map((cell) => `"${String(cell).replace(/"/g, '""')}"`)
+          .join(",")
+      )
+      .join("\n");
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "course-types.csv";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleDownloadPDF = () => {
+    const printable = window.open("", "_blank");
+    if (!printable) {
+      alert("Unable to open print window. Please allow popups.");
+      return;
+    }
+
+    const escapeHtml = (value: string) =>
+      value
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+
+    const rows = filteredCourseTypes
+      .map(
+        (item) => `<tr>
+          <td>${escapeHtml(item.id)}</td>
+          <td>${escapeHtml(item.name)}</td>
+          <td>${escapeHtml(item.imageUrl || "-")}</td>
+        </tr>`
+      )
+      .join("");
+
+    printable.document.write(`
+      <html>
+        <head>
+          <title>Course Types List</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            h2 { margin-bottom: 16px; }
+            table { width: 100%; border-collapse: collapse; }
+            th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+            th { background: #f4f4f4; }
+          </style>
+        </head>
+        <body>
+          <h2>Course Types List</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Image URL</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </body>
+      </html>
+    `);
+    printable.document.close();
+    printable.focus();
+    printable.print();
+  };
+
   return (
     <div className={styles.container}>
       <div className={styles.toolbar}>
@@ -172,6 +258,20 @@ const ListOfCourseType = () => {
             </option>
           ))}
         </select>
+        <button
+          type="button"
+          className={styles.premiumButton}
+          onClick={handleDownloadCSV}
+        >
+          Download CSV
+        </button>
+        <button
+          type="button"
+          className={styles.premiumButton}
+          onClick={handleDownloadPDF}
+        >
+          Download PDF
+        </button>
       </div>
 
       <div className={styles.tableWrap}>

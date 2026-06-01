@@ -15,7 +15,7 @@ import styles from "@/styles/chat.module.css";
 type CallType = "audio" | "video";
 type CallMode = "idle" | "incoming" | "calling" | "connecting" | "active";
 
-type SignalPayload = {
+export type WebRTCCallSignalPayload = {
   chatId: string;
   callId: string;
   from: string;
@@ -32,6 +32,8 @@ type WebRTCCallProps = {
   peerId?: string;
   peerName: string;
   canCall: boolean;
+  externalIncomingCall?: WebRTCCallSignalPayload | null;
+  onExternalIncomingHandled?: (callId: string) => void;
 };
 
 const createCallId = () =>
@@ -39,7 +41,15 @@ const createCallId = () =>
     ? crypto.randomUUID()
     : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
-const WebRTCCall = ({ chatId, currentUserId, peerId, peerName, canCall }: WebRTCCallProps) => {
+const WebRTCCall = ({
+  chatId,
+  currentUserId,
+  peerId,
+  peerName,
+  canCall,
+  externalIncomingCall,
+  onExternalIncomingHandled,
+}: WebRTCCallProps) => {
   const [mode, setMode] = useState<CallMode>("idle");
   const [callType, setCallType] = useState<CallType>("video");
   const [callId, setCallId] = useState("");
@@ -256,23 +266,45 @@ const WebRTCCall = ({ chatId, currentUserId, peerId, peerName, canCall }: WebRTC
     });
   };
 
-  useEffect(() => {
-    if (!chatId || !currentUserId) return;
-
-    const isCurrentCall = (data: SignalPayload) =>
-      data.chatId === chatId && data.to === currentUserId;
-
-    const handleInvite = (data: SignalPayload) => {
-      if (!isCurrentCall(data) || !canCall || modeRef.current !== "idle") return;
+  const receiveInvite = useCallback(
+    (data: WebRTCCallSignalPayload) => {
+      if (
+        data.chatId !== chatId ||
+        data.to !== currentUserId ||
+        !canCall ||
+        modeRef.current !== "idle"
+      ) {
+        return false;
+      }
 
       setCallType(data.callType);
       setCallId(data.callId);
       setIncomingFrom(data.from);
       setMode("incoming");
       setCallError("");
+      return true;
+    },
+    [canCall, chatId, currentUserId]
+  );
+
+  useEffect(() => {
+    if (!externalIncomingCall) return;
+    if (receiveInvite(externalIncomingCall)) {
+      onExternalIncomingHandled?.(externalIncomingCall.callId);
+    }
+  }, [externalIncomingCall, onExternalIncomingHandled, receiveInvite]);
+
+  useEffect(() => {
+    if (!chatId || !currentUserId) return;
+
+    const isCurrentCall = (data: WebRTCCallSignalPayload) =>
+      data.chatId === chatId && data.to === currentUserId;
+
+    const handleInvite = (data: WebRTCCallSignalPayload) => {
+      receiveInvite(data);
     };
 
-    const handleAccepted = async (data: SignalPayload) => {
+    const handleAccepted = async (data: WebRTCCallSignalPayload) => {
       if (!isCurrentCall(data) || data.callId !== callIdRef.current || !peerId) return;
 
       const connection = createPeerConnection(data.callId, peerId);
@@ -293,13 +325,13 @@ const WebRTCCall = ({ chatId, currentUserId, peerId, peerName, canCall }: WebRTC
       setMode("connecting");
     };
 
-    const handleRejected = (data: SignalPayload) => {
+    const handleRejected = (data: WebRTCCallSignalPayload) => {
       if (!isCurrentCall(data) || data.callId !== callIdRef.current) return;
       resetCall(false);
       setCallError(`${peerName} declined the call.`);
     };
 
-    const handleOffer = async (data: SignalPayload) => {
+    const handleOffer = async (data: WebRTCCallSignalPayload) => {
       if (!isCurrentCall(data) || data.callId !== callIdRef.current || !data.offer) return;
 
       const connection = peerConnectionRef.current;
@@ -319,7 +351,7 @@ const WebRTCCall = ({ chatId, currentUserId, peerId, peerName, canCall }: WebRTC
       });
     };
 
-    const handleAnswer = async (data: SignalPayload) => {
+    const handleAnswer = async (data: WebRTCCallSignalPayload) => {
       if (!isCurrentCall(data) || data.callId !== callIdRef.current || !data.answer) return;
 
       const connection = peerConnectionRef.current;
@@ -329,7 +361,7 @@ const WebRTCCall = ({ chatId, currentUserId, peerId, peerName, canCall }: WebRTC
       await addPendingCandidates();
     };
 
-    const handleCandidate = async (data: SignalPayload) => {
+    const handleCandidate = async (data: WebRTCCallSignalPayload) => {
       if (!isCurrentCall(data) || data.callId !== callIdRef.current || !data.candidate) return;
 
       const connection = peerConnectionRef.current;
@@ -341,7 +373,7 @@ const WebRTCCall = ({ chatId, currentUserId, peerId, peerName, canCall }: WebRTC
       await connection.addIceCandidate(new RTCIceCandidate(data.candidate));
     };
 
-    const handleEnded = (data: SignalPayload) => {
+    const handleEnded = (data: WebRTCCallSignalPayload) => {
       if (!isCurrentCall(data) || data.callId !== callIdRef.current) return;
       resetCall(false);
     };
@@ -365,12 +397,12 @@ const WebRTCCall = ({ chatId, currentUserId, peerId, peerName, canCall }: WebRTC
     };
   }, [
     addPendingCandidates,
-    canCall,
     chatId,
     createPeerConnection,
     currentUserId,
     peerId,
     peerName,
+    receiveInvite,
     resetCall,
   ]);
 

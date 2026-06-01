@@ -17,23 +17,23 @@ const CreateDoctor = () => {
     specialist: "",
     email: "",
     phone: "",
-    password: "",
     description: "",
   });
   const [profileImage, setProfileImage] = useState<File | null>(null);
   const [profilePreview, setProfilePreview] = useState("");
-
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-
-  const titles = ["Dr.", "Prof.", "Mr.", "Ms."];
-  const specialists = [
+  const [newSpecialist, setNewSpecialist] = useState("");
+  const [specialists, setSpecialists] = useState([
     "Dermatologist",
     "Cardiologist",
     "Neurologist",
     "Pediatrician",
     "Orthopedic",
-  ];
+  ]);
+
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  const titles = ["Dr.", "Prof.", "Mr.", "Ms."];
 
   useEffect(() => {
     const fetchNextDoctorCode = async () => {
@@ -102,7 +102,6 @@ const CreateDoctor = () => {
           specialist: "",
           email: "",
           phone: "",
-          password: "",
           description: "",
         });
         setProfileImage(null);
@@ -129,6 +128,31 @@ const CreateDoctor = () => {
     setProfileImage(file);
     setProfilePreview(URL.createObjectURL(file));
     setMessage(null);
+  };
+
+  const handleAddSpecialist = () => {
+    const specialist = newSpecialist.trim();
+    if (!specialist) return;
+
+    const alreadyExists = specialists.some(
+      (item) => item.toLowerCase() === specialist.toLowerCase()
+    );
+
+    if (!alreadyExists) {
+      setSpecialists((prev) => [...prev, specialist]);
+    }
+
+    setFormData((prev) => ({ ...prev, specialist }));
+    setNewSpecialist("");
+  };
+
+  const handleNewSpecialistKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>
+  ) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleAddSpecialist();
+    }
   };
 
   return (
@@ -194,7 +218,17 @@ const CreateDoctor = () => {
           </div>
 
           <div className={styles.field}>
+            
             <label className={styles.label}>Specialist</label>
+            <input
+              type="text"
+              value={newSpecialist}
+              onChange={(e) => setNewSpecialist(e.target.value)}
+              onKeyDown={handleNewSpecialistKeyDown}
+              onBlur={handleAddSpecialist}
+              className={styles.input}
+              placeholder="Type new specialist and press Enter"
+            />
             <select
               name="specialist"
               value={formData.specialist}
@@ -209,6 +243,7 @@ const CreateDoctor = () => {
                 </option>
               ))}
             </select>
+            
           </div>
           <div className={styles.profileImageField}>
             <label className={styles.label}>Profile Picture</label>
@@ -259,17 +294,6 @@ const CreateDoctor = () => {
             />
           </div>
 
-          <div className={styles.field}>
-            <label className={styles.label}>Password</label>
-            <input
-              type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              className={styles.input}
-              required
-            />
-          </div>
         </div>
 
         {/* ===== DESCRIPTION ===== */}

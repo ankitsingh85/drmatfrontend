@@ -21,6 +21,7 @@ import MobileNavbar from "@/components/Layout/MobileNavbar";
 import CreateDoctor from "@/components/AdminPanel/CreateDoctor";
 import ListOfDoctor from "@/components/AdminPanel/ListOfDoctor";
 import Test from "@/components/AdminPanel/Test";
+import ClinicHiringRequests from "@/components/AdminPanel/ClinicHiringRequests";
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -224,6 +225,21 @@ export default function AdminDashboard() {
                 </span>
               </li>
 
+              <li
+                onClick={() => {
+                  setActiveSection("clinicHiringRequests");
+                  setSidebarOpen(false);
+                }}
+                className={`${styles.menuItem} ${
+                  activeSection === "clinicHiringRequests" ? styles.active : ""
+                }`}
+              >
+                <span className={styles.iconLabel}>
+                  <FiList className={styles.icon} />
+                  <span className={styles.label}>Hiring Requests</span>
+                </span>
+              </li>
+
             </ul>
 
             <button className={styles.logoutButton} onClick={handleLogout}>
@@ -248,6 +264,7 @@ export default function AdminDashboard() {
             {activeSection === "listofdoctor" && <ListOfDoctor/>}
 
                        {activeSection === "test" && <Test/>}
+            {activeSection === "clinicHiringRequests" && <ClinicHiringRequests />}
           </div>
         </div>
       </div>

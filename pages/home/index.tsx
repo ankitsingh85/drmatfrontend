@@ -38,6 +38,7 @@ const Index = () => {
   const [isHydrated, setIsHydrated] = useState(false);
   const currentRole = isHydrated ? Cookies.get("role")?.toLowerCase() : null;
   const isBusinessMode = currentRole === "clinic" || currentRole === "doctor";
+  const isClinicMode = currentRole === "clinic";
 
   // loader / prefetch state
   const [appReady, setAppReady] = useState(false);
@@ -137,7 +138,7 @@ const Index = () => {
             
             <TraningWorkshop/>
             <CourseListing />
-            <ClinicHiringPortal />
+            {isClinicMode && <ClinicHiringPortal />}
           </div>
         </div>
         <Footer />

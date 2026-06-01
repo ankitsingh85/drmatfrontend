@@ -9,4 +9,5 @@ export const socket = io(SOCKET_URL!, {
   transports: ["websocket"],
   secure: process.env.NODE_ENV === "production",
   reconnection: true,
+  /////////////
 });

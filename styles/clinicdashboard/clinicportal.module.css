@@ -572,7 +572,7 @@
 
 @media (max-width: 900px) {
   .page {
-    padding: 14px;
+    padding: 12px 10px 24px;
   }
 
   .heroTop {
@@ -591,6 +591,16 @@
     display: flex;
     justify-content: flex-end;
     margin-bottom: 12px;
+  }
+
+  .sectionShell {
+    padding: 10px;
+    border-radius: 18px;
+  }
+
+  .content {
+    width: 100%;
+    min-width: 0;
   }
 
   .sidebar {

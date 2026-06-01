@@ -210,7 +210,7 @@ export default function CreateWorkshopTraning() {
     if (!data.trainingImage) next.trainingImage = "Training image is required";
     if (!data.brochurePdfDownload.length) next.brochurePdfDownload = "At least one brochure PDF is required";
     if (!data.targetAudienceText.trim()) next.targetAudienceText = "At least one target audience item is required";
-    if (data.trainingName && !textOnly.test(data.trainingName.trim())) next.trainingName = "Training name should contain only letters and spaces";
+    // if (data.trainingName && !textOnly.test(data.trainingName.trim())) next.trainingName = "Training name should contain only letters and spaces";
     if (data.instituteName && !textOnly.test(data.instituteName.trim())) next.instituteName = "Institute name should contain only letters and spaces";
     if (data.trainerInstructorName && !textOnly.test(data.trainerInstructorName.trim())) next.trainerInstructorName = "Trainer / instructor name should contain only letters and spaces";
     for (const key of ["feesInr", "netFeesInr", "maximumSeatsBatchSize"] as const) {
@@ -417,14 +417,23 @@ export default function CreateWorkshopTraning() {
 
   return (
     <div className={styles.container}>
-      <h2 className={styles.heading}>Create Workshop Traning</h2>
+      <h2 className={styles.heading}>Create Workshop Training</h2>
       <form className={styles.form} onSubmit={submit}>
         <div className={styles.section}>
           <h3 className={styles.sectionTitle}>Workshop Basics</h3>
           <div className={styles.fieldGrid}>
-            <Field label={labelMap.trainingName} error={errorFor("trainingName")}>
-              <input className={styles.input} value={form.trainingName} onChange={(e) => setValue("trainingName", e.target.value.replace(/[^A-Za-z ]/g, ""))} />
-            </Field>
+           <Field
+  label={labelMap.trainingName}
+  error={errorFor("trainingName")}
+>
+  <input
+    className={styles.input}
+    value={form.trainingName}
+    onChange={(e) =>
+      setValue("trainingName", e.target.value)
+    }
+  />
+</Field>
             <Field label={labelMap.trainingUniqueCode} error={errorFor("trainingUniqueCode")}>
               <input className={`${styles.input} ${styles.readOnlyInput}`} value={form.trainingUniqueCode} readOnly placeholder={loadingCode ? "Generating..." : ""} />
             </Field>
@@ -582,7 +591,7 @@ export default function CreateWorkshopTraning() {
         ) : null}
 
         <button type="submit" className={styles.submitBtn} disabled={loading}>
-          {loading ? "Creating..." : "Create Workshop Traning"}
+          {loading ? "Creating..." : "Create Workshop Training"}
         </button>
       </form>
     </div>

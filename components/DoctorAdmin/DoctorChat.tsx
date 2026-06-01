@@ -3,11 +3,18 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import Cookies from "js-cookie";
-import { FiMessageSquare, FiSearch, FiSend, FiUser } from "react-icons/fi";
+import {
+  FiMessageSquare,
+  FiPhoneIncoming,
+  FiSearch,
+  FiSend,
+  FiTrash2,
+  FiUser,
+} from "react-icons/fi";
 import { socket } from "@/utils/socket";
 import { API_URL } from "@/config/api";
 import { resolveMediaUrl } from "@/lib/media";
-import WebRTCCall from "@/components/chat/WebRTCCall";
+import WebRTCCall, { WebRTCCallSignalPayload } from "@/components/chat/WebRTCCall";
 import styles from "@/styles/chat.module.css";
 
 type ChatStatus = "pending" | "accepted" | "declined";
@@ -37,7 +44,17 @@ type ChatMessage = {
   senderId: string;
   receiverId: string;
   message: string;
+  messageType?: "text" | "call";
+  callType?: "audio" | "video";
+  callStatus?: "started" | "missed" | "ended";
   createdAt?: string;
+};
+
+type ChatNotice = {
+  type: "message" | "call";
+  title: string;
+  body: string;
+  chatId: string;
 };
 
 const getPatientName = (chat?: ChatThread | null) =>
@@ -73,6 +90,11 @@ const DoctorChat = () => {
   const [search, setSearch] = useState("");
   const [loadingChats, setLoadingChats] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(false);
+  const [deletingChat, setDeletingChat] = useState(false);
+  const [unreadByChat, setUnreadByChat] = useState<Record<string, number>>({});
+  const [notice, setNotice] = useState<ChatNotice | null>(null);
+  const [pendingIncomingCall, setPendingIncomingCall] =
+    useState<WebRTCCallSignalPayload | null>(null);
   const [error, setError] = useState("");
 
   const messagesRef = useRef<HTMLDivElement | null>(null);
@@ -109,7 +131,8 @@ const DoctorChat = () => {
   useEffect(() => {
     if (!doctorId) return;
 
-    socket.emit("register", doctorId);
+    const registerSocket = () => socket.emit("register", doctorId);
+    registerSocket();
 
     const handleChatRequest = () => {
       fetchChats();
@@ -118,6 +141,19 @@ const DoctorChat = () => {
     const handleReceiveMessage = (data: ChatMessage) => {
       if (data.chatId === activeChat?._id) {
         setMessages((prev) => [...prev, data]);
+      } else if (data.messageType !== "call") {
+        setUnreadByChat((prev) => ({
+          ...prev,
+          [data.chatId]: (prev[data.chatId] || 0) + 1,
+        }));
+
+        const chat = chats.find((item) => item._id === data.chatId);
+        setNotice({
+          type: "message",
+          title: `New message from ${getPatientName(chat)}`,
+          body: data.message,
+          chatId: data.chatId,
+        });
       }
 
       setChats((prev) =>
@@ -129,14 +165,52 @@ const DoctorChat = () => {
       );
     };
 
+    const handleChatDeleted = (data: { chatId: string }) => {
+      setChats((prev) => prev.filter((chat) => chat._id !== data.chatId));
+      setUnreadByChat((prev) => {
+        const next = { ...prev };
+        delete next[data.chatId];
+        return next;
+      });
+
+      if (data.chatId === activeChat?._id) {
+        setActiveChat(null);
+        setMessages([]);
+        setError("This chat was deleted.");
+      }
+    };
+
+    const handleCallInvite = (data: WebRTCCallSignalPayload) => {
+      if (data.to !== doctorId || data.chatId === activeChat?._id) return;
+
+      const chat = chats.find((item) => item._id === data.chatId);
+      setPendingIncomingCall(data);
+      setUnreadByChat((prev) => ({
+        ...prev,
+        [data.chatId]: Math.max(prev[data.chatId] || 0, 1),
+      }));
+      setNotice({
+        type: "call",
+        title: `Incoming ${data.callType} call`,
+        body: getPatientName(chat),
+        chatId: data.chatId,
+      });
+    };
+
     socket.on("chat_request_created", handleChatRequest);
     socket.on("receive_message", handleReceiveMessage);
+    socket.on("chat_deleted", handleChatDeleted);
+    socket.on("call:invite", handleCallInvite);
+    socket.on("connect", registerSocket);
 
     return () => {
       socket.off("chat_request_created", handleChatRequest);
       socket.off("receive_message", handleReceiveMessage);
+      socket.off("chat_deleted", handleChatDeleted);
+      socket.off("call:invite", handleCallInvite);
+      socket.off("connect", registerSocket);
     };
-  }, [doctorId, activeChat?._id, fetchChats]);
+  }, [doctorId, activeChat?._id, fetchChats, chats]);
 
   useEffect(() => {
     if (!activeChat?._id || activeChat.status !== "accepted") {
@@ -157,7 +231,7 @@ const DoctorChat = () => {
     };
 
     fetchMessages();
-  }, [activeChat?._id]);
+  }, [activeChat?._id, activeChat?.status]);
 
   useEffect(() => {
     const messagePanel = messagesRef.current;
@@ -222,13 +296,14 @@ const DoctorChat = () => {
     };
 
     try {
-      await axios.post(`${API_URL}/message/send`, payload);
-      socket.emit("send_message", payload);
-      setMessages((prev) => [...prev, payload]);
+      const res = await axios.post(`${API_URL}/message/send`, payload);
+      const savedMessage = res.data || payload;
+      socket.emit("send_message", savedMessage);
+      setMessages((prev) => [...prev, savedMessage]);
       setChats((prev) =>
         prev.map((chat) =>
           chat._id === activeChat._id
-            ? { ...chat, lastMessage: trimmed, updatedAt: payload.createdAt }
+            ? { ...chat, lastMessage: trimmed, updatedAt: savedMessage.createdAt || payload.createdAt }
             : chat
         )
       );
@@ -236,6 +311,54 @@ const DoctorChat = () => {
     } catch (err: any) {
       setError(err?.response?.data?.error || "Message could not be sent. Please try again.");
     }
+  };
+
+  const deleteChat = async () => {
+    const receiverId = activeChat?.user?._id;
+    if (!activeChat || !receiverId || deletingChat) return;
+    if (!window.confirm("Delete this chat and all its messages?")) return;
+
+    try {
+      setDeletingChat(true);
+      setError("");
+      await axios.delete(`${API_URL}/chat/${activeChat._id}`, {
+        data: {
+          doctorId,
+          userId: receiverId,
+        },
+      });
+
+      socket.emit("chat_deleted", {
+        chatId: activeChat._id,
+        from: doctorId,
+        to: receiverId,
+      });
+
+      const nextChats = chats.filter((chat) => chat._id !== activeChat._id);
+      setChats(nextChats);
+      setActiveChat(nextChats[0] || null);
+      setMessages([]);
+    } catch (err: any) {
+      setError(err?.response?.data?.error || "Could not delete this chat.");
+    } finally {
+      setDeletingChat(false);
+    }
+  };
+
+  const openChatThread = (chat: ChatThread) => {
+    setActiveChat(chat);
+    setUnreadByChat((prev) => {
+      const next = { ...prev };
+      delete next[chat._id];
+      return next;
+    });
+    if (notice?.chatId === chat._id) setNotice(null);
+  };
+
+  const openNotice = () => {
+    if (!notice) return;
+    const chat = chats.find((item) => item._id === notice.chatId);
+    if (chat) openChatThread(chat);
   };
 
   const canChat = activeChat?.status === "accepted";
@@ -286,13 +409,18 @@ const DoctorChat = () => {
                 <button
                   key={chat._id}
                   type="button"
-                  onClick={() => setActiveChat(chat)}
+                  onClick={() => openChatThread(chat)}
                   className={`${styles.chatItem} ${
                     activeChat?._id === chat._id ? styles.active : ""
                   }`}
                 >
-                  <span className={styles.avatar}>
-                    {image ? <img src={image} alt={patientName} /> : getInitials(patientName)}
+                  <span className={styles.avatarWrap}>
+                    <span className={styles.avatar}>
+                      {image ? <img src={image} alt={patientName} /> : getInitials(patientName)}
+                    </span>
+                    {unreadByChat[chat._id] ? (
+                      <span className={styles.unreadBadge}>{unreadByChat[chat._id]}</span>
+                    ) : null}
                   </span>
                   <span className={styles.chatMeta}>
                     <span className={styles.chatName}>{patientName}</span>
@@ -319,6 +447,15 @@ const DoctorChat = () => {
       </aside>
 
       <section className={styles.chatArea}>
+        {notice ? (
+          <button type="button" className={styles.chatNotice} onClick={openNotice}>
+            {notice.type === "call" ? <FiPhoneIncoming /> : <FiMessageSquare />}
+            <span>
+              <strong>{notice.title}</strong>
+              <small>{notice.body}</small>
+            </span>
+          </button>
+        ) : null}
         {activeChat ? (
           <>
             <div className={styles.chatHeader}>
@@ -339,24 +476,42 @@ const DoctorChat = () => {
                   </p>
                 </div>
               </div>
-              {activeChat.status === "pending" ? (
-                <div className={styles.requestActions}>
-                  <button type="button" onClick={() => updateChatStatus("declined")}>
-                    Decline
-                  </button>
-                  <button type="button" onClick={() => updateChatStatus("accepted")}>
-                    Accept
-                  </button>
-                </div>
-              ) : (
-                <WebRTCCall
-                  chatId={activeChat._id}
-                  currentUserId={doctorId}
-                  peerId={activeChat.user?._id}
-                  peerName={activePatientName}
-                  canCall={canChat}
-                />
-              )}
+              <div className={styles.headerActions}>
+                {activeChat.status === "pending" ? (
+                  <div className={styles.requestActions}>
+                    <button type="button" onClick={() => updateChatStatus("declined")}>
+                      Decline
+                    </button>
+                    <button type="button" onClick={() => updateChatStatus("accepted")}>
+                      Accept
+                    </button>
+                  </div>
+                ) : (
+                  <WebRTCCall
+                    chatId={activeChat._id}
+                    currentUserId={doctorId}
+                    peerId={activeChat.user?._id}
+                    peerName={activePatientName}
+                    canCall={canChat}
+                    externalIncomingCall={
+                      pendingIncomingCall?.chatId === activeChat._id ? pendingIncomingCall : null
+                    }
+                    onExternalIncomingHandled={() => {
+                      setPendingIncomingCall(null);
+                      setNotice(null);
+                    }}
+                  />
+                )}
+                <button
+                  type="button"
+                  className={styles.deleteChatBtn}
+                  onClick={deleteChat}
+                  disabled={deletingChat || !activeChat.user?._id}
+                  title="Delete chat"
+                >
+                  <FiTrash2 />
+                </button>
+              </div>
             </div>
 
             <div className={styles.messages} ref={messagesRef}>
@@ -375,6 +530,23 @@ const DoctorChat = () => {
               ) : (
                 messages.map((msg, index) => {
                   const isMe = msg.senderId === doctorId;
+
+                  if (msg.messageType === "call") {
+                    return (
+                      <div
+                        key={msg._id || `${msg.chatId}-${index}`}
+                        className={styles.callMessageRow}
+                      >
+                        <div className={styles.callMessage}>
+                          <p>
+                            {isMe ? "You started" : `${activePatientName} started`} a{" "}
+                            {msg.callType || "video"} call
+                          </p>
+                          <span>{formatTime(msg.createdAt)}</span>
+                        </div>
+                      </div>
+                    );
+                  }
 
                   return (
                     <div

@@ -455,7 +455,7 @@ const ListOfCourse = () => {
           className={styles.premiumButton}
           onClick={handleDownloadExcel}
         >
-          <FaFileExcel /> Export Excel
+          <FaFileExcel /> Download CSV
         </button>
         <button
           type="button"

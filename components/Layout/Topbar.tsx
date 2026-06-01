@@ -563,7 +563,19 @@ import {
             onClick={() => router.push("/home")}
           />
 
-          <nav className={styles.navLinks}>
+          <div
+            className={`${styles.hamburger} ${
+              hideHamburgerOnMobile ? styles.hideOnMobile : ""
+            }`}
+            onClick={() => {
+              setMenuOpen((prev) => !prev);
+              setBusinessMenuOpen(false);
+            }}
+          >
+            <Menu size={26} />
+          </div>
+
+          <nav className={`${styles.navLinks} ${menuOpen ? styles.open : ""}`}>
             <Link href="/home" className={styles.navLink}>
               Home
             </Link>

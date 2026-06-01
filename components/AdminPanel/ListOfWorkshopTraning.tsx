@@ -513,7 +513,7 @@ export default function ListOfWorkshopTraning() {
 
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           <button type="button" onClick={handleDownloadCSV} style={buttonStyle}>
-            Download Excel
+            Download CSV
           </button>
           <button type="button" onClick={handleDownloadPDF} style={buttonStyle}>
             Download PDF

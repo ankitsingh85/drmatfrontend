@@ -259,11 +259,6 @@ const validateCourseField = (
     };
     return `${labels[field] || String(field)} is required`;
   }
-
-  if (field === "courseName" && !textOnlyRegex.test(stringValue)) {
-    return "Course name should contain only letters and spaces";
-  }
-
   if (field === "instituteName" && !textOnlyRegex.test(stringValue)) {
     return "Institute name should contain only letters and spaces";
   }
@@ -429,7 +424,7 @@ const CreateCourse = () => {
   ) => {
     let nextValue = value;
 
-    if (field === "courseName" || field === "instituteName" || field === "trainerInstructorName") {
+    if ( field === "instituteName" || field === "trainerInstructorName") {
       nextValue = sanitizeTextOnly(String(value ?? ""));
     }
 

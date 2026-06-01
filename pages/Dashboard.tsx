@@ -45,6 +45,7 @@ import ListOfCourse from "@/components/AdminPanel/ListOfCourse";
 import ListOfCourseType from "@/components/AdminPanel/ListOfCourseType";
 import ListOfTrainingType from "@/components/AdminPanel/ListOfTrainingType";
 import ListOfWorkshopTraning from "@/components/AdminPanel/ListOfWorkshopTraning";
+import ClinicHiringRequests from "@/components/AdminPanel/ClinicHiringRequests";
 
 /* ✅ DOCTOR */
 import CreateDoctor from "@/components/AdminPanel/CreateDoctor";
@@ -231,10 +232,10 @@ export default function SuperAdminDashboard() {
       CreateComponent: CreateCourse,
     },
     {
-      id: "workshopTraning",
-      label: "WORKSHOP TRANING",
-      listLabel: "List of Workshop Traning",
-      createLabel: "Create Workshop Traning",
+      id: "workshopTraining",
+      label: "WORKSHOP TRAINING",
+      listLabel: "List of Workshop Training",
+      createLabel: "Create Workshop Training",
       ListComponent: ListOfWorkshopTraning,
       CreateComponent: CreateWorkshopTraning,
     },
@@ -563,6 +564,9 @@ export default function SuperAdminDashboard() {
               <li onClick={() => handleSectionChange("treatmentshorts")}>
                 Treatment Shorts
               </li>
+              <li onClick={() => handleSectionChange("clinicHiringRequests")}>
+                Hiring Requests
+              </li>
             </ul>
           )}
         </aside>
@@ -807,6 +811,9 @@ export default function SuperAdminDashboard() {
               {activeSection === "offer3" && <Offer3 />}
               {activeSection === "latestshorts" && <LatestShorts />}
               {activeSection === "treatmentshorts" && <TreatmentShorts />}
+              {activeSection === "clinicHiringRequests" && (
+                <ClinicHiringRequests />
+              )}
               {/* {activeSection === "userorderhistory" && <UserOrderHistory />} */}
               {activeSection === "createPatient" && <CreatePatient />}
               {activeSection === "createTestResult" && <CreateTestResult />}

@@ -261,6 +261,320 @@
   cursor: pointer;
 }
 
+.primaryButton:disabled,
+.secondaryButton:disabled,
+.iconButton:disabled {
+  opacity: 0.62;
+  cursor: not-allowed;
+}
+
+.toggleField {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin: 18px 0 0;
+  color: #344054;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.toggleField input {
+  width: 18px;
+  height: 18px;
+  accent-color: #0a766f;
+}
+
+.feedbackText {
+  margin: 14px 0 0;
+  color: #0a766f;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.requestList {
+  display: grid;
+  gap: 10px;
+  max-height: 260px;
+  overflow: auto;
+}
+
+.requestItem {
+  width: 100%;
+  display: grid;
+  gap: 6px;
+  padding: 13px;
+  border: 1px solid #dce8ee;
+  border-radius: 8px;
+  background: #fbfdfe;
+  text-align: left;
+  cursor: pointer;
+}
+
+.requestItem span {
+  color: #101828;
+  font-size: 14px;
+  font-weight: 850;
+}
+
+.requestItem strong {
+  width: fit-content;
+  padding: 4px 8px;
+  border-radius: 5px;
+  background: #e7f6f3;
+  color: #087f78;
+  font-size: 12px;
+}
+
+.requestItem small {
+  color: #667085;
+  font-size: 12px;
+}
+
+.activeRequest {
+  border-color: #0a766f;
+  box-shadow: 0 0 0 3px rgba(10, 118, 111, 0.1);
+}
+
+.emptyState,
+.emptyChat {
+  margin: 0;
+  padding: 14px;
+  border: 1px dashed #cddce5;
+  border-radius: 8px;
+  color: #667085;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.requestSummary {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 14px;
+  border-radius: 8px;
+  background: #f7fbfc;
+}
+
+.requestSummary span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #536274;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.chatBox {
+  margin-top: 16px;
+  border: 1px solid #dce8ee;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.chatHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border-bottom: 1px solid #e7eef3;
+  background: #fbfdfe;
+  color: #111827;
+}
+
+.messages {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  min-height: 190px;
+  max-height: 280px;
+  padding: 14px;
+  overflow: auto;
+  background: #ffffff;
+}
+
+.messageBubble {
+  max-width: 88%;
+  padding: 10px 12px;
+  border-radius: 8px;
+}
+
+.messageBubble span {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.messageBubble p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.clinicMessage {
+  justify-self: end;
+  background: #0a766f;
+  color: #ffffff;
+}
+
+.adminMessage {
+  justify-self: start;
+  background: #eef5f8;
+  color: #223044;
+}
+
+.chatInputRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px;
+  gap: 8px;
+  padding: 10px;
+  border-top: 1px solid #e7eef3;
+  background: #fbfdfe;
+}
+
+.chatInputRow input {
+  min-width: 0;
+  height: 42px;
+  border: 1px solid #d9e4eb;
+  border-radius: 6px;
+  padding: 0 12px;
+  outline: 0;
+}
+
+.chatInputRow button {
+  width: 42px;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 6px;
+  background: #0a766f;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.adminShell {
+  display: grid;
+  gap: 18px;
+}
+
+.adminToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid #e2eaf0;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.adminToolbar h2 {
+  margin: 0;
+  color: #111827;
+  font-size: 24px;
+  font-weight: 850;
+}
+
+.adminToolbar p {
+  margin: 6px 0 0;
+  color: #667085;
+  font-size: 14px;
+}
+
+.adminGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(330px, 0.7fr);
+  gap: 18px;
+}
+
+.adminList,
+.adminDetail {
+  min-width: 0;
+  border: 1px solid #e2eaf0;
+  border-radius: 8px;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.adminTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.adminTable th,
+.adminTable td {
+  padding: 13px 14px;
+  border-bottom: 1px solid #edf2f5;
+  color: #344054;
+  font-size: 13px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.adminTable th {
+  background: #f7fbfc;
+  color: #111827;
+  font-weight: 850;
+}
+
+.adminTable tr {
+  cursor: pointer;
+}
+
+.adminTable tr:hover td,
+.selectedAdminRow td {
+  background: #f4faf9;
+}
+
+.statusSelect {
+  height: 36px;
+  border: 1px solid #d9e4eb;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #111827;
+  font-weight: 700;
+}
+
+.adminDetail {
+  padding: 18px;
+}
+
+.adminDetail h3 {
+  margin: 0 0 10px;
+  color: #111827;
+  font-size: 20px;
+}
+
+.detailList {
+  display: grid;
+  gap: 10px;
+  margin: 14px 0;
+}
+
+.detailList div {
+  display: grid;
+  gap: 4px;
+}
+
+.detailList span {
+  color: #667085;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.detailList strong,
+.detailList p {
+  margin: 0;
+  color: #1f2937;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
 .jobPreview {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);

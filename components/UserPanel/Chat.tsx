@@ -3,10 +3,18 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import Cookies from "js-cookie";
-import { FiCalendar, FiMessageSquare, FiSearch, FiSend, FiUser } from "react-icons/fi";
+import {
+  FiCalendar,
+  FiMessageSquare,
+  FiPhoneIncoming,
+  FiSearch,
+  FiSend,
+  FiTrash2,
+  FiUser,
+} from "react-icons/fi";
 import { socket } from "@/utils/socket";
 import { API_URL } from "@/config/api";
-import WebRTCCall from "@/components/chat/WebRTCCall";
+import WebRTCCall, { WebRTCCallSignalPayload } from "@/components/chat/WebRTCCall";
 import styles from "@/styles/chat.module.css";
 
 type ChatStatus = "pending" | "accepted" | "declined";
@@ -27,12 +35,22 @@ type ChatMessage = {
   senderId: string;
   receiverId: string;
   message: string;
+  messageType?: "text" | "call";
+  callType?: "audio" | "video";
+  callStatus?: "started" | "missed" | "ended";
   createdAt?: string;
 };
 
 type ChatRequest = {
   _id: string;
   status?: ChatStatus;
+};
+
+type ChatNotice = {
+  type: "message" | "call";
+  title: string;
+  body: string;
+  doctorId: string;
 };
 
 const getDoctorName = (doctor?: Doctor | null) => {
@@ -74,6 +92,11 @@ const UserChat = () => {
   const [loadingDoctors, setLoadingDoctors] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [requestingChat, setRequestingChat] = useState(false);
+  const [deletingChat, setDeletingChat] = useState(false);
+  const [unreadByDoctor, setUnreadByDoctor] = useState<Record<string, number>>({});
+  const [notice, setNotice] = useState<ChatNotice | null>(null);
+  const [pendingIncomingCall, setPendingIncomingCall] =
+    useState<WebRTCCallSignalPayload | null>(null);
   const [error, setError] = useState("");
   const messagesRef = useRef<HTMLDivElement | null>(null);
 
@@ -103,12 +126,30 @@ const UserChat = () => {
   useEffect(() => {
     if (!userId) return;
 
-    socket.emit("register", userId);
+    const registerSocket = () => socket.emit("register", userId);
+    registerSocket();
 
     const handleReceiveMessage = (data: ChatMessage) => {
       if (data.chatId === chatId) {
         setMessages((prev) => [...prev, data]);
+        return;
       }
+
+      if (data.messageType === "call") return;
+
+      setUnreadByDoctor((prev) => ({
+        ...prev,
+        [data.senderId]: (prev[data.senderId] || 0) + 1,
+      }));
+
+      const doctor = doctors.find((item) => item._id === data.senderId);
+      const doctorName = getDoctorName(doctor);
+      setNotice({
+        type: "message",
+        title: `New message from ${doctorName}`,
+        body: data.message,
+        doctorId: data.senderId,
+      });
     };
 
     const handleChatStatus = (data: { chatId: string; status: ChatStatus }) => {
@@ -120,14 +161,47 @@ const UserChat = () => {
       }
     };
 
+    const handleChatDeleted = (data: { chatId: string }) => {
+      if (data.chatId !== chatId) return;
+
+      setChatId("");
+      setChatStatus("");
+      setMessages([]);
+      setError("This chat was deleted.");
+    };
+
+    const handleCallInvite = (data: WebRTCCallSignalPayload) => {
+      if (data.to !== userId || data.chatId === chatId) return;
+
+      const doctor = doctors.find((item) => item._id === data.from);
+      const doctorName = getDoctorName(doctor);
+      setPendingIncomingCall(data);
+      setUnreadByDoctor((prev) => ({
+        ...prev,
+        [data.from]: Math.max(prev[data.from] || 0, 1),
+      }));
+      setNotice({
+        type: "call",
+        title: `Incoming ${data.callType} call`,
+        body: doctorName,
+        doctorId: data.from,
+      });
+    };
+
     socket.on("receive_message", handleReceiveMessage);
     socket.on("chat_status_updated", handleChatStatus);
+    socket.on("chat_deleted", handleChatDeleted);
+    socket.on("call:invite", handleCallInvite);
+    socket.on("connect", registerSocket);
 
     return () => {
       socket.off("receive_message", handleReceiveMessage);
       socket.off("chat_status_updated", handleChatStatus);
+      socket.off("chat_deleted", handleChatDeleted);
+      socket.off("call:invite", handleCallInvite);
+      socket.off("connect", registerSocket);
     };
-  }, [userId, chatId]);
+  }, [userId, chatId, doctors]);
 
   useEffect(() => {
     const messagePanel = messagesRef.current;
@@ -166,6 +240,12 @@ const UserChat = () => {
 
     try {
       setActiveDoctor(doctor);
+      setUnreadByDoctor((prev) => {
+        const next = { ...prev };
+        delete next[doctor._id];
+        return next;
+      });
+      if (notice?.doctorId === doctor._id) setNotice(null);
       setLoadingMessages(true);
       setError("");
 
@@ -240,12 +320,51 @@ const UserChat = () => {
     };
 
     try {
-      await axios.post(`${API_URL}/message/send`, payload);
-      socket.emit("send_message", payload);
-      setMessages((prev) => [...prev, payload]);
+      const res = await axios.post(`${API_URL}/message/send`, payload);
+      const savedMessage = res.data || payload;
+      socket.emit("send_message", savedMessage);
+      setMessages((prev) => [...prev, savedMessage]);
       setText("");
     } catch (err: any) {
       setError(err?.response?.data?.error || "Message could not be sent. Please try again.");
+    }
+  };
+
+  const deleteChat = async () => {
+    if (!chatId || !activeDoctor || deletingChat) return;
+    if (!window.confirm("Delete this chat and all its messages?")) return;
+
+    try {
+      setDeletingChat(true);
+      setError("");
+      await axios.delete(`${API_URL}/chat/${chatId}`, {
+        data: {
+          userId,
+          doctorId: activeDoctor._id,
+        },
+      });
+
+      socket.emit("chat_deleted", {
+        chatId,
+        from: userId,
+        to: activeDoctor._id,
+      });
+
+      setChatId("");
+      setChatStatus("");
+      setMessages([]);
+    } catch (err: any) {
+      setError(err?.response?.data?.error || "Could not delete this chat.");
+    } finally {
+      setDeletingChat(false);
+    }
+  };
+
+  const openNotice = () => {
+    if (!notice) return;
+    const doctor = doctors.find((item) => item._id === notice.doctorId);
+    if (doctor) {
+      openChat(doctor);
     }
   };
 
@@ -302,7 +421,12 @@ const UserChat = () => {
                     activeDoctor?._id === doctor._id ? styles.active : ""
                   }`}
                 >
-                  <span className={styles.avatar}>{getInitials(doctorName)}</span>
+                  <span className={styles.avatarWrap}>
+                    <span className={styles.avatar}>{getInitials(doctorName)}</span>
+                    {unreadByDoctor[doctor._id] ? (
+                      <span className={styles.unreadBadge}>{unreadByDoctor[doctor._id]}</span>
+                    ) : null}
+                  </span>
                   <span className={styles.chatMeta}>
                     <span className={styles.chatName}>{doctorName}</span>
                     <span className={styles.chatPreview}>
@@ -320,6 +444,15 @@ const UserChat = () => {
       </aside>
 
       <section className={styles.chatArea}>
+        {notice ? (
+          <button type="button" className={styles.chatNotice} onClick={openNotice}>
+            {notice.type === "call" ? <FiPhoneIncoming /> : <FiMessageSquare />}
+            <span>
+              <strong>{notice.title}</strong>
+              <small>{notice.body}</small>
+            </span>
+          </button>
+        ) : null}
         {activeDoctor ? (
           <>
             <div className={styles.chatHeader}>
@@ -334,13 +467,33 @@ const UserChat = () => {
                   </p>
                 </div>
               </div>
-              <WebRTCCall
-                chatId={chatId}
-                currentUserId={userId}
-                peerId={activeDoctor._id}
-                peerName={activeDoctorName}
-                canCall={canChat}
-              />
+              <div className={styles.headerActions}>
+                <WebRTCCall
+                  chatId={chatId}
+                  currentUserId={userId}
+                  peerId={activeDoctor._id}
+                  peerName={activeDoctorName}
+                  canCall={canChat}
+                  externalIncomingCall={
+                    pendingIncomingCall?.chatId === chatId ? pendingIncomingCall : null
+                  }
+                  onExternalIncomingHandled={() => {
+                    setPendingIncomingCall(null);
+                    setNotice(null);
+                  }}
+                />
+                {chatId ? (
+                  <button
+                    type="button"
+                    className={styles.deleteChatBtn}
+                    onClick={deleteChat}
+                    disabled={deletingChat}
+                    title="Delete chat"
+                  >
+                    <FiTrash2 />
+                  </button>
+                ) : null}
+              </div>
             </div>
 
             <div className={styles.messages} ref={messagesRef}>
@@ -383,6 +536,23 @@ const UserChat = () => {
               ) : (
                 messages.map((msg, index) => {
                   const isMe = msg.senderId === userId;
+                  if (msg.messageType === "call") {
+                    return (
+                      <div
+                        key={msg._id || `${msg.chatId}-${index}`}
+                        className={styles.callMessageRow}
+                      >
+                        <div className={styles.callMessage}>
+                          <p>
+                            {isMe ? "You started" : `${activeDoctorName} started`} a{" "}
+                            {msg.callType || "video"} call
+                          </p>
+                          <span>{formatTime(msg.createdAt)}</span>
+                        </div>
+                      </div>
+                    );
+                  }
+
                   return (
                     <div
                       key={msg._id || `${msg.chatId}-${index}`}
@@ -397,7 +567,6 @@ const UserChat = () => {
                 })
               )}
             </div>
-
             <div className={styles.inputBar}>
               <input
                 className={styles.input}
