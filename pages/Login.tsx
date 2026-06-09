@@ -1,5 +1,4 @@
 "use client";
-
 import { useState } from "react";
 import { useRouter } from "next/router";
 import Cookies from "js-cookie";
@@ -18,6 +17,7 @@ export default function Login() {
 
   const [mobile, setMobile] = useState("");
   const [otp, setOtp] = useState("");
+  const [otpSessionId, setOtpSessionId] = useState("");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [step, setStep] = useState<"mobile" | "otp" | "profile">("mobile");
@@ -65,17 +65,36 @@ export default function Login() {
     return normalized;
   };
 
-  const handleSendOtp = (e?: React.FormEvent) => {
+  const handleSendOtp = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (!validateMobile()) return;
-    setOtp("");
-    setStep("otp");
+    const normalizedMobile = validateMobile();
+    if (!normalizedMobile) return;
+
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/auth/user/send-login-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contactNo: normalizedMobile }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.message || "Unable to send OTP");
+
+      setOtp("");
+      setOtpSessionId(data.sessionId || "");
+      setStep("otp");
+    } catch (err: any) {
+      alert(err.message || "Unable to send OTP");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleConfirmOtp = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (otp !== "1234") {
-      alert("Invalid OTP. Use 1234");
+    if (!otpSessionId) {
+      alert("Please request OTP again");
       return;
     }
 
@@ -84,11 +103,26 @@ export default function Login() {
 
     setLoading(true);
     try {
+      const verifyRes = await fetch(`${API_URL}/auth/user/verify-login-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessionId: otpSessionId,
+          otp,
+        }),
+      });
+
+      const verifyData = await verifyRes.json();
+      if (!verifyRes.ok) {
+        throw new Error(verifyData?.message || "Invalid OTP");
+      }
+
       const res = await fetch(`${API_URL}/auth/user/mobile-login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           contactNo: normalizedMobile,
+          otpSessionId,
         }),
       });
 
@@ -129,6 +163,7 @@ export default function Login() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           contactNo: normalizedMobile,
+          otpSessionId,
           name: name.trim(),
           email: email.trim(),
         }),
@@ -162,7 +197,13 @@ export default function Login() {
           <div className={styles.formPane}>
             <div className={styles.formCard}>
               {step !== "mobile" && (
-                <button className={styles.backBtn} onClick={() => setStep(step === "profile" ? "otp" : "mobile")}>
+                <button
+                  className={styles.backBtn}
+                  onClick={() => {
+                    if (step !== "profile") setOtpSessionId("");
+                    setStep(step === "profile" ? "otp" : "mobile");
+                  }}
+                >
                   ←
                 </button>
               )}
@@ -186,8 +227,8 @@ export default function Login() {
                       />
                     </div>
 
-                    <button type="submit" className={styles.primaryBtn}>
-                      Get Verification Code
+                    <button type="submit" className={styles.primaryBtn} disabled={loading}>
+                      {loading ? "Sending..." : "Get Verification Code"}
                     </button>
                   </form>
                 </>
@@ -196,13 +237,13 @@ export default function Login() {
               {step === "otp" && (
                 <>
                   <h2 className={styles.modalTitle}>Verify mobile number</h2>
-                  <p className={styles.modalText}>Enter OTP (for now use 1234)</p>
+                  <p className={styles.modalText}>Enter the OTP sent to your mobile number</p>
                   <form onSubmit={handleConfirmOtp}>
                     <input
                       className={styles.otpInput}
-                      maxLength={4}
+                      maxLength={6}
                       inputMode="numeric"
-                      placeholder="____"
+                      placeholder="______"
                       value={otp}
                       autoFocus
                       onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}

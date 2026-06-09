@@ -26,6 +26,7 @@ type FormState = {
   moq: string;
   stockAvailable: string;
   expiryDate: string;
+  shelfLife: string;
   description: string;
   ingredients: string;
   usageInstructions: string;
@@ -39,10 +40,10 @@ type FormState = {
   taxIncluded: boolean;
   productImages: File[];
   productVideoUrl: string;
-  msds: string;
+  msds: File | null;
   customerReviews: string;
   relatedProducts: string;
-  promotionalTags: string;
+  promotionalTags: string[];
 };
 
 type ErrorState = Partial<Record<keyof FormState, string>>;
@@ -87,6 +88,7 @@ const validateField = (
     "moq",
     "stockAvailable",
     "expiryDate",
+    "shelfLife",
     "description",
     "ingredients",
     "usageInstructions",
@@ -112,6 +114,7 @@ const validateField = (
         moq: "MOQ",
         stockAvailable: "Stock available",
         expiryDate: "Expiry date",
+        shelfLife: "Shelf life",
         description: "Description",
         ingredients: "Ingredients",
         usageInstructions: "Usage instructions",
@@ -195,6 +198,7 @@ export default function CreateB2BProduct() {
   const [submitError, setSubmitError] = useState("");
   const [errors, setErrors] = useState<ErrorState>({});
   const [touched, setTouched] = useState<TouchedState>({});
+  const [promotionalTagInput, setPromotionalTagInput] = useState("");
 
   const [form, setForm] = useState<FormState>({
     sku: `B2B-${Date.now().toString().slice(-6)}`,
@@ -209,6 +213,7 @@ export default function CreateB2BProduct() {
     moq: "",
     stockAvailable: "",
     expiryDate: "",
+    shelfLife: "",
     description: "",
     ingredients: "",
     usageInstructions: "",
@@ -222,10 +227,10 @@ export default function CreateB2BProduct() {
     taxIncluded: true,
     productImages: [],
     productVideoUrl: "",
-    msds: "",
+    msds: null,
     customerReviews: "",
     relatedProducts: "",
-    promotionalTags: "",
+    promotionalTags: [],
   });
 
   useEffect(() => {
@@ -403,6 +408,68 @@ export default function CreateB2BProduct() {
     });
   };
 
+  const handleMsdsUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    if (!file) return;
+
+    setTouched((prev) => ({ ...prev, msds: true }));
+
+    if (file.type !== "application/pdf") {
+      setSubmitError("MSDS / Product Datasheet must be a PDF file");
+      e.target.value = "";
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setSubmitError("MSDS / Product Datasheet must be 5MB or smaller");
+      e.target.value = "";
+      return;
+    }
+
+    setField("msds", file);
+    setSuccess("");
+    setSubmitError("");
+    e.target.value = "";
+  };
+
+  const removeMsds = () => {
+    setField("msds", null);
+  };
+
+  const addPromotionalTag = () => {
+    const nextTag = promotionalTagInput.trim();
+    if (!nextTag) return;
+
+    const tagExists = form.promotionalTags.some(
+      (tag) => tag.toLowerCase() === nextTag.toLowerCase()
+    );
+    if (tagExists) {
+      setPromotionalTagInput("");
+      return;
+    }
+
+    setTouched((prev) => ({ ...prev, promotionalTags: true }));
+    setField("promotionalTags", [...form.promotionalTags, nextTag]);
+    setPromotionalTagInput("");
+    setSuccess("");
+    setSubmitError("");
+  };
+
+  const handlePromotionalTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault();
+      addPromotionalTag();
+    }
+  };
+
+  const removePromotionalTag = (tagToRemove: string) => {
+    setTouched((prev) => ({ ...prev, promotionalTags: true }));
+    setField(
+      "promotionalTags",
+      form.promotionalTags.filter((tag) => tag !== tagToRemove)
+    );
+  };
+
   const validateAll = (current: FormState) => {
     const nextErrors: ErrorState = {};
     (Object.keys(current) as Array<keyof FormState>).forEach((key) => {
@@ -439,6 +506,7 @@ export default function CreateB2BProduct() {
     payload.append("moq", form.moq.trim());
     payload.append("stockAvailable", form.stockAvailable.trim());
     payload.append("expiryDate", form.expiryDate);
+    payload.append("shelfLife", form.shelfLife.trim());
     payload.append("description", form.description);
     payload.append("ingredients", form.ingredients);
     payload.append("usageInstructions", form.usageInstructions);
@@ -451,10 +519,12 @@ export default function CreateB2BProduct() {
     payload.append("gst", form.gst);
     payload.append("taxIncluded", String(form.taxIncluded));
     payload.append("productVideoUrl", form.productVideoUrl.trim());
-    payload.append("msds", form.msds);
+    if (form.msds) {
+      payload.append("msds", form.msds);
+    }
     payload.append("customerReviews", form.customerReviews);
     payload.append("relatedProducts", form.relatedProducts);
-    payload.append("promotionalTags", form.promotionalTags);
+    payload.append("promotionalTags", JSON.stringify(form.promotionalTags));
 
     form.productImages.forEach((file) => {
       payload.append("productImages", file);
@@ -486,6 +556,7 @@ export default function CreateB2BProduct() {
         moq: "",
         stockAvailable: "",
         expiryDate: "",
+        shelfLife: "",
         description: "",
         ingredients: "",
         usageInstructions: "",
@@ -499,11 +570,12 @@ export default function CreateB2BProduct() {
         taxIncluded: true,
         productImages: [],
         productVideoUrl: "",
-        msds: "",
+        msds: null,
         customerReviews: "",
         relatedProducts: "",
-        promotionalTags: "",
+        promotionalTags: [],
       });
+      setPromotionalTagInput("");
       setErrors({});
       setTouched({});
     } catch (error: any) {
@@ -649,6 +721,20 @@ export default function CreateB2BProduct() {
               required
             />
             {showError("expiryDate") && <p className={styles.fieldError}>{showError("expiryDate")}</p>}
+          </div>
+
+          <div className={styles.field}>
+            <label className={styles.label}>Shelf Life</label>
+            <input
+              className={styles.input}
+              name="shelfLife"
+              value={form.shelfLife}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              placeholder="Shelf Life"
+              required
+            />
+            {showError("shelfLife") && <p className={styles.fieldError}>{showError("shelfLife")}</p>}
           </div>
         </div>
 
@@ -860,15 +946,35 @@ export default function CreateB2BProduct() {
           </div>
 
           <div className={styles.field}>
-            <label className={styles.label}>MSDS</label>
+            <label className={styles.label}>MSDS / Product Datasheet</label>
             <input
-              className={styles.input}
-              name="msds"
-              value={form.msds}
-              onChange={handleChange}
-              onBlur={handleBlur}
-              placeholder="MSDS / Product Datasheet"
+              type="file"
+              accept="application/pdf"
+              className={styles.fileInput}
+              onChange={handleMsdsUpload}
             />
+            {form.msds && (
+              <div className={styles.uploadSummary}>
+                <div className={styles.uploadSummaryHeader}>
+                  <span className={styles.uploadCount}>PDF uploaded</span>
+                  <span className={styles.uploadHint}>File ready for submission</span>
+                </div>
+
+                <div className={styles.uploadChips}>
+                  <div className={styles.uploadChip}>
+                    <span className={styles.uploadChipName}>{form.msds.name}</span>
+                    <button
+                      type="button"
+                      className={styles.uploadChipRemove}
+                      onClick={removeMsds}
+                      aria-label={`Remove ${form.msds.name}`}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className={styles.field}>
@@ -897,14 +1003,40 @@ export default function CreateB2BProduct() {
 
           <div className={styles.field}>
             <label className={styles.label}>Promotional Tags</label>
-            <input
-              className={styles.input}
-              name="promotionalTags"
-              value={form.promotionalTags}
-              onChange={handleChange}
-              onBlur={handleBlur}
-              placeholder="Promotional Tags"
-            />
+            <div className={styles.tagInputRow}>
+              <input
+                className={styles.input}
+                value={promotionalTagInput}
+                onChange={(e) => setPromotionalTagInput(e.target.value)}
+                onKeyDown={handlePromotionalTagKeyDown}
+                placeholder="Add promotional tag"
+              />
+              <button
+                type="button"
+                className={styles.tagAddButton}
+                onClick={addPromotionalTag}
+              >
+                Add
+              </button>
+            </div>
+
+            {form.promotionalTags.length > 0 && (
+              <div className={styles.tagChips}>
+                {form.promotionalTags.map((tag) => (
+                  <div key={tag} className={styles.tagChip}>
+                    <span className={styles.tagChipText}>{tag}</span>
+                    <button
+                      type="button"
+                      className={styles.tagChipRemove}
+                      onClick={() => removePromotionalTag(tag)}
+                      aria-label={`Remove ${tag}`}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 

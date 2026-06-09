@@ -15,6 +15,7 @@ type LoginStep = "mobile" | "otp";
 export default function DoctorLogin() {
   const [mobile, setMobile] = useState("");
   const [otp, setOtp] = useState("");
+  const [otpSessionId, setOtpSessionId] = useState("");
   const [step, setStep] = useState<LoginStep>("mobile");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -113,7 +114,7 @@ export default function DoctorLogin() {
   setError("");
 
   try {
-    const res = await fetch(`${API_URL}/doctors/check-mobile`, {
+    const res = await fetch(`${API_URL}/doctors/send-login-otp`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -130,9 +131,9 @@ export default function DoctorLogin() {
       setError("Doctor is not registered");
       return;
     }
-console.log("log");
     // ✅ REGISTERED → GO TO OTP
     setOtp("");
+    setOtpSessionId(data.sessionId || "");
     setStep("otp");
 
   } catch (err) {
@@ -144,8 +145,8 @@ console.log("log");
 
   const handleConfirmOtp = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (otp !== "1234") {
-      alert("Invalid OTP. Use 1234");
+    if (!otpSessionId) {
+      alert("Please request OTP again");
       return;
     }
 
@@ -154,11 +155,26 @@ console.log("log");
 
     setLoading(true);
     try {
+      const verifyRes = await fetch(`${API_URL}/doctors/verify-login-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessionId: otpSessionId,
+          otp,
+        }),
+      });
+
+      const verifyData = await verifyRes.json();
+      if (!verifyRes.ok) {
+        throw new Error(verifyData?.message || "Invalid OTP");
+      }
+
       const res = await fetch(`${API_URL}/doctors/mobile-login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           contactNo: normalizedMobile,
+          otpSessionId,
         }),
       });
 
@@ -207,6 +223,7 @@ console.log("log");
                   onClick={() => {
                     setStep("mobile");
                     setOtp("");
+                    setOtpSessionId("");
                   }}
                 >
                   {"<"}
@@ -239,8 +256,8 @@ console.log("log");
                     {error && (
                       <p style={{ color: "red", marginTop: "8px" }}>{error}</p>
                     )}
-                    <button type="submit" className={styles.primaryBtn}>
-                      Get Verification Code
+                    <button type="submit" className={styles.primaryBtn} disabled={loading}>
+                      {loading ? "Sending..." : "Get Verification Code"}
                     </button>
                   </form>
                 </>
@@ -250,15 +267,14 @@ console.log("log");
                 <>
                   <h2 className={styles.modalTitle}>Verify mobile number</h2>
                   <p className={styles.modalText}>
-                    Enter OTP. For now use 1234. Only registered doctors can log
-                    in.
+                    Enter the OTP sent to your registered mobile number.
                   </p>
                   <form onSubmit={handleConfirmOtp}>
                     <input
                       className={styles.otpInput}
-                      maxLength={4}
+                      maxLength={6}
                       inputMode="numeric"
-                      placeholder="____"
+                      placeholder="______"
                       value={otp}
                       autoFocus
                       onChange={(e) =>

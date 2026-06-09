@@ -18,6 +18,7 @@ export default function ClinicLogin() {
 
   const [mobile, setMobile] = useState("");
   const [otp, setOtp] = useState("");
+  const [otpSessionId, setOtpSessionId] = useState("");
   const [clinicName, setClinicName] = useState("");
   const [email, setEmail] = useState("");
   const [address, setAddress] = useState("");
@@ -78,17 +79,36 @@ export default function ClinicLogin() {
     return normalized;
   };
 
-  const handleSendOtp = (e?: React.FormEvent) => {
+  const handleSendOtp = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (!validateMobile()) return;
-    setOtp("");
-    setStep("otp");
+    const normalizedMobile = validateMobile();
+    if (!normalizedMobile) return;
+
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/clinic-auth/send-login-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contactNo: normalizedMobile, otpSessionId }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.message || "Unable to send OTP");
+
+      setOtp("");
+      setOtpSessionId(data.sessionId || "");
+      setStep("otp");
+    } catch (err: any) {
+      alert(err.message || "Unable to send OTP");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleConfirmOtp = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (otp !== "1234") {
-      alert("Invalid OTP. Use 1234");
+    if (!otpSessionId) {
+      alert("Please request OTP again");
       return;
     }
 
@@ -97,25 +117,42 @@ export default function ClinicLogin() {
 
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/clinic-auth/mobile-login`, {
+      const verifyRes = await fetch(`${API_URL}/clinic-auth/verify-login-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contactNo: normalizedMobile }),
+        body: JSON.stringify({
+          sessionId: otpSessionId,
+          otp,
+        }),
       });
 
-      const data = await res.json();
-
-      if (res.ok) {
-        completeLogin(data, normalizedMobile);
-        return;
+      const verifyData = await verifyRes.json();
+      if (!verifyRes.ok) {
+        throw new Error(verifyData?.message || "Invalid OTP");
       }
 
-      if (data?.needsProfile || data?.message === "Clinic details are required") {
-        setStep("profile");
-        return;
-      }
+    const res = await fetch(`${API_URL}/clinic-auth/mobile-login`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    contactNo: normalizedMobile,
+    otpSessionId: otpSessionId,
+  }),
+});
 
-      throw new Error(data?.message || "Login failed");
+const data = await res.json();
+
+if (res.ok) {
+  completeLogin(data, normalizedMobile);
+  return;
+}
+
+if (data?.needsProfile || data?.message === "Clinic details are required") {
+  setStep("profile");
+  return;
+}
+
+throw new Error(data?.message || "Login failed");
     } catch (err: any) {
       alert(err.message || "Login failed");
     } finally {
@@ -140,6 +177,7 @@ export default function ClinicLogin() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           contactNo: normalizedMobile,
+          otpSessionId,
           clinicName: clinicName.trim(),
           email: email.trim(),
           address: address.trim(),
@@ -179,7 +217,10 @@ export default function ClinicLogin() {
                 <button
                   type="button"
                   className={styles.backBtn}
-                  onClick={() => setStep(step === "profile" ? "otp" : "mobile")}
+                  onClick={() => {
+                    if (step !== "profile") setOtpSessionId("");
+                    setStep(step === "profile" ? "otp" : "mobile");
+                  }}
                 >
                   {"<"}
                 </button>
@@ -204,8 +245,8 @@ export default function ClinicLogin() {
                       />
                     </div>
 
-                    <button type="submit" className={styles.primaryBtn}>
-                      Get Verification Code
+                    <button type="submit" className={styles.primaryBtn} disabled={loading}>
+                      {loading ? "Sending..." : "Get Verification Code"}
                     </button>
                   </form>
                 </>
@@ -214,13 +255,13 @@ export default function ClinicLogin() {
               {step === "otp" && (
                 <>
                   <h2 className={styles.modalTitle}>Verify clinic number</h2>
-                  <p className={styles.modalText}>Enter OTP (for now use 1234)</p>
+                  <p className={styles.modalText}>Enter the OTP sent to your mobile number</p>
                   <form onSubmit={handleConfirmOtp}>
                     <input
                       className={styles.otpInput}
-                      maxLength={4}
+                      maxLength={6}
                       inputMode="numeric"
-                      placeholder="____"
+                      placeholder="______"
                       value={otp}
                       autoFocus
                       onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
@@ -278,7 +319,6 @@ export default function ClinicLogin() {
               )}
 
               <p className={styles.terms}>
-               
               </p>
             </div>
           </div>

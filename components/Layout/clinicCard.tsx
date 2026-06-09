@@ -30,6 +30,7 @@ type Clinic = {
   address?: string;
   description?: string;
   verified?: boolean;
+  verifiedBadge?: boolean;
   trusted?: boolean;
   mapLink?: string;
 };
@@ -52,6 +53,7 @@ const ClinicCard: React.FC<ClinicCardProps> = ({ clinic }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [loginModalAction, setLoginModalAction] = useState<string | null>(null);
   const callNumber = clinic.mobile || clinic.contactNumber;
+  const isVerified = clinic.verifiedBadge === true || clinic.verified === true;
 
   const redirectToLogin = () => {
     if (typeof window === "undefined") return;
@@ -165,6 +167,8 @@ const ClinicCard: React.FC<ClinicCardProps> = ({ clinic }) => {
       tabIndex={0}
       onKeyDown={(e) => e.key === "Enter" && handleCardClick()}
     >
+      {isVerified && <span className={styles.verifiedCorner}>Verified</span>}
+
       {/* ================= IMAGE ================= */}
       <div className={styles.leftSection}>
         <div className={styles.mediaPanel}>

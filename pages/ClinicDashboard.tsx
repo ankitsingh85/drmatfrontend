@@ -27,6 +27,7 @@ import Footer from "@/components/Layout/Footer";
 // import ClinicOverview from "@/components/ClinicAdmin/ClinicDashboardList";
 // import Appointment from "@/components/ClinicAdmin/Appointment";
 import Lead from "@/components/ClinicAdmin/Lead";
+import ClinicReviews from "@/components/ClinicAdmin/ClinicReviews";
 import EditClinic from "@/components/ClinicAdmin/EditClinic";
 import ClinicOrderHistory from "@/components/ClinicAdmin/ClinicOrderHistory";
 
@@ -545,7 +546,21 @@ export default function ClinicDashboard() {
         </div>
       );
     }
+if (activeSection === "rating") {
 
+  return (
+
+    <div className={styles.sectionShell}>
+
+      <ClinicReviews 
+        clinicId={clinicId}
+      />
+
+    </div>
+
+  );
+
+}
     return (
       <div className={styles.sectionShell}>
         <div className={styles.placeholderBox}>

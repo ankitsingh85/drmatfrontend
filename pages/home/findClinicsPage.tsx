@@ -31,6 +31,8 @@ interface Clinic {
   email: string;
   address: string;
   clinicStatus?: string;
+  verifiedBadge?: boolean;
+  isActive?: boolean;
   dermaCategory?: ClinicCategory;
   doctors?: any[];
   clinicLogo?: string;

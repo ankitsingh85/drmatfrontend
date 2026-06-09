@@ -6,11 +6,22 @@ import { useEffect, useState } from "react";
 import styles from "@/styles/pages/clinicDetailPage.module.css";
 import ClinicCard from "@/components/Layout/clinicCard";
 import Footer from "@/components/Layout/Footer";
-import Ratings from "@/components/Layout/Reviews";
+import { FaStar } from "react-icons/fa";
 import Topbar from "@/components/Layout/Topbar";
 import FullPageLoader from "@/components/common/FullPageLoader";
 import { resolveMediaUrl } from "@/lib/media";
+interface Review {
+  _id: string;
 
+  name: string;
+
+  rating: number;
+
+  comment: string;
+
+  createdAt: string;
+  reply?:string;
+}
 interface Clinic {
   _id: string;
   slug?: string;
@@ -65,7 +76,17 @@ const ClinicDetailPage = () => {
     "Doctors",
     "Reviews",
   ];
+  const [reviews, setReviews] = useState<Review[]>([]);
 
+  const [hoverRating, setHoverRating] = useState(0);
+
+  const [reviewForm, setReviewForm] = useState({
+    name: "",
+
+    rating: 0,
+
+    comment: "",
+  });
   const [clinic, setClinic] = useState<Clinic | null>(null);
   const [services, setServices] = useState<ClinicService[]>([]);
   const [loadingClinic, setLoadingClinic] = useState(true);
@@ -112,8 +133,59 @@ const ClinicDetailPage = () => {
         <text x="180" y="246" text-anchor="middle" font-size="16" fill="#334155" font-family="Arial, sans-serif">
           ${name || "Doctor"}
         </text>
-      </svg>`
+      </svg>`,
     )}`;
+  useEffect(() => {
+    if (!clinic?._id) return;
+
+    fetchReviews();
+  }, [clinic?._id]);
+
+  const fetchReviews = async () => {
+    try {
+      const res = await fetch(`${API_URL}/clinic-reviews/${clinic?._id}`);
+
+      const data = await res.json();
+
+      setReviews(data);
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  const submitReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!clinic) return;
+
+    await fetch(
+      `${API_URL}/clinic-reviews`,
+
+      {
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json",
+        },
+
+        body: JSON.stringify({
+          clinicId: clinic._id,
+
+          ...reviewForm,
+        }),
+      },
+    );
+
+    setReviewForm({
+      name: "",
+
+      rating: 0,
+
+      comment: "",
+    });
+
+    fetchReviews();
+  };
 
   useEffect(() => {
     if (!slugValue) return;
@@ -130,7 +202,9 @@ const ClinicDetailPage = () => {
         const normalizedClinic: Clinic = {
           ...data,
           name: data.name || data.clinicName || "Clinic",
-          description: stripHtml(data.description || data.clinicDescription || ""),
+          description: stripHtml(
+            data.description || data.clinicDescription || "",
+          ),
           photos:
             normalizedImages.length > 0
               ? Array.from(new Set(normalizedImages))
@@ -237,7 +311,9 @@ const ClinicDetailPage = () => {
               <div className={styles.sectionHeader}>
                 <div>
                   <span className={styles.sectionEyebrow}>What they offer</span>
-                  <h3 className={styles.sectionTitle}>Services at {clinic.name}</h3>
+                  <h3 className={styles.sectionTitle}>
+                    Services at {clinic.name}
+                  </h3>
                 </div>
                 <span className={styles.countBadge}>
                   {loadingServices ? "..." : services.length} services
@@ -251,9 +327,6 @@ const ClinicDetailPage = () => {
               ) : (
                 <div className={styles.servicesGrid}>
                   {services.map((service, index) => (
-
-
-
                     <article key={service.id} className={styles.serviceCard}>
                       <span className={styles.serviceNumber}>
                         {(index + 1).toString().padStart(2, "0")}
@@ -274,15 +347,20 @@ const ClinicDetailPage = () => {
               <div className={styles.sectionHeader}>
                 <div>
                   <span className={styles.sectionEyebrow}>Medical team</span>
-                  <h3 className={styles.sectionTitle}>Doctors in {clinic.name}</h3>
+                  <h3 className={styles.sectionTitle}>
+                    Doctors in {clinic.name}
+                  </h3>
                 </div>
                 <span className={styles.countBadge}>
-                  {Array.isArray(clinic.doctors) ? clinic.doctors.length : 0} doctors
+                  {Array.isArray(clinic.doctors) ? clinic.doctors.length : 0}{" "}
+                  doctors
                 </span>
               </div>
 
               {!Array.isArray(clinic.doctors) || clinic.doctors.length === 0 ? (
-                <div className={styles.emptyState}>No doctors listed for this clinic.</div>
+                <div className={styles.emptyState}>
+                  No doctors listed for this clinic.
+                </div>
               ) : (
                 <div className={styles.doctorsGrid}>
                   {clinic.doctors.map((doctor, index) => (
@@ -298,9 +376,12 @@ const ClinicDetailPage = () => {
                       <div className={styles.doctorContent}>
                         <div className={styles.doctorTopRow}>
                           <div>
-                            <h4 className={styles.doctorName}>Dr. {doctor.name}</h4>
+                            <h4 className={styles.doctorName}>
+                              Dr. {doctor.name}
+                            </h4>
                             <p className={styles.doctorSpecialization}>
-                              {doctor.specialization || "Dermatology specialist"}
+                              {doctor.specialization ||
+                                "Dermatology specialist"}
                             </p>
                           </div>
                           {doctor.regNo && (
@@ -310,7 +391,8 @@ const ClinicDetailPage = () => {
                           )}
                         </div>
                         <p className={styles.doctorNote}>
-                          Experienced in patient consultations, diagnosis, and guided care.
+                          Experienced in patient consultations, diagnosis, and
+                          guided care.
                         </p>
                       </div>
                     </article>
@@ -319,30 +401,128 @@ const ClinicDetailPage = () => {
               )}
             </div>
           )}
-
           {activeTab === "Reviews" && (
             <div className={styles.contentPanel}>
               <div className={styles.sectionHeader}>
                 <div>
-                  <span className={styles.sectionEyebrow}>Patient feedback</span>
-                  <h3 className={styles.sectionTitle}>Reviews and trust signals</h3>
+                  <span className={styles.sectionEyebrow}>
+                    Patient feedback
+                  </span>
+
+                  <h3 className={styles.sectionTitle}>
+                    Reviews and trust signals
+                  </h3>
                 </div>
+
                 <span className={styles.countBadge}>
-                  {clinic.reviews ?? 0} reviews
+                  {reviews.length} reviews
                 </span>
               </div>
 
               <div className={styles.reviewsLayout}>
-                <div className={styles.reviewSummaryCard}>
-                  <span className={styles.reviewScore}>4.5</span>
-                  <p className={styles.reviewSummaryText}>
-                    {clinic.reviews && clinic.reviews > 0
-                      ? `${clinic.reviews} people have reviewed this clinic.`
-                      : "No reviews yet. Once patients share feedback, it will appear here."}
-                  </p>
-                </div>
                 <div className={styles.reviewPanel}>
-                  <Ratings />
+                  <form className={styles.reviewForm} onSubmit={submitReview}>
+                    <input
+                      className={styles.reviewInput}
+                      placeholder="Your name"
+                      value={reviewForm.name}
+                      onChange={(e) =>
+                        setReviewForm({
+                          ...reviewForm,
+                          name: e.target.value,
+                        })
+                      }
+                      required
+                    />
+
+                    <div className={styles.starSelect}>
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <FaStar
+                          key={star}
+                          className={
+                            star <= (hoverRating || reviewForm.rating)
+                              ? styles.activeStar
+                              : styles.emptyStar
+                          }
+                          onMouseEnter={() => setHoverRating(star)}
+                          onMouseLeave={() => setHoverRating(0)}
+                          onClick={() =>
+                            setReviewForm({
+                              ...reviewForm,
+                              rating: star,
+                            })
+                          }
+                        />
+                      ))}
+                    </div>
+
+                    <textarea
+                      className={styles.reviewTextarea}
+                      placeholder="Write your experience..."
+                      value={reviewForm.comment}
+                      onChange={(e) =>
+                        setReviewForm({
+                          ...reviewForm,
+                          comment: e.target.value,
+                        })
+                      }
+                      required
+                    />
+
+                    <button className={styles.reviewButton}>
+                      Submit Review
+                    </button>
+                  </form>
+
+                  <div className={styles.reviewList}>
+                    {reviews.length === 0 ? (
+                      <div className={styles.emptyState}>
+                        No reviews available.
+                      </div>
+                    ) : (
+                      reviews.map((item) => (
+                        <div key={item._id} className={styles.reviewCard}>
+                          <div className={styles.reviewTop}>
+                            <div className={styles.reviewAvatar}>
+                              {item.name.charAt(0)}
+                            </div>
+
+                            <div>
+                              <h4 className={styles.reviewName}>{item.name}</h4>
+
+                              <div className={styles.reviewStars}>
+                                {[1, 2, 3, 4, 5].map((s) => (
+                                  <FaStar
+                                    key={s}
+                                    className={
+                                      s <= item.rating
+                                        ? styles.activeStar
+                                        : styles.emptyStar
+                                    }
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+
+<p className={styles.reviewComment}>
+  {item.comment}
+</p>
+
+
+{item.reply && (
+  <div className={styles.clinicReply}>
+    <strong>Clinic Response</strong>
+
+    <p>
+      {item.reply}
+    </p>
+  </div>
+)}                   
+     </div>
+                      ))
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

@@ -13,8 +13,16 @@
   inset: 0;
   z-index: -2;
   background:
-    radial-gradient(circle at top left, rgba(21, 94, 149, 0.10), transparent 28%),
-    radial-gradient(circle at top right, rgba(0, 180, 183, 0.12), transparent 24%),
+    radial-gradient(
+      circle at top left,
+      rgba(21, 94, 149, 0.1),
+      transparent 28%
+    ),
+    radial-gradient(
+      circle at top right,
+      rgba(0, 180, 183, 0.12),
+      transparent 24%
+    ),
     linear-gradient(180deg, #f8fbff 0%, #ffffff 55%, #f6f9fc 100%);
 }
 
@@ -83,7 +91,10 @@
   border: 2px solid rgba(148, 163, 184, 0.18);
   background: #fff;
   cursor: pointer;
-  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
   box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
 }
 
@@ -145,7 +156,9 @@
   border-radius: 50%;
   border: 3px solid rgba(21, 94, 149, 0.45);
   background: rgba(255, 255, 255, 0.18);
-  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.16), inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+  box-shadow:
+    0 18px 40px rgba(15, 23, 42, 0.16),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.35);
   pointer-events: none;
   z-index: 5;
   backdrop-filter: blur(1px);
@@ -199,7 +212,11 @@
   gap: 10px;
   padding: 14px 16px;
   border-radius: 20px;
-  background: linear-gradient(180deg, rgba(15, 23, 42, 0.02), rgba(15, 23, 42, 0.01));
+  background: linear-gradient(
+    180deg,
+    rgba(15, 23, 42, 0.02),
+    rgba(15, 23, 42, 0.01)
+  );
   border: 1px solid rgba(148, 163, 184, 0.16);
 }
 
@@ -217,7 +234,9 @@
   margin-left: auto;
   cursor: pointer;
   color: #475569;
-  transition: color 0.2s ease, transform 0.2s ease;
+  transition:
+    color 0.2s ease,
+    transform 0.2s ease;
 }
 
 .icon:hover {
@@ -230,8 +249,12 @@
   gap: 10px;
   padding: 18px;
   border-radius: 22px;
-  background: linear-gradient(135deg, rgba(21, 94, 149, 0.05), rgba(0, 180, 183, 0.04));
-  border: 1px solid rgba(21, 94, 149, 0.10);
+  background: linear-gradient(
+    135deg,
+    rgba(21, 94, 149, 0.05),
+    rgba(0, 180, 183, 0.04)
+  );
+  border: 1px solid rgba(21, 94, 149, 0.1);
 }
 
 .mrp,
@@ -299,7 +322,9 @@
   background: transparent;
   color: #155e95;
   cursor: pointer;
-  transition: background 0.2s ease, color 0.2s ease;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
 }
 
 .quantity button:hover {
@@ -321,7 +346,10 @@
   cursor: pointer;
   font-weight: 700;
   letter-spacing: 0.01em;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
   box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
 }
 
@@ -360,12 +388,15 @@
   border-radius: 999px;
   cursor: pointer;
   font-weight: 700;
-  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
 }
 
 .tabButton:hover {
   transform: translateY(-1px);
-  background: rgba(21, 94, 149, 0.10);
+  background: rgba(21, 94, 149, 0.1);
   color: #155e95;
 }
 
@@ -410,8 +441,12 @@
   margin-bottom: 24px;
   padding: 18px;
   border-radius: 18px;
-  background: linear-gradient(135deg, rgba(21, 94, 149, 0.05), rgba(0, 180, 183, 0.03));
-  border: 1px solid rgba(21, 94, 149, 0.10);
+  background: linear-gradient(
+    135deg,
+    rgba(21, 94, 149, 0.05),
+    rgba(0, 180, 183, 0.03)
+  );
+  border: 1px solid rgba(21, 94, 149, 0.1);
 }
 
 .starsInput {
@@ -424,7 +459,9 @@
   font-size: 24px;
   color: #cbd5e1;
   cursor: pointer;
-  transition: transform 0.2s ease, color 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    color 0.2s ease;
 }
 
 .starInput:hover {
@@ -441,7 +478,9 @@
   font-size: 15px;
   outline: none;
   background: #fff;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .commentBox:focus {
@@ -459,7 +498,9 @@
   color: #fff;
   background: linear-gradient(135deg, #ff6f61, #e85d50);
   box-shadow: 0 12px 24px rgba(232, 93, 80, 0.18);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .submitReview:hover {
@@ -524,7 +565,10 @@
   background-size: 240% auto;
   opacity: 0;
   transform: translateY(6px);
-  transition: opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
   box-shadow: 0 18px 50px rgba(15, 23, 42, 0.06);
   z-index: 2;
   pointer-events: none;
@@ -540,7 +584,11 @@
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.08),
+    rgba(255, 255, 255, 0.02)
+  );
   pointer-events: none;
 }
 
@@ -675,6 +723,228 @@
   }
 
   .submitReview {
+    width: 100%;
+  }
+}
+
+/* ================= REVIEWS ================= */
+
+.reviewSection {
+  margin-top: 20px;
+
+  background: #fff;
+
+  border-radius: 16px;
+
+  padding: 25px;
+
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+}
+
+.reviewTitle {
+  font-size: 26px;
+
+  font-weight: 700;
+
+  margin-bottom: 20px;
+
+  color: #222;
+}
+
+.reviewForm {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 16px;
+
+  margin-bottom: 35px;
+}
+
+.reviewInput,
+.reviewTextarea {
+  width: 100%;
+
+  border: 1px solid #ddd;
+
+  border-radius: 12px;
+
+  padding: 14px 16px;
+
+  font-size: 15px;
+
+  outline: none;
+
+  transition: 0.3s;
+
+  background: #fafafa;
+}
+
+.reviewInput:focus,
+.reviewTextarea:focus {
+  border-color: #ff9800;
+
+  background: white;
+
+  box-shadow: 0 0 0 3px rgba(255, 152, 0, 0.15);
+}
+
+.reviewTextarea {
+  min-height: 120px;
+
+  resize: none;
+}
+
+.starSelect {
+  display: flex;
+
+  gap: 8px;
+
+  font-size: 30px;
+}
+
+.starSelect svg {
+  cursor: pointer;
+
+  transition: 0.2s;
+}
+
+.starSelect svg:hover {
+  transform: scale(1.15);
+}
+
+.activeStar {
+  color: #ffc107;
+}
+
+.emptyStar {
+  color: #d6d6d6;
+}
+
+.reviewBtn {
+  width: max-content;
+
+  border: none;
+
+  padding: 12px 28px;
+
+  border-radius: 25px;
+
+  background: #ff9800;
+
+  color: white;
+
+  font-size: 15px;
+
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition: 0.3s;
+}
+
+.reviewBtn:hover {
+  background: #e68900;
+
+  transform: translateY(-2px);
+}
+
+.reviewList {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 18px;
+}
+
+.reviewCard {
+  border: 1px solid #eee;
+
+  padding: 18px;
+
+  border-radius: 15px;
+
+  background: #fff;
+
+  transition: 0.3s;
+}
+
+.reviewCard:hover {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+}
+
+.reviewHeader {
+  display: flex;
+
+  align-items: center;
+
+  gap: 14px;
+}
+
+.avatar {
+  width: 45px;
+
+  height: 45px;
+
+  border-radius: 50%;
+
+  background: #ff9800;
+
+  color: white;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  font-size: 20px;
+
+  font-weight: bold;
+}
+
+.reviewStars {
+  display: flex;
+
+  gap: 3px;
+
+  font-size: 14px;
+
+  margin-top: 4px;
+}
+
+.reviewText {
+  margin-top: 14px;
+
+  font-size: 15px;
+
+  line-height: 1.6;
+
+  color: #555;
+}
+
+.noReview {
+  color: #777;
+
+  font-size: 15px;
+}
+
+/* MOBILE */
+
+@media (max-width: 600px) {
+  .reviewSection {
+    padding: 16px;
+  }
+
+  .reviewTitle {
+    font-size: 22px;
+  }
+
+  .starSelect {
+    font-size: 26px;
+  }
+
+  .reviewBtn {
     width: 100%;
   }
 }

@@ -93,6 +93,8 @@ export default function CreateClinic() {
 
     standardPlanLink: "",
     clinicStatus: "Open",
+    verifiedBadge: "no",
+    isActive: "true",
   });
 
   const [media, setMedia] = useState({
@@ -120,7 +122,7 @@ export default function CreateClinic() {
 
   /* ================= TEXT / CHECKBOX HANDLER ================= */
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value, type } = e.target;
     setForm((prev) => ({
@@ -228,6 +230,8 @@ export default function CreateClinic() {
       formData.append("facebook", form.facebook);
       formData.append("standardPlanLink", form.standardPlanLink);
       formData.append("clinicStatus", form.clinicStatus);
+      formData.append("verifiedBadge", String(form.verifiedBadge === "yes"));
+      formData.append("isActive", form.isActive);
       formData.append("videos", JSON.stringify(
         videoUrls
           .split(/\r?\n|,/)
@@ -296,6 +300,15 @@ export default function CreateClinic() {
 
             <input className={styles.input} name="ownerName" placeholder="Owner Name" onChange={handleChange} />
             <input className={styles.input} name="website" placeholder="Website" onChange={handleChange} />
+            <select
+              className={styles.input}
+              name="verifiedBadge"
+              value={form.verifiedBadge}
+              onChange={handleChange}
+            >
+              <option value="no">Verified Badge: No</option>
+              <option value="yes">Verified Badge: Yes</option>
+            </select>
           </section>
 
         {/* ================= 2. BRANDING & MEDIA ================= */}

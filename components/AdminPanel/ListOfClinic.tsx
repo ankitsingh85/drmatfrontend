@@ -29,6 +29,8 @@ type Clinic = {
   dermaCategory?: ClinicCategory;
   address: string;
   clinicStatus?: string;
+  verifiedBadge?: boolean;
+  isActive?: boolean;
   doctors: Doctor[];
 
   clinicLogo?: string;
@@ -146,6 +148,8 @@ function ListOfClinic() {
       email: clinic.email,
       address: clinic.address,
       clinicStatus: clinic.clinicStatus,
+      verifiedBadge: clinic.verifiedBadge,
+      isActive: clinic.isActive,
       dermaCategory: clinic.dermaCategory,
     });
     setIsEditing(true);
@@ -155,6 +159,42 @@ function ListOfClinic() {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     setEditForm({ ...editForm, [e.target.name]: e.target.value });
+  };
+
+  const handleToggleActive = async (clinic: Clinic) => {
+    const nextIsActive = clinic.isActive === false;
+
+    setClinics((prev) =>
+      prev.map((item) =>
+        item._id === clinic._id ? { ...item, isActive: nextIsActive } : item
+      )
+    );
+
+    try {
+      const res = await fetch(`${API_URL}/clinics/${clinic._id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isActive: nextIsActive }),
+      });
+
+      const updated = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(updated?.message || "Failed to update clinic status");
+      }
+
+      setClinics((prev) =>
+        prev.map((item) =>
+          item._id === clinic._id ? { ...item, ...updated } : item
+        )
+      );
+    } catch (error) {
+      setClinics((prev) =>
+        prev.map((item) =>
+          item._id === clinic._id ? { ...item, isActive: clinic.isActive } : item
+        )
+      );
+      alert(error instanceof Error ? error.message : "Failed to update clinic status");
+    }
   };
 
   const handleEditSubmit = async (e: React.FormEvent) => {
@@ -196,7 +236,7 @@ function ListOfClinic() {
 
   const handleDownloadCSV = () => {
     const rows = [
-      ["CUC", "Clinic Name", "Email", "Contact", "Website", "Category", "Status"],
+      ["CUC", "Clinic Name", "Email", "Contact", "Website", "Category", "Verified", "Active", "Status"],
       ...filteredClinics.map((c) => [
         c.cuc,
         c.clinicName,
@@ -204,6 +244,8 @@ function ListOfClinic() {
         c.contactNumber || "",
         c.website || "",
         c.dermaCategory?.name || "",
+        c.verifiedBadge ? "Yes" : "No",
+        c.isActive === false ? "Inactive" : "Active",
         c.clinicStatus || "",
       ]),
     ];
@@ -251,6 +293,8 @@ function ListOfClinic() {
           <td>${escapeHtml(c.contactNumber || "-")}</td>
           <td>${escapeHtml(c.website || "-")}</td>
           <td>${escapeHtml(c.dermaCategory?.name || "-")}</td>
+          <td>${escapeHtml(c.verifiedBadge ? "Yes" : "No")}</td>
+          <td>${escapeHtml(c.isActive === false ? "Inactive" : "Active")}</td>
           <td>${escapeHtml(c.clinicStatus || "-")}</td>
         </tr>`
       )
@@ -279,6 +323,8 @@ function ListOfClinic() {
                 <th>Contact</th>
                 <th>Website</th>
                 <th>Category</th>
+                <th>Verified</th>
+                <th>Active</th>
                 <th>Status</th>
               </tr>
             </thead>
@@ -355,6 +401,8 @@ function ListOfClinic() {
                 <th>Website</th>
                 <th>Contact</th>
                 <th>Category</th>
+                <th>Verified</th>
+                <th>Active</th>
                 <th>View</th>
                 <th>Actions</th>
               </tr>
@@ -384,6 +432,24 @@ function ListOfClinic() {
                   <td>{clinic.contactNumber || "—"}</td>
                   <td>{clinic.dermaCategory?.name || "—"}</td>
                   <td>
+                    <span className={clinic.verifiedBadge ? styles.verifiedBadge : styles.unverifiedBadge}>
+                      {clinic.verifiedBadge ? "Verified" : "Not Verified"}
+                    </span>
+                  </td>
+                  <td>
+                    <button
+                      type="button"
+                      className={`${styles.toggleSwitch} ${
+                        clinic.isActive === false ? "" : styles.toggleSwitchOn
+                      }`}
+                      onClick={() => handleToggleActive(clinic)}
+                      aria-pressed={clinic.isActive !== false}
+                    >
+                      <span className={styles.toggleKnob} />
+                      {clinic.isActive === false ? "Inactive" : "Active"}
+                    </button>
+                  </td>
+                  <td>
                     <button
                       className={styles.viewBtn}
                       onClick={() => setViewClinic(clinic)}
@@ -409,7 +475,7 @@ function ListOfClinic() {
               ))}
               {paginatedClinics.length === 0 && (
                 <tr>
-                  <td colSpan={8}>No clinics found.</td>
+                  <td colSpan={9}>No clinics found.</td>
                 </tr>
               )}
             </tbody>
@@ -572,6 +638,24 @@ function ListOfClinic() {
             <option value="pending">Pending</option>
           </select>
         </div>
+
+        <div className={createStyles.field}>
+          <label className={createStyles.label}>Verified Badge</label>
+          <select
+            name="verifiedBadge"
+            value={String(editForm.verifiedBadge === true)}
+            onChange={(e) =>
+              setEditForm({
+                ...editForm,
+                verifiedBadge: e.target.value === "true",
+              })
+            }
+            className={createStyles.input}
+          >
+            <option value="false">No</option>
+            <option value="true">Yes</option>
+          </select>
+        </div>
       </div>
 
       {/* ===== ACTIONS ===== */}
@@ -618,6 +702,8 @@ function ListOfClinic() {
               <p><b>Website:</b> {viewClinic.website}</p>
               <p><b>Category:</b> {viewClinic.dermaCategory?.name}</p>
               <p><b>Status:</b> {viewClinic.clinicStatus}</p>
+              <p><b>Verified:</b> {viewClinic.verifiedBadge ? "Yes" : "No"}</p>
+              <p><b>Active:</b> {viewClinic.isActive === false ? "No" : "Yes"}</p>
               <p><b>Address:</b> {viewClinic.address}</p>
             </div>
 

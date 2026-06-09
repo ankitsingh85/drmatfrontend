@@ -1,7 +1,7 @@
   "use client";
 
-  import React, { useEffect, useRef, useState } from "react";
-  import Link from "next/link";
+import React, { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import styles from "@/styles/components/Layout/Topbar.module.css";
 import Image from "next/image";
 import { useRouter, usePathname } from "next/navigation";

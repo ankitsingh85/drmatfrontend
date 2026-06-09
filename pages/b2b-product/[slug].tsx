@@ -31,7 +31,17 @@ interface B2BProduct {
   certifications?: string;
   manufacturerName?: string;
 }
+interface Review {
+  _id: string;
 
+  name: string;
+
+  rating: number;
+
+  comment: string;
+
+  createdAt: string;
+}
 interface ApiB2BProduct {
   _id?: string;
   sku?: string;
@@ -87,9 +97,18 @@ export default function B2BProductDetailPage() {
   const [product, setProduct] = useState<B2BProduct | null>(null);
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
-  const [activeTab, setActiveTab] =
-    useState<"details" | "information" | "reviews">("details");
+  const [activeTab, setActiveTab] = useState<
+    "details" | "information" | "reviews"
+  >("details");
   const [mainImage, setMainImage] = useState<string | null>(null);
+
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [reviewForm, setReviewForm] = useState({
+    name: "",
+    rating: 0,
+    comment: "",
+  });
 
   useEffect(() => {
     const key = Array.isArray(slug) ? slug[0] : slug;
@@ -101,17 +120,19 @@ export default function B2BProductDetailPage() {
       try {
         setLoading(true);
 
-        const res = await fetch(`${API_URL}/b2b-products`, { signal: ac.signal });
+        const res = await fetch(`${API_URL}/b2b-products`, {
+          signal: ac.signal,
+        });
         if (!res.ok) throw new Error("Failed to fetch B2B products");
 
         const data = await res.json();
         const list: ApiB2BProduct[] = Array.isArray(data)
           ? data
           : Array.isArray(data?.products)
-          ? data.products
-          : Array.isArray(data?.data)
-          ? data.data
-          : [];
+            ? data.products
+            : Array.isArray(data?.data)
+              ? data.data
+              : [];
 
         const normalized: B2BProduct[] = list
           .map((item: ApiB2BProduct) => normalizeProduct(item))
@@ -120,11 +141,20 @@ export default function B2BProductDetailPage() {
         const resolvedKey = slugify(String(key));
         const matched =
           normalized.find((item: B2BProduct) => item._id === key) ||
-          normalized.find((item: B2BProduct) => slugify(item.productName) === resolvedKey) ||
-          normalized.find((item: B2BProduct) => slugify(item.sku || "") === resolvedKey);
+          normalized.find(
+            (item: B2BProduct) => slugify(item.productName) === resolvedKey,
+          ) ||
+          normalized.find(
+            (item: B2BProduct) => slugify(item.sku || "") === resolvedKey,
+          );
 
         setProduct(matched || null);
-        setMainImage(matched?.productImages?.[0] ? resolveMediaUrl(matched.productImages[0]) || matched.productImages[0] : null);
+        setMainImage(
+          matched?.productImages?.[0]
+            ? resolveMediaUrl(matched.productImages[0]) ||
+                matched.productImages[0]
+            : null,
+        );
       } catch (error) {
         if ((error as any)?.name !== "AbortError") {
           console.error("Error fetching B2B product:", error);
@@ -138,6 +168,24 @@ export default function B2BProductDetailPage() {
     return () => ac.abort();
   }, [slug]);
 
+  useEffect(() => {
+    if (!product?._id) return;
+
+    fetchReviews();
+  }, [product?._id]);
+
+  const fetchReviews = async () => {
+    try {
+      const res = await fetch(`${API_URL}/reviews/${product?._id}`);
+
+      const data = await res.json();
+
+      setReviews(data);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
   const getImage = (img?: string) => {
     if (!img) return productImg.src;
     return resolveMediaUrl(img) || productImg.src;
@@ -147,14 +195,19 @@ export default function B2BProductDetailPage() {
     if (!product) return null;
 
     const salePrice = Number(
-      product.discountedPrice ?? product.pricePerUnit ?? product.mrp ?? 0
+      product.discountedPrice ?? product.pricePerUnit ?? product.mrp ?? 0,
     );
-    const originalPrice = Number(product.mrp ?? product.pricePerUnit ?? salePrice);
+    const originalPrice = Number(
+      product.mrp ?? product.pricePerUnit ?? salePrice,
+    );
     const actualSalePrice = Math.min(originalPrice, salePrice);
     const actualOriginalPrice = Math.max(originalPrice, salePrice);
-    const hasDiscount = actualSalePrice < actualOriginalPrice && actualOriginalPrice > 0;
+    const hasDiscount =
+      actualSalePrice < actualOriginalPrice && actualOriginalPrice > 0;
     const discountPercent = hasDiscount
-      ? Math.round(((actualOriginalPrice - actualSalePrice) / actualOriginalPrice) * 100)
+      ? Math.round(
+          ((actualOriginalPrice - actualSalePrice) / actualOriginalPrice) * 100,
+        )
       : 0;
 
     return {
@@ -167,7 +220,39 @@ export default function B2BProductDetailPage() {
       image: product.productImages?.[0],
     };
   };
+  const handleReviewSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
+    if (!product) return;
+
+    const res = await fetch(
+      `${API_URL}/reviews`,
+
+      {
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json",
+        },
+
+        body: JSON.stringify({
+          productId: product._id,
+
+          ...reviewForm,
+        }),
+      },
+    );
+
+    if (res.ok) {
+      setReviewForm({
+        name: "",
+        rating: 5,
+        comment: "",
+      });
+
+      fetchReviews();
+    }
+  };
   const handleAddToCart = () => {
     const payload = getCartPayload();
     if (!payload) return;
@@ -181,11 +266,15 @@ export default function B2BProductDetailPage() {
   if (loading) return <FullPageLoader />;
   if (!product) return <p style={{ padding: 20 }}>B2B product not found</p>;
 
-  const salePrice = Number(product.discountedPrice || product.pricePerUnit || product.mrp || 0);
+  const salePrice = Number(
+    product.discountedPrice || product.pricePerUnit || product.mrp || 0,
+  );
   const mrp = Number(product.mrp || product.pricePerUnit || salePrice);
   const hasDiscount = salePrice > 0 && mrp > salePrice;
   const inCart = cartItems.some((item) => item.id === product._id);
-  const thumbnails = product.productImages?.length ? product.productImages : [""];
+  const thumbnails = product.productImages?.length
+    ? product.productImages
+    : [""];
 
   return (
     <>
@@ -193,28 +282,28 @@ export default function B2BProductDetailPage() {
 
       <div className={styles.wrapper}>
         <div className={styles.topSection}>
-            <div className={styles.leftColumn}>
-              <div className={styles.thumbnailWrapper}>
-                {thumbnails.map((img, index) => (
-                  <img
-                    key={`${img}-${index}`}
-                    src={getImage(img)}
-                    alt={`${product.productName} ${index + 1}`}
-                    className={styles.thumbnail}
+          <div className={styles.leftColumn}>
+            <div className={styles.thumbnailWrapper}>
+              {thumbnails.map((img, index) => (
+                <img
+                  key={`${img}-${index}`}
+                  src={getImage(img)}
+                  alt={`${product.productName} ${index + 1}`}
+                  className={styles.thumbnail}
                   onClick={() => setMainImage(getImage(img))}
-                  />
-                ))}
-              </div>
+                />
+              ))}
+            </div>
 
-              <div className={styles.mediaColumn}>
-                <div className={styles.mainImageWrapper}>
-                  <img
+            <div className={styles.mediaColumn}>
+              <div className={styles.mainImageWrapper}>
+                <img
                   src={mainImage || getImage(product.productImages?.[0])}
-                    alt={product.productName}
-                    className={styles.mainImage}
-                  />
-                </div>
+                  alt={product.productName}
+                  className={styles.mainImage}
+                />
               </div>
+            </div>
           </div>
 
           <div className={styles.rightColumn}>
@@ -345,10 +434,12 @@ export default function B2BProductDetailPage() {
                   <strong>SKU:</strong> {product.sku || "-"}
                 </li>
                 <li>
-                  <strong>Manufacturer:</strong> {product.manufacturerName || "-"}
+                  <strong>Manufacturer:</strong>{" "}
+                  {product.manufacturerName || "-"}
                 </li>
                 <li>
-                  <strong>Certifications:</strong> {product.certifications || "-"}
+                  <strong>Certifications:</strong>{" "}
+                  {product.certifications || "-"}
                 </li>
               </ul>
             </section>
@@ -357,7 +448,113 @@ export default function B2BProductDetailPage() {
           {activeTab === "reviews" && (
             <section className={styles.detailsSection}>
               <h2 className={styles.title}>Reviews</h2>
-              <p>No reviews available for B2B products yet.</p>
+              {activeTab === "reviews" && (
+                <section className={styles.reviewSection}>
+                  <h2 className={styles.reviewTitle}>Customer Reviews</h2>
+
+                  {/* ADD REVIEW */}
+
+                  <form
+                    className={styles.reviewForm}
+                    onSubmit={handleReviewSubmit}
+                  >
+                    <input
+                      className={styles.reviewInput}
+                      placeholder="Your Name"
+                      value={reviewForm.name}
+                      onChange={(e) =>
+                        setReviewForm({
+                          ...reviewForm,
+
+                          name: e.target.value,
+                        })
+                      }
+                      required
+                    />
+
+                    {/* STAR SELECT */}
+
+                    <div className={styles.starSelect}>
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <FaStar
+                          key={star}
+                          className={
+                            star <= (hoverRating || reviewForm.rating)
+                              ? styles.activeStar
+                              : styles.emptyStar
+                          }
+                          onMouseEnter={() => setHoverRating(star)}
+                          onMouseLeave={() => setHoverRating(0)}
+                          onClick={() =>
+                            setReviewForm({
+                              ...reviewForm,
+
+                              rating: star,
+                            })
+                          }
+                        />
+                      ))}
+                    </div>
+
+                    <textarea
+                      className={styles.reviewTextarea}
+                      placeholder="Write your review..."
+                      value={reviewForm.comment}
+                      onChange={(e) =>
+                        setReviewForm({
+                          ...reviewForm,
+
+                          comment: e.target.value,
+                        })
+                      }
+                      required
+                    />
+
+                    <button className={styles.reviewBtn} type="submit">
+                      Submit Review
+                    </button>
+                  </form>
+
+                  {/* REVIEW LIST */}
+
+                  <div className={styles.reviewList}>
+                    {reviews.length === 0 ? (
+                      <p className={styles.noReview}>
+                        No reviews yet. Be first to review.
+                      </p>
+                    ) : (
+                      reviews.map((item) => (
+                        <div className={styles.reviewCard} key={item._id}>
+                          <div className={styles.reviewHeader}>
+                            <div className={styles.avatar}>
+                              {item.name.charAt(0)}
+                            </div>
+
+                            <div>
+                              <h4>{item.name}</h4>
+
+                              <div className={styles.reviewStars}>
+                                {[1, 2, 3, 4, 5].map((s) => (
+                                  <FaStar
+                                    key={s}
+                                    className={
+                                      s <= item.rating
+                                        ? styles.activeStar
+                                        : styles.emptyStar
+                                    }
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+
+                          <p className={styles.reviewText}>{item.comment}</p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </section>
+              )}
             </section>
           )}
         </div>

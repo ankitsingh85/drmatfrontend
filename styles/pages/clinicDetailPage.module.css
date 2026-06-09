@@ -45,7 +45,10 @@
   padding: 12px 28px;
   border-radius: 999px;
   cursor: pointer;
-  transition: color 0.2s ease, background 0.2s ease, transform 0.2s ease,
+  transition:
+    color 0.2s ease,
+    background 0.2s ease,
+    transform 0.2s ease,
     box-shadow 0.2s ease;
 }
 
@@ -272,7 +275,9 @@
 .serviceCard {
   padding: 22px 20px;
   background: linear-gradient(180deg, #ffffff 0%, #f8fbfe 100%);
-  transition: transform 0.22s ease, box-shadow 0.22s ease,
+  transition:
+    transform 0.22s ease,
+    box-shadow 0.22s ease,
     border-color 0.22s ease;
 }
 
@@ -323,7 +328,9 @@
   gap: 16px;
   padding: 18px;
   background: linear-gradient(180deg, #ffffff 0%, #f9fcff 100%);
-  transition: transform 0.22s ease, box-shadow 0.22s ease,
+  transition:
+    transform 0.22s ease,
+    box-shadow 0.22s ease,
     border-color 0.22s ease;
 }
 
@@ -383,109 +390,258 @@
   line-height: 1.6;
 }
 
+/* ================= REVIEWS ================= */
+
 .reviewsLayout {
-  display: grid;
-  grid-template-columns: minmax(260px, 0.9fr) minmax(0, 1.4fr);
-  gap: 20px;
-}
-
-.reviewSummaryCard {
-  padding: 24px;
-  background: linear-gradient(180deg, #fafdff 0%, #eef7fc 100%);
-}
-
-.reviewScore {
-  display: inline-block;
-  color: var(--text-main);
-  font-size: clamp(2.6rem, 4vw, 3.4rem);
-  font-weight: 800;
-  line-height: 1;
-}
-
-.reviewSummaryText {
-  margin: 16px 0 0;
-  color: var(--text-soft);
-  font-size: 0.98rem;
-  line-height: 1.75;
+  width: 100%;
+  display: block;
 }
 
 .reviewPanel {
+  width: 100%;
   min-width: 0;
+  border: 1px solid var(--panel-border);
+  background: #ffffff;
+  border-radius: 24px;
+  padding: 28px;
+  box-shadow: 0 10px 24px rgba(14, 49, 79, 0.05);
 }
 
-.error {
-  margin: 40px auto;
-  max-width: 860px;
-  padding: 20px 24px;
-  border: 1px solid #f0c0c0;
+
+/* ================= REVIEW FORM ================= */
+
+.reviewForm {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin-bottom: 32px;
+}
+
+
+.reviewInput,
+.reviewTextarea {
+  width: 100%;
+  border: 1px solid var(--panel-border);
+  background: #f8fbff;
+  border-radius: 16px;
+  padding: 15px 18px;
+  font-size: 0.96rem;
+  color: var(--text-main);
+  outline: none;
+  transition: 0.25s ease;
+}
+
+
+.reviewInput:focus,
+.reviewTextarea:focus {
+  background: #ffffff;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px rgba(19, 95, 154, 0.12);
+}
+
+
+.reviewTextarea {
+  min-height: 140px;
+  resize: none;
+}
+
+
+/* ================= STAR RATING ================= */
+
+.starSelect {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 32px;
+}
+
+
+.starSelect svg {
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+
+.starSelect svg:hover {
+  transform: scale(1.15);
+}
+
+
+.activeStar {
+  color: #f8b400;
+}
+
+
+.emptyStar {
+  color: #d5e0ea;
+}
+
+
+.reviewStars {
+  display: flex;
+  gap: 5px;
+  margin-top: 8px;
+}
+
+
+/* ================= BUTTON ================= */
+
+.reviewButton {
+  width: fit-content;
+  border: none;
+  border-radius: 999px;
+  padding: 13px 34px;
+
+  background: linear-gradient(
+    135deg,
+    #135f9a,
+    #2187c8
+  );
+
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0.95rem;
+
+  cursor: pointer;
+  transition: 0.25s ease;
+}
+
+
+.reviewButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 25px rgba(19, 95, 154, 0.25);
+}
+
+
+/* ================= REVIEW LIST ================= */
+
+.reviewList {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+
+.reviewCard {
+  padding: 20px;
   border-radius: 20px;
-  background: #fff6f6;
-  color: #a03838;
-  font-weight: 600;
+  border: 1px solid var(--panel-border);
+
+  background: linear-gradient(
+    180deg,
+    #ffffff,
+    #f8fbff
+  );
+
+  transition: 0.25s ease;
 }
 
-@media (max-width: 1024px) {
-  .detailsLayout,
-  .reviewsLayout {
-    grid-template-columns: 1fr;
-  }
 
-  .panelShell,
-  .primaryPanel,
-  .contentPanel,
-  .reviewPanel {
-    padding: 22px;
-  }
+.reviewCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 28px rgba(18, 67, 106, 0.08);
 }
+
+
+.reviewTop {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+
+.reviewAvatar {
+  width: 48px;
+  height: 48px;
+
+  border-radius: 50%;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: var(--accent);
+  color: white;
+
+  font-size: 20px;
+  font-weight: 800;
+}
+
+
+.reviewName {
+  margin: 0;
+  color: var(--text-main);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+
+.reviewComment {
+  margin: 15px 0 0;
+
+  color: var(--text-soft);
+
+  font-size: 0.95rem;
+  line-height: 1.7;
+}
+
+
+/* ================= MOBILE ================= */
+
 
 @media (max-width: 768px) {
-  .pageWrapper {
-    padding: 0 0 28px;
-  }
 
-  .tabContainer {
-    margin: 20px 12px 18px;
-    padding: 8px;
-    gap: 8px;
-    border-radius: 24px;
-    width: calc(100% - 24px);
-  }
-
-  .tabButton {
-    flex: 1 1 calc(50% - 8px);
-    text-align: center;
-    font-size: 1.05rem;
-    padding: 12px 14px;
-  }
-
-  .panelShell {
-    margin: 0 12px;
-    padding: 16px;
-    border-radius: 22px;
-  }
-
-  .infoCardGrid,
-  .servicesGrid,
-  .doctorsGrid {
-    grid-template-columns: 1fr;
-  }
-
-  .doctorCard {
-    flex-direction: column;
-  }
-
-  .doctorImage {
-    width: 72px;
-    height: 72px;
+  .reviewPanel {
+    padding: 18px;
     border-radius: 18px;
   }
 
-  .doctorTopRow,
-  .sectionHeader {
-    flex-direction: column;
+
+  .starSelect {
+    font-size: 26px;
   }
 
-  .countBadge {
-    min-width: 0;
+
+  .reviewButton {
+    width: 100%;
   }
+
+
+  .reviewAvatar {
+    width: 42px;
+    height: 42px;
+  }
+
+}
+.clinicReply {
+  margin-top: 16px;
+  padding: 16px 18px;
+
+  border-left: 4px solid var(--accent);
+
+  border-radius: 14px;
+
+  background: #eef7ff;
+
+  color: var(--text-main);
+}
+
+
+.clinicReply strong {
+  display: block;
+
+  margin-bottom: 8px;
+
+  color: var(--accent);
+
+  font-size: 0.9rem;
+}
+
+
+.clinicReply p {
+  margin: 0;
+
+  color: var(--text-soft);
+
+  line-height: 1.6;
 }

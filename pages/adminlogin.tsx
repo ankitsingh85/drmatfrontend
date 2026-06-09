@@ -12,52 +12,104 @@ import styles from "@/styles/adminlogin.module.css";
 export default function AdminLogin() {
   const router = useRouter();
 
-  const [formData, setFormData] = useState({ email: "", password: "" });
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+  });
+
+const [forgotMode, setForgotMode] = useState(false);
+const [forgotData, setForgotData] = useState({
+    email: "",
+    password: "",
+  });
+
   const [loading, setLoading] = useState(false);
+
   const [error, setError] = useState("");
+
+  const [success, setSuccess] = useState("");
+
   const [showPassword, setShowPassword] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    setFormData({
+      ...formData,
+
+      [e.target.name]: e.target.value,
+    });
   };
+
+  /* ================= LOGIN ================= */
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     setError("");
+
     setLoading(true);
 
     try {
-      const res = await fetch(`${API_URL}/auth/admin/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
+      const res = await fetch(
+        `${API_URL}/auth/admin/login`,
+
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type": "application/json",
+          },
+
+          body: JSON.stringify(formData),
+        },
+      );
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Login failed");
-      if (!data.token) throw new Error("Token missing from server");
 
-      Cookies.set("token", data.token, { path: "/", sameSite: "lax" });
-      Cookies.set("role", data.role.toLowerCase(), { path: "/", sameSite: "lax" });
+      if (!res.ok) {
+        throw new Error(data.message || "Login failed");
+      }
 
-      const displayName =
-        data.admin?.name ||
-        data.admin?.fullName ||
-        data.user?.name ||
-        data.user?.fullName ||
-        data.name ||
-        data.fullName ||
-        data.username ||
-        formData.email.split("@")[0];
+      if (!data.token) {
+        throw new Error("Token missing");
+      }
 
-      Cookies.set("adminName", displayName, { path: "/", sameSite: "lax" });
+      Cookies.set(
+        "token",
+
+        data.token,
+
+        {
+          path: "/",
+          sameSite: "lax",
+        },
+      );
+
+      Cookies.set(
+        "role",
+
+        data.role.toLowerCase(),
+
+        {
+          path: "/",
+          sameSite: "lax",
+        },
+      );
+
+      Cookies.set(
+        "adminName",
+
+        data.admin?.name || formData.email.split("@")[0],
+
+        {
+          path: "/",
+          sameSite: "lax",
+        },
+      );
 
       if (data.role.toLowerCase() === "superadmin") {
         router.replace("/Dashboard");
-      } else if (data.role.toLowerCase() === "admin") {
-        router.replace("/adminDashboard");
       } else {
-        router.replace("/adminlogin");
+        router.replace("/adminDashboard");
       }
     } catch (err: any) {
       setError(err.message || "Something went wrong");
@@ -66,94 +118,187 @@ export default function AdminLogin() {
     }
   };
 
+  /* ================= FORGOT PASSWORD ================= */
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    setError("");
+
+    setSuccess("");
+
+    try {
+      const res = await fetch(
+        `${API_URL}/admins/forgot-password`,
+
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type": "application/json",
+          },
+
+          body: JSON.stringify(forgotData),
+        },
+      );
+
+      const data = await res.json().catch(() => ({
+        message: "Server response error",
+      }));
+
+      if (!res.ok) {
+        setError(data.message);
+
+        return;
+      }
+
+      setSuccess("Password changed successfully");
+
+      setForgotData({
+        email: "",
+
+        password: "",
+      });
+
+      setTimeout(() => {
+        setForgotMode(false);
+      }, 1000);
+    } catch (error: any) {
+      setError(error.message || "Password reset failed");
+    }
+  };
+
   return (
     <div className={styles.page}>
       <div className={styles.logoTop}>
-        <Link href="/home" className={styles.logoLink} aria-label="Go to home page">
+        <Link href="/home">
           <Image
             src="/logo.jpeg"
-            alt="Website logo"
+            alt="logo"
             width={170}
             height={52}
-            className={styles.websiteLogo}
-            priority
             unoptimized
           />
         </Link>
       </div>
 
       <div className={styles.splitCard}>
-        {/* Left: Image */}
         <div className={styles.imagePane}>
           <div className={styles.imageWrap}>
             <Image
               src="/login.jpg"
-              alt="Admin login"
+              alt="login"
               fill
               className={styles.heroImage}
-              priority
-              sizes="(max-width: 900px) 100vw, 50vw"
               unoptimized
             />
           </div>
         </div>
 
-        {/* Right: Form */}
         <div className={styles.formPane}>
           <div className={styles.formCard}>
             <h2 className={styles.title}>
-              <span className={styles.titleUnderline}>Login</span> as a Admin 
+              {forgotMode ? "Forgot Password" : "Login as Admin"}
             </h2>
 
-            <form onSubmit={handleSubmit} className={styles.form}>
-              {/* Email */}
-              <div className={styles.inputWrapper}>
+            {forgotMode ? (
+              <form className={styles.form} onSubmit={handleForgotPassword}>
                 <input
+                  className={styles.input}
                   type="email"
-                  name="email"
                   placeholder="Enter Email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  required
-                  className={styles.input}
-                />
-                <span className={styles.inputIcon} aria-hidden>
-                  <FiUser size={18} />
-                </span>
-              </div>
+                  value={forgotData.email}
+                  onChange={(e) =>
+                    setForgotData({
+                      ...forgotData,
 
-              {/* Password */}
-              <div className={styles.inputWrapper}>
+                      email: e.target.value,
+                    })
+                  }
+                  required
+                />
+
                 <input
-                  type={showPassword ? "text" : "password"}
-                  name="password"
-                  placeholder="Enter Password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  required
                   className={styles.input}
+                  type="password"
+                  placeholder="New Password"
+                  value={forgotData.password}
+                  onChange={(e) =>
+                    setForgotData({
+                      ...forgotData,
+
+                      password: e.target.value,
+                    })
+                  }
+                  required
                 />
-                <span
-                  className={styles.inputIcon}
-                  onClick={() => setShowPassword((v) => !v)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => e.key === "Enter" && setShowPassword((v) => !v)}
+
+                <button className={styles.button}>Update Password</button>
+
+                <p
+                  className={styles.homeLink}
+                  onClick={() => setForgotMode(false)}
                 >
-                  {showPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}
-                </span>
-              </div>
+                  Back to Login
+                </p>
+              </form>
+            ) : (
+              <form className={styles.form} onSubmit={handleSubmit}>
+                <div className={styles.inputWrapper}>
+                  <input
+                    type="email"
+                    name="email"
+                    placeholder="Enter Email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    className={styles.input}
+                    required
+                  />
 
-              {error && <p className={styles.error}>{error}</p>}
+                  <span className={styles.inputIcon}>
+                    <FiUser />
+                  </span>
+                </div>
 
-              <button type="submit" disabled={loading} className={styles.button}>
-                {loading ? "Logging in..." : "LOGIN"}
-              </button>
-            </form>
+                <div className={styles.inputWrapper}>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    name="password"
+                    placeholder="Enter Password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    className={styles.input}
+                    required
+                  />
 
-            <Link href="/home" className={styles.homeLink}>
-              get back to home page?
-            </Link>
+                  <span
+                    className={styles.inputIcon}
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? <FiEyeOff /> : <FiEye />}
+                  </span>
+                </div>
+
+                <button className={styles.button} disabled={loading}>
+                  {loading ? "Logging..." : "LOGIN"}
+                </button>
+
+                <p
+                  className={styles.homeLink}
+                  onClick={() => {
+                    setError("");
+
+                    setForgotMode(true);
+                  }}
+                >
+                  Forgot Password?
+                </p>
+              </form>
+            )}
+
+            {error && <p className={styles.error}>{error}</p>}
+
+            {success && <p className={styles.success}>{success}</p>}
           </div>
         </div>
       </div>

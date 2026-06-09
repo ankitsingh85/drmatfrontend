@@ -326,6 +326,73 @@
   background: #fecaca;
 }
 
+.tagInputRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.tagAddButton {
+  min-height: 51px;
+  margin-top: 1rem;
+  padding: 0 18px;
+  border: none;
+  border-radius: 16px;
+  background: #0f172a;
+  color: #ffffff;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.tagAddButton:hover {
+  background: #1e293b;
+}
+
+.tagChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.tagChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  padding: 8px 10px;
+  border-radius: 999px;
+  border: 1px solid #cbd5f5;
+  background: #ffffff;
+}
+
+.tagChipText {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.tagChipRemove {
+  border: none;
+  background: #fee2e2;
+  color: #991b1b;
+  padding: 5px 8px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.tagChipRemove:hover {
+  background: #fecaca;
+}
+
 .success {
   margin-top: -10px;
   color: #166534;
