@@ -10,11 +10,14 @@ interface Category {
   _id: string;
   name: string;
 }
-
 interface Product {
-  _id: string;
-  productName: string;
-  category: string;
+
+  _id:string;
+
+  productSKU:string;
+
+  productName:string;
+ category: string[];
   mrpPrice: number;
   discountedPrice: number;
   brandName: string;
@@ -25,8 +28,11 @@ interface Product {
   netQuantity: string;
   expiryDate: string;
   manufacturerName: string;
-  licenseNumber: string;
-  packagingType: string;
+ licenseNumber:string;
+
+hsnCode:string;
+
+packagingType:string;
   taxPercent?: number;
   productImages: string[];
   productShortVideo: string;
@@ -71,8 +77,22 @@ const ListOfProduct: React.FC = () => {
     setCategories(await catRes.json());
   };
 
-  const getCategoryName = (id: string) =>
-    categories.find((c) => c._id === id)?.name || id;
+const getCategoryName = (ids: string[]) => {
+
+  if (!Array.isArray(ids)) {
+    return "-";
+  }
+
+  return ids
+    .map(
+      (id) =>
+        categories.find(
+          (c) => c._id === id
+        )?.name || id
+    )
+    .join(", ");
+
+};
 
   /* ================= FILTER ================= */
   const filteredProducts = useMemo(() => {
@@ -84,9 +104,14 @@ const ListOfProduct: React.FC = () => {
       );
     }
 
-    if (filterCategory !== "all") {
-      data = data.filter((p) => p.category === filterCategory);
-    }
+ if (filterCategory !== "all") {
+
+  data = data.filter(
+    (p) =>
+      p.category?.includes(filterCategory)
+  );
+
+}
 
     if (sortBy === "name") {
       data.sort((a, b) => a.productName.localeCompare(b.productName));
@@ -276,7 +301,7 @@ const ListOfProduct: React.FC = () => {
           <option value="price">Sort by Price</option>
         </select>
 
-        <select
+        {/* <select
           className={styles.filter}
           onChange={(e) => setFilterCategory(e.target.value)}
         >
@@ -286,7 +311,7 @@ const ListOfProduct: React.FC = () => {
               {c.name}
             </option>
           ))}
-        </select>
+        </select> */}
 
         <select
           className={`${styles.filter} ${styles.pageFilter}`}
@@ -317,47 +342,176 @@ const ListOfProduct: React.FC = () => {
       </div>
 
       {/* TABLE */}
-      <table className={styles.table}>
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Name</th>
-            <th>Category</th>
-            <th>MRP</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
+      {/* TABLE */}
 
-        <tbody>
-          {paginatedProducts.map((p, i) => (
-            <tr key={p._id}>
-              <td>{(currentPage - 1) * itemsPerPage + i + 1}</td>
-              <td>{p.productName}</td>
-              <td>{getCategoryName(p.category)}</td>
-              <td>₹{p.mrpPrice}</td>
-              <td className={styles.actions}>
-                <button className={styles.eye} onClick={() => setViewProduct(p)}>
-                  👁
-                </button>
-                <button className={styles.edit} onClick={() => handleEdit(p)}>
-                  ✏️
-                </button>
-                <button
-                  className={styles.delete}
-                  onClick={() => handleDelete(p._id)}
-                >
-                  🗑
-                </button>
-              </td>
-            </tr>
-          ))}
-          {paginatedProducts.length === 0 && (
-            <tr>
-              <td colSpan={5}>No products found.</td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+<div className={styles.tableWrapper}>
+
+<table className={styles.table}>
+
+<thead>
+
+<tr>
+
+<th>SKU Code</th>
+
+<th>Image</th>
+
+<th>Product Name</th>
+
+<th>Brand</th>
+
+<th>MRP</th>
+
+<th>Selling Price</th>
+
+<th>Stock</th>
+
+<th>HSN Code</th>
+
+<th>License/FSSAI</th>
+
+<th>Status</th>
+
+<th>Actions</th>
+
+</tr>
+
+</thead>
+
+
+<tbody>
+
+{paginatedProducts.map((p)=>(
+
+<tr key={p._id}>
+
+
+<td>
+{p.productSKU || "-"}
+</td>
+
+
+<td>
+
+{p.productImages?.length ? (
+
+<img
+
+src={resolveMediaUrl(p.productImages[0]) || undefined}
+
+alt={p.productName}
+
+width={50}
+
+height={50}
+
+/>
+
+):(
+
+"-"
+
+)}
+
+</td>
+
+
+<td>
+{p.productName}
+</td>
+
+
+<td>
+{p.brandName || "-"}
+</td>
+
+
+<td>
+₹{p.mrpPrice}
+</td>
+
+
+<td>
+₹{p.discountedPrice}
+</td>
+
+
+<td>
+{p.stockStatus || "-"}
+</td>
+
+
+<td>
+{p.hsnCode || "-"}
+</td>
+
+
+<td>
+{p.licenseNumber || "-"}
+</td>
+
+
+<td>
+
+{p.activeStatus ? "Active" : "Inactive"}
+
+</td>
+
+
+<td className={styles.actions}>
+
+
+<button
+className={styles.eye}
+onClick={() => setViewProduct(p)}
+>
+👁
+</button>
+
+
+<button
+className={styles.edit}
+onClick={() => handleEdit(p)}
+>
+✏️
+</button>
+
+
+<button
+className={styles.delete}
+onClick={() => handleDelete(p._id)}
+>
+🗑
+</button>
+
+
+</td>
+
+
+</tr>
+
+))}
+
+
+{paginatedProducts.length===0 && (
+
+<tr>
+
+<td colSpan={11}>
+No products found.
+</td>
+
+</tr>
+
+)}
+
+
+</tbody>
+
+
+</table>
+
+</div>
       <div
         style={{
           marginTop: 12,

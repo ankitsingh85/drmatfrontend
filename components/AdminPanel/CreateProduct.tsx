@@ -20,7 +20,8 @@ interface Category {
 
 export default function CreateProduct() {
   /* ================= AUTO SKU ================= */
-  const [productSKU] = useState(`SKU-${Date.now().toString().slice(-6)}`);
+  // const [productSKU] = useState(`SKU-${Date.now().toString().slice(-6)}`);
+  const [productSKU] = useState("Auto Generated");
 
   /* ================= CATEGORY STATE ================= */
   const [categories, setCategories] = useState<Category[]>([]);
@@ -29,8 +30,9 @@ export default function CreateProduct() {
   /* ================= FORM STATE ================= */
   const [form, setForm] = useState({
     productName: "",
-    category: "",
-    // subCategory: "", // ❌ not used anymore (intentionally kept)
+category: [] as string[],
+
+  // subCategory: "", // ❌ not used anymore (intentionally kept)
     brandName: "",
 
     description: "",
@@ -38,6 +40,7 @@ export default function CreateProduct() {
     targetConcerns: "",
     usageInstructions: "",
     netQuantity: "",
+    quantityUnit: "Nos",
     mrpPrice: "",
     discountedPrice: "",
     discountPercent: "",
@@ -45,8 +48,9 @@ export default function CreateProduct() {
 
     expiryDate: "",
     manufacturerName: "",
-    licenseNumber: "",
-    packagingType: "",
+ licenseNumber: "",
+hsnCode:"",
+packagingType: "",
 
     productImages: [] as string[],
     productShortVideo: "",
@@ -102,7 +106,7 @@ export default function CreateProduct() {
     "discountedPrice",
     "discountPercent",
     "taxPercent",
-    "licenseNumber",
+    
   ]);
 
   const handleChange = (
@@ -112,7 +116,7 @@ export default function CreateProduct() {
   ) => {
     const { name, value, type } = e.target as HTMLInputElement;
     const checked = (e.target as HTMLInputElement).checked;
-    let nextValue: string | boolean = value;
+    let nextValue: string | boolean | string[] = value;
 
     if (numericFields.has(name)) {
       nextValue = value.replace(/\D/g, "");
@@ -182,7 +186,7 @@ export default function CreateProduct() {
     }
 
     const payload = {
-      productSKU,
+      
       productName: form.productName,
       category: form.category,
       // subCategory: form.subCategory, ❌ intentionally not sent
@@ -195,7 +199,8 @@ export default function CreateProduct() {
       benefits: form.benefits,
       certifications: form.certifications,
 
-      netQuantity: form.netQuantity,
+        netQuantity: form.netQuantity,
+      quantityUnit: form.quantityUnit,
       mrpPrice: Number(form.mrpPrice),
       discountedPrice: Number(form.discountedPrice),
       discountPercent: Number(form.discountPercent),
@@ -203,9 +208,11 @@ export default function CreateProduct() {
 
       expiryDate: form.expiryDate,
       manufacturerName: form.manufacturerName,
-      licenseNumber: form.licenseNumber,
-      packagingType: form.packagingType,
+     licenseNumber: form.licenseNumber,
 
+hsnCode: form.hsnCode,
+
+packagingType: form.packagingType,
       productImages: form.productImages,
       productShortVideo: form.productShortVideo,
 
@@ -262,26 +269,72 @@ export default function CreateProduct() {
           </div>
 
           <div className={styles.field}>
-            <label className={styles.label}>Product Category</label>
-            <select
-              className={styles.select}
-              name="category"
-              value={form.category}
-              onChange={handleChange}
-              disabled={loadingCategories}
-              required
-            >
-              <option value="">
-                {loadingCategories ? "Loading categories..." : "Select Category"}
-              </option>
-              {categories.map((cat) => (
-                <option key={cat.id} value={cat.name}>
-                  {cat.name}
-                </option>
-              ))}
-            </select>
-          </div>
 
+<label className={styles.label}>
+Product Categories
+</label>
+
+<select
+
+multiple
+
+className={styles.select}
+
+name="category"
+
+value={form.category}
+
+disabled={loadingCategories}
+
+
+onChange={(e)=>{
+
+
+const selected =
+Array.from(
+
+e.target.selectedOptions,
+
+(option)=>option.value
+
+);
+
+
+setForm((prev)=>({
+
+...prev,
+
+category:selected
+
+}));
+
+
+}}
+
+required
+
+>
+
+
+{categories.map((cat)=>(
+
+<option
+
+key={cat.id}
+
+value={cat.name}
+
+>
+
+{cat.name}
+
+</option>
+
+))}
+
+
+</select>
+</div>
           <div className={styles.field}>
             <label className={styles.label}>Brand Name</label>
             <input
@@ -356,120 +409,352 @@ export default function CreateProduct() {
         </div>
 
         {/* ===== PRICING ===== */}
-        <div className={styles.section}>
-          <h3 className={styles.sectionTitle}>Pricing</h3>
+      <div className={styles.section}>
 
-          <input
-            type="number"
-            min="0"
-            step="1"
-            className={styles.input}
-            name="netQuantity"
-            value={form.netQuantity}
-            inputMode="numeric"
-            pattern="[0-9]*"
-            placeholder="Net Quantity"
-            onKeyDown={handleNumberKeyDown}
-            onChange={handleChange}
-            required
-          />
-          <input
-            type="number"
-            min="0"
-            step="1"
-            className={styles.input}
-            name="mrpPrice"
-            value={form.mrpPrice}
-            inputMode="numeric"
-            pattern="[0-9]*"
-            placeholder="MRP Price"
-            onKeyDown={handleNumberKeyDown}
-            onChange={handleChange}
-            required
-          />
-          <input
-            type="number"
-            min="0"
-            step="1"
-            className={styles.input}
-            name="discountedPrice"
-            value={form.discountedPrice}
-            inputMode="numeric"
-            pattern="[0-9]*"
-            placeholder="Discounted Price"
-            onKeyDown={handleNumberKeyDown}
-            onChange={handleChange}
-            required
-          />
-          <input
-            type="number"
-            min="0"
-            step="1"
-            className={styles.input}
-            name="discountPercent"
-            value={form.discountPercent}
-            inputMode="numeric"
-            pattern="[0-9]*"
-            placeholder="Discount (%)"
-            onKeyDown={handleNumberKeyDown}
-            onChange={handleChange}
-            required
-          />
-          <select
-            className={styles.select}
-            name="taxPercent"
-            value={form.taxPercent}
-            onChange={handleChange}
-            required
-          >
-            <option value="5">5%</option>
-            <option value="12">12%</option>
-            <option value="18">18%</option>
-            <option value="28">28%</option>
-          </select>
-        </div>
+  <h3 className={styles.sectionTitle}>
+    Pricing
+  </h3>
 
+
+  {/* NET QUANTITY */}
+ <div className={styles.field}>
+
+
+<label className={styles.label}>
+
+Net Quantity
+
+</label>
+
+
+
+<div className={styles.quantityBox}>
+
+
+<input
+
+type="number"
+
+className={styles.input}
+
+name="netQuantity"
+
+value={form.netQuantity}
+
+onChange={handleChange}
+
+onKeyDown={handleNumberKeyDown}
+
+required
+
+/>
+
+
+
+
+<select
+
+className={styles.select}
+
+name="quantityUnit"
+
+value={form.quantityUnit}
+
+onChange={handleChange}
+
+>
+
+<option value="Nos">Nos</option>
+
+<option value="Qty">Qty</option>
+
+<option value="ML">ML</option>
+
+<option value="Grams">Grams</option>
+
+<option value="KG">KG</option>
+
+<option value="Litre">Litre</option>
+
+
+</select>
+
+
+</div>
+
+
+</div>
+
+
+  {/* MRP PRICE */}
+  <div className={styles.field}>
+
+    <label className={styles.label}>
+      MRP Price
+    </label>
+
+    <input
+      type="number"
+      min="0"
+      step="1"
+      className={styles.input}
+      name="mrpPrice"
+      value={form.mrpPrice}
+      inputMode="numeric"
+      pattern="[0-9]*"
+      onKeyDown={handleNumberKeyDown}
+      onChange={handleChange}
+      required
+    />
+
+  </div>
+
+
+
+
+  {/* DISCOUNTED PRICE */}
+  <div className={styles.field}>
+
+    <label className={styles.label}>
+      Discounted Price
+    </label>
+
+    <input
+      type="number"
+      min="0"
+      step="1"
+      className={styles.input}
+      name="discountedPrice"
+      value={form.discountedPrice}
+      inputMode="numeric"
+      pattern="[0-9]*"
+      onKeyDown={handleNumberKeyDown}
+      onChange={handleChange}
+      required
+    />
+
+  </div>
+
+
+
+
+  {/* DISCOUNT */}
+  <div className={styles.field}>
+
+    <label className={styles.label}>
+      Discount (%)
+    </label>
+
+    <input
+      type="number"
+      min="0"
+      step="1"
+      className={styles.input}
+      name="discountPercent"
+      value={form.discountPercent}
+      inputMode="numeric"
+      pattern="[0-9]*"
+      onKeyDown={handleNumberKeyDown}
+      onChange={handleChange}
+      required
+    />
+
+  </div>
+
+
+
+
+  {/* TAX */}
+  <div className={styles.field}>
+
+    <label className={styles.label}>
+      GST / Tax (%)
+    </label>
+
+
+    <select
+      className={styles.select}
+      name="taxPercent"
+      value={form.taxPercent}
+      onChange={handleChange}
+      required
+    >
+
+      <option value="5">
+        5%
+      </option>
+
+      <option value="12">
+        12%
+      </option>
+
+      <option value="18">
+        18%
+      </option>
+
+      <option value="28">
+        28%
+      </option>
+
+    </select>
+
+  </div>
+
+<div className={styles.field}>
+
+<label className={styles.label}>
+HSN Code
+</label>
+
+<input
+className={styles.input}
+type="text"
+name="hsnCode"
+value={form.hsnCode}
+onChange={handleChange}
+placeholder="Enter HSN Code"
+/>
+
+</div>
+
+
+</div>
         {/* ===== COMPLIANCE ===== */}
-        <div className={styles.section}>
-          <h3 className={styles.sectionTitle}>Compliance & Packaging</h3>
+        {/* ===== COMPLIANCE ===== */}
 
-          <input
-            type="date"
-            className={styles.input}
-            name="expiryDate"
-            onChange={handleChange}
-            required
-          />
-          <input
-            className={styles.input}
-            name="manufacturerName"
-            placeholder="Manufacturer Name"
-            onChange={handleChange}
-            required
-            pattern="[A-Za-z ]+"
-            title="Use letters and spaces only"
-          />
-          <input
-            className={styles.input}
-            name="licenseNumber"
-            placeholder="License / FSSAI No."
-            onChange={handleChange}
-            required
-            inputMode="numeric"
-            pattern="[0-9]+"
-            title="Use digits only"
-          />
-          <input
-            className={styles.input}
-            name="packagingType"
-            placeholder="Packaging Type"
-            onChange={handleChange}
-            required
-            pattern="[A-Za-z ]+"
-            title="Use letters and spaces only"
-          />
-        </div>
+<div className={styles.section}>
 
+<h3 className={styles.sectionTitle}>
+Compliance & Packaging
+</h3>
+
+
+
+{/* EXPIRY DATE */}
+
+<div className={styles.field}>
+
+<label className={styles.label}>
+Expiry Date
+</label>
+
+<input
+
+type="date"
+
+className={styles.input}
+
+name="expiryDate"
+
+value={form.expiryDate}
+
+onChange={handleChange}
+
+required
+
+/>
+
+</div>
+
+
+
+
+
+{/* MANUFACTURER */}
+
+<div className={styles.field}>
+
+<label className={styles.label}>
+Manufacturer Name
+</label>
+
+
+<input
+
+className={styles.input}
+
+name="manufacturerName"
+
+value={form.manufacturerName}
+
+onChange={handleChange}
+
+required
+
+pattern="[A-Za-z ]+"
+
+title="Use letters and spaces only"
+
+/>
+
+</div>
+
+
+
+
+
+
+{/* LICENSE */}
+
+<div className={styles.field}>
+
+<label className={styles.label}>
+License / FSSAI No.
+</label>
+
+
+<input
+
+className={styles.input}
+
+name="licenseNumber"
+
+value={form.licenseNumber}
+
+onChange={handleChange}
+
+
+
+
+/>
+
+</div>
+
+
+
+
+{/* PACKAGING */}
+
+<div className={styles.field}>
+
+<label className={styles.label}>
+Packaging Type
+</label>
+
+
+<input
+
+className={styles.input}
+
+name="packagingType"
+
+value={form.packagingType}
+
+onChange={handleChange}
+
+required
+
+pattern="[A-Za-z ]+"
+
+title="Use letters and spaces only"
+
+/>
+
+
+</div>
+
+
+</div>
         {/* ===== MEDIA ===== */}
         <div className={styles.section}>
           <h3 className={styles.sectionTitle}>Media</h3>

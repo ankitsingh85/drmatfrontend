@@ -8,6 +8,7 @@ import FullPageLoader from "@/components/common/FullPageLoader";
 import { resolveMediaUrl } from "@/lib/media";
 
 interface Category {
+  _id: string;
   id: string;
   name: string;
   imageUrl?: string;
@@ -48,9 +49,9 @@ const ProductCategory: React.FC<ProductCategoryProps> = ({
         if (!Array.isArray(data)) return;
 
         // Format categories
-      const formatted = data.map((cat: any) => ({
-  _id: cat._id,
-  id: cat.id ?? cat._id,
+    const formatted: Category[] = data.map((cat: any) => ({
+  _id: String(cat._id),
+  id: String(cat._id),
   name: cat.name,
   imageUrl: cat.imageUrl,
 }));
@@ -74,9 +75,23 @@ setCategories(sorted);
   }, []);
 
   const handleCategoryClick = (category: Category) => {
-    localStorage.setItem("selectedCategory", JSON.stringify(category));
-    router.push("/product-listing");
-  };
+
+  localStorage.setItem(
+    "selectedCategoryId",
+    category._id
+  );
+
+  localStorage.setItem(
+    "selectedCategory",
+    JSON.stringify({
+      _id: category._id,
+      name: category.name
+    })
+  );
+
+  router.push("/product-listing");
+
+};
 
   const handleMoreClick = () => {
     localStorage.removeItem("selectedCategory");

@@ -8,12 +8,22 @@ import FullPageLoader from "@/components/common/FullPageLoader";
 
 interface Admin {
   _id: string;
+
   empId: string;
+
   name: string;
+
   email: string;
+
   phone: string;
+
   role: "admin" | "superadmin" | "manager";
+
   createdAt: string;
+
+  lastModifiedAt?: string;
+
+  lastModifiedField?: string;
 }
 
 export default function ListOfAdmin() {
@@ -52,18 +62,44 @@ export default function ListOfAdmin() {
   useEffect(() => {
     fetchAdmins();
   }, []);
+  
+const fetchAdmins = async () => {
+  try {
 
-  const fetchAdmins = async () => {
-    try {
-      const res = await fetch(`${API_URL}/admins`);
-      const data = await res.json();
-      setAdmins(data);
-    } catch (error) {
-      console.error("Error fetching admins:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    const res = await fetch(`${API_URL}/admins`);
+
+    const data = await res.json();
+
+
+    // old API response = array
+    // new API response = {success:true, admins:[]}
+
+    setAdmins(
+      Array.isArray(data)
+      ? data
+      : data.admins || []
+    );
+
+
+  } 
+  
+  catch (error) {
+
+    console.error(
+      "Error fetching admins:",
+      error
+    );
+
+    setAdmins([]);
+
+  } 
+  
+  finally {
+
+    setLoading(false);
+
+  }
+};
 
   /* ================= FILTERED ADMINS ================= */
   const filteredAdmins = useMemo(() => {
@@ -102,9 +138,40 @@ export default function ListOfAdmin() {
 
   const handleDownloadCSV = () => {
     const rows = [
-      ["Admin ID", "Name", "Email", "Phone", "Role"],
-      ...filteredAdmins.map((a) => [a.empId, a.name, a.email, a.phone, a.role]),
-    ];
+
+[
+"Admin ID",
+"Name",
+"Email",
+"Phone",
+"Role",
+"Last Modified"
+],
+
+
+...filteredAdmins.map((a)=>[
+
+a.empId,
+
+a.name,
+
+a.email,
+
+a.phone,
+
+a.role,
+
+
+a.lastModifiedAt
+?
+new Date(a.lastModifiedAt)
+.toLocaleString("en-IN")
+:
+"-"
+
+])
+
+];
 
     const csv = rows
       .map((row) =>
@@ -283,27 +350,78 @@ export default function ListOfAdmin() {
       ) : (
         <div className={styles.tableWrapper}>
           <table className={styles.table}>
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Contact No.</th>
-                <th>Role</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
+           <thead>
+<tr>
+
+  <th>Admin ID</th>
+
+  <th>Name</th>
+
+  <th>Email</th>
+
+  <th>Contact No.</th>
+
+  <th>Role</th>
+
+  <th>Actions</th>
+
+</tr>
+</thead>
 
             <tbody>
               {paginatedAdmins.map((admin) => (
-                <tr key={admin._id}>
-                  <td>{admin.name}</td>
-                  <td>{admin.email}</td>
-                  <td>{admin.phone}</td>
-                  <td>
-                    <span className={`${styles.badge} ${styles[admin.role]}`}>
-                      {admin.role}
-                    </span>
-                  </td>
+               <tr key={admin._id}>
+
+
+{/* ADMIN ID */}
+
+<td>
+
+ {admin.empId}
+
+</td>
+
+
+
+<td>
+
+ {admin.name}
+
+</td>
+
+
+
+<td>
+
+ {admin.email}
+
+</td>
+
+
+
+<td>
+
+ {admin.phone}
+
+</td>
+
+
+
+
+<td>
+
+ <span 
+ className={`${styles.badge} ${styles[admin.role]}`}
+ >
+
+ {admin.role}
+
+ </span>
+
+</td>
+
+
+
 
                   {/* ✅ ICON ACTIONS */}
                   <td className={styles.actions}>

@@ -23,7 +23,7 @@ interface Product {
   _id: string;
   productName: string;
   brandName: string;
-  category: string;
+  category: string[];
   mrpPrice: number;
   discountedPrice: number;
   productImages: string[];
@@ -99,41 +99,142 @@ const ProductListingPage: React.FC = () => {
     return resolveMediaUrl(img) || productImg.src;
   };
 
-  const normalizeProduct = (p: any, cats: Category[]): ProductWithCategory => {
-    const rawCategory = p?.category;
-    const directCategoryId = normalizeIdLike(
-      rawCategory?._id ?? rawCategory?.id ?? rawCategory
-    );
-    const rawCategoryName =
-      typeof rawCategory === "string"
-        ? rawCategory
-        : String(rawCategory?.name ?? "");
+const normalizeProduct = (
+  p:any,
+  cats:Category[]
+):ProductWithCategory => {
 
-    const categoryObjById =
-      cats.find((c) => c._id === directCategoryId) || null;
-    const categoryObjByName =
-      !categoryObjById && rawCategoryName
-        ? cats.find(
-            (c) => c.name.toLowerCase() === rawCategoryName.toLowerCase()
-          ) || null
-        : null;
 
-    const categoryObj = categoryObjById || categoryObjByName;
-    const productCategoryId = categoryObj?._id ?? directCategoryId;
+let categoryIds:string[] = [];
 
-    return {
-      _id: String(p?._id ?? p?.id ?? ""),
-      productName: String(p?.productName ?? ""),
-      brandName: String(p?.brandName ?? ""),
-      category: productCategoryId,
-      mrpPrice: Number(p?.mrpPrice ?? 0),
-      discountedPrice: Number(p?.discountedPrice ?? p?.mrpPrice ?? 0),
-      productImages: Array.isArray(p?.productImages) ? p.productImages : [],
-      createdAt: String(p?.createdAt ?? ""),
-      categoryObj,
-    };
-  };
 
+// CASE 1 ARRAY
+if(Array.isArray(p.category)){
+
+
+categoryIds = p.category.map((c:any)=>{
+
+
+// simple id
+if(typeof c === "string"){
+return c;
+}
+
+
+// mongodb object id
+if(c?._id){
+return String(c._id);
+}
+
+
+// populated category object
+if(c?.id){
+return String(c.id);
+}
+
+
+return "";
+
+}).filter(Boolean);
+
+
+
+}
+
+
+// CASE 2 SINGLE CATEGORY
+else if(p.category){
+
+
+if(typeof p.category === "string"){
+
+categoryIds=[
+p.category
+];
+
+}else{
+
+
+categoryIds=[
+String(
+p.category._id ||
+p.category.id ||
+""
+)
+];
+
+
+}
+
+}
+
+
+
+
+const categoryObj =
+cats.find((cat)=>
+categoryIds.includes(
+String(cat._id)
+)
+)
+||
+null;
+
+
+
+
+return {
+
+
+_id:String(
+p._id
+),
+
+
+productName:
+p.productName || "",
+
+
+brandName:
+p.brandName || "",
+
+
+// IMPORTANT
+category:
+categoryIds.map(String),
+
+
+mrpPrice:
+Number(p.mrpPrice || 0),
+
+
+discountedPrice:
+Number(
+p.discountedPrice ||
+p.mrpPrice ||
+0
+),
+
+
+productImages:
+Array.isArray(p.productImages)
+?
+p.productImages
+:
+[],
+
+
+createdAt:
+p.createdAt || "",
+
+
+categoryObj
+
+
+};
+
+
+};
   const resolveInitialCategoryId = (catData: Category[]): string | null => {
     const savedId = localStorage.getItem("selectedCategoryId");
     if (savedId && catData.some((c) => c._id === savedId)) return savedId;
@@ -159,66 +260,170 @@ const ProductListingPage: React.FC = () => {
     return null;
   };
 
-  const fetchAllProducts = async () => {
-    setLoading(true);
-    try {
-      const [catRes, prodRes] = await Promise.all([
-        fetch(`${API_URL}/categories`),
-        fetch(`${API_URL}/products`),
-      ]);
+ const fetchAllProducts = async () => {
 
-      if (!catRes.ok || !prodRes.ok) {
-        throw new Error("Failed to fetch categories or products");
-      }
+setLoading(true);
 
-      const catRaw = await catRes.json();
-      const prodRaw = await prodRes.json();
+try {
 
-      const catData = normalizeCategories(catRaw);
-      const prodData = extractArray(prodRaw);
+const [catRes, prodRes] = await Promise.all([
+fetch(`${API_URL}/categories`),
+fetch(`${API_URL}/products`)
+]);
 
-      const normalizedProducts = prodData
-        .map((p) => normalizeProduct(p, catData))
-        .filter((p) => p._id && p.productName);
 
-      setCategories(catData);
-      setProducts(normalizedProducts);
+if(!catRes.ok || !prodRes.ok){
+throw new Error("Failed to fetch");
+}
 
-      const initialCategoryId = resolveInitialCategoryId(catData);
-      if (initialCategoryId) {
-        setSelectedCategoryId(initialCategoryId);
-        localStorage.setItem("selectedCategoryId", initialCategoryId);
-      }
-    } catch (error) {
-      console.error("Failed to fetch products:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
+const catRaw = await catRes.json();
+const prodRaw = await prodRes.json();
+
+
+const catData = normalizeCategories(catRaw);
+
+const prodData = extractArray(prodRaw);
+
+
+const normalizedProducts = prodData
+.map((p)=>normalizeProduct(p,catData))
+.filter(
+(p)=>p._id && p.productName
+);
+
+
+// DEBUG
+console.log(
+"SELECTED CATEGORY",
+localStorage.getItem("selectedCategoryId")
+);
+
+
+console.log(
+"PRODUCT CATEGORY IDS",
+normalizedProducts.map((p)=>({
+name:p.productName,
+category:p.category.join(",")
+}))
+);
+
+
+
+setCategories(catData);
+
+setProducts(normalizedProducts);
+
+
+const initialCategoryId =
+resolveInitialCategoryId(catData);
+
+
+if(initialCategoryId){
+
+const id = String(initialCategoryId);
+
+setSelectedCategoryId(id);
+
+localStorage.setItem(
+"selectedCategoryId",
+id
+);
+
+}
+
+
+}
+
+catch(error){
+
+console.log(
+"Product fetch error",
+error
+);
+
+}
+
+finally{
+
+setLoading(false);
+
+}
+
+
+};
   useEffect(() => {
     fetchAllProducts();
   }, []);
 
-  const selectedCategory =
-    categories.find((cat) => cat._id === selectedCategoryId) || null;
+const selectedCategory =
+categories.find(
+(cat)=>
+cat._id === selectedCategoryId
+)
+||
+null;
 
-  const filteredProducts = useMemo(
-    () =>
-      products.filter((p) => {
-        const matchesSearch =
-          p.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          p.brandName.toLowerCase().includes(searchTerm.toLowerCase());
 
-        const matchesCategory = selectedCategoryId
-          ? p.category === selectedCategoryId ||
-            p.categoryObj?._id === selectedCategoryId
-          : true;
+const selectedCategoryName =
+selectedCategory?.name || "";
 
-        return matchesSearch && matchesCategory;
-      }),
-    [products, searchTerm, selectedCategoryId]
-  );
+const filteredProducts = useMemo(() => {
+
+  return products.filter((p) => {
+
+    const matchesSearch =
+      p.productName
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+
+      p.brandName
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
+
+
+const matchesCategory =
+selectedCategoryId
+?
+p.category.some((cat)=>{
+
+const value =
+String(cat)
+.trim()
+.toLowerCase();
+
+
+return (
+
+value ===
+String(selectedCategoryId)
+.toLowerCase()
+
+||
+
+value ===
+selectedCategoryName
+.toLowerCase()
+
+);
+
+})
+:
+true;
+
+
+    return (
+      matchesSearch &&
+      matchesCategory
+    );
+
+  });
+
+}, [
+  products,
+  searchTerm,
+  selectedCategoryId
+]);
 
   return (
     <>
@@ -244,26 +449,48 @@ const ProductListingPage: React.FC = () => {
               <p className={styles.sidebarName}>All</p>
             </div>
 
-            {categories.map((cat) => (
-              <div
-                key={cat._id}
-                className={`${styles.sidebarCard} ${
-                  selectedCategory?._id === cat._id ? styles.activeCategory : ""
-                }`}
-                onClick={() => {
-                  setSelectedCategoryId(cat._id);
-                  localStorage.setItem("selectedCategoryId", cat._id);
-                  localStorage.setItem("selectedCategory", JSON.stringify(cat));
-                }}
-              >
-                <img
-                  src={getImage(cat.imageUrl)}
-                  alt={cat.name}
-                  className={styles.sidebarImage}
-                />
-                <p className={styles.sidebarName}>{cat.name}</p>
-              </div>
-            ))}
+           {categories.map((cat) => (
+  <div
+    key={cat._id}
+    className={`${styles.sidebarCard} ${
+      selectedCategory?._id === cat._id
+        ? styles.activeCategory
+        : ""
+    }`}
+    onClick={() => {
+
+      const id = String(cat._id);
+
+      setSelectedCategoryId(id);
+
+      localStorage.setItem(
+        "selectedCategoryId",
+        id
+      );
+
+      localStorage.setItem(
+        "selectedCategory",
+        JSON.stringify({
+          _id: id,
+          name: cat.name
+        })
+      );
+
+    }}
+  >
+
+    <img
+      src={getImage(cat.imageUrl)}
+      alt={cat.name}
+      className={styles.sidebarImage}
+    />
+
+    <p className={styles.sidebarName}>
+      {cat.name}
+    </p>
+
+  </div>
+))}
           </aside>
 
           <div style={{ width: "100%" }}>

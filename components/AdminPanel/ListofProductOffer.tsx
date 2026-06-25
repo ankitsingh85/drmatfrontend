@@ -319,18 +319,62 @@ const ListofProductOffer = () => {
     }
   };
 
-  const getProductLabel = (offer: Offer) =>
-    typeof offer.productId === "object"
-      ? offer.productId.productName || offer.productId._id
-      : offer.productId || "-";
+  const getProductLabel = (offer: Offer) => {
 
-  const getCategoryLabel = (offer: Offer) =>
+  if (
+    offer.productId &&
+    typeof offer.productId === "object"
+  ) {
+
+    return (
+      offer.productId.productName ||
+      offer.productId._id ||
+      "-"
+    );
+
+  }
+
+
+  return offer.productId || "-";
+
+};
+
+
+
+const getCategoryLabel = (offer: Offer) => {
+
+  if (
+    offer.categoryId &&
     typeof offer.categoryId === "object"
-      ? offer.categoryId.name || offer.categoryId.id || offer.categoryId._id || "-"
-      : categories.find((category) => category._id === offer.categoryId)?.name ||
-        categories.find((category) => category.id === offer.categoryId)?.name ||
-        offer.categoryId ||
-        "-";
+  ) {
+
+    return (
+      offer.categoryId.name ||
+      offer.categoryId.id ||
+      offer.categoryId._id ||
+      "-"
+    );
+
+  }
+
+
+  return (
+    categories.find(
+      (category) =>
+        category._id === offer.categoryId
+    )?.name ||
+
+    categories.find(
+      (category) =>
+        category.id === offer.categoryId
+    )?.name ||
+
+    offer.categoryId ||
+
+    "-"
+  );
+
+};
 
   const getOfferImage = (offer: Offer) =>
     offer.imageUrl || offer.imageBase64 || "";

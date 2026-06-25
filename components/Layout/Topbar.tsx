@@ -359,7 +359,7 @@ import {
             </Link>
             {/* <Link href="/user/profile" className={styles.navLink}>Care Plan</Link> */}
             {/* <Link href="/home/findClinicsPage" className={styles.navLink}>Find Derma Clinic</Link> */}
-            <Link href="/video-consultation" className={styles.navLink}>
+            <Link href="/Chat" className={styles.navLink}>
               Book Video Consultation
             </Link>
             <Link href="/treatment-plans" className={styles.navLink}>

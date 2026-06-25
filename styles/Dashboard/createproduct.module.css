@@ -171,3 +171,21 @@
   border: none;
   cursor: pointer;
 }
+.quantityBox{
+
+display:grid;
+
+grid-template-columns:1fr 140px;
+
+gap:12px;
+
+}
+
+
+.select[multiple]{
+
+height:140px;
+
+padding:12px;
+
+}

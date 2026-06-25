@@ -15,9 +15,14 @@ import { resolveMediaUrl } from "@/lib/media";
 import { useCart } from "@/context/CartContext";
 
 interface Review {
+  _id: string;
+
+  name: string;
+
   rating: number;
+
   comment: string;
-  user?: string;
+
   createdAt?: string;
 }
 
@@ -67,7 +72,9 @@ export default function ProductDetail() {
   const [resolvedProductId, setResolvedProductId] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
-  const [activeTab, setActiveTab] = useState<"details" | "services" | "reviews">("details");
+  const [activeTab, setActiveTab] = useState<
+    "details" | "services" | "reviews"
+  >("details");
   const [mainImage, setMainImage] = useState<string | null>(null);
 
   // Zoom
@@ -76,9 +83,18 @@ export default function ProductDetail() {
   const imageRef = useRef<HTMLDivElement>(null);
 
   // New review form
-  const [newComment, setNewComment] = useState("");
-  const [newRating, setNewRating] = useState(0);
-// const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000/api";
+  const [reviews, setReviews] = useState<Review[]>([]);
+
+  const [hoverRating, setHoverRating] = useState(0);
+
+  const [reviewForm, setReviewForm] = useState({
+    name: "",
+
+    rating: 0,
+
+    comment: "",
+  });
+  // const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000/api";
 
   const getProductSlug = (raw: ApiProduct | Product) =>
     slugify(
@@ -87,8 +103,8 @@ export default function ProductDetail() {
           (raw as ApiProduct).productName ||
           (raw as Product).name ||
           (raw as Product)._id ||
-          ""
-      )
+          "",
+      ),
     );
 
   const normalizeProduct = (raw: ApiProduct): Product => ({
@@ -99,10 +115,16 @@ export default function ProductDetail() {
     company: raw.company || raw.brandName,
     price: Number(raw.price ?? raw.mrpPrice ?? 0),
     discountPrice: Number(
-      raw.discountPrice ?? raw.discountedPrice ?? raw.price ?? raw.mrpPrice ?? 0
+      raw.discountPrice ??
+        raw.discountedPrice ??
+        raw.price ??
+        raw.mrpPrice ??
+        0,
     ),
     quantity: raw.quantity,
-    images: (raw.images || raw.productImages || []).map((img) => resolveMediaUrl(img) || img),
+    images: (raw.images || raw.productImages || []).map(
+      (img) => resolveMediaUrl(img) || img,
+    ),
     reviews: Array.isArray(raw.reviews) ? raw.reviews : [],
   });
 
@@ -138,10 +160,27 @@ export default function ProductDetail() {
     };
     fetchProduct();
   }, [productid]);
+  const fetchReviews = async () => {
+    if (!resolvedProductId) return;
 
+    try {
+      const res = await axios.get(
+        `${API_URL}/product-reviews/${resolvedProductId}`,
+      );
+
+      setReviews(res.data);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  useEffect(() => {
+    fetchReviews();
+  }, [resolvedProductId]);
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!imageRef.current) return;
-    const { left, top, width, height } = imageRef.current.getBoundingClientRect();
+    const { left, top, width, height } =
+      imageRef.current.getBoundingClientRect();
     const x = e.clientX - left;
     const y = e.clientY - top;
     const lensX = Math.max(0, Math.min(x, width));
@@ -150,34 +189,69 @@ export default function ProductDetail() {
   };
 
   const handleReviewSubmit = async () => {
-    const id = resolvedProductId || (Array.isArray(productid) ? productid[0] : productid);
-    if (!newComment.trim() || newRating === 0 || !id) return;
-    try {
-      const res = await axios.post(`${API_URL}/products/${id}/reviews`, {
-        rating: newRating,
-        comment: newComment,
-        user: "Guest User", // Replace with logged-in user if available
-      });
-      const normalized = normalizeProduct(res.data as ApiProduct);
-      setProduct(normalized);
-      setNewComment("");
-      setNewRating(0);
-    } catch (err) {
-      console.error("Error submitting review:", err);
-    }
-  };
 
+  if (
+    !reviewForm.name ||
+    !reviewForm.comment ||
+    reviewForm.rating === 0
+  ) {
+    alert("Please fill all review fields");
+    return;
+  }
+
+
+  if (!resolvedProductId) {
+    return;
+  }
+
+
+  try {
+
+    await axios.post(
+      `${API_URL}/product-reviews`,
+      {
+        productId: resolvedProductId,
+        name: reviewForm.name,
+        rating: reviewForm.rating,
+        comment: reviewForm.comment,
+      }
+    );
+
+
+    setReviewForm({
+      name: "",
+      rating: 0,
+      comment: "",
+    });
+
+
+    fetchReviews();
+
+
+  } catch (error) {
+
+    console.log(
+      "Review submit error",
+      error
+    );
+
+  }
+
+};
   if (loading) return <FullPageLoader />;
   if (!product) return <p style={{ padding: 20 }}>Product not found</p>;
 
   // Average rating
   const averageRating =
     product.reviews.length > 0
-      ? product.reviews.reduce((sum, r) => sum + r.rating, 0) / product.reviews.length
+      ? product.reviews.reduce((sum, r) => sum + r.rating, 0) /
+        product.reviews.length
       : 0;
 
   const routeKey = Array.isArray(productid) ? productid[0] : productid;
-  const cartProductId = String(product._id || resolvedProductId || routeKey || "");
+  const cartProductId = String(
+    product._id || resolvedProductId || routeKey || "",
+  );
   const mrp = Number(product.price ?? 0);
   const salePrice = Number(product.discountPrice ?? mrp);
   const hasDiscount = salePrice < mrp;
@@ -188,7 +262,9 @@ export default function ProductDetail() {
     name: product.name,
     price: salePrice,
     mrp: mrp || salePrice,
-    discount: hasDiscount ? `${Math.round(((mrp - salePrice) / mrp) * 100)}% OFF` : undefined,
+    discount: hasDiscount
+      ? `${Math.round(((mrp - salePrice) / mrp) * 100)}% OFF`
+      : undefined,
     discountPrice: salePrice,
     company: product.company,
     image: product.images?.[0],
@@ -197,7 +273,9 @@ export default function ProductDetail() {
 
   const handleAddToCart = () => {
     if (!cartProductId) {
-      alert("Unable to add this product right now. Please refresh and try again.");
+      alert(
+        "Unable to add this product right now. Please refresh and try again.",
+      );
       return;
     }
     if (inCart) {
@@ -247,7 +325,11 @@ export default function ProductDetail() {
                 onMouseMove={handleMouseMove}
               >
                 {mainImage ? (
-                  <img src={mainImage} alt={product.name} className={styles.mainImage} />
+                  <img
+                    src={mainImage}
+                    alt={product.name}
+                    className={styles.mainImage}
+                  />
                 ) : (
                   <div className={styles.noImage}>No Image</div>
                 )}
@@ -260,15 +342,15 @@ export default function ProductDetail() {
                         0,
                         Math.min(
                           lensPosition.x - 110,
-                          (imageRef.current?.offsetWidth || 0) - 220
-                        )
+                          (imageRef.current?.offsetWidth || 0) - 220,
+                        ),
                       ),
                       top: Math.max(
                         0,
                         Math.min(
                           lensPosition.y - 110,
-                          (imageRef.current?.offsetHeight || 0) - 220
-                        )
+                          (imageRef.current?.offsetHeight || 0) - 220,
+                        ),
                       ),
                     }}
                   />
@@ -316,31 +398,32 @@ export default function ProductDetail() {
 
             <div className={styles.priceBox}>
               <div className={styles.priceBox}>
-  {/* MRP */}
-  {product.price && (
-    <p className={styles.mrp}>
-      MRP: <span>₹{product.price}</span>
-    </p>
-  )}
+                {/* MRP */}
+                {product.price && (
+                  <p className={styles.mrp}>
+                    MRP: <span>₹{product.price}</span>
+                  </p>
+                )}
 
-  {/* Selling Price */}
-  {product.discountPrice && (
-    <p className={styles.price}>
-      Price: <span>₹{product.discountPrice}</span>
+                {/* Selling Price */}
+                {product.discountPrice && (
+                  <p className={styles.price}>
+                    Price: <span>₹{product.discountPrice}</span>
+                    {product.price && product.discountPrice < product.price && (
+                      <span className={styles.discount}>
+                        {Math.round(
+                          ((product.price - product.discountPrice) /
+                            product.price) *
+                            100,
+                        )}
+                        % off
+                      </span>
+                    )}
+                  </p>
+                )}
 
-      {product.price && product.discountPrice < product.price && (
-        <span className={styles.discount}>
-          {Math.round(
-            ((product.price - product.discountPrice) / product.price) * 100
-          )}
-          % off
-        </span>
-      )}
-    </p>
-  )}
-
-  <p className={styles.tax}>Inclusive of all taxes</p>
-</div>
+                <p className={styles.tax}>Inclusive of all taxes</p>
+              </div>
               <p className={styles.tax}>Inclusive of all taxes</p>
             </div>
 
@@ -357,7 +440,9 @@ export default function ProductDetail() {
               <button className={styles.addToCart} onClick={handleAddToCart}>
                 {inCart ? "Go To Cart" : "Add To Cart"}
               </button>
-              <button className={styles.buyNow} onClick={handleBuyNow}>Buy Now</button>
+              <button className={styles.buyNow} onClick={handleBuyNow}>
+                Buy Now
+              </button>
             </div>
           </div>
         </div>
@@ -404,64 +489,229 @@ export default function ProductDetail() {
             <section className={styles.detailsSection}>
               <h2 className={styles.title}>Product Information</h2>
               <ul>
-                <li><strong>Category:</strong> {product.category}</li>
-                <li><strong>Company:</strong> {product.company}</li>
-                <li><strong>Quantity in Stock:</strong> {product.quantity}</li>
+                <li>
+                  <strong>Category:</strong> {product.category}
+                </li>
+                <li>
+                  <strong>Company:</strong> {product.company}
+                </li>
+                <li>
+                  <strong>Quantity in Stock:</strong> {product.quantity}
+                </li>
               </ul>
             </section>
           )}
 
-          {activeTab === "reviews" && (
-            <section className={styles.detailsSection}>
-              <h2 className={styles.title}>Customer Reviews</h2>
+          {activeTab==="reviews" && (
 
-              {/* Review Form */}
-              <div className={styles.reviewForm}>
-                <div className={styles.starsInput}>
-                  {[...Array(5)].map((_, i) => (
-                    <FaStar
-                      key={i}
-                      className={`${styles.starInput} ${i < newRating ? styles.starActive : ""}`}
-                      onClick={() => setNewRating(i + 1)}
-                    />
-                  ))}
-                </div>
-                <textarea
-                  className={styles.commentBox}
-                  placeholder="Write your review..."
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                />
-                <button className={styles.submitReview} onClick={handleReviewSubmit}>
-                  Submit Review
-                </button>
-              </div>
+<section className={styles.detailsSection}>
 
-              {/* Reviews List */}
-              <div className={styles.reviewsList}>
-                {product.reviews.length === 0 ? (
-                  <p>No reviews yet.</p>
-                ) : (
-                  product.reviews.map((rev, idx) => (
-                    <div key={idx} className={styles.reviewItem}>
-                      <div className={styles.reviewStars}>
-                        {[...Array(5)].map((_, i) => (
-                          <FaStar
-                            key={i}
-                            className={`${styles.starInput} ${i < rev.rating ? styles.starActive : ""}`}
-                          />
-                        ))}
-                      </div>
-                      <p className={styles.reviewComment}>{rev.comment}</p>
-                      <small>{rev.user ?? "Anonymous"} •{" "}
-                        {rev.createdAt ? new Date(rev.createdAt).toLocaleDateString() : ""}
-                      </small>
-                    </div>
-                  ))
-                )}
-              </div>
-            </section>
-          )}
+<h2 className={styles.title}>
+Customer Reviews
+</h2>
+
+
+
+<div className={styles.reviewForm}>
+
+
+<input
+
+className={styles.commentBox}
+
+placeholder="Your name"
+
+value={reviewForm.name}
+
+onChange={(e)=>
+setReviewForm({
+...reviewForm,
+name:e.target.value
+})
+}
+
+/>
+
+
+
+
+<div className={styles.starsInput}>
+
+
+{[1,2,3,4,5].map((star)=>(
+
+
+<FaStar
+
+key={star}
+
+className={
+star <= 
+(hoverRating || reviewForm.rating)
+
+?
+
+styles.starActive
+
+:
+
+styles.starInput
+}
+
+
+onMouseEnter={()=>
+setHoverRating(star)
+}
+
+
+onMouseLeave={()=>
+setHoverRating(0)
+}
+
+
+onClick={()=>
+setReviewForm({
+...reviewForm,
+rating:star
+})
+}
+
+
+/>
+
+
+))}
+
+
+
+</div>
+
+
+
+
+
+<textarea
+
+className={styles.commentBox}
+
+placeholder="Write your review"
+
+value={reviewForm.comment}
+
+onChange={(e)=>
+
+setReviewForm({
+
+...reviewForm,
+
+comment:e.target.value
+
+})
+
+}
+
+/>
+
+
+
+<button
+
+className={styles.submitReview}
+
+onClick={handleReviewSubmit}
+
+>
+
+Submit Review
+
+</button>
+
+
+
+</div>
+
+
+
+
+
+
+
+<div className={styles.reviewsList}>
+
+
+{
+reviews.length===0
+
+?
+
+<p>No reviews yet</p>
+
+
+:
+
+reviews.map((rev)=>(
+
+
+<div
+key={rev._id}
+className={styles.reviewItem}
+>
+
+
+<h3>
+{rev.name}
+</h3>
+
+
+
+<div className={styles.reviewStars}>
+
+{[1,2,3,4,5].map(s=>(
+
+<FaStar
+
+key={s}
+
+className={
+s<=rev.rating
+?
+styles.starActive
+:
+styles.starInput
+}
+
+/>
+
+))}
+
+</div>
+
+
+
+
+<p className={styles.reviewComment}>
+
+{rev.comment}
+
+</p>
+
+
+</div>
+
+
+))
+
+}
+
+
+
+</div>
+
+
+</section>
+
+)}
+        
         </div>
       </div>
       <MobileNavbar />

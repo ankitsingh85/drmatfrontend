@@ -19,17 +19,16 @@ interface ServiceCategory {
 }
 
 export default function CreateTreatmentPlan() {
-  const [selectedClinicId, setSelectedClinicId] = useState("");
+const [selectedClinics,setSelectedClinics]
+=useState<string[]>([]);
   const [clinics, setClinics] = useState<Clinic[]>([]);
   const [serviceCategories, setServiceCategories] = useState<ServiceCategory[]>(
     []
   );
+const [serviceCategory,setServiceCategory]
+=
+useState<string[]>([]);
 
-  const [tuc] = useState(() => {
-    const timePart = Date.now().toString().slice(-8);
-    const randPart = Math.random().toString(36).slice(2, 6).toUpperCase();
-    return `TUC-${timePart}-${randPart}`;
-  });
   const [treatmentName, setTreatmentName] = useState("");
   const [description, setDescription] = useState("");
 
@@ -38,7 +37,7 @@ export default function CreateTreatmentPlan() {
   const [afterImages, setAfterImages] = useState<File[]>([]);
   const [shortReelUrl, setShortReelUrl] = useState("");
 
-  const [serviceCategory, setServiceCategory] = useState("");
+
 
   const [mrp, setMrp] = useState("");
   const [offerPrice, setOfferPrice] = useState("");
@@ -85,13 +84,13 @@ export default function CreateTreatmentPlan() {
         const data = await res.json();
         if (Array.isArray(data)) {
           setClinics(data);
-          if (data.length > 0) {
-            setSelectedClinicId((prev) =>
-              prev && data.some((clinic) => clinic._id === prev)
-                ? prev
-                : data[0]._id
-            );
-          }
+         if (data.length > 0) {
+
+ setSelectedClinics((prev)=>
+ prev.length ? prev : [data[0]._id]
+ );
+
+}
         }
       } catch (error) {
         console.error("Failed to fetch clinics", error);
@@ -108,7 +107,9 @@ export default function CreateTreatmentPlan() {
         const data = await res.json();
         if (Array.isArray(data)) {
           setServiceCategories(data);
-          setServiceCategory((prev) => prev || data[0]?.name || "");
+         setServiceCategory((prev)=>
+prev.length ? prev : []
+);
         }
       } catch (error) {
         console.error("Failed to fetch service categories", error);
@@ -165,18 +166,28 @@ export default function CreateTreatmentPlan() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!selectedClinicId) {
-      setNotification("Please select a clinic before submitting.");
-      return;
-    }
+ if (selectedClinics.length===0) {
+
+setNotification(
+"Please select clinic before submitting."
+);
+
+return;
+
+}
     if (!treatmentName.trim()) {
       setNotification("Treatment plan name is required.");
       return;
     }
-    if (!serviceCategory.trim()) {
-      setNotification("Please select a treatment category.");
-      return;
-    }
+   if (serviceCategory.length === 0) {
+
+  setNotification(
+    "Please select a treatment category."
+  );
+
+  return;
+
+}
     if (!textOnlyRegex.test(treatmentName.trim())) {
       setNotification("Treatment plan name should contain only letters and spaces.");
       return;
@@ -209,12 +220,18 @@ export default function CreateTreatmentPlan() {
 
     try {
       const formData = new FormData();
-      formData.append("tuc", tuc);
+
       formData.append("treatmentName", treatmentName.trim());
-      formData.append("clinic", selectedClinicId);
+formData.append(
+"clinic",
+JSON.stringify(selectedClinics)
+);
       formData.append("description", description);
       formData.append("shortReelUrl", shortReelUrl);
-      formData.append("serviceCategory", serviceCategory.trim());
+   formData.append(
+"serviceCategory",
+JSON.stringify(serviceCategory)
+);
       formData.append("mrp", mrp);
       formData.append("offerPrice", offerPrice);
       formData.append("pricePerSession", pricePerSession);
@@ -274,11 +291,6 @@ export default function CreateTreatmentPlan() {
           <h2 className={styles.sectionTitle}>Basic Information</h2>
 
           <div className={styles.field}>
-            <label>Treatment Unique Code</label>
-            <input value={tuc} disabled className={styles.readonlyInput} />
-          </div>
-
-          <div className={styles.field}>
             <label>Treatment Plan Name</label>
             <input
               value={treatmentName}
@@ -292,19 +304,44 @@ export default function CreateTreatmentPlan() {
 
           <div className={styles.field}>
             <label>Select Clinic</label>
-            <select
-              className={styles.select}
-              value={selectedClinicId}
-              onChange={(e) => setSelectedClinicId(e.target.value)}
-              required
-            >
-              <option value="">Select clinic</option>
-              {clinics.map((clinic) => (
-                <option key={clinic._id} value={clinic._id}>
-                  {clinic.clinicName}
-                </option>
-              ))}
-            </select>
+           <select
+multiple
+className={styles.select}
+
+value={selectedClinics}
+
+onChange={(e)=>{
+
+const values =
+Array.from(
+e.target.selectedOptions,
+option=>option.value
+);
+
+setSelectedClinics(values);
+
+}}
+
+>
+
+
+{
+clinics.map((clinic)=>(
+
+<option
+key={clinic._id}
+value={clinic._id}
+>
+
+{clinic.clinicName}
+
+</option>
+
+))
+
+}
+
+</select>
           </div>
 
           <div className={styles.fullField}>
@@ -370,19 +407,48 @@ export default function CreateTreatmentPlan() {
 
           <div className={styles.field}>
             <label>Treatment Category</label>
-            <select
-              className={styles.input}
-              value={serviceCategory}
-              onChange={(e) => setServiceCategory(e.target.value)}
-              required
-            >
-              <option value="">Select service category</option>
-              {serviceCategories.map((category) => (
-                <option key={category._id} value={category.name}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
+          <select
+
+multiple
+
+className={styles.input}
+
+value={serviceCategory}
+
+onChange={(e)=>{
+
+const values =
+Array.from(
+e.target.selectedOptions,
+option=>option.value
+);
+
+setServiceCategory(values);
+
+}}
+
+>
+
+
+{
+serviceCategories.map((category)=>(
+
+
+<option
+key={category._id}
+value={category.name}
+>
+
+{category.name}
+
+</option>
+
+
+))
+
+}
+
+</select>
           </div>
         </section>
 

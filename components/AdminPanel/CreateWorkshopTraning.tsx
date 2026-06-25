@@ -6,13 +6,16 @@ import { API_URL } from "@/config/api";
 
 type TrainingTypeOption = {
   _id: string;
+  id: string;
   name: string;
 };
 
 type FormState = {
   trainingName: string;
   trainingUniqueCode: string;
-  trainingType: string;
+  trainingType: string[];
+  hsnCode: string;
+  discountPercent: string;
   instituteName: string;
   trainingDuration: string;
   modeOfTraining: string;
@@ -49,7 +52,9 @@ type Errors = Partial<Record<keyof FormState, string>>;
 const init = (code = ""): FormState => ({
   trainingName: "",
   trainingUniqueCode: code,
-  trainingType: "",
+  trainingType: [],
+  hsnCode: "",
+  discountPercent: "",
   instituteName: "",
   trainingDuration: "",
   modeOfTraining: "",
@@ -90,6 +95,8 @@ const labelMap: Record<string, string> = {
   trainingName: "Training Name",
   trainingUniqueCode: "Training Unique Code",
   trainingType: "Training Type",
+  hsnCode: "HSN Code",
+  discountPercent: "Discount %",
   instituteName: "Institute Name",
   trainingDuration: "Training Duration",
   modeOfTraining: "Mode of Training",
@@ -177,7 +184,7 @@ export default function CreateWorkshopTraning() {
     const required: (keyof FormState)[] = [
       "trainingName",
       "trainingUniqueCode",
-      "trainingType",
+      "hsnCode",
       "instituteName",
       "trainingDuration",
       "modeOfTraining",
@@ -207,20 +214,20 @@ export default function CreateWorkshopTraning() {
       if (!String(data[key] ?? "").trim()) next[key] = `${labelMap[key]} is required`;
     }
 
+    if (!data.trainingType.length) next.trainingType = "Please select at least one training type";
     if (!data.trainingImage) next.trainingImage = "Training image is required";
     if (!data.brochurePdfDownload.length) next.brochurePdfDownload = "At least one brochure PDF is required";
     if (!data.targetAudienceText.trim()) next.targetAudienceText = "At least one target audience item is required";
-    // if (data.trainingName && !textOnly.test(data.trainingName.trim())) next.trainingName = "Training name should contain only letters and spaces";
     if (data.instituteName && !textOnly.test(data.instituteName.trim())) next.instituteName = "Institute name should contain only letters and spaces";
     if (data.trainerInstructorName && !textOnly.test(data.trainerInstructorName.trim())) next.trainerInstructorName = "Trainer / instructor name should contain only letters and spaces";
-    for (const key of ["feesInr", "netFeesInr", "maximumSeatsBatchSize"] as const) {
+    for (const key of ["feesInr", "netFeesInr", "maximumSeatsBatchSize", "discountPercent"] as const) {
       if (data[key] && !digitsOnly.test(data[key].trim())) next[key] = `${labelMap[key]} must contain digits only`;
+    }
+    if (data.discountPercent && (Number(data.discountPercent) < 0 || Number(data.discountPercent) > 100)) {
+      next.discountPercent = "Discount % must be between 0 and 100";
     }
     if (data.certificationProvided && !yesNo.includes(data.certificationProvided)) next.certificationProvided = "Select Yes or No";
     if (data.languageOfDelivery && !languages.includes(data.languageOfDelivery)) next.languageOfDelivery = "Select a valid language";
-    if (!loadingTrainingTypes && trainingTypes.length > 0 && data.trainingType && !trainingTypes.some((item) => item.name === data.trainingType)) {
-      next.trainingType = "Select a valid training type";
-    }
     if (!loadingTrainingTypes && trainingTypes.length === 0) {
       next.trainingType = "No training types available. Please create one first.";
     }
@@ -238,10 +245,10 @@ export default function CreateWorkshopTraning() {
       const data = await res.json().catch(() => ({}));
       setForm((prev) => ({
         ...prev,
-        trainingUniqueCode: res.ok ? data.trainingUniqueCode || "WTR0001" : prev.trainingUniqueCode || "WTR0001",
+        trainingUniqueCode: res.ok ? data.trainingUniqueCode || "" : prev.trainingUniqueCode || "",
       }));
     } catch {
-      setForm((prev) => ({ ...prev, trainingUniqueCode: prev.trainingUniqueCode || "WTR0001" }));
+      setForm((prev) => ({ ...prev, trainingUniqueCode: prev.trainingUniqueCode || "" }));
     } finally {
       setLoadingCode(false);
     }
@@ -256,6 +263,7 @@ export default function CreateWorkshopTraning() {
       const validTrainingTypes = (Array.isArray(data) ? data : [])
         .map((item: any) => ({
           _id: String(item._id || ""),
+          id: String(item.id || item._id || ""),
           name: String(item.name || ""),
         }))
         .filter((item: TrainingTypeOption) => item._id && item.name);
@@ -289,6 +297,13 @@ export default function CreateWorkshopTraning() {
   );
 
   const errorFor = (key: keyof FormState) => (submitted ? errors[key] : "");
+
+  const toggleTrainingType = (name: string) => {
+    const next = form.trainingType.includes(name)
+      ? form.trainingType.filter((item) => item !== name)
+      : [...form.trainingType, name];
+    setValue("trainingType", next);
+  };
 
   const onImage = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] || null;
@@ -342,13 +357,16 @@ export default function CreateWorkshopTraning() {
 
     try {
       const payload = new FormData();
-      const selectedTrainingType = trainingTypes.find(
-        (item) => item.name === form.trainingType
-      );
 
       payload.append("trainingName", form.trainingName.trim());
       payload.append("trainingUniqueCode", form.trainingUniqueCode.trim());
-      payload.append("trainingType", selectedTrainingType?.name || form.trainingType.trim());
+
+      form.trainingType.forEach((type) => {
+        payload.append("trainingType", type);
+      });
+
+      payload.append("hsnCode", form.hsnCode.trim());
+      payload.append("discountPercent", form.discountPercent);
       payload.append("instituteName", form.instituteName.trim());
       payload.append("trainingDuration", form.trainingDuration.trim());
       payload.append("modeOfTraining", form.modeOfTraining.trim());
@@ -356,7 +374,15 @@ export default function CreateWorkshopTraning() {
       payload.append("endDate", form.endDate);
       payload.append("registrationDeadline", form.registrationDeadline);
       payload.append("curriculumTopicsCovered", form.curriculumTopicsCovered.trim());
-      payload.append("targetAudience", JSON.stringify(form.targetAudienceText.split(",").map((item) => item.trim()).filter(Boolean)));
+      payload.append(
+        "targetAudience",
+        JSON.stringify(
+          form.targetAudienceText
+            .split(",")
+            .map((item) => item.trim())
+            .filter(Boolean)
+        )
+      );
       payload.append("certificationProvided", form.certificationProvided);
       payload.append("affiliationAccreditation", form.affiliationAccreditation.trim());
       payload.append("feesInr", form.feesInr);
@@ -379,30 +405,24 @@ export default function CreateWorkshopTraning() {
       if (form.trainingImage) payload.append("trainingImage", form.trainingImage);
       form.brochurePdfDownload.forEach((file) => payload.append("brochurePdfDownload", file));
 
-      const endpoints = [
-        `${API_URL}/workshop-trainings`,
-        `${API_URL}/workshop-tranings`,
-        `${API_URL}/workshop-training`,
-      ];
+      const res = await fetch(`${API_URL}/workshop-trainings`, {
+        method: "POST",
+        body: payload,
+      });
 
-      let lastError = "Failed to create workshop training";
-      for (const endpoint of endpoints) {
-        const res = await fetch(endpoint, { method: "POST", body: payload });
-        const data = await res.json().catch(() => ({}));
-        if (res.ok) {
-          setMessage("Workshop training created successfully.");
-          setForm(init());
-          setErrors({});
-          setSubmitted(false);
-          setPreview("");
-          loadCode();
-          window.dispatchEvent(new Event("admin-dashboard:create-success"));
-          return;
-        }
-        lastError = data?.message || lastError;
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data?.message || "Failed to create workshop training");
       }
 
-      throw new Error(lastError);
+      setMessage("Workshop training created successfully.");
+      setForm(init());
+      setErrors({});
+      setSubmitted(false);
+      setPreview("");
+      loadCode();
+      window.dispatchEvent(new Event("admin-dashboard:create-success"));
     } catch (err: any) {
       setMessage(err?.message || "Unable to create workshop training.");
     } finally {
@@ -422,38 +442,63 @@ export default function CreateWorkshopTraning() {
         <div className={styles.section}>
           <h3 className={styles.sectionTitle}>Workshop Basics</h3>
           <div className={styles.fieldGrid}>
-           <Field
-  label={labelMap.trainingName}
-  error={errorFor("trainingName")}
->
-  <input
-    className={styles.input}
-    value={form.trainingName}
-    onChange={(e) =>
-      setValue("trainingName", e.target.value)
-    }
-  />
-</Field>
+            <Field label={labelMap.trainingName} error={errorFor("trainingName")}>
+              <input
+                className={styles.input}
+                value={form.trainingName}
+                onChange={(e) => setValue("trainingName", e.target.value)}
+              />
+            </Field>
+
             <Field label={labelMap.trainingUniqueCode} error={errorFor("trainingUniqueCode")}>
-              <input className={`${styles.input} ${styles.readOnlyInput}`} value={form.trainingUniqueCode} readOnly placeholder={loadingCode ? "Generating..." : ""} />
+              <input
+                className={`${styles.input} ${styles.readOnlyInput}`}
+                value={form.trainingUniqueCode}
+                readOnly
+                placeholder={loadingCode ? "Generating..." : ""}
+              />
             </Field>
-            <Field label={labelMap.trainingType} error={trainingTypeError}>
-              <select
-                className={styles.select}
-                value={form.trainingType}
-                onChange={(e) => setValue("trainingType", e.target.value)}
-                disabled={loadingTrainingTypes || trainingTypes.length === 0}
-              >
-                <option value="">
-                  {loadingTrainingTypes ? "Loading training types..." : "Select training type"}
-                </option>
-                {trainingTypes.map((item) => (
-                  <option key={item._id} value={item.name}>
-                    {item.name}
-                  </option>
-                ))}
-              </select>
+
+            <div className={styles.field}>
+              <label className={styles.label}>{labelMap.trainingType}</label>
+              <div className={styles.checkboxScrollBox}>
+                {loadingTrainingTypes ? (
+                  <span>Loading training types...</span>
+                ) : (
+                  trainingTypes.map((option) => (
+                    <label
+                      key={option._id}
+                      style={{ display: "block", marginBottom: "8px", cursor: "pointer" }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={form.trainingType.includes(option.name)}
+                        onChange={() => toggleTrainingType(option.name)}
+                      />
+                      {" "}
+                      {option.name}
+                    </label>
+                  ))
+                )}
+              </div>
+              {!loadingTrainingTypes && trainingTypes.length === 0 && (
+                <span className={styles.helperText}>
+                  No training types found. Create one from the dashboard first.
+                </span>
+              )}
+              {trainingTypeError && (
+                <p className={styles.fieldError}>{trainingTypeError}</p>
+              )}
+            </div>
+
+            <Field label={labelMap.hsnCode} error={errorFor("hsnCode")}>
+              <input
+                className={styles.input}
+                value={form.hsnCode}
+                onChange={(e) => setValue("hsnCode", e.target.value)}
+              />
             </Field>
+
             <Field label={labelMap.instituteName} error={errorFor("instituteName")}>
               <input className={styles.input} value={form.instituteName} onChange={(e) => setValue("instituteName", e.target.value.replace(/[^A-Za-z ]/g, ""))} />
             </Field>
@@ -498,6 +543,16 @@ export default function CreateWorkshopTraning() {
             </Field>
             <Field label={labelMap.netFeesInr} error={errorFor("netFeesInr")}>
               <input className={styles.input} value={form.netFeesInr} onChange={(e) => setValue("netFeesInr", e.target.value.replace(/\D/g, ""))} />
+            </Field>
+            <Field label={labelMap.discountPercent} error={errorFor("discountPercent")}>
+              <input
+                className={styles.input}
+                type="number"
+                min="0"
+                max="100"
+                value={form.discountPercent}
+                onChange={(e) => setValue("discountPercent", e.target.value.replace(/\D/g, ""))}
+              />
             </Field>
             <Field label={labelMap.maximumSeatsBatchSize} error={errorFor("maximumSeatsBatchSize")}>
               <input className={styles.input} value={form.maximumSeatsBatchSize} onChange={(e) => setValue("maximumSeatsBatchSize", e.target.value.replace(/\D/g, ""))} />
@@ -590,7 +645,7 @@ export default function CreateWorkshopTraning() {
           </p>
         ) : null}
 
-        <button type="submit" className={styles.submitBtn} disabled={loading}>
+        <button type="submit" className={styles.submitBtn} disabled={loading || loadingCode}>
           {loading ? "Creating..." : "Create Workshop Training"}
         </button>
       </form>

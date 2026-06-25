@@ -208,3 +208,38 @@
     grid-template-columns: 1fr;
   }
 }
+.tableWrapper{
+
+width:100%;
+
+overflow-x:auto;
+
+}
+
+
+.table{
+
+min-width:1400px;
+
+width:100%;
+
+border-collapse:collapse;
+
+}
+
+
+.table th,
+.table td{
+
+white-space:nowrap;
+
+}
+
+
+.table img{
+
+object-fit:cover;
+
+border-radius:8px;
+
+}

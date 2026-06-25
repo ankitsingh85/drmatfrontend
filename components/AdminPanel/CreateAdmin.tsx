@@ -6,7 +6,7 @@ import styles from "@/styles/Dashboard/adminpages.module.css";
 
 export default function CreateAdmin() {
   const [userId] = useState(`ADM-${Date.now().toString().slice(-6)}`);
-
+  
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -51,11 +51,19 @@ export default function CreateAdmin() {
         if (!value.trim()) return "Email is required";
         if (!emailRegex.test(value.trim())) return "Enter a valid email address";
         return "";
-      case "phone":
-        if (!value.trim()) return "Contact No. is required";
-        if (!/^\d*$/.test(value)) return "Contact No. can contain digits only";
-        if (value.length !== 10) return "Contact No. must contain exactly 10 digits";
-        return "";
+     case "phone":
+
+  if (!value.trim()) return "";
+
+  if (!/^\d*$/.test(value)) {
+    return "Contact No. can contain digits only";
+  }
+
+  if (value.length !== 10) {
+    return "Contact No. must contain exactly 10 digits";
+  }
+
+  return "";
       case "password":
         if (!value) return "Password is required";
         if (!passwordRegex.test(value)) {
@@ -66,9 +74,8 @@ export default function CreateAdmin() {
         if (!value) return "Confirm password is required";
         if (value !== currentForm.password) return "Passwords do not match";
         return "";
-      case "accessLevel":
-        if (!value.trim()) return "Access level is required";
-        return "";
+   case "accessLevel":
+  return "";
       default:
         return "";
     }
@@ -147,22 +154,40 @@ export default function CreateAdmin() {
     const nextErrors = validateForm();
     const hasErrors = Object.values(nextErrors).some(Boolean);
     setTouched({
-      name: true,
-      email: true,
-      phone: true,
-      password: true,
-      confirmPassword: true,
-      accessLevel: true,
-    });
+
+ name:true,
+
+ email:true,
+
+ phone:false,
+
+ password:true,
+
+ confirmPassword:true,
+
+ accessLevel:false,
+
+});
     if (hasErrors) return;
 
     const payload = {
-      name: form.name.trim(),
-      email: form.email.trim(),
-      phone: form.phone.trim(),
-      password: form.password,
-      accessLevel: form.accessLevel.toLowerCase(),
-    };
+
+ name: form.name.trim(),
+
+ email: form.email.trim(),
+
+ password: form.password,
+
+
+ ...(form.phone && {
+   phone: form.phone.trim()
+ }),
+
+
+ role:
+ form.accessLevel.toLowerCase(),
+
+};
 
     try {
       const res = await fetch(`${API_URL}/admins`, {
@@ -221,39 +246,89 @@ export default function CreateAdmin() {
           </div>
 
           <div className={styles.field}>
-            <label className={styles.label}>Name</label>
-            <input
-              className={styles.input}
-              name="name"
-              value={form.name}
-              onChange={handleChange}
-              onBlur={handleBlur}
-              placeholder="Enter full name"
-              pattern="[A-Za-z ]+"
-              title="Use letters and spaces only"
-              required
-            />
-            {touched.name && errors.name && (
-              <p className={styles.fieldError}>{errors.name}</p>
-            )}
-          </div>
 
-          <div className={styles.field}>
-            <label className={styles.label}>Email</label>
-            <input
-              className={styles.input}
-              type="email"
-              name="email"
-              value={form.email}
-              onChange={handleChange}
-              onBlur={handleBlur}
-              placeholder="Enter email address"
-              required
-            />
-            {touched.email && errors.email && (
-              <p className={styles.fieldError}>{errors.email}</p>
-            )}
-          </div>
+<label className={styles.label}>
+
+Name
+
+<span className={styles.required}>
+ *
+</span>
+
+</label>
+
+
+<input
+
+ className={styles.input}
+
+ name="name"
+
+ value={form.name}
+
+ onChange={handleChange}
+
+ onBlur={handleBlur}
+
+ placeholder="Enter full name"
+
+ required
+
+/>
+
+
+{touched.name && errors.name && (
+
+<p className={styles.fieldError}>
+ {errors.name}
+</p>
+
+)}
+
+</div>
+<div className={styles.field}>
+
+<label className={styles.label}>
+
+Email
+
+<span className={styles.required}>
+ *
+</span>
+
+</label>
+
+
+<input
+
+ className={styles.input}
+
+ type="email"
+
+ name="email"
+
+ value={form.email}
+
+ onChange={handleChange}
+
+ onBlur={handleBlur}
+
+ placeholder="Enter email address"
+
+ required
+
+/>
+
+
+{touched.email && errors.email && (
+
+<p className={styles.fieldError}>
+ {errors.email}
+</p>
+
+)}
+
+</div>
 
           <div className={styles.field}>
             <label className={styles.label}>Contact No.</label>
@@ -281,7 +356,15 @@ export default function CreateAdmin() {
           <h3 className={styles.sectionTitle}>Security</h3>
 
           <div className={styles.field}>
-            <label className={styles.label}>Password</label>
+            <label className={styles.label}>
+
+Password
+
+<span className={styles.required}>
+ *
+</span>
+
+</label>
             <input
               className={styles.input}
               type="password"
@@ -301,8 +384,15 @@ export default function CreateAdmin() {
           </div>
 
           <div className={styles.field}>
-            <label className={styles.label}>Confirm Password</label>
-            <input
+<label className={styles.label}>
+
+Confirm Password
+
+<span className={styles.required}>
+ *
+</span>
+
+</label>            <input
               className={styles.input}
               type="password"
               name="confirmPassword"
@@ -326,13 +416,18 @@ export default function CreateAdmin() {
           <div className={styles.field}>
             <label className={styles.label}>Grant Access</label>
             <select
-              className={styles.select}
-              name="accessLevel"
-              value={form.accessLevel}
-              onChange={handleChange}
-              onBlur={handleBlur}
-              required
-            >
+
+ className={styles.select}
+
+ name="accessLevel"
+
+ value={form.accessLevel}
+
+ onChange={handleChange}
+
+ onBlur={handleBlur}
+
+>
               <option value="Admin">Admin</option>
               <option value="SuperAdmin">SuperAdmin</option>
               <option value="Manager">Manager</option>

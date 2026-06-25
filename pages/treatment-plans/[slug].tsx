@@ -58,7 +58,12 @@ interface TreatmentPlan {
   reviews?: string;
   patientFeedback?: string;
 }
-
+interface Review {
+ _id:string;
+ name:string;
+ rating:number;
+ comment:string;
+}
 type DetailSection = {
   id: string;
   title: string;
@@ -83,7 +88,25 @@ const TreatmentPlanDetailPage = () => {
   const [error, setError] = useState("");
   const [openSection, setOpenSection] = useState("overview");
   const [selectedImage, setSelectedImage] = useState(0);
+const [reviews,setReviews]=
+useState<Review[]>([]);
 
+
+const [hoverRating,setHoverRating]=
+useState(0);
+
+
+
+const [reviewForm,setReviewForm]=
+useState({
+
+name:"",
+
+rating:0,
+
+comment:""
+
+});
   const resolveImage = (img?: string) => {
     return resolveUploadedMediaUrl(img) || "/placeholder.png";
   };

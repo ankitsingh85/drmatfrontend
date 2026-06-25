@@ -88,11 +88,168 @@ const FindClinicsPage: React.FC = () => {
       setLoading(false);
     }
   };
+const fetchNearbyClinics = async (
+  lat:number,
+  lng:number
+) => {
 
-  useEffect(() => {
-    fetchCategories();
+  try {
+
+    setLoading(true);
+
+    const res = await fetch(
+      `${API_URL}/clinics/nearby?lat=${lat}&lng=${lng}`
+    );
+
+
+    if(!res.ok){
+      throw new Error(
+        "Nearby API failed"
+      );
+    }
+
+
+    const data = await res.json();
+
+
+    console.log(
+      "Nearby Clinics:",
+      data
+    );
+
+
+    setClinics(
+      Array.isArray(data)
+      ? data
+      : []
+    );
+
+
+  } catch (error) {
+
+    console.log(
+      "Nearby error",
+      error
+    );
+
+
+    // fallback
     fetchClinics();
-  }, []);
+
+
+  } finally {
+
+    setLoading(false);
+
+  }
+
+};
+
+
+const getUserLocation = () => {
+
+
+if(
+typeof window === "undefined"
+){
+
+return;
+
+}
+
+
+
+if(
+!navigator.geolocation
+){
+
+fetchClinics();
+
+return;
+
+}
+
+
+
+
+navigator.geolocation
+.getCurrentPosition(
+
+
+
+(position)=>{
+
+
+const lat =
+position.coords.latitude;
+
+
+const lng =
+position.coords.longitude;
+
+
+
+console.log(
+"USER LOCATION",
+lat,
+lng
+);
+
+
+
+fetchNearbyClinics(
+lat,
+lng
+);
+
+
+
+},
+
+
+
+(error)=>{
+
+
+console.log(
+"Location denied",
+error
+);
+
+
+// if user blocks location
+
+fetchClinics();
+
+
+
+},
+
+
+
+{
+enableHighAccuracy:true,
+
+timeout:10000
+
+}
+
+
+
+);
+
+
+
+};
+  useEffect(() => {
+
+    fetchCategories();
+
+
+    getUserLocation();
+
+
+}, []);
 
   useEffect(() => {
     setSelectedCategoryId(categoryQuery);

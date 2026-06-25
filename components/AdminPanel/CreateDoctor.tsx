@@ -5,11 +5,8 @@ import React, { useEffect, useState } from "react";
 import styles from "@/styles/Dashboard/createdoctor.module.css";
 import { resolveMediaUrl } from "@/lib/media";
 
-// const API_URL =
-//   process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000/api";
-
 const CreateDoctor = () => {
-  const [nextDoctorCode, setNextDoctorCode] = useState("ODUC0001");
+  const [nextDoctorCode, setNextDoctorCode] = useState("Dr-000000-1");
   const [formData, setFormData] = useState({
     title: "",
     firstName: "",
@@ -22,7 +19,7 @@ const CreateDoctor = () => {
   const [profileImage, setProfileImage] = useState<File | null>(null);
   const [profilePreview, setProfilePreview] = useState("");
   const [newSpecialist, setNewSpecialist] = useState("");
-  const [specialists, setSpecialists] = useState([
+  const [specialists, setSpecialists] = useState<string[]>([
     "Dermatologist",
     "Cardiologist",
     "Neurologist",
@@ -35,27 +32,25 @@ const CreateDoctor = () => {
 
   const titles = ["Dr.", "Prof.", "Mr.", "Ms."];
 
-  useEffect(() => {
-    const fetchNextDoctorCode = async () => {
-      try {
-        const res = await fetch(`${API_URL}/doctors/next-code`);
-        if (!res.ok) return;
-        const data = await res.json();
-        if (data?.doctorCode) {
-          setNextDoctorCode(data.doctorCode);
-        }
-      } catch {
-        setNextDoctorCode("ODUC0001");
+  const fetchNextDoctorCode = async (): Promise<void> => {
+    try {
+      const res = await fetch(`${API_URL}/doctors/next-code`);
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data?.doctorCode) {
+        setNextDoctorCode(data.doctorCode);
       }
-    };
+    } catch {
+      setNextDoctorCode("Dr-000000-1");
+    }
+  };
 
+  useEffect(() => {
     void fetchNextDoctorCode();
   }, []);
 
   const handleChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-    >
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -89,12 +84,9 @@ const CreateDoctor = () => {
             : "Doctor created successfully"
         );
         window.dispatchEvent(new Event("admin-dashboard:create-success"));
-        const createdCodeNumber = Number(
-          String(data?.doctor?.doctorCode || nextDoctorCode).replace(/\D/g, "")
-        );
-        if (Number.isFinite(createdCodeNumber)) {
-          setNextDoctorCode(`ODUC${String(createdCodeNumber + 1).padStart(4, "0")}`);
-        }
+
+        await fetchNextDoctorCode();
+
         setFormData({
           title: "",
           firstName: "",
@@ -146,9 +138,7 @@ const CreateDoctor = () => {
     setNewSpecialist("");
   };
 
-  const handleNewSpecialistKeyDown = (
-    e: React.KeyboardEvent<HTMLInputElement>
-  ) => {
+  const handleNewSpecialistKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       e.preventDefault();
       handleAddSpecialist();
@@ -157,8 +147,6 @@ const CreateDoctor = () => {
 
   return (
     <div className={styles.container}>
-      {/* <h1 className={styles.heading}>Create Doctor</h1> */}
-
       {message && <p>{message}</p>}
 
       <form className={styles.form} onSubmit={handleSubmit}>
@@ -166,7 +154,6 @@ const CreateDoctor = () => {
         <div className={styles.section}>
           <h2 className={styles.sectionTitle}>Basic Information</h2>
 
-          
           <div className={styles.field}>
             <label className={styles.label}>Doctor Code</label>
             <input
@@ -218,7 +205,6 @@ const CreateDoctor = () => {
           </div>
 
           <div className={styles.field}>
-            
             <label className={styles.label}>Specialist</label>
             <input
               type="text"
@@ -243,14 +229,17 @@ const CreateDoctor = () => {
                 </option>
               ))}
             </select>
-            
           </div>
+
           <div className={styles.profileImageField}>
             <label className={styles.label}>Profile Picture</label>
             <div className={styles.profileImageRow}>
               <div className={styles.profilePreview}>
                 {profilePreview ? (
-                  <img src={resolveMediaUrl(profilePreview) || profilePreview} alt="Doctor profile preview" />
+                  <img
+                    src={resolveMediaUrl(profilePreview) || profilePreview}
+                    alt="Doctor profile preview"
+                  />
                 ) : (
                   <span>Photo</span>
                 )}
@@ -263,7 +252,6 @@ const CreateDoctor = () => {
               />
             </div>
           </div>
-
         </div>
 
         {/* ===== CREDENTIALS ===== */}
@@ -293,7 +281,6 @@ const CreateDoctor = () => {
               required
             />
           </div>
-
         </div>
 
         {/* ===== DESCRIPTION ===== */}

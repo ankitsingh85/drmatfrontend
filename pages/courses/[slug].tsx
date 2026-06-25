@@ -55,7 +55,12 @@ interface Course {
   mobileNo?: string;
   contactForQueries?: string;
 }
-
+interface Review {
+  _id:string;
+  name:string;
+  rating:number;
+  comment:string;
+}
 const COURSE_HERO_IMAGE = "/doctor-landing-page-3.jpg";
 const INSTRUCTOR_IMAGE = "/doctor1.jpg";
 
@@ -138,7 +143,19 @@ const CourseDetailPage = () => {
   const [error, setError] = useState("");
   const [showAllLearning, setShowAllLearning] = useState(false);
   const [isVideoOpen, setIsVideoOpen] = useState(false);
+const [reviews,setReviews] =
+useState<Review[]>([]);
 
+const [hoverRating,setHoverRating] =
+useState(0);
+
+
+const [reviewForm,setReviewForm] =
+useState({
+  name:"",
+  rating:0,
+  comment:""
+});
   useEffect(() => {
     document.body.style.overflow = isVideoOpen ? "hidden" : "auto";
     return () => {
@@ -185,7 +202,92 @@ const CourseDetailPage = () => {
 
     fetchCourse();
   }, [resolvedSlug]);
+const fetchReviews = async () => {
 
+  if (!course?._id) return;
+
+  try {
+
+    const res = await fetch(
+      `${API_URL}/course-reviews/${course._id}`
+    );
+
+
+    const data = await res.json();
+
+
+    setReviews(data);
+
+
+  } catch (error) {
+
+    console.log(error);
+
+  }
+
+};
+
+
+
+
+useEffect(() => {
+
+  fetchReviews();
+
+}, [course?._id]);
+
+
+
+
+
+const submitReview =
+async (e: React.FormEvent) => {
+
+  e.preventDefault();
+
+
+  if (!course) return;
+
+
+  await fetch(
+    `${API_URL}/course-reviews`,
+    {
+
+      method:"POST",
+
+      headers:{
+        "Content-Type":"application/json"
+      },
+
+
+      body:JSON.stringify({
+
+        courseId:course._id,
+
+        ...reviewForm
+
+      })
+
+    }
+  );
+
+
+
+  setReviewForm({
+
+    name:"",
+
+    rating:0,
+
+    comment:""
+
+  });
+
+
+
+  fetchReviews();
+
+};
   const price = useMemo(() => {
     const mrp = Number(course?.feesInr || 0);
     const sale = getSalePrice(course);
@@ -272,7 +374,6 @@ const CourseDetailPage = () => {
     }
     router.push("/home/Cart");
   };
-
   const demoVideoEmbedUrl = getYoutubeEmbedUrl(course.courseDemoVideo);
   const demoVideoFallbackUrl = course.courseDemoVideo || "";
 
@@ -451,41 +552,142 @@ const CourseDetailPage = () => {
             </article>
 
             <article className={styles.panel}>
-              <h2 className={styles.panelTitle}>Review</h2>
-              <div className={styles.reviewGrid}>
-                <div className={styles.reviewScoreCard}>
-                  <strong>5.0</strong>
-                  <div className={styles.starRow}>
-                    {Array.from({ length: 5 }).map((_, index) => (
-                      <FaStar key={index} />
-                    ))}
-                  </div>
-                  <span>Course Rating</span>
-                </div>
 
-                <div className={styles.reviewBars}>
-                  {[
-                    { label: "5 Star", value: 75 },
-                    { label: "4 Star", value: 20 },
-                    { label: "3 Star", value: 3 },
-                    { label: "2 Star", value: 1 },
-                    { label: "1 Star", value: 1 },
-                  ].map((item) => (
-                    <div key={item.label} className={styles.reviewBarRow}>
-                      <span>{item.label}</span>
-                      <div className={styles.reviewBarTrack}>
-                        <div
-                          className={styles.reviewBarFill}
-                          style={{ width: `${item.value}%` }}
-                        />
-                      </div>
-                      <strong>{item.value}%</strong>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </article>
-          </div>
+<h2 className={styles.panelTitle}>
+Reviews
+</h2>
+
+
+<form
+className={styles.reviewForm}
+onSubmit={submitReview}
+>
+
+<input
+className={styles.reviewInput}
+placeholder="Your name"
+value={reviewForm.name}
+onChange={(e)=>
+setReviewForm({
+ ...reviewForm,
+ name:e.target.value
+})
+}
+required
+/>
+
+
+<div className={styles.starSelect}>
+
+{[1,2,3,4,5].map((star)=>(
+
+<FaStar
+
+key={star}
+
+className={
+star <= (hoverRating || reviewForm.rating)
+?
+styles.activeStar
+:
+styles.emptyStar
+}
+
+onMouseEnter={()=>
+setHoverRating(star)
+}
+
+onMouseLeave={()=>
+setHoverRating(0)
+}
+
+onClick={()=>
+setReviewForm({
+ ...reviewForm,
+ rating:star
+})
+}
+
+/>
+
+))}
+
+</div>
+
+
+
+<textarea
+className={styles.reviewTextarea}
+placeholder="Write review..."
+value={reviewForm.comment}
+onChange={(e)=>
+setReviewForm({
+ ...reviewForm,
+ comment:e.target.value
+})
+}
+/>
+
+
+<button
+className={styles.reviewButton}
+>
+Submit Review
+</button>
+
+
+</form>
+
+
+
+<div className={styles.reviewList}>
+
+{reviews.map((item)=>(
+
+
+<div
+className={styles.reviewCard}
+key={item._id}
+>
+
+
+<h3>{item.name}</h3>
+
+
+<div>
+
+{[1,2,3,4,5].map((s)=>(
+
+<FaStar
+key={s}
+className={
+s<=item.rating
+?
+styles.activeStar
+:
+styles.emptyStar
+}
+/>
+
+))}
+
+</div>
+
+
+<p>
+{item.comment}
+</p>
+
+
+</div>
+
+
+))}
+
+</div>
+
+
+</article>          </div>
 
           <aside className={styles.sidebar}>
             <article className={styles.priceCard}>

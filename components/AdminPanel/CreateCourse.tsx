@@ -17,7 +17,9 @@ const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
 type CourseFormData = {
   courseName: string;
   courseUniqueCode: string;
-  courseType: string;
+  courseType: string[];
+  hsnCode: string;
+  discountPercent: string;
   instituteName: string;
   courseDuration: string;
   modeOfTraining: string;
@@ -61,7 +63,9 @@ type CourseTypeOption = {
 const createInitialFormData = (courseUniqueCode = ""): CourseFormData => ({
   courseName: "",
   courseUniqueCode,
-  courseType: "",
+  courseType: [],
+  hsnCode: "",
+  discountPercent: "",
   instituteName: "",
   courseDuration: "",
   modeOfTraining: "",
@@ -99,14 +103,15 @@ const certificationOptions = ["Yes", "No"];
 const languageOptions = ["English", "Hindi", "Bilingual"];
 const dateFields = ["startDate", "endDate", "registrationDeadline"] as const;
 
-const textAreaFields: Array<
+type TextAreaField =
   | "curriculumTopicsCovered"
   | "affiliationAccreditation"
   | "discountsOffers"
   | "refundCancellationPolicy"
   | "postCourseSupport"
-  | "contactForQueries"
-> = [
+  | "contactForQueries";
+
+const textAreaFields: TextAreaField[] = [
   "curriculumTopicsCovered",
   "affiliationAccreditation",
   "discountsOffers",
@@ -115,14 +120,35 @@ const textAreaFields: Array<
   "contactForQueries",
 ];
 
-const richTextFields: Array<
-  "whatsIncluded" | "whatsNotIncluded" | "learningOutcomes"
-> = ["whatsIncluded", "whatsNotIncluded", "learningOutcomes"];
+type RichTextField = "whatsIncluded" | "whatsNotIncluded" | "learningOutcomes";
 
+const richTextFields: RichTextField[] = [
+  "whatsIncluded",
+  "whatsNotIncluded",
+  "learningOutcomes",
+];
+
+const excludedFromRender = [
+  "applyDiscountVoucher",
+  "targetAudience",
+  "courseType",
+  "languageOfDelivery",
+  "whatsIncluded",
+  "whatsNotIncluded",
+  "learningOutcomes",
+  "courseImage",
+  "trainerImage",
+  "brochurePdfDownload",
+] as const;
+
+type ExcludedField = (typeof excludedFromRender)[number];
+type RenderableField = Exclude<keyof CourseFormData, ExcludedField>;
 const fieldLabels: Record<keyof CourseFormData, string> = {
   courseName: "Course Name",
   courseUniqueCode: "Course Unique Code",
   courseType: "Course Type",
+  hsnCode: "HSN Code",
+  discountPercent: "Discount %",
   instituteName: "Institute Name",
   courseDuration: "Course Duration",
   modeOfTraining: "Mode of Training",
@@ -162,10 +188,7 @@ const isYoutubeUrl = (value: string) => {
   try {
     const url = new URL(value);
     const hostname = url.hostname.toLowerCase();
-    return (
-      hostname.includes("youtube.com") ||
-      hostname.includes("youtu.be")
-    );
+    return hostname.includes("youtube.com") || hostname.includes("youtu.be");
   } catch {
     return false;
   }
@@ -185,6 +208,13 @@ const sanitizeDigitsOnly = (value: string) => value.replace(/\D/g, "");
 type CourseErrors = Partial<Record<keyof CourseFormData, string>>;
 type CourseTouched = Partial<Record<keyof CourseFormData, boolean>>;
 
+const numericFields: Array<keyof CourseFormData> = [
+  "feesInr",
+  "netFeesInr",
+  "discountPercent",
+  "maximumSeatsBatchSize",
+];
+
 const validateCourseField = (
   field: keyof CourseFormData,
   value: CourseFormData[keyof CourseFormData],
@@ -193,7 +223,6 @@ const validateCourseField = (
   const stringValue = String(value ?? "").trim();
   const requiredTextFields: Array<keyof CourseFormData> = [
     "courseName",
-    "courseUniqueCode",
     "courseType",
     "instituteName",
     "courseDuration",
@@ -214,6 +243,7 @@ const validateCourseField = (
     "mobileNo",
     "contactForQueries",
     "courseDemoVideo",
+    "hsnCode",
   ];
 
   if (field === "targetAudience" && (!Array.isArray(value) || value.length === 0)) {
@@ -256,9 +286,11 @@ const validateCourseField = (
       mobileNo: "Mobile number",
       contactForQueries: "Contact for Queries",
       courseDemoVideo: "Course Demo Video",
+      hsnCode: "HSN Code",
     };
     return `${labels[field] || String(field)} is required`;
   }
+
   if (field === "instituteName" && !textOnlyRegex.test(stringValue)) {
     return "Institute name should contain only letters and spaces";
   }
@@ -275,36 +307,44 @@ const validateCourseField = (
     return "Mobile number must be exactly 10 digits";
   }
 
-  if (
-    ["feesInr", "netFeesInr", "maximumSeatsBatchSize"].includes(field) &&
-    stringValue &&
-    Number.isNaN(Number(stringValue))
-  ) {
+  if (numericFields.includes(field) && stringValue && Number.isNaN(Number(stringValue))) {
     return `${fieldLabels[field]} must be a valid number`;
   }
 
   if (
-    ["feesInr", "netFeesInr", "maximumSeatsBatchSize"].includes(field) &&
+    numericFields.includes(field) &&
     stringValue &&
     !Number.isInteger(Number(stringValue))
   ) {
     return `${fieldLabels[field]} must contain digits only`;
   }
 
-  if (
-    ["feesInr", "netFeesInr", "maximumSeatsBatchSize"].includes(field) &&
-    !stringValue
-  ) {
+  if (numericFields.includes(field) && !stringValue) {
     return `${fieldLabels[field]} is required`;
+  }
+
+  if (
+    field === "discountPercent" &&
+    stringValue &&
+    (Number(stringValue) < 0 || Number(stringValue) > 100)
+  ) {
+    return "Discount % must be between 0 and 100";
   }
 
   if (field === "courseDemoVideo" && !isValidYoutubeUrl(stringValue)) {
     return "Course demo video must be a valid YouTube link";
   }
 
-  if (field === "courseType" && !stringValue) return "Please select a course type";
-  if (field === "certificationProvided" && !stringValue) return "Please select certification provided";
-  if (field === "languageOfDelivery" && !stringValue) return "Please select language of delivery";
+  if (field === "courseType" && Array.isArray(value) && value.length === 0) {
+    return "Please select at least one course type";
+  }
+
+  if (field === "certificationProvided" && !stringValue) {
+    return "Please select certification provided";
+  }
+  if (field === "languageOfDelivery" && !stringValue) {
+    return "Please select language of delivery";
+  }
 
   if (field === "whatsIncluded" && !stripHtml(String(value))) {
     return "What's Included is required";
@@ -424,7 +464,7 @@ const CreateCourse = () => {
   ) => {
     let nextValue = value;
 
-    if ( field === "instituteName" || field === "trainerInstructorName") {
+    if (field === "instituteName" || field === "trainerInstructorName") {
       nextValue = sanitizeTextOnly(String(value ?? ""));
     }
 
@@ -432,7 +472,8 @@ const CreateCourse = () => {
       field === "mobileNo" ||
       field === "feesInr" ||
       field === "netFeesInr" ||
-      field === "maximumSeatsBatchSize"
+      field === "maximumSeatsBatchSize" ||
+      field === "discountPercent"
     ) {
       nextValue = sanitizeDigitsOnly(String(value ?? ""));
     }
@@ -621,18 +662,19 @@ const CreateCourse = () => {
       return;
     }
 
-    if (!formData.courseUniqueCode.trim()) {
-      setError("Course unique code is still generating. Please wait a moment.");
-      return;
-    }
-
     try {
       setLoading(true);
 
       const payload = new FormData();
       payload.append("courseName", formData.courseName.trim());
       payload.append("courseUniqueCode", formData.courseUniqueCode.trim());
-      payload.append("courseType", formData.courseType);
+
+      formData.courseType.forEach((type) => {
+        payload.append("courseType", type);
+      });
+
+      payload.append("hsnCode", formData.hsnCode);
+      payload.append("discountPercent", formData.discountPercent);
       payload.append("instituteName", formData.instituteName);
       payload.append("courseDuration", formData.courseDuration);
       payload.append("modeOfTraining", formData.modeOfTraining);
@@ -644,10 +686,7 @@ const CreateCourse = () => {
       payload.append("certificationProvided", formData.certificationProvided);
       payload.append("affiliationAccreditation", formData.affiliationAccreditation);
       payload.append("feesInr", formData.feesInr);
-      payload.append(
-        "applyDiscountVoucher",
-        String(formData.applyDiscountVoucher)
-      );
+      payload.append("applyDiscountVoucher", String(formData.applyDiscountVoucher));
       payload.append("netFeesInr", formData.netFeesInr);
       payload.append("discountsOffers", formData.discountsOffers);
       payload.append("location", formData.location);
@@ -666,10 +705,7 @@ const CreateCourse = () => {
         payload.append("courseImage", formData.courseImage);
       }
       payload.append("courseDemoVideo", formData.courseDemoVideo.trim());
-      payload.append(
-        "refundCancellationPolicy",
-        formData.refundCancellationPolicy
-      );
+      payload.append("refundCancellationPolicy", formData.refundCancellationPolicy);
       payload.append("postCourseSupport", formData.postCourseSupport);
       payload.append("mobileNo", formData.mobileNo);
       payload.append("contactForQueries", formData.contactForQueries);
@@ -708,26 +744,13 @@ const CreateCourse = () => {
     }
   };
 
-  const renderInput = (
-    field: Exclude<
-      keyof CourseFormData,
-      | "applyDiscountVoucher"
-      | "targetAudience"
-      | "courseType"
-      | "languageOfDelivery"
-      | "whatsIncluded"
-      | "whatsNotIncluded"
-      | "learningOutcomes"
-      | "courseImage"
-      | "trainerImage"
-      | "brochurePdfDownload"
-    >
-  ) => {
-    const isTextArea = textAreaFields.includes(field as (typeof textAreaFields)[number]);
+  const renderInput = (field: RenderableField) => {
+    const isTextArea = textAreaFields.includes(field as TextAreaField);
     const isDateField = dateFields.includes(field as (typeof dateFields)[number]);
     const isNumberField =
       field === "feesInr" ||
       field === "netFeesInr" ||
+      field === "discountPercent" ||
       field === "maximumSeatsBatchSize";
     const inputType = isDateField
       ? "date"
@@ -735,17 +758,15 @@ const CreateCourse = () => {
         ? "number"
         : field === "mobileNo"
           ? "tel"
-        : field === "courseDemoVideo"
-          ? "url"
-          : "text";
+          : field === "courseDemoVideo"
+            ? "url"
+            : "text";
 
     return (
       <div
         key={field}
         className={
-          isTextArea || field === "courseDemoVideo"
-            ? styles.fullField
-            : styles.field
+          isTextArea || field === "courseDemoVideo" ? styles.fullField : styles.field
         }
       >
         <label className={styles.label}>{fieldLabels[field]}</label>
@@ -768,6 +789,7 @@ const CreateCourse = () => {
           <input
             type={inputType}
             min={isNumberField ? "0" : undefined}
+            max={field === "discountPercent" ? "100" : undefined}
             step={isNumberField ? "1" : undefined}
             className={`${styles.input} ${
               field === "courseUniqueCode" ? styles.readOnlyInput : ""
@@ -806,8 +828,6 @@ const CreateCourse = () => {
 
   return (
     <div className={styles.container}>
-      {/* <h1 className={styles.heading}>Create Course</h1> */}
-
       {error && <p className={styles.error}>{error}</p>}
       {success && <p className={styles.success}>{success}</p>}
 
@@ -821,36 +841,67 @@ const CreateCourse = () => {
 
             <div className={styles.field}>
               <label className={styles.label}>{fieldLabels.courseType}</label>
-              <select
-                className={styles.input}
-                value={formData.courseType}
-                onChange={(e) => handleChange("courseType", e.target.value)}
-                onBlur={() => {
-                  setTouched((prev) => ({ ...prev, courseType: true }));
-                  setFieldErrors((prev) => ({
-                    ...prev,
-                    courseType: validateCourseField(
-                      "courseType",
-                      formData.courseType,
-                      formData
-                    ),
-                  }));
-                }}
-              >
-                <option value="">
-                  {loadingCourseTypes ? "Loading course types..." : "Select course type"}
-                </option>
-                {courseTypeOptions.map((option) => (
-                  <option key={option._id || option.id} value={option.name}>
-                    {option.name}
-                  </option>
-                ))}
-              </select>
+
+              <div className={styles.checkboxScrollBox}>
+                {loadingCourseTypes ? (
+                  <span>Loading course types...</span>
+                ) : (
+                  courseTypeOptions.map((option) => {
+                    const value = option._id || option.id;
+
+                    return (
+                      <label
+                        key={value}
+                        style={{
+                          display: "block",
+                          marginBottom: "8px",
+                          cursor: "pointer",
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={formData.courseType.includes(value)}
+                          onChange={() => {
+                            setTouched((prev) => ({
+                              ...prev,
+                              courseType: true,
+                            }));
+
+                            setFormData((prev) => {
+                              const updatedTypes = prev.courseType.includes(value)
+                                ? prev.courseType.filter((item) => item !== value)
+                                : [...prev.courseType, value];
+
+                              setFieldErrors((prevErrors) => ({
+                                ...prevErrors,
+                                courseType: validateCourseField(
+                                  "courseType",
+                                  updatedTypes,
+                                  { ...prev, courseType: updatedTypes }
+                                ),
+                              }));
+
+                              return {
+                                ...prev,
+                                courseType: updatedTypes,
+                              };
+                            });
+                          }}
+                        />
+                        {" "}
+                        {option.name}
+                      </label>
+                    );
+                  })
+                )}
+              </div>
+
               {!loadingCourseTypes && courseTypeOptions.length === 0 && (
                 <span className={styles.helperText}>
                   No course types found. Create one from the dashboard first.
                 </span>
               )}
+
               {touched.courseType && fieldErrors.courseType && (
                 <p className={styles.fieldError}>{fieldErrors.courseType}</p>
               )}
@@ -903,6 +954,8 @@ const CreateCourse = () => {
             {renderInput("registrationDeadline")}
             {renderInput("feesInr")}
             {renderInput("netFeesInr")}
+            {renderInput("discountPercent")}
+            {renderInput("hsnCode")}
             {renderInput("maximumSeatsBatchSize")}
             {renderInput("location")}
             {renderInput("currentAvailability")}
@@ -1055,11 +1108,11 @@ const CreateCourse = () => {
                   </button>
                 </div>
 
-            <div className={styles.chipList}>
-              {formData.targetAudience.length > 0 ? (
-                formData.targetAudience.map((item) => (
-                  <span key={item} className={styles.chip}>
-                    {item}
+                <div className={styles.chipList}>
+                  {formData.targetAudience.length > 0 ? (
+                    formData.targetAudience.map((item) => (
+                      <span key={item} className={styles.chip}>
+                        {item}
                         <button
                           type="button"
                           className={styles.chipRemove}
@@ -1070,14 +1123,14 @@ const CreateCourse = () => {
                       </span>
                     ))
                   ) : (
-                <p className={styles.noImage}>No target audience added yet</p>
-              )}
+                    <p className={styles.noImage}>No target audience added yet</p>
+                  )}
+                </div>
+                {touched.targetAudience && fieldErrors.targetAudience && (
+                  <p className={styles.fieldError}>{fieldErrors.targetAudience}</p>
+                )}
+              </div>
             </div>
-            {touched.targetAudience && fieldErrors.targetAudience && (
-              <p className={styles.fieldError}>{fieldErrors.targetAudience}</p>
-            )}
-          </div>
-        </div>
 
             {richTextFields.map((field) => (
               <div key={field} className={styles.fullField}>

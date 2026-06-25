@@ -13,10 +13,11 @@ interface B2BCategory {
   name: string;
 }
 
+const GST_PRESETS = ["5", "12", "18", "28"] as const;
+
 type FormState = {
-  sku: string;
   productName: string;
-  category: string;
+  category: string[];
   subCategory: string;
   hsnCode: string;
   brandName: string;
@@ -36,7 +37,8 @@ type FormState = {
   licenseNumber: string;
   mrp: string;
   discountedPrice: string;
-  gst: "5" | "12" | "18" | "28";
+  gstOption: "5" | "12" | "18" | "28" | "custom";
+  customGst: string;
   taxIncluded: boolean;
   productImages: File[];
   productVideoUrl: string;
@@ -77,12 +79,42 @@ const validateField = (
     return "At least one product image is required";
   }
 
+  if (name === "category") {
+    if (!Array.isArray(value) || value.length === 0) {
+      return "Select at least one category";
+    }
+    return "";
+  }
+
+  // Pack size now accepts numbers, symbols, and text together
+  // (e.g. "10x5 ml", "Box of 24", "500g"). Only "required" is enforced.
+  if (name === "packSize") {
+    if (!String(value ?? "").trim()) {
+      return "Pack size is required";
+    }
+    return "";
+  }
+
+  if (name === "gstOption") {
+    if (!value) return "GST % is required";
+    return "";
+  }
+
+  if (name === "customGst" && form.gstOption === "custom") {
+    const numValue = Number(value);
+    if (String(value ?? "").trim() === "" || Number.isNaN(numValue)) {
+      return "Enter a valid GST %";
+    }
+    if (numValue < 0 || numValue > 100) {
+      return "GST % must be between 0 and 100";
+    }
+    return "";
+  }
+
   const requiredTextFields: Array<keyof FormState> = [
     "productName",
-    "category",
     "hsnCode",
     "brandName",
-    "packSize",
     "pricePerUnit",
     "bulkPriceTier",
     "moq",
@@ -105,10 +137,8 @@ const validateField = (
     if (!stringValue) {
       const labels: Record<string, string> = {
         productName: "Product name",
-        category: "Category",
         hsnCode: "HSN code",
         brandName: "Brand name",
-        packSize: "Pack size",
         pricePerUnit: "Price per unit",
         bulkPriceTier: "Bulk price tier",
         moq: "MOQ",
@@ -145,10 +175,6 @@ const validateField = (
     return "HSN code must contain digits only";
   }
 
-  if (name === "packSize" && !digitsOnlyRegex.test(String(value))) {
-    return "Pack size must contain digits only";
-  }
-
   if (name === "bulkPriceTier" && !digitsOnlyRegex.test(String(value))) {
     return "Bulk price tier must contain digits only";
   }
@@ -180,14 +206,6 @@ const validateField = (
     return `${String(name).replace(/([A-Z])/g, " $1")} is required`;
   }
 
-  if (name === "gst" && !["5", "12", "18", "28"].includes(String(value))) {
-    return "GST must be 5, 12, 18, or 28";
-  }
-
-  if (name === "category" && !String(value).trim()) {
-    return "Category is required";
-  }
-
   return "";
 };
 
@@ -199,11 +217,11 @@ export default function CreateB2BProduct() {
   const [errors, setErrors] = useState<ErrorState>({});
   const [touched, setTouched] = useState<TouchedState>({});
   const [promotionalTagInput, setPromotionalTagInput] = useState("");
+  const [generatedSku, setGeneratedSku] = useState("Auto-assigned on save");
 
   const [form, setForm] = useState<FormState>({
-    sku: `B2B-${Date.now().toString().slice(-6)}`,
     productName: "",
-    category: "",
+    category: [],
     subCategory: "",
     hsnCode: "",
     brandName: "",
@@ -223,7 +241,8 @@ export default function CreateB2BProduct() {
     licenseNumber: "",
     mrp: "",
     discountedPrice: "",
-    gst: "5",
+    gstOption: "5",
+    customGst: "",
     taxIncluded: true,
     productImages: [],
     productVideoUrl: "",
@@ -248,10 +267,6 @@ export default function CreateB2BProduct() {
           .filter((cat: B2BCategory) => cat._id && cat.name);
 
         setCategories(normalized);
-        setForm((prev) => ({
-          ...prev,
-          category: prev.category || normalized[0]?.name || "",
-        }));
       } catch (error) {
         console.error("Failed to fetch B2B categories:", error);
       } finally {
@@ -300,17 +315,7 @@ export default function CreateB2BProduct() {
     }
 
     if (
-      [
-        "hsnCode",
-        "packSize",
-        "pricePerUnit",
-        "bulkPriceTier",
-        "moq",
-        "stockAvailable",
-        "mrp",
-        "discountedPrice",
-        "licenseNumber",
-      ].includes(name)
+      ["hsnCode", "bulkPriceTier", "licenseNumber"].includes(name)
     ) {
       nextValue = sanitizeDigitsOnly(value);
     }
@@ -352,6 +357,46 @@ export default function CreateB2BProduct() {
     if (["e", "E", "+", "-", "."].includes(e.key)) {
       e.preventDefault();
     }
+  };
+
+  /* ================= MULTI-SELECT CATEGORY ================= */
+  const toggleCategory = (categoryName: string) => {
+    setTouched((prev) => ({ ...prev, category: true }));
+    setForm((prev) => {
+      const exists = prev.category.includes(categoryName);
+      const nextCategories = exists
+        ? prev.category.filter((c) => c !== categoryName)
+        : [...prev.category, categoryName];
+
+      const next = { ...prev, category: nextCategories };
+      setErrors((prevErrors) => ({
+        ...prevErrors,
+        category: validateField("category", nextCategories, next),
+      }));
+      return next;
+    });
+    setSuccess("");
+    setSubmitError("");
+  };
+
+  /* ================= GST HANDLERS ================= */
+  const handleGstOptionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value as FormState["gstOption"];
+    setTouched((prev) => ({ ...prev, gstOption: true }));
+    setField("gstOption", value);
+    if (value !== "custom") {
+      setField("customGst", "");
+    }
+    setSuccess("");
+    setSubmitError("");
+  };
+
+  const handleCustomGstChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/[^0-9.]/g, "");
+    setTouched((prev) => ({ ...prev, customGst: true }));
+    setField("customGst", value);
+    setSuccess("");
+    setSubmitError("");
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -493,10 +538,12 @@ export default function CreateB2BProduct() {
 
     if (Object.keys(nextErrors).length > 0) return;
 
+    const finalGst =
+      form.gstOption === "custom" ? form.customGst.trim() : form.gstOption;
+
     const payload = new FormData();
-    payload.append("sku", form.sku);
     payload.append("productName", form.productName.trim());
-    payload.append("category", form.category.trim());
+    payload.append("category", JSON.stringify(form.category));
     payload.append("subCategory", form.subCategory.trim());
     payload.append("hsnCode", form.hsnCode.trim());
     payload.append("brandName", form.brandName.trim());
@@ -516,7 +563,7 @@ export default function CreateB2BProduct() {
     payload.append("licenseNumber", form.licenseNumber.trim());
     payload.append("mrp", form.mrp.trim());
     payload.append("discountedPrice", form.discountedPrice.trim());
-    payload.append("gst", form.gst);
+    payload.append("gst", finalGst);
     payload.append("taxIncluded", String(form.taxIncluded));
     payload.append("productVideoUrl", form.productVideoUrl.trim());
     if (form.msds) {
@@ -539,14 +586,14 @@ export default function CreateB2BProduct() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Failed to create B2B product");
 
-      setSuccess("B2B Product saved successfully");
+      setSuccess(`B2B Product saved successfully. SKU: ${data?.sku || "—"}`);
       setSubmitError("");
+      setGeneratedSku(data?.sku || "Auto-assigned on save");
       window.dispatchEvent(new Event("admin-dashboard:create-success"));
 
       setForm({
-        sku: `B2B-${Date.now().toString().slice(-6)}`,
         productName: "",
-        category: categories[0]?.name || "",
+        category: [],
         subCategory: "",
         hsnCode: "",
         brandName: "",
@@ -566,7 +613,8 @@ export default function CreateB2BProduct() {
         licenseNumber: "",
         mrp: "",
         discountedPrice: "",
-        gst: "5",
+        gstOption: "5",
+        customGst: "",
         taxIncluded: true,
         productImages: [],
         productVideoUrl: "",
@@ -593,7 +641,7 @@ export default function CreateB2BProduct() {
 
           <div className={styles.field}>
             <label className={styles.label}>SKU / Product Code</label>
-            <input className={styles.readonlyInput} value={form.sku} disabled />
+            <input className={styles.readonlyInput} value={generatedSku} disabled />
           </div>
 
           <div className={styles.field}>
@@ -610,26 +658,41 @@ export default function CreateB2BProduct() {
             {showError("productName") && <p className={styles.fieldError}>{showError("productName")}</p>}
           </div>
 
+          {/* ===== MULTI-SELECT CATEGORY ===== */}
           <div className={styles.field}>
-            <label className={styles.label}>Category</label>
-            <select
-              className={styles.select}
-              name="category"
-              value={form.category}
-              onChange={handleChange}
-              onBlur={handleBlur}
-              disabled={loadingCategories}
-              required
-            >
-              <option value="">
-                {loadingCategories ? "Loading categories..." : "Select Category"}
-              </option>
-              {categories.map((cat) => (
-                <option key={cat._id} value={cat.name}>
-                  {cat.name}
-                </option>
-              ))}
-            </select>
+            <label className={styles.label}>Category (select one or more)</label>
+            {loadingCategories ? (
+              <p>Loading categories...</p>
+            ) : (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                {categories.map((cat) => {
+                  const selected = form.category.includes(cat.name);
+                  return (
+                    <button
+                      key={cat._id}
+                      type="button"
+                      onClick={() => toggleCategory(cat.name)}
+                      style={{
+                        padding: "6px 14px",
+                        borderRadius: "16px",
+                        border: selected ? "1px solid #2563eb" : "1px solid #ccc",
+                        background: selected ? "#dbeafe" : "#fff",
+                        color: selected ? "#1e40af" : "#333",
+                        cursor: "pointer",
+                        fontSize: "13px",
+                      }}
+                    >
+                      {cat.name}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            {form.category.length > 0 && (
+              <p style={{ fontSize: "12px", color: "#555", marginTop: "6px" }}>
+                Selected: {form.category.join(", ")}
+              </p>
+            )}
             {showError("category") && <p className={styles.fieldError}>{showError("category")}</p>}
           </div>
 
@@ -680,8 +743,23 @@ export default function CreateB2BProduct() {
         <div className={styles.section}>
           <h3 className={styles.sectionTitle}>Pricing & Quantity</h3>
 
+          {/* Pack size now accepts numbers, symbols, and text together */}
+          <div className={styles.field}>
+            <label className={styles.label}>Pack Size / Quantity</label>
+            <input
+              type="text"
+              className={styles.input}
+              name="packSize"
+              value={form.packSize}
+              placeholder="e.g. 10x5 ml, Box of 24, 500g"
+              onChange={handleChange}
+              onBlur={handleBlur}
+              required
+            />
+            {showError("packSize") && <p className={styles.fieldError}>{showError("packSize")}</p>}
+          </div>
+
           {[
-            ["packSize", "Pack Size / Quantity"],
             ["pricePerUnit", "Price per Unit"],
             ["bulkPriceTier", "Bulk Price Tier"],
             ["moq", "MOQ"],
@@ -853,22 +931,45 @@ export default function CreateB2BProduct() {
             )}
           </div>
 
+          {/* ===== GST: preset dropdown + custom textfield ===== */}
           <div className={styles.field}>
-            <label className={styles.label}>GST</label>
+            <label className={styles.label}>GST %</label>
             <select
               className={styles.select}
-              name="gst"
-              value={form.gst}
-              onChange={handleChange}
+              name="gstOption"
+              value={form.gstOption}
+              onChange={handleGstOptionChange}
               onBlur={handleBlur}
             >
-              <option value="5">5%</option>
-              <option value="12">12%</option>
-              <option value="18">18%</option>
-              <option value="28">28%</option>
+              {GST_PRESETS.map((preset) => (
+                <option key={preset} value={preset}>
+                  {preset}%
+                </option>
+              ))}
+              <option value="custom">Custom</option>
             </select>
-            {showError("gst") && <p className={styles.fieldError}>{showError("gst")}</p>}
+            {showError("gstOption") && <p className={styles.fieldError}>{showError("gstOption")}</p>}
           </div>
+
+          {form.gstOption === "custom" && (
+            <div className={styles.field}>
+              <label className={styles.label}>Custom GST %</label>
+              <input
+                type="text"
+                className={styles.input}
+                name="customGst"
+                value={form.customGst}
+                onChange={handleCustomGstChange}
+                onBlur={handleBlur}
+                placeholder="Enter custom GST %"
+                inputMode="decimal"
+                required
+              />
+              {showError("customGst") && (
+                <p className={styles.fieldError}>{showError("customGst")}</p>
+              )}
+            </div>
+          )}
 
           <div className={styles.field}>
             <label className={styles.label}>Tax Included</label>

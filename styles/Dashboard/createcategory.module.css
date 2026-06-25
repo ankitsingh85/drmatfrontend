@@ -384,3 +384,24 @@
     flex-direction: column;
   }
 }
+.checkboxScrollBox {
+  max-height: 180px;
+  overflow-y: auto;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 8px 12px;
+  background: #fff;
+}
+
+.checkboxScrollBox::-webkit-scrollbar {
+  width: 6px;
+}
+
+.checkboxScrollBox::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.checkboxScrollBox::-webkit-scrollbar-track {
+  background: transparent;
+}
