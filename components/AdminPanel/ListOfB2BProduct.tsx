@@ -5,11 +5,17 @@ import styles from "@/styles/Dashboard/productlist.module.css";
 import createStyles from "@/styles/Dashboard/createproduct.module.css";
 import { API_URL } from "@/config/api";
 
+interface B2BCategory {
+  _id: string;
+  name: string;
+}
+
 interface B2BProduct {
   _id: string;
   sku: string;
   productName: string;
-  category: string;
+  // A product can now belong to multiple categories at once.
+  category: string[];
   brandName: string;
   pricePerUnit?: number;
   stockAvailable?: number;
@@ -21,8 +27,13 @@ interface B2BProduct {
   createdAt?: string;
 }
 
+interface B2BProductEditForm extends Partial<Omit<B2BProduct, "category">> {
+  category?: string[];
+}
+
 export default function ListOfB2BProduct() {
   const [products, setProducts] = useState<B2BProduct[]>([]);
+  const [allCategories, setAllCategories] = useState<B2BCategory[]>([]);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [sortKey, setSortKey] = useState("name");
@@ -31,22 +42,58 @@ export default function ListOfB2BProduct() {
   const [viewProduct, setViewProduct] = useState<B2BProduct | null>(null);
 
   const [editingProduct, setEditingProduct] = useState<B2BProduct | null>(null);
-  const [editForm, setEditForm] = useState<Partial<B2BProduct>>({});
+  const [editForm, setEditForm] = useState<B2BProductEditForm>({});
   const [isEditing, setIsEditing] = useState(false);
 
   /* ================= FETCH ================= */
   useEffect(() => {
     fetch(`${API_URL}/b2b-products`)
       .then((res) => res.json())
-      .then(setProducts)
+      .then((data) => {
+        const normalized = (Array.isArray(data) ? data : []).map(
+          (p: any) => ({
+            ...p,
+            // Normalize category to always be an array, regardless of
+            // whether the backend (or older records) stored it as a
+            // single string.
+            category: Array.isArray(p.category)
+              ? p.category
+              : p.category
+              ? [p.category]
+              : [],
+          })
+        );
+        setProducts(normalized);
+      })
+      .catch(console.error);
+  }, []);
+
+  useEffect(() => {
+    fetch(`${API_URL}/b2b-categories`)
+      .then((res) => res.json())
+      .then((data) => {
+        const rawCategories = Array.isArray(data)
+          ? data
+          : data?.categories || data?.data || [];
+        const normalized = rawCategories
+          .map((cat: any) => ({
+            _id: String(cat._id || cat.id || "").trim(),
+            name: String(cat.name || "").trim(),
+          }))
+          .filter((cat: B2BCategory) => cat._id && cat.name);
+        setAllCategories(normalized);
+      })
       .catch(console.error);
   }, []);
 
   /* ================= DERIVED ================= */
-  const categories = useMemo(
-    () => Array.from(new Set(products.map((p) => p.category))),
-    [products]
-  );
+  // Build the filter dropdown from every category name actually used
+  // across all products (a product may carry several at once).
+  const categories = useMemo(() => {
+    const set = new Set<string>();
+    products.forEach((p) => (p.category || []).forEach((c) => set.add(c)));
+    return Array.from(set);
+  }, [products]);
 
   const filteredProducts = useMemo(() => {
     let data = [...products];
@@ -61,7 +108,7 @@ export default function ListOfB2BProduct() {
     }
 
     if (categoryFilter !== "all") {
-      data = data.filter((p) => p.category === categoryFilter);
+      data = data.filter((p) => (p.category || []).includes(categoryFilter));
     }
 
     if (sortKey === "name") {
@@ -99,7 +146,7 @@ export default function ListOfB2BProduct() {
       ...filteredProducts.map((p) => [
         p.sku,
         p.productName,
-        p.category,
+        (p.category || []).join(", "),
         p.brandName,
         String(p.pricePerUnit || 0),
         String(p.stockAvailable || 0),
@@ -147,7 +194,7 @@ export default function ListOfB2BProduct() {
         (p) => `<tr>
           <td>${escapeHtml(p.sku)}</td>
           <td>${escapeHtml(p.productName)}</td>
-          <td>${escapeHtml(p.category)}</td>
+          <td>${escapeHtml((p.category || []).join(", "))}</td>
           <td>${escapeHtml(p.brandName)}</td>
           <td>Rs ${escapeHtml(String(p.pricePerUnit || 0))}</td>
           <td>${escapeHtml(String(p.stockAvailable || 0))}</td>
@@ -204,7 +251,7 @@ export default function ListOfB2BProduct() {
   /* ================= EDIT ================= */
   const handleEdit = (product: B2BProduct) => {
     setEditingProduct(product);
-    setEditForm({ ...product });
+    setEditForm({ ...product, category: product.category || [] });
     setIsEditing(true);
   };
 
@@ -229,9 +276,28 @@ export default function ListOfB2BProduct() {
     }));
   };
 
+  /* ===== MULTI-SELECT CATEGORY (EDIT FORM) ===== */
+  const toggleEditCategory = (categoryName: string) => {
+    setEditForm((prev) => {
+      const current = prev.category || [];
+      const exists = current.includes(categoryName);
+      return {
+        ...prev,
+        category: exists
+          ? current.filter((c) => c !== categoryName)
+          : [...current, categoryName],
+      };
+    });
+  };
+
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingProduct) return;
+
+    if (!editForm.category || editForm.category.length === 0) {
+      alert("Please select at least one category");
+      return;
+    }
 
     try {
       const { _id, createdAt, ...payload } = editForm;
@@ -248,7 +314,18 @@ export default function ListOfB2BProduct() {
         throw new Error(data?.message || "Failed to update B2B product");
       }
 
-      setProducts((prev) => prev.map((p) => (p._id === data._id ? data : p)));
+      const normalizedData = {
+        ...data,
+        category: Array.isArray(data.category)
+          ? data.category
+          : data.category
+          ? [data.category]
+          : [],
+      };
+
+      setProducts((prev) =>
+        prev.map((p) => (p._id === normalizedData._id ? normalizedData : p))
+      );
       setIsEditing(false);
       setEditingProduct(null);
       setEditForm({});
@@ -344,7 +421,7 @@ export default function ListOfB2BProduct() {
               <tr key={p._id}>
                 <td>{p.sku}</td>
                 <td>{p.productName}</td>
-                <td>{p.category}</td>
+                <td>{(p.category || []).join(", ") || "-"}</td>
                 <td>{p.brandName}</td>
                 <td>Rs {p.pricePerUnit || 0}</td>
                 <td>{p.stockAvailable || 0}</td>
@@ -421,7 +498,8 @@ export default function ListOfB2BProduct() {
               className={createStyles.input}
               name="sku"
               value={editForm.sku || ""}
-              onChange={handleEditChange}
+              disabled
+              title="SKU is auto-generated and cannot be edited"
             />
 
             <label>Product Name</label>
@@ -432,19 +510,36 @@ export default function ListOfB2BProduct() {
               onChange={handleEditChange}
             />
 
-            <label>Category</label>
-            <select
-              className={createStyles.input}
-              name="category"
-              value={editForm.category || ""}
-              onChange={handleEditChange}
-            >
-              {categories.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
+            {/* ===== MULTI-SELECT CATEGORY ===== */}
+            <label>Category (select one or more)</label>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "10px" }}>
+              {allCategories.map((cat) => {
+                const selected = (editForm.category || []).includes(cat.name);
+                return (
+                  <button
+                    key={cat._id}
+                    type="button"
+                    onClick={() => toggleEditCategory(cat.name)}
+                    style={{
+                      padding: "6px 14px",
+                      borderRadius: "16px",
+                      border: selected ? "1px solid #2563eb" : "1px solid #ccc",
+                      background: selected ? "#dbeafe" : "#fff",
+                      color: selected ? "#1e40af" : "#333",
+                      cursor: "pointer",
+                      fontSize: "13px",
+                    }}
+                  >
+                    {cat.name}
+                  </button>
+                );
+              })}
+            </div>
+            {(editForm.category || []).length > 0 && (
+              <p style={{ fontSize: "12px", color: "#555", marginTop: "-6px", marginBottom: "10px" }}>
+                Selected: {(editForm.category || []).join(", ")}
+              </p>
+            )}
 
             <label>Brand Name</label>
             <input
@@ -541,7 +636,7 @@ export default function ListOfB2BProduct() {
                 <b>SKU:</b> {viewProduct.sku}
               </p>
               <p>
-                <b>Category:</b> {viewProduct.category}
+                <b>Category:</b> {(viewProduct.category || []).join(", ") || "-"}
               </p>
               <p>
                 <b>Brand:</b> {viewProduct.brandName}

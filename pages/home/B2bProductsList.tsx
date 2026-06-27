@@ -21,7 +21,8 @@ interface B2BProduct {
   _id: string;
   sku?: string;
   productName: string;
-  category: string;
+  // A product can now belong to multiple categories at once.
+  category: string[];
   brandName?: string;
   pricePerUnit?: number;
   mrp?: number;
@@ -35,7 +36,7 @@ interface B2BProduct {
 }
 
 interface B2BProductWithCategory extends B2BProduct {
-  categoryObj?: Category | null;
+  categoryObjs: Category[];
 }
 
 interface StoredB2BCategory {
@@ -81,32 +82,45 @@ const B2bProductsList = () => {
       }))
       .filter((cat: Category) => cat._id && cat.name);
 
+  // A product's "category" field can now be:
+  //  - an array of strings (current backend shape)
+  //  - an array of objects (e.g. { name } / { _id })
+  //  - a single string (older records) — normalized to a 1-item array
   const normalizeProduct = (
     product: any,
     categoryList: Category[]
   ): B2BProductWithCategory => {
     const rawCategory = product?.category;
-    const categoryName =
-      typeof rawCategory === "string"
-        ? rawCategory.trim()
-        : String(rawCategory?.name ?? rawCategory?.label ?? "").trim();
-    const categoryId =
-      typeof rawCategory === "object" && rawCategory !== null
-        ? String(rawCategory?._id ?? rawCategory?.id ?? "").trim()
-        : "";
 
-    const categoryObj =
-      categoryList.find((cat) => cat._id === categoryId) ||
-      categoryList.find(
-        (cat) => cat.name.toLowerCase() === categoryName.toLowerCase()
-      ) ||
-      null;
+    let categoryNames: string[] = [];
+    if (Array.isArray(rawCategory)) {
+      categoryNames = rawCategory
+        .map((item: any) =>
+          typeof item === "string"
+            ? item.trim()
+            : String(item?.name ?? item?.label ?? "").trim()
+        )
+        .filter(Boolean);
+    } else if (typeof rawCategory === "string" && rawCategory.trim()) {
+      categoryNames = [rawCategory.trim()];
+    } else if (rawCategory && typeof rawCategory === "object") {
+      const name = String(rawCategory?.name ?? rawCategory?.label ?? "").trim();
+      if (name) categoryNames = [name];
+    }
+
+    const categoryObjs = categoryNames
+      .map(
+        (name) =>
+          categoryList.find((cat) => cat.name.toLowerCase() === name.toLowerCase()) ||
+          null
+      )
+      .filter((cat): cat is Category => Boolean(cat));
 
     return {
       _id: String(product?._id ?? product?.id ?? "").trim(),
       sku: String(product?.sku ?? "").trim(),
       productName: String(product?.productName ?? "").trim(),
-      category: categoryName || categoryObj?.name || "",
+      category: categoryNames,
       brandName: String(product?.brandName ?? "").trim(),
       pricePerUnit:
         product?.pricePerUnit !== undefined ? Number(product.pricePerUnit) : 0,
@@ -126,7 +140,7 @@ const B2bProductsList = () => {
       description: String(product?.description ?? "").trim(),
       certifications: String(product?.certifications ?? "").trim(),
       manufacturerName: String(product?.manufacturerName ?? "").trim(),
-      categoryObj,
+      categoryObjs,
     };
   };
 
@@ -212,12 +226,19 @@ const B2bProductsList = () => {
         const matchesSearch =
           product.productName.toLowerCase().includes(search) ||
           (product.brandName || "").toLowerCase().includes(search) ||
-          (product.sku || "").toLowerCase().includes(search);
+          (product.sku || "").toLowerCase().includes(search) ||
+          product.category.some((name) => name.toLowerCase().includes(search));
 
+        // A product matches the selected category if ANY of its
+        // categories (by name) match the one currently selected — so a
+        // product tagged under multiple categories shows up under each.
         const matchesCategory = selectedCategoryName
-          ? product.category.toLowerCase() === selectedCategoryName.toLowerCase() ||
-            product.categoryObj?.name?.toLowerCase() ===
-              selectedCategoryName.toLowerCase()
+          ? product.category.some(
+              (name) => name.toLowerCase() === selectedCategoryName.toLowerCase()
+            ) ||
+            product.categoryObjs.some(
+              (cat) => cat.name.toLowerCase() === selectedCategoryName.toLowerCase()
+            )
           : true;
 
         return matchesSearch && matchesCategory;
@@ -381,6 +402,11 @@ const B2bProductsList = () => {
                   const mrp = Number(product.mrp || product.pricePerUnit || price);
                   const hasDiscount = price > 0 && mrp > price;
                   const image = getImage(product.productImages?.[0]);
+                  const categoryLabel =
+                    (product.categoryObjs.length
+                      ? product.categoryObjs.map((c) => c.name)
+                      : product.category
+                    ).join(", ") || "-";
 
                   return (
                     <div
@@ -408,7 +434,7 @@ const B2bProductsList = () => {
                         <h3 className={styles.productName}>{product.productName}</h3>
                         <p className={styles.productSize}>{product.brandName}</p>
                         <p className={styles.productSize}>
-                          Category: {product.categoryObj?.name || product.category}
+                          Category: {categoryLabel}
                         </p>
 
                         <div className={styles.productPriceContainer}>

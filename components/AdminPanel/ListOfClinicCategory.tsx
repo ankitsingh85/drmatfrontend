@@ -7,10 +7,10 @@ import styles from "@/styles/Dashboard/listofcliniccategory.module.css";
 
 interface ClinicCategory {
   _id: string;
+  categoryId: string;
   name: string;
   imageUrl: string;
 }
-
 const ListOfClinicCategory = () => {
   const [categories, setCategories] = useState<ClinicCategory[]>([]);
   const [search, setSearch] = useState("");
@@ -137,9 +137,11 @@ const ListOfClinicCategory = () => {
   const filteredCategories = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return categories;
-    return categories.filter(
-      (cat) => cat.name.toLowerCase().includes(q)
-    );
+  return categories.filter(
+  (cat) =>
+    cat.name.toLowerCase().includes(q) ||
+    cat.categoryId.toLowerCase().includes(q)
+);
   }, [categories, search]);
 
   const totalPages = Math.max(
@@ -161,10 +163,14 @@ const ListOfClinicCategory = () => {
   }, [filteredCategories, currentPage, itemsPerPage]);
 
   const handleDownloadCSV = () => {
-    const rows = [
-      ["Name", "Image URL"],
-      ...filteredCategories.map((cat) => [cat.name, cat.imageUrl || ""]),
-    ];
+ const rows = [
+  ["Category ID", "Name", "Image URL"],
+  ...filteredCategories.map((cat) => [
+    cat.categoryId,
+    cat.name,
+    cat.imageUrl || "",
+  ]),
+];
 
     const csv = rows
       .map((row) =>
@@ -200,14 +206,15 @@ const ListOfClinicCategory = () => {
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
 
-    const rows = filteredCategories
-      .map(
-        (cat) => `<tr>
-          <td>${escapeHtml(cat.name)}</td>
-          <td>${escapeHtml(cat.imageUrl || "-")}</td>
-        </tr>`
-      )
-      .join("");
+   const rows = filteredCategories
+  .map(
+    (cat) => `<tr>
+      <td>${escapeHtml(cat.categoryId)}</td>
+      <td>${escapeHtml(cat.name)}</td>
+      <td>${escapeHtml(cat.imageUrl || "-")}</td>
+    </tr>`
+  )
+  .join("");
 
     printable.document.write(`
       <html>
@@ -280,24 +287,30 @@ const ListOfClinicCategory = () => {
       <div className={styles.tableWrapper}>
         <table className={styles.table}>
           <thead>
-              <tr>
-                <th>Name</th>
-                <th>Image</th>
-                <th>Actions</th>
-            </tr>
-          </thead>
+  <tr>
+    <th>Category ID</th>
+    <th>Name</th>
+    <th>Image</th>
+    <th>Actions</th>
+  </tr>
+</thead>
           <tbody>
             {paginatedCategories.map((cat) => (
               <tr key={cat._id}>
-                <td>{cat.name}</td>
-                <td>
-                  <img
-                    src={resolveMediaUrl(cat.imageUrl) || cat.imageUrl}
-                    alt={cat.name}
-                    className={styles.image}
-                  />
-                </td>
-                <td className={styles.actions}>
+
+  <td>{cat.categoryId}</td>
+
+  <td>{cat.name}</td>
+
+  <td>
+    <img
+      src={resolveMediaUrl(cat.imageUrl) || cat.imageUrl}
+      alt={cat.name}
+      className={styles.image}
+    />
+  </td>
+
+  <td className={styles.actions}>
                   <button className={styles.editBtn} onClick={() => handleEdit(cat)}>
                     ✏️
                   </button>

@@ -11,6 +11,7 @@ import FullPageLoader from "@/components/common/FullPageLoader";
 
 interface Doctor {
   _id: string;
+    doctorId: string; 
   title?: string;
   firstName: string;
   lastName: string;
@@ -170,6 +171,7 @@ const ListOfDoctor: React.FC = () => {
     const rows = [
       ["Title", "First Name", "Last Name", "Specialist", "Email", "Phone"],
       ...filteredDoctors.map((d) => [
+         d.doctorId,
         d.title || "",
         d.firstName,
         d.lastName,
@@ -273,7 +275,7 @@ const ListOfDoctor: React.FC = () => {
           type="text"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Search by name, title, specialist, email, phone"
+        placeholder="Search by Doctor ID, name, title, specialist, email or phone"
           className={styles.search}
         />
         <select
@@ -307,6 +309,7 @@ const ListOfDoctor: React.FC = () => {
       <table className={styles.table}>
         <thead>
           <tr>
+              <th className={styles.th}>Doctor ID</th>
             <th className={styles.th}>Title</th>
             <th className={styles.th}>First Name</th>
             <th className={styles.th}>Last Name</th>
@@ -319,32 +322,35 @@ const ListOfDoctor: React.FC = () => {
 
         <tbody>
           {paginatedDoctors.map((d) => (
-            <tr key={d._id}>
-              <td className={styles.td}>{d.title || "-"}</td>
-              <td className={styles.td}>{d.firstName}</td>
-              <td className={styles.td}>{d.lastName}</td>
-              <td className={styles.td}>{d.specialist}</td>
-              <td className={styles.td}>{d.email}</td>
-              <td className={styles.td}>{d.phone || "-"}</td>
-              <td className={styles.td}>
-                <button
-                  className={styles.editButton}
-                  onClick={() => handleEdit(d)}
-                >
-                  ✏️
-                </button>
-                <button
-                  className={styles.deleteButton}
-                  onClick={() => handleDelete(d._id)}
-                >
-                  🗑
-                </button>
-              </td>
-            </tr>
+        <tr key={d._id}>
+  <td className={styles.td}>{d.doctorId}</td>
+  <td className={styles.td}>{d.title || "-"}</td>
+  <td className={styles.td}>{d.firstName}</td>
+  <td className={styles.td}>{d.lastName}</td>
+  <td className={styles.td}>{d.specialist}</td>
+  <td className={styles.td}>{d.email}</td>
+  <td className={styles.td}>{d.phone || "-"}</td>
+
+  <td className={styles.td}>
+    <button
+      className={styles.editButton}
+      onClick={() => handleEdit(d)}
+    >
+      ✏️
+    </button>
+
+    <button
+      className={styles.deleteButton}
+      onClick={() => handleDelete(d._id)}
+    >
+      🗑
+    </button>
+  </td>
+</tr>
           ))}
           {paginatedDoctors.length === 0 && (
             <tr>
-              <td className={styles.td} colSpan={7}>
+              <td className={styles.td} colSpan={8}>
                 No doctors found.
               </td>
             </tr>

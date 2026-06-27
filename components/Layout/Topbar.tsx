@@ -47,11 +47,16 @@ import {
     useEffect(() => {
       setIsHydrated(true);
     }, []);
+useEffect(() => {
+  const storedLocation = Cookies.get("location");
 
-    useEffect(() => {
-      const storedLocation = Cookies.get("location");
-      if (storedLocation && storedLocation !== "Current location") setLocation(storedLocation);
-    }, []);
+  if (storedLocation) {
+    setLocation(storedLocation);
+    return;
+  }
+
+  fetchLocation(true);
+}, []);
 
   const isDashboard =
       pathname?.startsWith("/ClinicDashboard") ||
@@ -79,45 +84,27 @@ import {
   const getComponent = (components: any[] | undefined, type: string) =>
     components?.find((part) => part.types?.includes(type));
 
-  const formatDetailedAddress = (
-    result: google.maps.GeocoderResult | undefined,
-    latitude: number,
-    longitude: number
-  ) => {
-    const components = result?.address_components || [];
-    const firstComponent = (type: string) => getComponent(components, type)?.long_name;
-    const orderedParts = [
-      firstComponent("floor"),
-      firstComponent("subpremise"),
-      firstComponent("premise"),
-      firstComponent("block"),
-      firstComponent("sector"),
-      [firstComponent("street_number"), firstComponent("route")]
-        .filter(Boolean)
-        .join(" "),
-      firstComponent("neighborhood"),
-      firstComponent("sublocality_level_4"),
-      firstComponent("sublocality_level_3"),
-      firstComponent("sublocality_level_2"),
-      firstComponent("sublocality_level_1"),
-      firstComponent("locality"),
-      firstComponent("postal_town"),
-      firstComponent("administrative_area_level_3"),
-      firstComponent("administrative_area_level_2"),
-      firstComponent("administrative_area_level_1"),
-      firstComponent("postal_code"),
-    ]
-      .map((part) => String(part || "").trim())
-      .filter(Boolean);
+const formatDetailedAddress = (
+  result: google.maps.GeocoderResult | undefined
+) => {
+  const components = result?.address_components || [];
 
-    const uniqueParts = Array.from(new Set(orderedParts));
-    if (uniqueParts.length > 0) {
-      return uniqueParts.join(", ");
-    }
+  const get = (type: string) =>
+    components.find((c) => c.types.includes(type))?.long_name;
 
-    return result?.formatted_address || `Location unavailable`;
-  };
+ const sector =
+  get("sublocality_level_1") ||
+  get("sublocality_level_2") ||
+  get("neighborhood") ||
+  get("route");
 
+  const city =
+    get("locality") ||
+    get("postal_town") ||
+    get("administrative_area_level_2");
+
+  return [sector, city].filter(Boolean).join(", ");
+};
   const summarizeAddressComponents = (result: google.maps.GeocoderResult | undefined) => {
     const components = result?.address_components || [];
     const preferredTypes = [
@@ -168,8 +155,18 @@ import {
       result_count: data?.results?.length || 0,
       formatted_address: result?.formatted_address || "",
     };
-    if (!result) return "Location unavailable";
-    return formatDetailedAddress(result, latitude, longitude);
+
+
+console.log("Google Response", data);
+
+if (data.status !== "OK") {
+  console.log(data.error_message);
+  return "Location unavailable";
+}
+
+
+
+return formatDetailedAddress(result);
   };
 
     const fetchLocation = (silent = false) => {
@@ -177,30 +174,52 @@ import {
         if (!silent) alert("Geolocation not supported");
         return;
       }
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          const { latitude, longitude } = position.coords;
-          try {
-            const finalLocation = await reverseGeocodeWithGoogle(latitude, longitude);
-            setLocation(finalLocation);
-            if (finalLocation !== "Location unavailable") {
-              Cookies.set("location", finalLocation, { expires: 7 });
-            }
-          } catch {
-            setLocation("Location unavailable");
-          }
-        },
-        () => {
-          if (!silent) alert("Location access denied");
-        }
+     navigator.geolocation.getCurrentPosition(
+  async (position) => {
+    const { latitude, longitude, accuracy } = position.coords;
+
+    console.log("Latitude:", latitude);
+    console.log("Longitude:", longitude);
+    console.log("Accuracy:", accuracy);
+
+    try {
+      const finalLocation = await reverseGeocodeWithGoogle(
+        latitude,
+        longitude
       );
+
+      setLocation(finalLocation);
+
+      Cookies.set("location", finalLocation, {
+        expires: 7,
+      });
+
+      Cookies.set("latitude", latitude.toString(), {
+        expires: 7,
+      });
+
+      Cookies.set("longitude", longitude.toString(), {
+        expires: 7,
+      });
+
+    } catch (err) {
+      console.error(err);
+      setLocation("Location unavailable");
+    }
+  },
+  () => {
+    if (!silent) {
+      alert("Location access denied");
+    }
+  },
+  {
+    enableHighAccuracy: true,
+    timeout: 20000,
+    maximumAge: 0,
+  }
+);
+
     };
-
-    useEffect(() => {
-      if (!username || location) return;
-      fetchLocation(true);
-    }, [username, location]);
-
     useEffect(() => {
       const handleClickOutside = (event: MouseEvent) => {
         const target = event.target as Node;
@@ -576,19 +595,39 @@ import {
           </div>
 
           <nav className={`${styles.navLinks} ${menuOpen ? styles.open : ""}`}>
-            <Link href="/home" className={styles.navLink}>
-              Home
-            </Link>
-            <Link href="/course-listing" className={styles.navLink}>
-            Buy Courses
-            </Link>
-            <Link href="/workshop-trainings" className={styles.navLink}>
-              Workshop Training
-            </Link>
-            <Link href="/home/B2bProductsList" className={styles.navLink}>
-              Buy B2B Products
-            </Link>
-          </nav>
+  <Link href="/home" className={styles.navLink}>
+    Home
+  </Link>
+
+ {currentRole === "doctor" && (
+    <Link
+      href="/DoctorDashboard?section=appointments"
+      className={styles.navLink}
+    >
+      Online Consultation
+    </Link>
+  )}
+
+  {currentRole === "clinic" && (
+    <Link
+      href="/home/ClinicHiringPortal"
+      className={styles.navLink}
+    >
+      Hiring
+    </Link>
+  )}
+  <Link href="/course-listing" className={styles.navLink}>
+    Buy Courses
+  </Link>
+
+  <Link href="/workshop-trainings" className={styles.navLink}>
+    Workshop Training
+  </Link>
+
+  <Link href="/home/B2bProductsList" className={styles.navLink}>
+    B2B Products
+  </Link>
+</nav>
         </div>
 
         <div className={styles.rightSection}>
@@ -691,4 +730,4 @@ import {
     );
   };
 
-  export default Topbar;
+ export default Topbar;

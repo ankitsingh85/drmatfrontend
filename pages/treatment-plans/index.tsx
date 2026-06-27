@@ -22,7 +22,8 @@ interface TreatmentPlan {
   _id: string;
   treatmentName: string;
   slug?: string;
-  serviceCategory?: string;
+  // A treatment plan can now belong to multiple categories at once.
+  serviceCategory?: string[];
   clinic?:
     | {
         _id: string;
@@ -37,7 +38,7 @@ interface TreatmentPlan {
 }
 
 interface TreatmentWithCategory extends TreatmentPlan {
-  categoryObj?: Category | null;
+  categoryObjs: Category[];
 }
 
 interface StoredCategory {
@@ -95,21 +96,31 @@ const TreatmentListingPage: React.FC = () => {
     return null;
   };
 
+  // A plan can have multiple category names — resolve all of them to
+  // their matching Category objects (so the UI can show every tag and
+  // the filter can match on any one of them).
   const normalizeTreatments = (raw: unknown, cats: Category[]): TreatmentWithCategory[] =>
     extractArray(raw)
       .map((plan: any) => {
-        const serviceCategoryName =
-          typeof plan?.serviceCategory === "string" ? plan.serviceCategory : "";
-        const categoryObj =
-          cats.find(
-            (cat) => cat.name.toLowerCase() === serviceCategoryName.toLowerCase()
-          ) || null;
+        const rawCategories: string[] = Array.isArray(plan?.serviceCategory)
+          ? plan.serviceCategory
+          : typeof plan?.serviceCategory === "string" && plan.serviceCategory
+          ? [plan.serviceCategory]
+          : [];
+
+        const categoryObjs = rawCategories
+          .map(
+            (name) =>
+              cats.find((cat) => cat.name.toLowerCase() === name.toLowerCase()) ||
+              null
+          )
+          .filter((cat): cat is Category => Boolean(cat));
 
         return {
           _id: String(plan?._id ?? ""),
           treatmentName: String(plan?.treatmentName ?? ""),
           slug: plan?.slug,
-          serviceCategory: serviceCategoryName,
+          serviceCategory: rawCategories,
           clinic: plan?.clinic,
           mrp: Number(plan?.mrp ?? 0),
           offerPrice:
@@ -119,7 +130,7 @@ const TreatmentListingPage: React.FC = () => {
             : [],
           isActive: plan?.isActive,
           createdAt: String(plan?.createdAt ?? ""),
-          categoryObj,
+          categoryObjs,
         };
       })
       .filter((plan) => plan._id && plan.treatmentName);
@@ -152,8 +163,10 @@ const TreatmentListingPage: React.FC = () => {
       discountPrice: offer,
       company:
         typeof plan.clinic === "object"
-          ? plan.clinic?.clinicName || plan.serviceCategory || "Treatment Plan"
-          : plan.serviceCategory || "Treatment Plan",
+          ? plan.clinic?.clinicName ||
+            plan.serviceCategory?.join(", ") ||
+            "Treatment Plan"
+          : plan.serviceCategory?.join(", ") || "Treatment Plan",
       image: resolveImage(plan.treatmentImages?.[0]),
       itemType: "treatment" as const,
     };
@@ -232,14 +245,18 @@ const TreatmentListingPage: React.FC = () => {
             (plan.clinic?.clinicName || "")
               .toLowerCase()
               .includes(searchTerm.toLowerCase())) ||
-          (plan.serviceCategory || "")
-            .toLowerCase()
-            .includes(searchTerm.toLowerCase());
+          (plan.serviceCategory || []).some((name) =>
+            name.toLowerCase().includes(searchTerm.toLowerCase())
+          );
 
+        // A plan matches the selected category if ANY of its categories
+        // (by id or by name) match the one currently selected.
         const matchesCategory = selectedCategoryId
-          ? plan.categoryObj?._id === selectedCategoryId ||
-            plan.serviceCategory?.toLowerCase() ===
-              selectedCategory?.name?.toLowerCase()
+          ? plan.categoryObjs.some((cat) => cat._id === selectedCategoryId) ||
+            (selectedCategory &&
+              plan.serviceCategory?.some(
+                (name) => name.toLowerCase() === selectedCategory.name.toLowerCase()
+              ))
           : true;
 
         return matchesSearch && matchesCategory;
@@ -355,12 +372,14 @@ const TreatmentListingPage: React.FC = () => {
                         <h3 className={styles.productName}>{plan.treatmentName}</h3>
 
                         <p className={styles.productSize}>
-                          {clinicName || plan.serviceCategory || "Treatment Plan"}
+                          {clinicName ||
+                            plan.serviceCategory?.join(", ") ||
+                            "Treatment Plan"}
                         </p>
 
-                        {plan.categoryObj && (
+                        {plan.categoryObjs.length > 0 && (
                           <p className={styles.categoryName}>
-                            Category: {plan.categoryObj.name}
+                            Category: {plan.categoryObjs.map((c) => c.name).join(", ")}
                           </p>
                         )}
 

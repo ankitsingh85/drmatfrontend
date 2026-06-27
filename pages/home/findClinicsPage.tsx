@@ -47,7 +47,8 @@ const FindClinicsPage: React.FC = () => {
     return Array.isArray(value) ? value[0] : value || null;
   }, [router.query.category]);
 
-  const [clinics, setClinics] = useState<Clinic[]>([]);
+ const [clinics, setClinics] = useState<Clinic[]>([]);
+const [allClinics, setAllClinics] = useState<Clinic[]>([]);
   const [categories, setCategories] = useState<ClinicCategory[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
     categoryQuery
@@ -80,7 +81,10 @@ const FindClinicsPage: React.FC = () => {
       const res = await fetch(`${API_URL}/clinics`);
       if (!res.ok) throw new Error("Failed to load clinics");
       const data = await res.json();
-      setClinics(Array.isArray(data) ? data : []);
+     const clinicList = Array.isArray(data) ? data : [];
+
+setClinics(clinicList);
+setAllClinics(clinicList);
     } catch (err) {
       console.error(err);
       setClinicError("Failed to load clinics");
@@ -144,7 +148,19 @@ const fetchNearbyClinics = async (
   }
 
 };
+const fetchAllClinics = async () => {
+  try {
+    const res = await fetch(`${API_URL}/clinics`);
 
+    if (!res.ok) throw new Error("Failed to load clinics");
+
+    const data = await res.json();
+
+    setAllClinics(Array.isArray(data) ? data : []);
+  } catch (err) {
+    console.error(err);
+  }
+};
 
 const getUserLocation = () => {
 
@@ -241,33 +257,51 @@ timeout:10000
 
 
 };
-  useEffect(() => {
+useEffect(() => {
+  fetchCategories();
 
-    fetchCategories();
+  fetchAllClinics(); // <-- Missing
 
-
-    getUserLocation();
-
-
+  getUserLocation();
 }, []);
 
   useEffect(() => {
     setSelectedCategoryId(categoryQuery);
   }, [categoryQuery]);
 
-  const filteredClinics = useMemo(() => {
-    return clinics.filter((clinic) => {
-      const matchCategory = selectedCategoryId
+ const filteredClinics = useMemo(() => {
+
+  const source =
+    search.trim().length > 0
+      ? allClinics
+      : clinics;
+
+  return source.filter((clinic) => {
+
+    const matchCategory =
+      selectedCategoryId
         ? clinic.dermaCategory?._id === selectedCategoryId
         : true;
 
-      const matchSearch =
-        clinic.clinicName.toLowerCase().includes(search.toLowerCase()) ||
-        clinic.address.toLowerCase().includes(search.toLowerCase());
+    const matchSearch =
+      clinic.clinicName
+        .toLowerCase()
+        .includes(search.toLowerCase()) ||
 
-      return matchCategory && matchSearch;
-    });
-  }, [clinics, selectedCategoryId, search]);
+      clinic.address
+        .toLowerCase()
+        .includes(search.toLowerCase());
+
+    return matchCategory && matchSearch;
+
+  });
+
+}, [
+  clinics,
+  allClinics,
+  selectedCategoryId,
+  search,
+]);
 
   const totalPages = Math.max(
     1,

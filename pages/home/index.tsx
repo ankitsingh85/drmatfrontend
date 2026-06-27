@@ -138,7 +138,7 @@ const Index = () => {
             
             <TraningWorkshop/>
             <CourseListing />
-            {isClinicMode && <ClinicHiringPortal />}
+            {/* {isClinicMode && <ClinicHiringPortal />} */}
           </div>
         </div>
         <Footer />

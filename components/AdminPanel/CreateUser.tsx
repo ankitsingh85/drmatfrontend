@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import styles from "@/styles/Dashboard/createUser.module.css";
 import { API_URL } from "@/config/api";
 
-const generatePatientId = () => `PAT-${Date.now().toString().slice(-6)}`;
+
 type ValidatedField = "patientName" | "email" | "contactNo" | "address";
 
 export default function CreateUser() {
@@ -40,12 +40,7 @@ export default function CreateUser() {
   const nameRegex = /^[A-Za-z ]+$/;
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-  useEffect(() => {
-    setFormData((prev) => ({
-      ...prev,
-      patientId: generatePatientId(),
-    }));
-  }, []);
+
 
   const validateField = (name: string, value: string) => {
     switch (name) {
@@ -170,7 +165,7 @@ export default function CreateUser() {
     if (hasErrors) return;
 
     const payload = {
-      patientId: formData.patientId,
+    
       name: formData.patientName.trim(),
       email: formData.email.trim(),
       contactNo: formData.contactNo.trim(),
@@ -205,7 +200,7 @@ export default function CreateUser() {
       window.dispatchEvent(new Event("admin-dashboard:create-success"));
 
       setFormData({
-        patientId: generatePatientId(),
+        patientId: "",     
         patientName: "",
         email: "",
         contactNo: "",

@@ -8,7 +8,7 @@ import editStyles from "@/styles/Dashboard/createUser.module.css";
 interface Treatment {
   _id: string;
   treatmentName: string;
-  serviceCategory?: string;
+  serviceCategory?: string[];
   gender?: string;
   mrp?: number;
   offerPrice?: number;
@@ -22,16 +22,24 @@ interface Treatment {
     | string;
 }
 
+interface ServiceCategory {
+  _id: string;
+  name: string;
+}
+
 interface TreatmentEditForm {
   treatmentName: string;
   clinicId: string;
-  serviceCategory: string;
+  serviceCategory: string[];
   mrp: string;
   offerPrice: string;
 }
 
 const ListOfTreatment = () => {
   const [treatments, setTreatments] = useState<Treatment[]>([]);
+  const [serviceCategories, setServiceCategories] = useState<ServiceCategory[]>(
+    []
+  );
   const [search, setSearch] = useState("");
   const [filterClinic, setFilterClinic] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
@@ -40,7 +48,7 @@ const ListOfTreatment = () => {
   const [editForm, setEditForm] = useState<TreatmentEditForm>({
     treatmentName: "",
     clinicId: "",
-    serviceCategory: "",
+    serviceCategory: [],
     mrp: "",
     offerPrice: "",
   });
@@ -48,6 +56,7 @@ const ListOfTreatment = () => {
 
   useEffect(() => {
     fetchTreatments();
+    fetchServiceCategories();
   }, []);
 
   const fetchTreatments = async () => {
@@ -55,12 +64,43 @@ const ListOfTreatment = () => {
       const res = await fetch(`${API_URL}/treatment-plans?includeInactive=true`);
       const data = await res.json();
       if (Array.isArray(data)) {
-        setTreatments(data);
+        setTreatments(
+          data.map((treatment: any) => ({
+            ...treatment,
+            // Normalize serviceCategory to always be an array, regardless
+            // of whether the backend (or older records) stored it as a
+            // single string.
+            serviceCategory: Array.isArray(treatment.serviceCategory)
+              ? treatment.serviceCategory
+              : treatment.serviceCategory
+              ? [treatment.serviceCategory]
+              : [],
+          }))
+        );
       } else {
         setError("Invalid data format");
       }
     } catch (err) {
       setError("Failed to fetch treatments");
+    }
+  };
+
+  const fetchServiceCategories = async () => {
+    try {
+      const res = await fetch(`${API_URL}/service-categories`);
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setServiceCategories(
+          data
+            .map((cat: any) => ({
+              _id: String(cat._id || cat.id || "").trim(),
+              name: String(cat.name || "").trim(),
+            }))
+            .filter((cat: ServiceCategory) => cat._id && cat.name)
+        );
+      }
+    } catch (err) {
+      console.error("Failed to fetch service categories", err);
     }
   };
 
@@ -81,9 +121,11 @@ const ListOfTreatment = () => {
         typeof treatment.clinic === "object"
           ? treatment.clinic?.clinicName || ""
           : "";
+      const categoryText = (treatment.serviceCategory || []).join(" ");
       const isQueryMatch =
         treatment.treatmentName.toLowerCase().includes(query) ||
-        clinicName.toLowerCase().includes(query);
+        clinicName.toLowerCase().includes(query) ||
+        categoryText.toLowerCase().includes(query);
 
       const isClinicMatch =
         filterClinic === "all" ||
@@ -126,7 +168,7 @@ const ListOfTreatment = () => {
         typeof treatment.clinic === "object"
           ? treatment.clinic?.clinicName || ""
           : "",
-        treatment.serviceCategory || "",
+        (treatment.serviceCategory || []).join(", "),
         treatment.gender || "",
         treatment.mrp ?? "",
         treatment.offerPrice ?? "",
@@ -177,7 +219,9 @@ const ListOfTreatment = () => {
               ? treatment.clinic?.clinicName || "-"
               : "-"
           )}</td>
-          <td>${escapeHtml(treatment.serviceCategory || "-")}</td>
+          <td>${escapeHtml(
+            (treatment.serviceCategory || []).join(", ") || "-"
+          )}</td>
           <td>${escapeHtml(treatment.gender || "-")}</td>
           <td>${escapeHtml(String(treatment.mrp ?? "-"))}</td>
           <td>${escapeHtml(String(treatment.offerPrice ?? "-"))}</td>
@@ -266,7 +310,15 @@ const ListOfTreatment = () => {
 
       setTreatments((prev) =>
         prev.map((item) =>
-          item._id === treatment._id ? { ...item, ...data } : item
+          item._id === treatment._id
+            ? {
+                ...item,
+                ...data,
+                serviceCategory: Array.isArray(data?.serviceCategory)
+                  ? data.serviceCategory
+                  : item.serviceCategory,
+              }
+            : item
         )
       );
     } catch (err: any) {
@@ -293,17 +345,33 @@ const ListOfTreatment = () => {
     setEditForm({
       treatmentName: treatment.treatmentName || "",
       clinicId,
-      serviceCategory: treatment.serviceCategory || "",
+      serviceCategory: treatment.serviceCategory || [],
       mrp: treatment.mrp != null ? String(treatment.mrp) : "",
       offerPrice: treatment.offerPrice != null ? String(treatment.offerPrice) : "",
     });
     setError("");
   };
 
+  const toggleEditCategory = (categoryName: string) => {
+    setEditForm((prev) => {
+      const exists = prev.serviceCategory.includes(categoryName);
+      return {
+        ...prev,
+        serviceCategory: exists
+          ? prev.serviceCategory.filter((c) => c !== categoryName)
+          : [...prev.serviceCategory, categoryName],
+      };
+    });
+  };
+
   const handleUpdate = async () => {
     if (!editingTreatment) return;
     if (!editForm.treatmentName.trim()) {
       setError("Treatment name is required");
+      return;
+    }
+    if (editForm.serviceCategory.length === 0) {
+      setError("Please select at least one category");
       return;
     }
 
@@ -323,7 +391,7 @@ const ListOfTreatment = () => {
     const payload = {
       treatmentName: editForm.treatmentName.trim(),
       clinic: editForm.clinicId || undefined,
-      serviceCategory: editForm.serviceCategory.trim(),
+      serviceCategory: editForm.serviceCategory,
       mrp: parsedMrp,
       offerPrice: parsedOffer,
     };
@@ -345,7 +413,7 @@ const ListOfTreatment = () => {
               ? {
                   ...t,
                   treatmentName: payload.treatmentName,
-                  serviceCategory: payload.serviceCategory || undefined,
+                  serviceCategory: payload.serviceCategory,
                   mrp: payload.mrp,
                   offerPrice: payload.offerPrice,
                   clinic: payload.clinic
@@ -366,7 +434,7 @@ const ListOfTreatment = () => {
         setEditForm({
           treatmentName: "",
           clinicId: "",
-          serviceCategory: "",
+          serviceCategory: [],
           mrp: "",
           offerPrice: "",
         });
@@ -402,16 +470,6 @@ const ListOfTreatment = () => {
             </option>
           ))}
         </select>
-        {/* <select
-          value={itemsPerPage}
-          onChange={(e) => setItemsPerPage(Number(e.target.value))}
-          className={`${styles.filter} ${styles.pageFilter}`}
-        >
-          <option value={5}>5 per page</option>
-          <option value={10}>10 per page</option>
-          <option value={20}>20 per page</option>
-          <option value={50}>50 per page</option>
-        </select> */}
         <button
           type="button"
           className={styles.premiumButton}
@@ -453,7 +511,7 @@ const ListOfTreatment = () => {
                     ? treatment.clinic?.clinicName
                     : "-"}
                 </td>
-                <td>{treatment.serviceCategory || "-"}</td>
+                <td>{(treatment.serviceCategory || []).join(", ") || "-"}</td>
                 <td>{treatment.gender || "-"}</td>
                 <td>{treatment.mrp ?? "-"}</td>
                 <td>{treatment.offerPrice ?? "-"}</td>
@@ -596,20 +654,39 @@ const ListOfTreatment = () => {
                 </select>
               </div>
 
+              {/* ===== MULTI-SELECT CATEGORY ===== */}
               <div className={editStyles.field}>
-                <label className={editStyles.label}>Category</label>
-                <input
-                  type="text"
-                  value={editForm.serviceCategory}
-                  onChange={(e) =>
-                    setEditForm((prev) => ({
-                      ...prev,
-                      serviceCategory: e.target.value,
-                    }))
-                  }
-                  className={editStyles.input}
-                  placeholder="Service category"
-                />
+                <label className={editStyles.label}>
+                  Category (select one or more)
+                </label>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                  {serviceCategories.map((cat) => {
+                    const selected = editForm.serviceCategory.includes(cat.name);
+                    return (
+                      <button
+                        key={cat._id}
+                        type="button"
+                        onClick={() => toggleEditCategory(cat.name)}
+                        style={{
+                          padding: "6px 14px",
+                          borderRadius: "16px",
+                          border: selected ? "1px solid #2563eb" : "1px solid #ccc",
+                          background: selected ? "#dbeafe" : "#fff",
+                          color: selected ? "#1e40af" : "#333",
+                          cursor: "pointer",
+                          fontSize: "13px",
+                        }}
+                      >
+                        {cat.name}
+                      </button>
+                    );
+                  })}
+                </div>
+                {editForm.serviceCategory.length > 0 && (
+                  <p style={{ fontSize: "12px", color: "#555", marginTop: "6px" }}>
+                    Selected: {editForm.serviceCategory.join(", ")}
+                  </p>
+                )}
               </div>
 
               <div className={editStyles.field}>
@@ -654,7 +731,7 @@ const ListOfTreatment = () => {
                   setEditForm({
                     treatmentName: "",
                     clinicId: "",
-                    serviceCategory: "",
+                    serviceCategory: [],
                     mrp: "",
                     offerPrice: "",
                   });

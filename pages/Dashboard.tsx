@@ -67,6 +67,7 @@ import {
   FiRefreshCw,
   FiChevronDown,
   FiChevronRight,
+  FiLock,
 } from "react-icons/fi";
 
 import CreateB2BCategory from "@/components/AdminPanel/CreateB2BCategory";
@@ -78,6 +79,14 @@ import MobileNavbar from "@/components/Layout/MobileNavbar";
 
 type JwtPayload = { id: string; role: string; exp: number };
 type BasicItem = { _id?: string; name?: string; createdAt?: string };
+
+type AdminPermission = {
+  module: string;
+  view: boolean;
+  create: boolean;
+  delete: boolean;
+};
+
 type ModuleSectionConfig = {
   id: string;
   label: string;
@@ -100,6 +109,18 @@ export default function SuperAdminDashboard() {
   const [summaryError, setSummaryError] = useState("");
   const [lastUpdated, setLastUpdated] = useState("");
   const [adminName, setAdminName] = useState("");
+
+  /* ================= PERMISSIONS STATE =================
+     Super Admin always bypasses the permission checks below. Every
+     other role (System Admin / Manager / custom) only sees the
+     sidebar modules and "Create" buttons it's been explicitly granted
+     view/create access to.
+  */
+  const [adminRole, setAdminRole] = useState("");
+  const [adminCustomRoleLabel, setAdminCustomRoleLabel] = useState("");
+  const [permissions, setPermissions] = useState<AdminPermission[]>([]);
+  const isSuperAdmin = adminRole === "superadmin";
+
   const [summaryData, setSummaryData] = useState({
     admins: [] as any[],
     users: [] as any[],
@@ -114,7 +135,29 @@ export default function SuperAdminDashboard() {
     courseTypes: [] as any[],
   });
 
-  /* ================= AUTH ================= */
+  const permissionFor = useCallback(
+    (moduleId: string): AdminPermission => {
+      const found = permissions.find((p) => p.module === moduleId);
+      return found || { module: moduleId, view: false, create: false, delete: false };
+    },
+    [permissions]
+  );
+
+  const canView = useCallback(
+    (moduleId: string) => isSuperAdmin || permissionFor(moduleId).view,
+    [isSuperAdmin, permissionFor]
+  );
+
+  const canCreate = useCallback(
+    (moduleId: string) => isSuperAdmin || permissionFor(moduleId).create,
+    [isSuperAdmin, permissionFor]
+  );
+
+  /* ================= AUTH =================
+     Any admin role can now log in here (not just Super Admin). What
+     they actually see inside is gated by their permissions, fetched
+     right below.
+  */
   useEffect(() => {
     const token = Cookies.get("token");
     if (!token) {
@@ -123,36 +166,69 @@ export default function SuperAdminDashboard() {
       return;
     }
 
+    let decoded: JwtPayload;
     try {
-      const decoded = jwtDecode<JwtPayload>(token);
-      if (
-        decoded.exp * 1000 < Date.now() ||
-        decoded.role?.toLowerCase() !== "superadmin"
-      ) {
-        Cookies.remove("token");
-        Cookies.remove("role");
-        router.replace("/adminlogin");
-        return;
-      }
-
-      const storedName =
-        Cookies.get("adminName") ||
-        Cookies.get("name") ||
-        Cookies.get("username") ||
-        (decoded as any).name ||
-        (decoded as any).fullName ||
-        (decoded as any).firstName ||
-        (decoded as any).username ||
-        (decoded as any).email ||
-        "";
-
-      setAdminName(storedName || "Super Admin");
-      setCheckingAuth(false);
+      decoded = jwtDecode<JwtPayload>(token);
     } catch {
       Cookies.remove("token");
       Cookies.remove("role");
       router.replace("/adminlogin");
+      return;
     }
+
+    if (decoded.exp * 1000 < Date.now()) {
+      Cookies.remove("token");
+      Cookies.remove("role");
+      router.replace("/adminlogin");
+      return;
+    }
+
+    const storedName =
+      Cookies.get("adminName") ||
+      Cookies.get("name") ||
+      Cookies.get("username") ||
+      (decoded as any).name ||
+      (decoded as any).fullName ||
+      (decoded as any).firstName ||
+      (decoded as any).username ||
+      (decoded as any).email ||
+      "";
+
+    setAdminName(storedName || "Admin");
+
+    // Fetch this admin's own record so we have their real role +
+    // permissions (the JWT only carries a coarse role string).
+    //
+    // NOTE (security/TODO): GET /admins/:id is currently a public,
+    // unauthenticated route — anyone who knows or guesses an admin's
+    // _id could read their permissions. Once an admin-auth middleware
+    // exists, this should instead hit a session-aware "/admins/me"
+    // endpoint (the same pattern as userAuth + GET /users/me) rather
+    // than trusting the id embedded in a client-readable JWT.
+    const fetchOwnPermissions = async () => {
+      try {
+        const res = await fetch(`${API_URL}/admins/${decoded.id}`);
+        const data = await res.json();
+        if (!res.ok || !data?.admin) {
+          throw new Error(data?.message || "Failed to load admin profile");
+        }
+
+        setAdminRole(String(data.admin.role || decoded.role || "").toLowerCase());
+        setAdminCustomRoleLabel(data.admin.customRoleLabel || "");
+        setPermissions(Array.isArray(data.admin.permissions) ? data.admin.permissions : []);
+        setCheckingAuth(false);
+      } catch (err) {
+        console.error("Failed to load admin permissions:", err);
+        // Fall back to the role embedded in the JWT so the dashboard
+        // still loads (with no granted permissions) instead of being
+        // stuck on a loader forever.
+        setAdminRole(String(decoded.role || "").toLowerCase());
+        setPermissions([]);
+        setCheckingAuth(false);
+      }
+    };
+
+    fetchOwnPermissions();
   }, [router]);
 
   /* ================= RESPONSIVE ================= */
@@ -263,8 +339,6 @@ export default function SuperAdminDashboard() {
       ListComponent: ListOfClinic,
       CreateComponent: CreateClinic,
     },
-    
-    
     {
       id: "b2bProductCategory",
       label: "B2B PRODUCT CATEGORY",
@@ -297,12 +371,39 @@ export default function SuperAdminDashboard() {
       ListComponent: ListOfTreatment,
       CreateComponent: CreateTreatment,
     },
-  
   ];
 
-  const activeModule = dashboardModules.find((module) => module.id === activeSection);
+  // Only the modules this admin is permitted to VIEW show up in the
+  // sidebar at all. Super Admin always sees the full list.
+  const visibleModules = dashboardModules.filter((module) => canView(module.id));
+
+  const activeModule = visibleModules.find((module) => module.id === activeSection);
   const ActiveListComponent = activeModule?.ListComponent;
   const ActiveCreateComponent = activeModule?.CreateComponent;
+  const activeModuleCanCreate = activeModule ? canCreate(activeModule.id) : false;
+
+  // If permissions load (or change) and the admin is currently sitting
+  // on a section they no longer have view access to, bounce them back
+  // to the dashboard home instead of leaving them on a blank module.
+  useEffect(() => {
+    if (checkingAuth) return;
+    if (activeSection === "dashBoard") return;
+    const stillVisible = visibleModules.some((m) => m.id === activeSection);
+    const othersSectionIds = [
+      "listOfTopProduct",
+      "offer1",
+      "offer2",
+      "offer3",
+      "latestshorts",
+      "treatmentshorts",
+      "clinicHiringRequests",
+    ];
+    const isOthersSection = othersSectionIds.includes(activeSection);
+    if (!stillVisible && !(isOthersSection && canView("others"))) {
+      setActiveSection("dashBoard");
+      setSectionMode("list");
+    }
+  }, [checkingAuth, activeSection, visibleModules, canView]);
 
   const handleModuleChange = (moduleId: string) => {
     setActiveSection(moduleId);
@@ -420,6 +521,85 @@ export default function SuperAdminDashboard() {
     2
   );
 
+  // Only show the stat cards for sections this admin can actually view
+  // (Super Admin sees all of them, as before).
+  const statCards = [
+    {
+      moduleId: "admin",
+      label: "Admins",
+      value: summaryData.admins.length,
+      icon: <FiUserCheck />,
+      tone: styles.toneAdmins,
+    },
+    {
+      moduleId: "user",
+      label: "Users",
+      value: summaryData.users.length,
+      icon: <FiUsers />,
+      tone: styles.toneUsers,
+    },
+    {
+      moduleId: "doctor",
+      label: "Doctors",
+      value: summaryData.doctors.length,
+      icon: <FiUser />,
+      tone: styles.toneDoctors,
+    },
+    {
+      moduleId: "clinic",
+      label: "Clinics",
+      value: summaryData.clinics.length,
+      icon: <FiHome />,
+      tone: styles.toneClinics,
+    },
+    {
+      moduleId: "b2bProduct",
+      label: "B2B Products",
+      value: summaryData.b2bProducts.length,
+      icon: <FiBriefcase />,
+      tone: styles.toneB2BProducts,
+    },
+    {
+      moduleId: "productCategory",
+      label: "Product Categories",
+      value: summaryData.productCategories.length,
+      icon: <FiGrid />,
+      tone: styles.toneProductCategories,
+    },
+    {
+      moduleId: "clinicCategory",
+      label: "Clinic Categories",
+      value: summaryData.clinicCategories.length,
+      icon: <FiLayers />,
+      tone: styles.toneClinicCategories,
+    },
+    {
+      moduleId: "serviceCategory",
+      label: "Service Categories",
+      value: summaryData.serviceCategories.length,
+      icon: <FiLayers />,
+      tone: styles.toneServiceCategories,
+    },
+    {
+      moduleId: "b2bProductCategory",
+      label: "B2B Categories",
+      value: summaryData.b2bCategories.length,
+      icon: <FiLayers />,
+      tone: styles.toneB2BCategories,
+    },
+    {
+      moduleId: "courseType",
+      label: "Course Types",
+      value: summaryData.courseTypes.length,
+      icon: <FiLayers />,
+      tone: styles.toneCourseTypes,
+    },
+  ].filter((card) => canView(card.moduleId));
+
+  const roleDisplayLabel = isSuperAdmin
+    ? "Super Admin"
+    : adminCustomRoleLabel || adminRole.charAt(0).toUpperCase() + adminRole.slice(1);
+
   if (checkingAuth) {
     return <FullPageLoader />;
   }
@@ -455,9 +635,14 @@ export default function SuperAdminDashboard() {
         />
 
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <span style={{ fontWeight: 600, color: "#334155" }}>
-            {adminName || "Super Admin"}
-          </span>
+          <div style={{ textAlign: "right" }}>
+            <div style={{ fontWeight: 600, color: "#334155" }}>
+              {adminName || "Admin"}
+            </div>
+            <div style={{ fontSize: "12px", color: "#64748b" }}>
+              {roleDisplayLabel}
+            </div>
+          </div>
           <button
             onClick={handleLogout}
             style={{
@@ -515,7 +700,8 @@ export default function SuperAdminDashboard() {
             </span>
           </li>
 
-          {dashboardModules.map((module) => (
+          {/* Only modules this admin can VIEW show up here at all. */}
+          {visibleModules.map((module) => (
             <li
               key={module.id}
               className={`${styles.menuItem} ${
@@ -530,44 +716,62 @@ export default function SuperAdminDashboard() {
             </li>
           ))}
 
-          <li
-            className={styles.menuItem}
-            onClick={() => setOthersOpen((prev) => !prev)}
-          >
-            <span className={styles.iconLabel}>
-              <FiLayers />
-              <span className={styles.label}>OTHERS</span>
-            </span>
-            {othersOpen ? <FiChevronDown /> : <FiChevronRight />}
-          </li>
+          {/* The whole "OTHERS" group is gated behind a single
+              "others" permission toggle. */}
+          {canView("others") && (
+            <>
+              <li
+                className={styles.menuItem}
+                onClick={() => setOthersOpen((prev) => !prev)}
+              >
+                <span className={styles.iconLabel}>
+                  <FiLayers />
+                  <span className={styles.label}>OTHERS</span>
+                </span>
+                {othersOpen ? <FiChevronDown /> : <FiChevronRight />}
+              </li>
 
-          {othersOpen && (
-            <ul className={styles.inlineDropdown}>
-              <li onClick={() => handleSectionChange("listOfTopProduct")}>
-                List Top Product
-              </li>
-              <li onClick={() => handleSectionChange("offer1")}>
-                Product Offer
-              </li>
-              <li onClick={() => handleSectionChange("offer2")}>
-                Treatment Offer
-              </li>
-              <li onClick={() => handleSectionChange("offer3")}>
-                Clinic Offer
-              </li>
-              {/* <li onClick={() => handleSectionChange("offer4")}>
-                Offer 4
-              </li> */}
-              <li onClick={() => handleSectionChange("latestshorts")}>
-                Latest Shorts
-              </li>
-              <li onClick={() => handleSectionChange("treatmentshorts")}>
-                Treatment Shorts
-              </li>
-              <li onClick={() => handleSectionChange("clinicHiringRequests")}>
-                Hiring Requests
-              </li>
-            </ul>
+              {othersOpen && (
+                <ul className={styles.inlineDropdown}>
+                  <li onClick={() => handleSectionChange("listOfTopProduct")}>
+                    List Top Product
+                  </li>
+                  <li onClick={() => handleSectionChange("offer1")}>
+                    Product Offer
+                  </li>
+                  <li onClick={() => handleSectionChange("offer2")}>
+                    Treatment Offer
+                  </li>
+                  <li onClick={() => handleSectionChange("offer3")}>
+                    Clinic Offer
+                  </li>
+                  <li onClick={() => handleSectionChange("latestshorts")}>
+                    Latest Shorts
+                  </li>
+                  <li onClick={() => handleSectionChange("treatmentshorts")}>
+                    Treatment Shorts
+                  </li>
+                  <li onClick={() => handleSectionChange("clinicHiringRequests")}>
+                    Hiring Requests
+                  </li>
+                </ul>
+              )}
+            </>
+          )}
+
+          {!isSuperAdmin && visibleModules.length === 0 && !canView("others") && (
+            <p
+              style={{
+                fontSize: "12px",
+                color: "#94a3b8",
+                padding: "12px",
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+              }}
+            >
+              <FiLock /> No modules have been granted to your account yet.
+            </p>
           )}
         </aside>
 
@@ -577,9 +781,7 @@ export default function SuperAdminDashboard() {
             <div className={styles.premiumDashboard}>
               <div className={styles.dashboardHero}>
                 <div>
-                  <h2 className={styles.heroTitle}>
-                    {adminName || "Super Admin"}
-                  </h2>
+                  <h2 className={styles.heroTitle}>{adminName || "Admin"}</h2>
                   <p className={styles.heroSubtitle}>
                     Real-time snapshot of all critical modules across your
                     platform.
@@ -604,69 +806,7 @@ export default function SuperAdminDashboard() {
               {summaryError && <p className={styles.summaryError}>{summaryError}</p>}
 
               <div className={styles.statGrid}>
-                {[
-                  {
-                    label: "Admins",
-                    value: summaryData.admins.length,
-                    icon: <FiUserCheck />,
-                    tone: styles.toneAdmins,
-                  },
-                  {
-                    label: "Users",
-                    value: summaryData.users.length,
-                    icon: <FiUsers />,
-                    tone: styles.toneUsers,
-                  },
-                  {
-                    label: "Doctors",
-                    value: summaryData.doctors.length,
-                    icon: <FiUser />,
-                    tone: styles.toneDoctors,
-                  },
-                  {
-                    label: "Clinics",
-                    value: summaryData.clinics.length,
-                    icon: <FiHome />,
-                    tone: styles.toneClinics,
-                  },
-                  
-                  {
-                    label: "B2B Products",
-                    value: summaryData.b2bProducts.length,
-                    icon: <FiBriefcase />,
-                    tone: styles.toneB2BProducts,
-                  },
-                  {
-                    label: "Product Categories",
-                    value: summaryData.productCategories.length,
-                    icon: <FiGrid />,
-                    tone: styles.toneProductCategories,
-                  },
-                  {
-                    label: "Clinic Categories",
-                    value: summaryData.clinicCategories.length,
-                    icon: <FiLayers />,
-                    tone: styles.toneClinicCategories,
-                  },
-                  {
-                    label: "Service Categories",
-                    value: summaryData.serviceCategories.length,
-                    icon: <FiLayers />,
-                    tone: styles.toneServiceCategories,
-                  },
-                  {
-                    label: "B2B Categories",
-                    value: summaryData.b2bCategories.length,
-                    icon: <FiLayers />,
-                    tone: styles.toneB2BCategories,
-                  },
-                  {
-                    label: "Course Types",
-                    value: summaryData.courseTypes.length,
-                    icon: <FiLayers />,
-                    tone: styles.toneCourseTypes,
-                  },
-                ].map((item) => (
+                {statCards.map((item) => (
                   <div key={item.label} className={`${styles.statCard} ${item.tone}`}>
                     <div className={styles.statIcon}>{item.icon}</div>
                     <div>
@@ -678,87 +818,97 @@ export default function SuperAdminDashboard() {
               </div>
 
               <div className={styles.insightGrid}>
-                <div className={styles.insightCard}>
-                  <h3>Recent Admins</h3>
-                  <ul>
-                    {recentAdmins.length > 0 ? (
-                      recentAdmins.map((a: any) => (
-                        <li key={a._id || a.email || a.name}>
-                          <span>{a.name || "Unnamed Admin"}</span>
-                          <small>{a.email || "-"}</small>
-                        </li>
-                      ))
-                    ) : (
-                      <li className={styles.emptyItem}>No admin records</li>
-                    )}
-                  </ul>
-                </div>
+                {canView("admin") && (
+                  <div className={styles.insightCard}>
+                    <h3>Recent Admins</h3>
+                    <ul>
+                      {recentAdmins.length > 0 ? (
+                        recentAdmins.map((a: any) => (
+                          <li key={a._id || a.email || a.name}>
+                            <span>{a.name || "Unnamed Admin"}</span>
+                            <small>{a.email || "-"}</small>
+                          </li>
+                        ))
+                      ) : (
+                        <li className={styles.emptyItem}>No admin records</li>
+                      )}
+                    </ul>
+                  </div>
+                )}
 
-                <div className={styles.insightCard}>
-                  <h3>Recent Doctors</h3>
-                  <ul>
-                    {recentDoctors.length > 0 ? (
-                      recentDoctors.map((d: any) => (
-                        <li key={d._id || d.email || d.firstName}>
-                          <span>
-                            {d.firstName || ""} {d.lastName || ""}
-                          </span>
-                          <small>{d.specialist || "-"}</small>
-                        </li>
-                      ))
-                    ) : (
-                      <li className={styles.emptyItem}>No doctor records</li>
-                    )}
-                  </ul>
-                </div>
+                {canView("doctor") && (
+                  <div className={styles.insightCard}>
+                    <h3>Recent Doctors</h3>
+                    <ul>
+                      {recentDoctors.length > 0 ? (
+                        recentDoctors.map((d: any) => (
+                          <li key={d._id || d.email || d.firstName}>
+                            <span>
+                              {d.firstName || ""} {d.lastName || ""}
+                            </span>
+                            <small>{d.specialist || "-"}</small>
+                          </li>
+                        ))
+                      ) : (
+                        <li className={styles.emptyItem}>No doctor records</li>
+                      )}
+                    </ul>
+                  </div>
+                )}
 
-                <div className={styles.insightCard}>
-                  <h3>Recent Clinics</h3>
-                  <ul>
-                    {recentClinics.length > 0 ? (
-                      recentClinics.map((c: any) => (
-                        <li key={c._id || c.email || c.clinicName}>
-                          <span>{c.clinicName || "Unnamed Clinic"}</span>
-                          <small>{c.email || "-"}</small>
-                        </li>
-                      ))
-                    ) : (
-                      <li className={styles.emptyItem}>No clinic records</li>
-                    )}
-                  </ul>
-                </div>
+                {canView("clinic") && (
+                  <div className={styles.insightCard}>
+                    <h3>Recent Clinics</h3>
+                    <ul>
+                      {recentClinics.length > 0 ? (
+                        recentClinics.map((c: any) => (
+                          <li key={c._id || c.email || c.clinicName}>
+                            <span>{c.clinicName || "Unnamed Clinic"}</span>
+                            <small>{c.email || "-"}</small>
+                          </li>
+                        ))
+                      ) : (
+                        <li className={styles.emptyItem}>No clinic records</li>
+                      )}
+                    </ul>
+                  </div>
+                )}
 
-                <div className={styles.insightCard}>
-                  <h3>Recent Products</h3>
-                  <ul>
-                    {recentProducts.length > 0 ? (
-                      recentProducts.map((p: any) => (
-                        <li key={p._id || p.productName}>
-                          <span>{p.productName || "Unnamed Product"}</span>
-                          <small>{p.brandName || "-"}</small>
-                        </li>
-                      ))
-                    ) : (
-                      <li className={styles.emptyItem}>No product records</li>
-                    )}
-                  </ul>
-                </div>
+                {canView("product") && (
+                  <div className={styles.insightCard}>
+                    <h3>Recent Products</h3>
+                    <ul>
+                      {recentProducts.length > 0 ? (
+                        recentProducts.map((p: any) => (
+                          <li key={p._id || p.productName}>
+                            <span>{p.productName || "Unnamed Product"}</span>
+                            <small>{p.brandName || "-"}</small>
+                          </li>
+                        ))
+                      ) : (
+                        <li className={styles.emptyItem}>No product records</li>
+                      )}
+                    </ul>
+                  </div>
+                )}
 
-                <div className={styles.insightCard}>
-                  <h3>Recent Product Categories</h3>
-                  <ul>
-                    {recentCategories.length > 0 ? (
-                      recentCategories.map((cat: any) => (
-                        <li key={cat._id || cat.id || cat.name}>
-                          <span>{cat.name || "Unnamed Category"}</span>
-                          <small>{cat.id || "-"}</small>
-                        </li>
-                      ))
-                    ) : (
-                      <li className={styles.emptyItem}>No category records</li>
-                    )}
-                  </ul>
-                </div>
+                {canView("productCategory") && (
+                  <div className={styles.insightCard}>
+                    <h3>Recent Product Categories</h3>
+                    <ul>
+                      {recentCategories.length > 0 ? (
+                        recentCategories.map((cat: any) => (
+                          <li key={cat._id || cat.id || cat.name}>
+                            <span>{cat.name || "Unnamed Category"}</span>
+                            <small>{cat.id || "-"}</small>
+                          </li>
+                        ))
+                      ) : (
+                        <li className={styles.emptyItem}>No category records</li>
+                      )}
+                    </ul>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -776,13 +926,17 @@ export default function SuperAdminDashboard() {
 
                 <div className={styles.moduleActions}>
                   {sectionMode === "list" ? (
-                    <button
-                      type="button"
-                      className={styles.primaryAction}
-                      onClick={() => setSectionMode("create")}
-                    >
-                      {activeModule.createLabel}
-                    </button>
+                    // The "Create" button only shows if this admin has
+                    // create access for this specific module.
+                    activeModuleCanCreate && (
+                      <button
+                        type="button"
+                        className={styles.primaryAction}
+                        onClick={() => setSectionMode("create")}
+                      >
+                        {activeModule.createLabel}
+                      </button>
+                    )
                   ) : (
                     <button
                       type="button"
@@ -796,7 +950,7 @@ export default function SuperAdminDashboard() {
               </div>
 
               <div className={styles.moduleBody}>
-                {sectionMode === "list" ? (
+                {sectionMode === "list" || !activeModuleCanCreate ? (
                   ActiveListComponent ? <ActiveListComponent /> : null
                 ) : (
                   ActiveCreateComponent ? <ActiveCreateComponent /> : null
@@ -805,13 +959,19 @@ export default function SuperAdminDashboard() {
             </div>
           ) : (
             <>
-              {activeSection === "listOfTopProduct" && <ListOfTopProduct />}
-              {activeSection === "offer1" && <Offer1 />}
-              {activeSection === "offer2" && <Offer2 />}
-              {activeSection === "offer3" && <Offer3 />}
-              {activeSection === "latestshorts" && <LatestShorts />}
-              {activeSection === "treatmentshorts" && <TreatmentShorts />}
-              {activeSection === "clinicHiringRequests" && (
+              {canView("others") && activeSection === "listOfTopProduct" && (
+                <ListOfTopProduct />
+              )}
+              {canView("others") && activeSection === "offer1" && <Offer1 />}
+              {canView("others") && activeSection === "offer2" && <Offer2 />}
+              {canView("others") && activeSection === "offer3" && <Offer3 />}
+              {canView("others") && activeSection === "latestshorts" && (
+                <LatestShorts />
+              )}
+              {canView("others") && activeSection === "treatmentshorts" && (
+                <TreatmentShorts />
+              )}
+              {canView("others") && activeSection === "clinicHiringRequests" && (
                 <ClinicHiringRequests />
               )}
               {/* {activeSection === "userorderhistory" && <UserOrderHistory />} */}

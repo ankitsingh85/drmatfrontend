@@ -135,9 +135,11 @@ const ListOfTrainingType = () => {
   const filteredTrainingTypes = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return trainingTypes;
-    return trainingTypes.filter(
-      (item) => item.name.toLowerCase().includes(q)
-    );
+   return trainingTypes.filter(
+  (item) =>
+    item.id.toLowerCase().includes(q) ||
+    item.name.toLowerCase().includes(q)
+);
   }, [trainingTypes, search]);
 
   const totalPages = Math.max(1, Math.ceil(filteredTrainingTypes.length / itemsPerPage));
@@ -246,7 +248,7 @@ const ListOfTrainingType = () => {
       <div className={styles.toolbar}>
         <input
           className={styles.search}
-          placeholder="Search by training type name..."
+     placeholder="Search by training type ID or name..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
@@ -280,24 +282,30 @@ const ListOfTrainingType = () => {
       <div className={styles.tableWrap}>
         <table className={styles.table}>
           <thead>
-            <tr>
-              <th>Name</th>
-              <th>Image</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
+  <tr>
+    <th>Training Type ID</th>
+    <th>Name</th>
+    <th>Image</th>
+    <th>Actions</th>
+  </tr>
+</thead>
           <tbody>
             {paginatedTrainingTypes.map((item) => (
               <tr key={item._id}>
-                <td>{item.name}</td>
-                <td>
-                  <img
-                    src={resolveMediaUrl(item.imageUrl) || item.imageUrl}
-                    alt={item.name}
-                    className={styles.image}
-                  />
-                </td>
-                <td className={styles.actions}>
+
+  <td>{item.id}</td>
+
+  <td>{item.name}</td>
+
+  <td>
+    <img
+      src={resolveMediaUrl(item.imageUrl) || item.imageUrl}
+      alt={item.name}
+      className={styles.image}
+    />
+  </td>
+
+  <td className={styles.actions}>
                   <button className={styles.editBtn} onClick={() => handleEdit(item)}>
                     Edit
                   </button>
@@ -312,7 +320,7 @@ const ListOfTrainingType = () => {
             ))}
             {paginatedTrainingTypes.length === 0 && (
               <tr>
-                <td colSpan={3}>No training types found.</td>
+              <td colSpan={4}>No training types found.</td>
               </tr>
             )}
           </tbody>
@@ -365,7 +373,14 @@ const ListOfTrainingType = () => {
             <h3>Edit Training Type</h3>
 
             {error && <p style={{ color: "red" }}>{error}</p>}
-
+<div className={styles.field}>
+  <label className={styles.label}>Training Type ID</label>
+  <input
+    className={styles.input}
+    value={editingTrainingType.id}
+    disabled
+  />
+</div>
             <form onSubmit={handleEditSubmit}>
               <div className={styles.field}>
                 <label className={styles.label}>Training Type Name</label>
