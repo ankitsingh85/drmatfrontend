@@ -125,7 +125,7 @@ const Footer = () => {
       </footer>
 
       <div className={styles.footerBottom}>
-        <p>© 2026 Dr. Dermat. All rights reserved. Developed by LYB Technology.</p>
+        <p>2026 © All rights reserved by Dr. Derma Tricho Hair & Skin Aesthetics Clinic.</p>
       </div>
     </>
   );

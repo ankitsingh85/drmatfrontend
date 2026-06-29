@@ -1,50 +1,243 @@
 "use client";
+import Image from "next/image";
+import { API_URL } from "@/config/api";
+import FullPageLoader from "@/components/common/FullPageLoader";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useState, type ComponentType } from "react";
+import { jwtDecode } from "jwt-decode";
 import Cookies from "js-cookie";
+import { useRouter } from "next/navigation";
 
+import CreateAdmin from "@/components/AdminPanel/CreateAdmin";
 import CreateCategory from "@/components/AdminPanel/CreateProductCategory";
+import CreateClinicCategory from "@/components/AdminPanel/CreateClinicCategory";
 import CreateClinic from "@/components/AdminPanel/CreateClinic";
 import CreateProduct from "@/components/AdminPanel/CreateProduct";
-import Dashboard from "@/components/AdminPanel/Dashboard";
+import ListOfAdmin from "@/components/AdminPanel/ListOfAdmin";
 import ListOfCategory from "@/components/AdminPanel/ListOfCategory";
+import ListOfClinicCategory from "@/components/AdminPanel/ListOfClinicCategory";
 import ListOfClinic from "@/components/AdminPanel/ListOfClinic";
 import ListOfProduct from "@/components/AdminPanel/ListOfProduct";
+import CreateServiceCategory from "@/components/AdminPanel/CreateServiceCategory";
+import ListOfServiceCategory from "@/components/AdminPanel/ListOfServiceCategory";
+import ListOfTopProduct from "@/components/AdminPanel/ListOfTopProduct";
+import Offer1 from "@/components/AdminPanel/ListofProductOffer";
+import Offer2 from "@/components/AdminPanel/ListofTreatmentOffer";
+import Offer3 from "@/components/AdminPanel/ListofClinicOffer";
+import LatestShorts from "@/components/AdminPanel/LatestShorts";
+import TreatmentShorts from "@/components/AdminPanel/TreatmentShorts";
+import CreateTreatment from "@/components/AdminPanel/CreateTreatment";
+import CreatePatient from "@/components/AdminPanel/CreatePatient";
+import CreateTestResult from "@/components/AdminPanel/CreateTestResult";
+import CreateOnlineDoctor from "@/components/AdminPanel/CreateOnlineDoctor";
+import CreateB2BProduct from "@/components/AdminPanel/CreateB2BProduct";
+import CreateSupport from "@/components/AdminPanel/CreateSupport";
+import CreateCourse from "@/components/AdminPanel/CreateCourse";
+import CreateCourseType from "@/components/AdminPanel/CreateCourseType";
+import CreateTrainingType from "@/components/AdminPanel/CreateTrainingType";
+import CreateWorkshopTraning from "@/components/AdminPanel/CreateWorkshopTraning";
+// import UserOrderHistory from "@/components/AdminPanel/UserOrderHistory";
+
+import CreateUser from "@/components/AdminPanel/CreateUser";
+import ListOfUser from "@/components/AdminPanel/ListOfUser";
+import ListOfB2BProduct from "@/components/AdminPanel/ListOfB2BProduct";
+import ListOfCourse from "@/components/AdminPanel/ListOfCourse";
+import ListOfCourseType from "@/components/AdminPanel/ListOfCourseType";
+import ListOfTrainingType from "@/components/AdminPanel/ListOfTrainingType";
+import ListOfWorkshopTraning from "@/components/AdminPanel/ListOfWorkshopTraning";
+import ClinicHiringRequests from "@/components/AdminPanel/ClinicHiringRequests";
+
+/* ✅ DOCTOR */
+import CreateDoctor from "@/components/AdminPanel/CreateDoctor";
+import ListOfDoctor from "@/components/AdminPanel/ListOfDoctor";
 
 import styles from "@/styles/dashboard.module.css";
-import { FiUsers, FiUserPlus, FiList, FiMenu, FiX, FiLogOut } from "react-icons/fi";
+import {
+  FiUsers,
+  FiUserCheck,
+  FiUser,
+  FiHome,
+  FiBox,
+  FiGrid,
+  FiLayers,
+  FiBriefcase,
+  FiMenu,
+  FiX,
+  FiLogOut,
+  FiRefreshCw,
+  FiChevronDown,
+  FiChevronRight,
+  FiLock,
+} from "react-icons/fi";
 
+import CreateB2BCategory from "@/components/AdminPanel/CreateB2BCategory";
+import ListofB2BCategory from "@/components/AdminPanel/ListofB2BCategory";
+import ListOfTreatment from "@/components/AdminPanel/ListOfTreatment";
 import Topbar from "@/components/Layout/Topbar";
 import Footer from "@/components/Layout/Footer";
 import MobileNavbar from "@/components/Layout/MobileNavbar";
-import CreateDoctor from "@/components/AdminPanel/CreateDoctor";
-import ListOfDoctor from "@/components/AdminPanel/ListOfDoctor";
-import Test from "@/components/AdminPanel/Test";
-import ClinicHiringRequests from "@/components/AdminPanel/ClinicHiringRequests";
 
+type JwtPayload = { id: string; role: string; exp: number };
+type BasicItem = { _id?: string; name?: string; createdAt?: string };
+
+type AdminPermission = {
+  module: string;
+  view: boolean;
+  create: boolean;
+  delete: boolean;
+};
+
+type ModuleSectionConfig = {
+  id: string;
+  label: string;
+  listLabel: string;
+  createLabel: string;
+  ListComponent: ComponentType<any>;
+  CreateComponent: ComponentType<any>;
+};
+
+/* This page now shares the exact same permission-aware dashboard as
+   SuperAdminDashboard — it used to be a separate, hardcoded page
+   locked to role === "admin" with a tiny fixed menu (Category /
+   Clinic / Product / Doctor) and no permission logic whatsoever. Any
+   admin role can land here now; what they actually see inside is
+   gated by their real permissions, fetched below. */
 export default function AdminDashboard() {
   const router = useRouter();
+
   const [activeSection, setActiveSection] = useState("dashBoard");
+  const [sectionMode, setSectionMode] = useState<"list" | "create">("list");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
+  const [othersOpen, setOthersOpen] = useState(false);
+  const [summaryLoading, setSummaryLoading] = useState(false);
+  const [summaryError, setSummaryError] = useState("");
+  const [lastUpdated, setLastUpdated] = useState("");
+  const [adminName, setAdminName] = useState("");
 
-  // ✅ Auth check using role cookie
+  /* ================= PERMISSIONS STATE =================
+     Super Admin always bypasses the permission checks below. Every
+     other role (System Admin / Manager / custom) only sees the
+     sidebar modules and "Create" buttons it's been explicitly granted
+     view/create access to.
+  */
+  const [adminRole, setAdminRole] = useState("");
+  const [adminCustomRoleLabel, setAdminCustomRoleLabel] = useState("");
+  const [permissions, setPermissions] = useState<AdminPermission[]>([]);
+  const isSuperAdmin = adminRole === "superadmin";
+
+  const [summaryData, setSummaryData] = useState({
+    admins: [] as any[],
+    users: [] as any[],
+    doctors: [] as any[],
+    clinics: [] as any[],
+    productCategories: [] as any[],
+    clinicCategories: [] as any[],
+    serviceCategories: [] as any[],
+    products: [] as any[],
+    b2bCategories: [] as any[],
+    b2bProducts: [] as any[],
+    courseTypes: [] as any[],
+  });
+
+  const permissionFor = useCallback(
+    (moduleId: string): AdminPermission => {
+      const found = permissions.find((p) => p.module === moduleId);
+      return found || { module: moduleId, view: false, create: false, delete: false };
+    },
+    [permissions]
+  );
+
+  const canView = useCallback(
+    (moduleId: string) => isSuperAdmin || permissionFor(moduleId).view,
+    [isSuperAdmin, permissionFor]
+  );
+
+  const canCreate = useCallback(
+    (moduleId: string) => isSuperAdmin || permissionFor(moduleId).create,
+    [isSuperAdmin, permissionFor]
+  );
+
+  /* ================= AUTH =================
+     Any admin role can log in here now — not just role === "admin".
+     What they actually see inside is gated by their permissions,
+     fetched right below.
+  */
   useEffect(() => {
     const token = Cookies.get("token");
-    const role = Cookies.get("role")?.toLowerCase();
+    if (!token) {
+      setCheckingAuth(false);
+      router.replace("/adminlogin");
+      return;
+    }
 
-    if (!token || role !== "admin") {
+    let decoded: JwtPayload;
+    try {
+      decoded = jwtDecode<JwtPayload>(token);
+    } catch {
       Cookies.remove("token");
       Cookies.remove("role");
       router.replace("/adminlogin");
-    } else {
-      setCheckingAuth(false);
+      return;
     }
+
+    if (decoded.exp * 1000 < Date.now()) {
+      Cookies.remove("token");
+      Cookies.remove("role");
+      router.replace("/adminlogin");
+      return;
+    }
+
+    const storedName =
+      Cookies.get("adminName") ||
+      Cookies.get("name") ||
+      Cookies.get("username") ||
+      (decoded as any).name ||
+      (decoded as any).fullName ||
+      (decoded as any).firstName ||
+      (decoded as any).username ||
+      (decoded as any).email ||
+      "";
+
+    setAdminName(storedName || "Admin");
+
+    // Fetch this admin's own record so we have their real role +
+    // permissions (the JWT only carries a coarse role string).
+    //
+    // NOTE (security/TODO): GET /admins/:id is currently a public,
+    // unauthenticated route — anyone who knows or guesses an admin's
+    // _id could read their permissions. Once an admin-auth middleware
+    // exists, this should instead hit a session-aware "/admins/me"
+    // endpoint (the same pattern as userAuth + GET /users/me) rather
+    // than trusting the id embedded in a client-readable JWT.
+    const fetchOwnPermissions = async () => {
+      try {
+        const res = await fetch(`${API_URL}/admins/${decoded.id}`);
+        const data = await res.json();
+        if (!res.ok || !data?.admin) {
+          throw new Error(data?.message || "Failed to load admin profile");
+        }
+
+        setAdminRole(String(data.admin.role || decoded.role || "").toLowerCase());
+        setAdminCustomRoleLabel(data.admin.customRoleLabel || "");
+        setPermissions(Array.isArray(data.admin.permissions) ? data.admin.permissions : []);
+        setCheckingAuth(false);
+      } catch (err) {
+        console.error("Failed to load admin permissions:", err);
+        // Fall back to the role embedded in the JWT so the dashboard
+        // still loads (with no granted permissions) instead of being
+        // stuck on a loader forever.
+        setAdminRole(String(decoded.role || "").toLowerCase());
+        setPermissions([]);
+        setCheckingAuth(false);
+      }
+    };
+
+    fetchOwnPermissions();
   }, [router]);
 
-  // ✅ Responsive sidebar
+  /* ================= RESPONSIVE ================= */
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
     handleResize();
@@ -53,219 +246,747 @@ export default function AdminDashboard() {
   }, []);
 
   useEffect(() => {
-    document.body.style.overflow = sidebarOpen && isMobile ? "hidden" : "auto";
+    document.body.style.overflow =
+      sidebarOpen && isMobile ? "hidden" : "auto";
   }, [sidebarOpen, isMobile]);
 
-  // ✅ Logout
   const handleLogout = () => {
     Cookies.remove("token");
     Cookies.remove("role");
     router.replace("/adminlogin");
   };
 
+  const dashboardModules: ModuleSectionConfig[] = [
+    {
+      id: "admin",
+      label: "ADMIN",
+      listLabel: "List of Admin",
+      createLabel: "Create Admin",
+      ListComponent: ListOfAdmin,
+      CreateComponent: CreateAdmin,
+    },
+    {
+      id: "user",
+      label: "USER",
+      listLabel: "List of User",
+      createLabel: "Create User",
+      ListComponent: ListOfUser,
+      CreateComponent: CreateUser,
+    },
+    {
+      id: "productCategory",
+      label: "PRODUCT CATEGORY",
+      listLabel: "List of Product Category",
+      createLabel: "Create Product Category",
+      ListComponent: ListOfCategory,
+      CreateComponent: CreateCategory,
+    },
+    {
+      id: "product",
+      label: "PRODUCT",
+      listLabel: "List of Product",
+      createLabel: "Create Product",
+      ListComponent: ListOfProduct,
+      CreateComponent: CreateProduct,
+    },
+    {
+      id: "courseType",
+      label: "COURSE TYPE",
+      listLabel: "List of Course Type",
+      createLabel: "Create Course Type",
+      ListComponent: ListOfCourseType,
+      CreateComponent: CreateCourseType,
+    },
+    {
+      id: "trainingType",
+      label: "TRAINING TYPE",
+      listLabel: "List of Training Type",
+      createLabel: "Create Training Type",
+      ListComponent: ListOfTrainingType,
+      CreateComponent: CreateTrainingType,
+    },
+    {
+      id: "course",
+      label: "COURSE",
+      listLabel: "List of Course",
+      createLabel: "Create Course",
+      ListComponent: ListOfCourse,
+      CreateComponent: CreateCourse,
+    },
+    {
+      id: "workshopTraining",
+      label: "WORKSHOP TRAINING",
+      listLabel: "List of Workshop Training",
+      createLabel: "Create Workshop Training",
+      ListComponent: ListOfWorkshopTraning,
+      CreateComponent: CreateWorkshopTraning,
+    },
+    {
+      id: "doctor",
+      label: "DOCTOR",
+      listLabel: "List of Doctor",
+      createLabel: "Create Doctor",
+      ListComponent: ListOfDoctor,
+      CreateComponent: CreateDoctor,
+    },
+    {
+      id: "clinicCategory",
+      label: "CLINIC CATEGORY",
+      listLabel: "List of Clinic Category",
+      createLabel: "Create Clinic Category",
+      ListComponent: ListOfClinicCategory,
+      CreateComponent: CreateClinicCategory,
+    },
+    {
+      id: "clinic",
+      label: "CLINIC",
+      listLabel: "List of Clinic",
+      createLabel: "Create Clinic",
+      ListComponent: ListOfClinic,
+      CreateComponent: CreateClinic,
+    },
+    {
+      id: "b2bProductCategory",
+      label: "B2B PRODUCT CATEGORY",
+      listLabel: "List of B2B Product Category",
+      createLabel: "Create B2B Product Category",
+      ListComponent: ListofB2BCategory,
+      CreateComponent: CreateB2BCategory,
+    },
+    {
+      id: "b2bProduct",
+      label: "B2B PRODUCT",
+      listLabel: "List of B2B Product",
+      createLabel: "Create B2B Product",
+      ListComponent: ListOfB2BProduct,
+      CreateComponent: CreateB2BProduct,
+    },
+    {
+      id: "serviceCategory",
+      label: "TREATMENT CATEGORY",
+      listLabel: "List of Service Category",
+      createLabel: "Create Service Category",
+      ListComponent: ListOfServiceCategory,
+      CreateComponent: CreateServiceCategory,
+    },
+    {
+      id: "treatment",
+      label: "TREATMENT PLANS",
+      listLabel: "List of Treatment",
+      createLabel: "Create Treatment",
+      ListComponent: ListOfTreatment,
+      CreateComponent: CreateTreatment,
+    },
+  ];
+
+  // Only the modules this admin is permitted to VIEW show up in the
+  // sidebar at all. Super Admin always sees the full list.
+  const visibleModules = dashboardModules.filter((module) => canView(module.id));
+
+  const activeModule = visibleModules.find((module) => module.id === activeSection);
+  const ActiveListComponent = activeModule?.ListComponent;
+  const ActiveCreateComponent = activeModule?.CreateComponent;
+  const activeModuleCanCreate = activeModule ? canCreate(activeModule.id) : false;
+
+  // If permissions load (or change) and the admin is currently sitting
+  // on a section they no longer have view access to, bounce them back
+  // to the dashboard home instead of leaving them on a blank module.
+  useEffect(() => {
+    if (checkingAuth) return;
+    if (activeSection === "dashBoard") return;
+    const stillVisible = visibleModules.some((m) => m.id === activeSection);
+    const othersSectionIds = [
+      "listOfTopProduct",
+      "offer1",
+      "offer2",
+      "offer3",
+      "latestshorts",
+      "treatmentshorts",
+      "clinicHiringRequests",
+    ];
+    const isOthersSection = othersSectionIds.includes(activeSection);
+    if (!stillVisible && !(isOthersSection && canView("others"))) {
+      setActiveSection("dashBoard");
+      setSectionMode("list");
+    }
+  }, [checkingAuth, activeSection, visibleModules, canView]);
+
+  const handleModuleChange = (moduleId: string) => {
+    setActiveSection(moduleId);
+    setSectionMode("list");
+    setOthersOpen(false);
+    setSidebarOpen(false);
+  };
+
+  const handleSectionChange = (section: string) => {
+    setActiveSection(section);
+    setSectionMode("list");
+    setOthersOpen(false);
+    setSidebarOpen(false);
+  };
+
+  const fetchDashboardSummary = useCallback(async () => {
+    setSummaryLoading(true);
+    setSummaryError("");
+
+    const endpoints = [
+      { key: "admins", url: `${API_URL}/admins` },
+      { key: "users", url: `${API_URL}/users` },
+      { key: "doctors", url: `${API_URL}/doctoradmin` },
+      { key: "clinics", url: `${API_URL}/clinics` },
+      { key: "productCategories", url: `${API_URL}/categories` },
+      { key: "clinicCategories", url: `${API_URL}/clinic-categories` },
+      { key: "serviceCategories", url: `${API_URL}/service-categories` },
+      { key: "products", url: `${API_URL}/products` },
+      { key: "b2bCategories", url: `${API_URL}/b2b-categories` },
+      { key: "b2bProducts", url: `${API_URL}/b2b-products` },
+      { key: "courseTypes", url: `${API_URL}/course-types` },
+    ] as const;
+
+    try {
+      const settled = await Promise.allSettled(
+        endpoints.map((entry) => fetch(entry.url))
+      );
+
+      const resolved = await Promise.all(
+        settled.map(async (entry) => {
+          if (entry.status !== "fulfilled" || !entry.value.ok) return [];
+          try {
+            const data = await entry.value.json();
+            return Array.isArray(data) ? data : [];
+          } catch {
+            return [];
+          }
+        })
+      );
+
+      const nextData = endpoints.reduce(
+        (acc, endpoint, index) => {
+          acc[endpoint.key] = resolved[index];
+          return acc;
+        },
+        {
+          admins: [] as any[],
+          users: [] as any[],
+          doctors: [] as any[],
+          clinics: [] as any[],
+          productCategories: [] as any[],
+          clinicCategories: [] as any[],
+          serviceCategories: [] as any[],
+          products: [] as any[],
+          b2bCategories: [] as any[],
+          b2bProducts: [] as any[],
+          courseTypes: [] as any[],
+        }
+      );
+
+      setSummaryData(nextData);
+      setLastUpdated(new Date().toLocaleString());
+    } catch {
+      setSummaryError("Unable to fetch dashboard overview right now.");
+    } finally {
+      setSummaryLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const handleCreateSuccess = () => {
+      setSectionMode("list");
+      void fetchDashboardSummary();
+    };
+
+    window.addEventListener("admin-dashboard:create-success", handleCreateSuccess);
+
+    return () => {
+      window.removeEventListener(
+        "admin-dashboard:create-success",
+        handleCreateSuccess
+      );
+    };
+  }, [fetchDashboardSummary]);
+
+  useEffect(() => {
+    if (!checkingAuth && activeSection === "dashBoard") {
+      fetchDashboardSummary();
+    }
+  }, [checkingAuth, activeSection]);
+
+  const sortByCreatedDesc = <T extends BasicItem>(items: T[]) =>
+    [...items].sort((a, b) => {
+      const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return bTime - aTime;
+    });
+
+  const recentAdmins = sortByCreatedDesc(summaryData.admins).slice(0, 2);
+  const recentDoctors = sortByCreatedDesc(summaryData.doctors).slice(0, 2);
+  const recentClinics = sortByCreatedDesc(summaryData.clinics).slice(0, 2);
+  const recentProducts = sortByCreatedDesc(summaryData.products).slice(0, 2);
+  const recentCategories = sortByCreatedDesc(summaryData.productCategories).slice(
+    0,
+    2
+  );
+
+  // Only show the stat cards for sections this admin can actually view
+  // (Super Admin sees all of them, as before).
+  const statCards = [
+    {
+      moduleId: "admin",
+      label: "Admins",
+      value: summaryData.admins.length,
+      icon: <FiUserCheck />,
+      tone: styles.toneAdmins,
+    },
+    {
+      moduleId: "user",
+      label: "Users",
+      value: summaryData.users.length,
+      icon: <FiUsers />,
+      tone: styles.toneUsers,
+    },
+    {
+      moduleId: "doctor",
+      label: "Doctors",
+      value: summaryData.doctors.length,
+      icon: <FiUser />,
+      tone: styles.toneDoctors,
+    },
+    {
+      moduleId: "clinic",
+      label: "Clinics",
+      value: summaryData.clinics.length,
+      icon: <FiHome />,
+      tone: styles.toneClinics,
+    },
+    {
+      moduleId: "b2bProduct",
+      label: "B2B Products",
+      value: summaryData.b2bProducts.length,
+      icon: <FiBriefcase />,
+      tone: styles.toneB2BProducts,
+    },
+    {
+      moduleId: "productCategory",
+      label: "Product Categories",
+      value: summaryData.productCategories.length,
+      icon: <FiGrid />,
+      tone: styles.toneProductCategories,
+    },
+    {
+      moduleId: "clinicCategory",
+      label: "Clinic Categories",
+      value: summaryData.clinicCategories.length,
+      icon: <FiLayers />,
+      tone: styles.toneClinicCategories,
+    },
+    {
+      moduleId: "serviceCategory",
+      label: "Service Categories",
+      value: summaryData.serviceCategories.length,
+      icon: <FiLayers />,
+      tone: styles.toneServiceCategories,
+    },
+    {
+      moduleId: "b2bProductCategory",
+      label: "B2B Categories",
+      value: summaryData.b2bCategories.length,
+      icon: <FiLayers />,
+      tone: styles.toneB2BCategories,
+    },
+    {
+      moduleId: "courseType",
+      label: "Course Types",
+      value: summaryData.courseTypes.length,
+      icon: <FiLayers />,
+      tone: styles.toneCourseTypes,
+    },
+  ].filter((card) => canView(card.moduleId));
+
+  const roleDisplayLabel = isSuperAdmin
+    ? "Super Admin"
+    : adminCustomRoleLabel || adminRole.charAt(0).toUpperCase() + adminRole.slice(1);
+
   if (checkingAuth) {
-    return (
-      <div className={styles.loading}>
-        <p>Loading dashboard…</p>
-      </div>
-    );
+    return <FullPageLoader />;
   }
 
   return (
     <>
-      <Topbar hideHamburgerOnMobile />
+      {/* ORIGINAL TOPBAR – KEPT BUT HIDDEN */}
+      <div style={{ display: "none" }}>
+        <Topbar hideHamburgerOnMobile />
+      </div>
 
+      {/* HEADER */}
+      <div
+        style={{
+          height: "130px",
+          background: "#ffffff",
+          borderBottom: "1px solid #e5e7eb",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "0 24px",
+          position: "sticky",
+          top: 0,
+          zIndex: 100,
+        }}
+      >
+        <Image
+          className={styles.logo}
+          src="/logo.jpeg"
+          alt="Logo"
+          width={100}
+          height={90}
+        />
+
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <div style={{ textAlign: "right" }}>
+            <div style={{ fontWeight: 600, color: "#334155" }}>
+              {adminName || "Admin"}
+            </div>
+            <div style={{ fontSize: "12px", color: "#64748b" }}>
+              {roleDisplayLabel}
+            </div>
+          </div>
+          <button
+            onClick={handleLogout}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              background: "#ef4444",
+              color: "#fff",
+              border: "none",
+              padding: "8px 14px",
+              borderRadius: 8,
+              cursor: "pointer",
+              fontWeight: 600,
+            }}
+          >
+            <FiLogOut /> Logout
+          </button>
+        </div>
+      </div>
+
+      {/* MOBILE MENU */}
       {isMobile && (
         <div className={styles.mobileTopbar}>
-          <button className={styles.menuToggle} onClick={() => setSidebarOpen(!sidebarOpen)}>
-            {sidebarOpen ? <FiX size={22} /> : <FiMenu size={22} />}
+          <button
+            className={styles.menuToggle}
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+          >
+            {sidebarOpen ? <FiX /> : <FiMenu />}
           </button>
         </div>
       )}
 
+      {/* BODY */}
       <div className={styles.wrapper}>
-        <div className={styles.mainArea}>
-          {/* Sidebar */}
-          <aside
-            className={`${styles.sidebar} ${
-              isMobile ? (sidebarOpen ? styles.sidebarMobile : styles.sidebarHidden) : ""
+        <aside
+          className={`${styles.sidebar} ${
+            isMobile
+              ? sidebarOpen
+                ? styles.sidebarMobile
+                : styles.sidebarHidden
+              : ""
+          }`}
+        >
+          <p className={styles.sectionTitle}>Dashboard</p>
+
+          <li
+            className={`${styles.menuItem} ${
+              activeSection === "dashBoard" ? styles.menuItemActive : ""
             }`}
+            onClick={() => handleSectionChange("dashBoard")}
           >
-            <p className={styles.sectionTitle}>Menu</p>
-            <ul className={styles.menu}>
-              <li
-                onClick={() => {
-                  setActiveSection("dashBoard");
-                  setSidebarOpen(false);
-                }}
-                className={`${styles.menuItem} ${activeSection === "dashBoard" ? styles.active : ""}`}
-              >
-                <span className={styles.iconLabel}>
-                  <FiUsers className={styles.icon} />
-                  <span className={styles.label}>Dashboard</span>
-                </span>
-              </li>
+            <span className={styles.iconLabel}>
+              <FiUsers />
+              <span className={styles.label}>Dashboard</span>
+            </span>
+          </li>
 
-              <p className={styles.sectionTitle}>Create</p>
-              <li
-                onClick={() => {
-                  setActiveSection("createCategory");
-                  setSidebarOpen(false);
-                }}
-                className={`${styles.menuItem} ${activeSection === "createCategory" ? styles.active : ""}`}
-              >
-                <span className={styles.iconLabel}>
-                  <FiUserPlus className={styles.icon} />
-                  <span className={styles.label}>Create Category</span>
-                </span>
-              </li>
-              <li
-                onClick={() => {
-                  setActiveSection("createClinic");
-                  setSidebarOpen(false);
-                }}
-                className={`${styles.menuItem} ${activeSection === "createClinic" ? styles.active : ""}`}
-              >
-                <span className={styles.iconLabel}>
-                  <FiUserPlus className={styles.icon} />
-                  <span className={styles.label}>Create Clinic</span>
-                </span>
-              </li>
-              <li
-                onClick={() => {
-                  setActiveSection("createProduct");
-                  setSidebarOpen(false);
-                }}
-                className={`${styles.menuItem} ${activeSection === "createProduct" ? styles.active : ""}`}
-              >
-                <span className={styles.iconLabel}>
-                  <FiUserPlus className={styles.icon} />
-                  <span className={styles.label}>Create Product</span>
-                </span>
-              </li>
-
-
-              <li
-                onClick={() => {
-                  setActiveSection("createdoctor");
-                  setSidebarOpen(false);
-                }}
-                className={`${styles.menuItem} ${activeSection === "createdoctor" ? styles.active : ""}`}
-              >
-                <span className={styles.iconLabel}>
-                  <FiUserPlus className={styles.icon} />
-                  <span className={styles.label}>Create Doctor</span>
-                </span>
-              </li>
-
-
-              <p className={styles.sectionTitle}>List</p>
-              <li
-                onClick={() => {
-                  setActiveSection("listOfCategory");
-                  setSidebarOpen(false);
-                }}
-                className={`${styles.menuItem} ${activeSection === "listOfCategory" ? styles.active : ""}`}
-              >
-                <span className={styles.iconLabel}>
-                  <FiList className={styles.icon} />
-                  <span className={styles.label}>List of Category</span>
-                </span>
-              </li>
-              <li
-                onClick={() => {
-                  setActiveSection("listOfClinic");
-                  setSidebarOpen(false);
-                }}
-                className={`${styles.menuItem} ${activeSection === "listOfClinic" ? styles.active : ""}`}
-              >
-                <span className={styles.iconLabel}>
-                  <FiList className={styles.icon} />
-                  <span className={styles.label}>List of Clinic</span>
-                </span>
-              </li>
-              <li
-                onClick={() => {
-                  setActiveSection("listOfProduct");
-                  setSidebarOpen(false);
-                }}
-                className={`${styles.menuItem} ${activeSection === "listOfProduct" ? styles.active : ""}`}
-              >
-                <span className={styles.iconLabel}>
-                  <FiList className={styles.icon} />
-                  <span className={styles.label}>List of Product</span>
-                </span>
-              </li>
-
-
-<li
-                onClick={() => {
-                  setActiveSection("listofdoctor");
-                  setSidebarOpen(false);
-                }}
-                className={`${styles.menuItem} ${activeSection === "listofdoctor" ? styles.active : ""}`}
-              >
-                <span className={styles.iconLabel}>
-                  <FiList className={styles.icon} />
-                  <span className={styles.label}>List of Doctor</span>
-                </span>
-              </li>
-
-
-              <li
-                onClick={() => {
-                  setActiveSection("test");
-                  setSidebarOpen(false);
-                }}
-                className={`${styles.menuItem} ${activeSection === "test" ? styles.active : ""}`}
-              >
-                <span className={styles.iconLabel}>
-                  <FiList className={styles.icon} />
-                  <span className={styles.label}>Create Quiz</span>
-                </span>
-              </li>
-
-              <li
-                onClick={() => {
-                  setActiveSection("clinicHiringRequests");
-                  setSidebarOpen(false);
-                }}
-                className={`${styles.menuItem} ${
-                  activeSection === "clinicHiringRequests" ? styles.active : ""
-                }`}
-              >
-                <span className={styles.iconLabel}>
-                  <FiList className={styles.icon} />
-                  <span className={styles.label}>Hiring Requests</span>
-                </span>
-              </li>
-
-            </ul>
-
-            <button className={styles.logoutButton} onClick={handleLogout}>
+          {/* Only modules this admin can VIEW show up here at all. */}
+          {visibleModules.map((module) => (
+            <li
+              key={module.id}
+              className={`${styles.menuItem} ${
+                activeSection === module.id ? styles.menuItemActive : ""
+              }`}
+              onClick={() => handleModuleChange(module.id)}
+            >
               <span className={styles.iconLabel}>
-                <FiLogOut className={styles.icon} />
-                <span className={styles.label}>Logout</span>
+                <FiGrid />
+                <span className={styles.label}>{module.label}</span>
               </span>
-            </button>
-          </aside>
+            </li>
+          ))}
 
-          {/* Main Content */}
-          <div className={styles.mainContent}>
-            {activeSection === "dashBoard" && <Dashboard />}
-            {activeSection === "createCategory" && <CreateCategory />}
-            {activeSection === "createClinic" && <CreateClinic />}
-            {activeSection === "createProduct" && <CreateProduct />}
+          {/* The whole "OTHERS" group is gated behind a single
+              "others" permission toggle. */}
+          {canView("others") && (
+            <>
+              <li
+                className={styles.menuItem}
+                onClick={() => setOthersOpen((prev) => !prev)}
+              >
+                <span className={styles.iconLabel}>
+                  <FiLayers />
+                  <span className={styles.label}>OTHERS</span>
+                </span>
+                {othersOpen ? <FiChevronDown /> : <FiChevronRight />}
+              </li>
 
-            {activeSection === "listOfCategory" && <ListOfCategory />}
-            {activeSection === "listOfClinic" && <ListOfClinic />}
-            {activeSection === "listOfProduct" && <ListOfProduct />}
-            {activeSection === "createdoctor" && <CreateDoctor/>}
-            {activeSection === "listofdoctor" && <ListOfDoctor/>}
+              {othersOpen && (
+                <ul className={styles.inlineDropdown}>
+                  <li onClick={() => handleSectionChange("listOfTopProduct")}>
+                    List Top Product
+                  </li>
+                  <li onClick={() => handleSectionChange("offer1")}>
+                    Product Offer
+                  </li>
+                  <li onClick={() => handleSectionChange("offer2")}>
+                    Treatment Offer
+                  </li>
+                  <li onClick={() => handleSectionChange("offer3")}>
+                    Clinic Offer
+                  </li>
+                  <li onClick={() => handleSectionChange("latestshorts")}>
+                    Latest Shorts
+                  </li>
+                  <li onClick={() => handleSectionChange("treatmentshorts")}>
+                    Treatment Shorts
+                  </li>
+                  <li onClick={() => handleSectionChange("clinicHiringRequests")}>
+                    Hiring Requests
+                  </li>
+                </ul>
+              )}
+            </>
+          )}
 
-                       {activeSection === "test" && <Test/>}
-            {activeSection === "clinicHiringRequests" && <ClinicHiringRequests />}
-          </div>
+          {!isSuperAdmin && visibleModules.length === 0 && !canView("others") && (
+            <p
+              style={{
+                fontSize: "12px",
+                color: "#94a3b8",
+                padding: "12px",
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+              }}
+            >
+              <FiLock /> No modules have been granted to your account yet.
+            </p>
+          )}
+        </aside>
+
+        {/* MAIN CONTENT */}
+        <div className={styles.mainContent}>
+          {activeSection === "dashBoard" && (
+            <div className={styles.premiumDashboard}>
+              <div className={styles.dashboardHero}>
+                <div>
+                  <h2 className={styles.heroTitle}>{adminName || "Admin"}</h2>
+                  <p className={styles.heroSubtitle}>
+                    Real-time snapshot of all critical modules across your
+                    platform.
+                  </p>
+                </div>
+                <div className={styles.heroActions}>
+                  <p className={styles.lastUpdatedText}>
+                    Last updated: {lastUpdated || "Not synced yet"}
+                  </p>
+                  <button
+                    type="button"
+                    className={styles.refreshBtn}
+                    onClick={fetchDashboardSummary}
+                    disabled={summaryLoading}
+                  >
+                    <FiRefreshCw />
+                    {summaryLoading ? "Refreshing..." : "Refresh"}
+                  </button>
+                </div>
+              </div>
+
+              {summaryError && <p className={styles.summaryError}>{summaryError}</p>}
+
+              <div className={styles.statGrid}>
+                {statCards.map((item) => (
+                  <div key={item.label} className={`${styles.statCard} ${item.tone}`}>
+                    <div className={styles.statIcon}>{item.icon}</div>
+                    <div>
+                      <p className={styles.statValue}>{item.value}</p>
+                      <p className={styles.statLabel}>{item.label}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className={styles.insightGrid}>
+                {canView("admin") && (
+                  <div className={styles.insightCard}>
+                    <h3>Recent Admins</h3>
+                    <ul>
+                      {recentAdmins.length > 0 ? (
+                        recentAdmins.map((a: any) => (
+                          <li key={a._id || a.email || a.name}>
+                            <span>{a.name || "Unnamed Admin"}</span>
+                            <small>{a.email || "-"}</small>
+                          </li>
+                        ))
+                      ) : (
+                        <li className={styles.emptyItem}>No admin records</li>
+                      )}
+                    </ul>
+                  </div>
+                )}
+
+                {canView("doctor") && (
+                  <div className={styles.insightCard}>
+                    <h3>Recent Doctors</h3>
+                    <ul>
+                      {recentDoctors.length > 0 ? (
+                        recentDoctors.map((d: any) => (
+                          <li key={d._id || d.email || d.firstName}>
+                            <span>
+                              {d.firstName || ""} {d.lastName || ""}
+                            </span>
+                            <small>{d.specialist || "-"}</small>
+                          </li>
+                        ))
+                      ) : (
+                        <li className={styles.emptyItem}>No doctor records</li>
+                      )}
+                    </ul>
+                  </div>
+                )}
+
+                {canView("clinic") && (
+                  <div className={styles.insightCard}>
+                    <h3>Recent Clinics</h3>
+                    <ul>
+                      {recentClinics.length > 0 ? (
+                        recentClinics.map((c: any) => (
+                          <li key={c._id || c.email || c.clinicName}>
+                            <span>{c.clinicName || "Unnamed Clinic"}</span>
+                            <small>{c.email || "-"}</small>
+                          </li>
+                        ))
+                      ) : (
+                        <li className={styles.emptyItem}>No clinic records</li>
+                      )}
+                    </ul>
+                  </div>
+                )}
+
+                {canView("product") && (
+                  <div className={styles.insightCard}>
+                    <h3>Recent Products</h3>
+                    <ul>
+                      {recentProducts.length > 0 ? (
+                        recentProducts.map((p: any) => (
+                          <li key={p._id || p.productName}>
+                            <span>{p.productName || "Unnamed Product"}</span>
+                            <small>{p.brandName || "-"}</small>
+                          </li>
+                        ))
+                      ) : (
+                        <li className={styles.emptyItem}>No product records</li>
+                      )}
+                    </ul>
+                  </div>
+                )}
+
+                {canView("productCategory") && (
+                  <div className={styles.insightCard}>
+                    <h3>Recent Product Categories</h3>
+                    <ul>
+                      {recentCategories.length > 0 ? (
+                        recentCategories.map((cat: any) => (
+                          <li key={cat._id || cat.id || cat.name}>
+                            <span>{cat.name || "Unnamed Category"}</span>
+                            <small>{cat.id || "-"}</small>
+                          </li>
+                        ))
+                      ) : (
+                        <li className={styles.emptyItem}>No category records</li>
+                      )}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          {activeModule ? (
+            <div className={styles.moduleShell}>
+              <div className={styles.moduleHeader}>
+                <div>
+                  <p className={styles.moduleKicker}>{activeModule.label}</p>
+                  <h2 className={styles.moduleTitle}>
+                    {sectionMode === "list"
+                      ? activeModule.listLabel
+                      : activeModule.createLabel}
+                  </h2>
+                </div>
+
+                <div className={styles.moduleActions}>
+                  {sectionMode === "list" ? (
+                    // The "Create" button only shows if this admin has
+                    // create access for this specific module.
+                    activeModuleCanCreate && (
+                      <button
+                        type="button"
+                        className={styles.primaryAction}
+                        onClick={() => setSectionMode("create")}
+                      >
+                        {activeModule.createLabel}
+                      </button>
+                    )
+                  ) : (
+                    <button
+                      type="button"
+                      className={styles.secondaryAction}
+                      onClick={() => setSectionMode("list")}
+                    >
+                      Back to list
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className={styles.moduleBody}>
+                {sectionMode === "list" || !activeModuleCanCreate ? (
+                  ActiveListComponent ? <ActiveListComponent /> : null
+                ) : (
+                  ActiveCreateComponent ? <ActiveCreateComponent /> : null
+                )}
+              </div>
+            </div>
+          ) : (
+            <>
+              {canView("others") && activeSection === "listOfTopProduct" && (
+                <ListOfTopProduct />
+              )}
+              {canView("others") && activeSection === "offer1" && <Offer1 />}
+              {canView("others") && activeSection === "offer2" && <Offer2 />}
+              {canView("others") && activeSection === "offer3" && <Offer3 />}
+              {canView("others") && activeSection === "latestshorts" && (
+                <LatestShorts />
+              )}
+              {canView("others") && activeSection === "treatmentshorts" && (
+                <TreatmentShorts />
+              )}
+              {canView("others") && activeSection === "clinicHiringRequests" && (
+                <ClinicHiringRequests />
+              )}
+              {/* {activeSection === "userorderhistory" && <UserOrderHistory />} */}
+              {activeSection === "createPatient" && <CreatePatient />}
+              {activeSection === "createTestResult" && <CreateTestResult />}
+              {activeSection === "createOnlineDoctor" && <CreateOnlineDoctor />}
+              {activeSection === "createSupport" && <CreateSupport />}
+            </>
+          )}
         </div>
       </div>
 

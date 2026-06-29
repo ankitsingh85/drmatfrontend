@@ -418,11 +418,11 @@ export default function CreateAdmin() {
       <form className={styles.form} onSubmit={handleSubmit}>
         <div className={styles.section}>
           <h3 className={styles.sectionTitle}>Login / Profile</h3>
-
+{/* 
           <div className={styles.field}>
             <label className={styles.label}>User ID</label>
             <input className={styles.readonlyInput} value={userId} disabled />
-          </div>
+          </div> */}
 
           <div className={styles.field}>
             <label className={styles.label}>
