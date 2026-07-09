@@ -33,6 +33,16 @@ import B2BProductCategories from "@/components/homePage/B2BProductCategories";
 import TraningWorkshop from "./TraningWorkshop";
 import ClinicHiringPortal from "./ClinicHiringPortal";
 
+const defaultFeaturedSlides = [
+  {
+    url: "/card-1.png",
+    heading: "Book A Clinic Appointment",
+    link: "/home/findClinicsPage",
+  },
+  { url: "/card-2.png", heading: "Book A Video Consultation", link: "/#" },
+  { url: "/card-3.png", heading: "Take Free Hair & Skin Test", link: "/#" },
+];
+
 const Index = () => {
   const router = useRouter();
   const [isHydrated, setIsHydrated] = useState(false);
@@ -44,6 +54,7 @@ const Index = () => {
   const [appReady, setAppReady] = useState(false);
   const [progress, setProgress] = useState(0);
   const [message, setMessage] = useState("Preparing...");
+  const [featuredSlides, setFeaturedSlides] = useState(defaultFeaturedSlides);
 
   useEffect(() => {
     setIsHydrated(true);
@@ -127,6 +138,37 @@ const Index = () => {
     };
   }, [isBusinessMode]);
 
+  useEffect(() => {
+    if (isBusinessMode) return;
+
+    let mounted = true;
+
+    const fetchFeaturedSlides = async () => {
+      try {
+        const res = await fetch(`${API_URL}/featured-section/active`);
+        const data = await res.json();
+
+        if (!res.ok || !Array.isArray(data) || data.length === 0) return;
+
+        const slides = data.map((item: any) => ({
+          url: item.imageUrl,
+          heading: item.heading,
+          link: item.link || "/#",
+        }));
+
+        if (mounted) setFeaturedSlides(slides);
+      } catch (err) {
+        console.warn("Failed to load featured section", err);
+      }
+    };
+
+    fetchFeaturedSlides();
+
+    return () => {
+      mounted = false;
+    };
+  }, [isBusinessMode]);
+
   if (isBusinessMode) {
     return (
       <>
@@ -158,11 +200,7 @@ const Index = () => {
         <SearchBar />
         <div style={{ position: "relative" }}>
           <FeaturedSection
-            slides={[
-              { url: "/card-1.png", heading: "Book A Clinic Appointment" },
-              { url: "/card-2.png", heading: "Book A Video Consultation" },
-              { url: "/card-3.png", heading: "Take Free Hair & Skin Test" },
-            ]}
+            slides={featuredSlides}
             loading={!appReady} // 👈 pass loader state
           />
         </div>

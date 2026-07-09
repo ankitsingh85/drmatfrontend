@@ -9,7 +9,8 @@ import { resolveMediaUrl } from "@/lib/media";
 interface ProductOption {
   _id: string;
   productName: string;
-  category: string;
+  category?: CategoryValue;
+  categoryObj?: CategoryValue;
 }
 
 interface CategoryOption {
@@ -45,9 +46,41 @@ interface PreviewFile {
   error?: string;
 }
 
+type CategoryValue =
+  | string
+  | string[]
+  | {
+      _id?: string;
+      id?: string;
+      name?: string;
+    }
+  | Array<{
+      _id?: string;
+      id?: string;
+      name?: string;
+    }>;
+
 const MAX_SIZE_MB =1;
 const REQUIRED_WIDTH = 1600;
 const REQUIRED_HEIGHT = 350;
+
+const getCategoryValues = (value?: CategoryValue): string[] => {
+  if (!value) return [];
+
+  if (typeof value === "string") {
+    return [value];
+  }
+
+  if (Array.isArray(value)) {
+    return value.flatMap((item) =>
+      typeof item === "string"
+        ? [item]
+        : [item._id, item.id, item.name].filter(Boolean) as string[]
+    );
+  }
+
+  return [value._id, value.id, value.name].filter(Boolean) as string[];
+};
 
 const ListofProductOffer = () => {
   const [offers, setOffers] = useState<Offer[]>([]);
@@ -139,8 +172,14 @@ const ListofProductOffer = () => {
     );
 
     return products.filter((product) => {
-      const productCategory = product.category?.trim();
-      return productCategory ? categoryMatchers.has(normalize(productCategory)) : false;
+      const productCategories = [
+        ...getCategoryValues(product.category),
+        ...getCategoryValues(product.categoryObj),
+      ];
+
+      return productCategories.some((productCategory) =>
+        categoryMatchers.has(normalize(productCategory))
+      );
     });
   }, [categories, products, selectedCategoryId]);
 

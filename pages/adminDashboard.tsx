@@ -24,6 +24,7 @@ import ListOfTopProduct from "@/components/AdminPanel/ListOfTopProduct";
 import Offer1 from "@/components/AdminPanel/ListofProductOffer";
 import Offer2 from "@/components/AdminPanel/ListofTreatmentOffer";
 import Offer3 from "@/components/AdminPanel/ListofClinicOffer";
+import FeaturedSectionManager from "@/components/AdminPanel/FeaturedSectionManager";
 import LatestShorts from "@/components/AdminPanel/LatestShorts";
 import TreatmentShorts from "@/components/AdminPanel/TreatmentShorts";
 import CreateTreatment from "@/components/AdminPanel/CreateTreatment";
@@ -400,6 +401,7 @@ export default function AdminDashboard() {
       "offer1",
       "offer2",
       "offer3",
+      "featuredSection",
       "latestshorts",
       "treatmentshorts",
       "clinicHiringRequests",
@@ -751,6 +753,9 @@ export default function AdminDashboard() {
                   <li onClick={() => handleSectionChange("offer3")}>
                     Clinic Offer
                   </li>
+                  <li onClick={() => handleSectionChange("featuredSection")}>
+                    Featured Section
+                  </li>
                   <li onClick={() => handleSectionChange("latestshorts")}>
                     Latest Shorts
                   </li>
@@ -971,6 +976,9 @@ export default function AdminDashboard() {
               {canView("others") && activeSection === "offer1" && <Offer1 />}
               {canView("others") && activeSection === "offer2" && <Offer2 />}
               {canView("others") && activeSection === "offer3" && <Offer3 />}
+              {canView("others") && activeSection === "featuredSection" && (
+                <FeaturedSectionManager />
+              )}
               {canView("others") && activeSection === "latestshorts" && (
                 <LatestShorts />
               )}

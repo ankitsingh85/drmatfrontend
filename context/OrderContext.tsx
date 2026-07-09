@@ -5,6 +5,7 @@ import axios from "axios";
 import Cookies from "js-cookie";
 import { CartItem } from "./CartContext";
 import { API_URL } from "@/config/api";
+import { loadRazorpayScript } from "@/lib/loadRazorpay";
 
 export interface IOrder {
   _id?: string;
@@ -119,9 +120,62 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({
               orderType: derivedOrderType,
             };
 
-      const res = await axios.post(endpoint, payload);
+      const scriptLoaded = await loadRazorpayScript();
+      if (!scriptLoaded) {
+        throw new Error("Unable to load payment gateway. Please check your internet connection.");
+      }
 
-      setOrders((prev) => [...prev, res.data]);
+      const { data: razorpayOrder } = await axios.post(`${API_URL}/payments/create-order`, {
+        amount: total,
+      });
+
+      const savedOrder = await new Promise<IOrder>((resolve, reject) => {
+        const razorpay = new (window as any).Razorpay({
+          key: razorpayOrder.keyId,
+          amount: razorpayOrder.amount,
+          currency: razorpayOrder.currency,
+          order_id: razorpayOrder.orderId,
+          name: "DrDermat",
+          description: "Order payment",
+          prefill: {
+            name: Cookies.get("username") || "",
+            email: Cookies.get("email") || "",
+          },
+          theme: { color: "#0f9d58" },
+          handler: async (response: any) => {
+            try {
+              const { data: verification } = await axios.post(`${API_URL}/payments/verify`, {
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+              });
+
+              if (!verification.verified) {
+                reject(new Error("Payment verification failed"));
+                return;
+              }
+
+              const res = await axios.post(endpoint, {
+                ...payload,
+                razorpayOrderId: response.razorpay_order_id,
+                razorpayPaymentId: response.razorpay_payment_id,
+                razorpaySignature: response.razorpay_signature,
+              });
+              resolve(res.data);
+            } catch (verifyErr) {
+              reject(verifyErr);
+            }
+          },
+          modal: {
+            ondismiss: () => reject(new Error("Payment cancelled")),
+          },
+        });
+
+        razorpay.on("payment.failed", () => reject(new Error("Payment failed")));
+        razorpay.open();
+      });
+
+      setOrders((prev) => [...prev, savedOrder]);
     } catch (err) {
       console.error("❌ Failed to create order:", err);
       throw err;

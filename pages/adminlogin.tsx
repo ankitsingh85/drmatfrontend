@@ -20,8 +20,10 @@ export default function AdminLogin() {
 const [forgotMode, setForgotMode] = useState(false);
 const [forgotData, setForgotData] = useState({
     email: "",
+    otp: "",
     password: "",
   });
+const [forgotStep, setForgotStep] = useState<"email" | "reset">("email");
 
   const [loading, setLoading] = useState(false);
 
@@ -120,16 +122,60 @@ const [forgotData, setForgotData] = useState({
 
   /* ================= FORGOT PASSWORD ================= */
 
-  const handleForgotPassword = async (e: React.FormEvent) => {
+  const handleSendResetOtp = async (e: React.FormEvent) => {
     e.preventDefault();
 
     setError("");
 
     setSuccess("");
+    setLoading(true);
 
     try {
       const res = await fetch(
-        `${API_URL}/admins/forgot-password`,
+        `${API_URL}/admins/forgot-password/send-otp`,
+
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type": "application/json",
+          },
+
+          body: JSON.stringify({ email: forgotData.email }),
+        },
+      );
+
+      const data = await res.json().catch(() => ({
+        message: "Server response error",
+      }));
+
+      if (!res.ok) {
+        setError(data.message);
+
+        return;
+      }
+
+      setSuccess(data.message || "Verification OTP sent to your email");
+
+      setForgotStep("reset");
+    } catch (error: any) {
+      setError(error.message || "Unable to send reset OTP");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    setError("");
+
+    setSuccess("");
+    setLoading(true);
+
+    try {
+      const res = await fetch(
+        `${API_URL}/admins/forgot-password/reset`,
 
         {
           method: "POST",
@@ -152,20 +198,44 @@ const [forgotData, setForgotData] = useState({
         return;
       }
 
-      setSuccess("Password changed successfully");
+      setSuccess("Password changed successfully. Please login.");
 
       setForgotData({
         email: "",
+
+        otp: "",
 
         password: "",
       });
 
       setTimeout(() => {
         setForgotMode(false);
+        setForgotStep("email");
       }, 1000);
     } catch (error: any) {
       setError(error.message || "Password reset failed");
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const openForgotPassword = () => {
+    setError("");
+    setSuccess("");
+    setForgotMode(true);
+    setForgotStep("email");
+    setForgotData({
+      email: formData.email,
+      otp: "",
+      password: "",
+    });
+  };
+
+  const backToLogin = () => {
+    setError("");
+    setSuccess("");
+    setForgotMode(false);
+    setForgotStep("email");
   };
 
   return (
@@ -202,7 +272,12 @@ const [forgotData, setForgotData] = useState({
             </h2>
 
             {forgotMode ? (
-              <form className={styles.form} onSubmit={handleForgotPassword}>
+              <form
+                className={styles.form}
+                onSubmit={
+                  forgotStep === "email" ? handleSendResetOtp : handleResetPassword
+                }
+              >
                 <input
                   className={styles.input}
                   type="email"
@@ -216,28 +291,56 @@ const [forgotData, setForgotData] = useState({
                     })
                   }
                   required
+                  disabled={forgotStep === "reset"}
                 />
 
-                <input
-                  className={styles.input}
-                  type="password"
-                  placeholder="New Password"
-                  value={forgotData.password}
-                  onChange={(e) =>
-                    setForgotData({
-                      ...forgotData,
+                {forgotStep === "reset" && (
+                  <>
+                    <input
+                      className={styles.input}
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={6}
+                      placeholder="Enter OTP"
+                      value={forgotData.otp}
+                      onChange={(e) =>
+                        setForgotData({
+                          ...forgotData,
 
-                      password: e.target.value,
-                    })
-                  }
-                  required
-                />
+                          otp: e.target.value.replace(/\D/g, ""),
+                        })
+                      }
+                      required
+                    />
 
-                <button className={styles.button}>Update Password</button>
+                    <input
+                      className={styles.input}
+                      type="password"
+                      placeholder="New Password"
+                      value={forgotData.password}
+                      onChange={(e) =>
+                        setForgotData({
+                          ...forgotData,
+
+                          password: e.target.value,
+                        })
+                      }
+                      required
+                    />
+                  </>
+                )}
+
+                <button className={styles.button} disabled={loading}>
+                  {loading
+                    ? "Please wait..."
+                    : forgotStep === "email"
+                      ? "Send OTP"
+                      : "Update Password"}
+                </button>
 
                 <p
                   className={styles.homeLink}
-                  onClick={() => setForgotMode(false)}
+                  onClick={backToLogin}
                 >
                   Back to Login
                 </p>
@@ -273,7 +376,14 @@ const [forgotData, setForgotData] = useState({
 
                   <span
                     className={styles.inputIcon}
+                    role="button"
+                    tabIndex={0}
                     onClick={() => setShowPassword(!showPassword)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        setShowPassword(!showPassword);
+                      }
+                    }}
                   >
                     {showPassword ? <FiEyeOff /> : <FiEye />}
                   </span>
@@ -285,11 +395,7 @@ const [forgotData, setForgotData] = useState({
 
                 <p
                   className={styles.homeLink}
-                  onClick={() => {
-                    setError("");
-
-                    setForgotMode(true);
-                  }}
+                  onClick={openForgotPassword}
                 >
                   Forgot Password?
                 </p>

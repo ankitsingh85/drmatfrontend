@@ -178,6 +178,11 @@
   font-size: 0.875rem;
 }
 
+.success {
+  color: #15803d;
+  font-size: 0.875rem;
+}
+
 .homeLink {
   display: inline-block;
   margin-top: 20px;

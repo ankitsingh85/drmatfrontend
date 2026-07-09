@@ -14,7 +14,7 @@ interface ServiceCategoryOption {
 interface TreatmentPlanOption {
   _id: string;
   treatmentName: string;
-  serviceCategory?: string;
+  serviceCategory?: ServiceCategoryValue;
 }
 
 interface OfferCategoryRef {
@@ -25,7 +25,7 @@ interface OfferCategoryRef {
 interface OfferTreatmentRef {
   _id?: string;
   treatmentName?: string;
-  serviceCategory?: string;
+  serviceCategory?: ServiceCategoryValue;
 }
 
 interface Offer {
@@ -43,9 +43,41 @@ interface PreviewFile {
   error?: string;
 }
 
+type ServiceCategoryValue =
+  | string
+  | string[]
+  | {
+      _id?: string;
+      id?: string;
+      name?: string;
+    }
+  | Array<{
+      _id?: string;
+      id?: string;
+      name?: string;
+    }>;
+
 const MAX_SIZE_MB = 1;
 const REQUIRED_WIDTH = 1600;
 const REQUIRED_HEIGHT = 350;
+
+const getServiceCategoryValues = (value?: ServiceCategoryValue): string[] => {
+  if (!value) return [];
+
+  if (typeof value === "string") {
+    return [value];
+  }
+
+  if (Array.isArray(value)) {
+    return value.flatMap((item) =>
+      typeof item === "string"
+        ? [item]
+        : ([item._id, item.id, item.name].filter(Boolean) as string[])
+    );
+  }
+
+  return [value._id, value.id, value.name].filter(Boolean) as string[];
+};
 
 const ListofTreatementOffer = () => {
   const [offers, setOffers] = useState<Offer[]>([]);
@@ -132,10 +164,11 @@ const ListofTreatementOffer = () => {
         .map(normalize)
     );
 
-    return treatments.filter((treatment) => {
-      const treatmentCategory = treatment.serviceCategory?.trim();
-      return treatmentCategory ? categoryMatchers.has(normalize(treatmentCategory)) : false;
-    });
+    return treatments.filter((treatment) =>
+      getServiceCategoryValues(treatment.serviceCategory).some((treatmentCategory) =>
+        categoryMatchers.has(normalize(treatmentCategory))
+      )
+    );
   }, [categories, treatments, selectedCategoryId]);
 
   const selectedCategoryName = useMemo(

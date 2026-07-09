@@ -41,8 +41,8 @@ interface Offer {
   _id: string;
   imageUrl: string;
   imageBase64?: string;
-  clinicId?: string | OfferClinicRef;
-  categoryId?: string | OfferCategoryRef;
+  clinicId?: string | OfferClinicRef | null;
+  categoryId?: string | OfferCategoryRef | null;
 }
 
 interface PreviewFile {
@@ -349,13 +349,25 @@ const ListofClinicOffer = () => {
   const clinic = clinics.find((c) => c._id === offer.clinicId);
   return clinic?.clinicName || offer.clinicId || "-";
 };
-  const getCategoryLabel = (offer: Offer) =>
-    typeof offer.categoryId === "object"
-      ? offer.categoryId.name || offer.categoryId.id || offer.categoryId._id || "-"
-      : categories.find((category) => category._id === offer.categoryId)?.name ||
-        categories.find((category) => category.id === offer.categoryId)?.name ||
-        offer.categoryId ||
-        "-";
+  const getCategoryLabel = (offer: Offer) => {
+    if (!offer.categoryId) return "No Category Linked";
+
+    if (typeof offer.categoryId === "object") {
+      return (
+        offer.categoryId.name ||
+        offer.categoryId.id ||
+        offer.categoryId._id ||
+        "-"
+      );
+    }
+
+    return (
+      categories.find((category) => category._id === offer.categoryId)?.name ||
+      categories.find((category) => category.id === offer.categoryId)?.name ||
+      offer.categoryId ||
+      "-"
+    );
+  };
 
   const getOfferImage = (offer: Offer) =>
     offer.imageUrl || offer.imageBase64 || "";

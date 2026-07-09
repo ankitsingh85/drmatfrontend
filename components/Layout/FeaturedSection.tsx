@@ -4,10 +4,12 @@ import React, { useEffect, useRef, useState } from "react";
 import styles from "@/styles/components/Layout/FeaturedSection.module.css";
 import { useRouter } from "next/router";
 import MobileNavbar from "./MobileNavbar";
+import { resolveMediaUrl } from "@/lib/media";
 
 type ImageSliderItem = {
   url: string;
   heading: string;
+  link?: string;
 };
 
 type ImageSliderProps = {
@@ -25,10 +27,8 @@ const FeaturedSection = ({ slides, loading }: ImageSliderProps) => {
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
 
-  const imagePaths = ["/home/findClinicsPage", "/#", "/#"];
-
   const handleImageClick = (index: number) => {
-    router.push(imagePaths[index] || "/");
+    router.push(slides[index]?.link || "/#");
   };
 
   // Detect mobile
@@ -96,7 +96,7 @@ const FeaturedSection = ({ slides, loading }: ImageSliderProps) => {
                 onClick={() => handleImageClick(index)}
               >
                 <img
-                  src={slide.url}
+                  src={resolveMediaUrl(slide.url) || slide.url}
                   alt={`Slide ${index}`}
                   className={styles.imageSliderImage}
                 />
@@ -122,7 +122,7 @@ const FeaturedSection = ({ slides, loading }: ImageSliderProps) => {
                 onClick={() => handleImageClick(index)}
               >
                 <img
-                  src={slide.url}
+                  src={resolveMediaUrl(slide.url) || slide.url}
                   alt={`Slide ${index}`}
                   className={styles.mobileImage}
                 />
