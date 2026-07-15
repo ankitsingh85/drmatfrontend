@@ -134,9 +134,6 @@ packagingType: "",
     }
   };
 
-  const stripHtml = (value: string) =>
-    value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
-
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
@@ -171,17 +168,11 @@ packagingType: "",
     e.preventDefault();
 
     if (
-      !stripHtml(form.description) ||
-      !stripHtml(form.ingredients) ||
-      !stripHtml(form.targetConcerns) ||
-      !stripHtml(form.usageInstructions)
+      !form.productName.trim() ||
+      !form.category.length ||
+      !form.discountedPrice.trim()
     ) {
-      alert("Please fill in description, ingredients, target concerns, and usage instructions");
-      return;
-    }
-
-    if (!form.productImages.length) {
-      alert("Please upload at least one product image");
+      alert("Please fill Product Name, Category and Discounted Price before creating the product.");
       return;
     }
 
@@ -257,7 +248,9 @@ packagingType: form.packagingType,
           </div>
 
           <div className={styles.field}>
-            <label className={styles.label}>Product Name</label>
+            <label className={styles.label}>
+              Product Name<span className={styles.required}>*</span>
+            </label>
             <input
               className={styles.input}
               name="productName"
@@ -271,7 +264,7 @@ packagingType: form.packagingType,
           <div className={styles.field}>
 
 <label className={styles.label}>
-Product Categories
+Product Categories<span className={styles.required}>*</span>
 </label>
 
 <select
@@ -341,7 +334,6 @@ value={cat.name}
               className={styles.input}
               name="brandName"
               onChange={handleChange}
-              required
               pattern="[A-Za-z ]+"
               title="Use letters and spaces only"
             />
@@ -445,8 +437,6 @@ onChange={handleChange}
 
 onKeyDown={handleNumberKeyDown}
 
-required
-
 />
 
 
@@ -504,7 +494,6 @@ onChange={handleChange}
       pattern="[0-9]*"
       onKeyDown={handleNumberKeyDown}
       onChange={handleChange}
-      required
     />
 
   </div>
@@ -516,7 +505,7 @@ onChange={handleChange}
   <div className={styles.field}>
 
     <label className={styles.label}>
-      Discounted Price
+      Discounted Price<span className={styles.required}>*</span>
     </label>
 
     <input
@@ -556,7 +545,6 @@ onChange={handleChange}
       pattern="[0-9]*"
       onKeyDown={handleNumberKeyDown}
       onChange={handleChange}
-      required
     />
 
   </div>
@@ -577,7 +565,6 @@ onChange={handleChange}
       name="taxPercent"
       value={form.taxPercent}
       onChange={handleChange}
-      required
     >
 
       <option value="5">
@@ -650,8 +637,6 @@ value={form.expiryDate}
 
 onChange={handleChange}
 
-required
-
 />
 
 </div>
@@ -678,8 +663,6 @@ name="manufacturerName"
 value={form.manufacturerName}
 
 onChange={handleChange}
-
-required
 
 pattern="[A-Za-z ]+"
 
@@ -742,8 +725,6 @@ value={form.packagingType}
 
 onChange={handleChange}
 
-required
-
 pattern="[A-Za-z ]+"
 
 title="Use letters and spaces only"
@@ -765,7 +746,6 @@ title="Use letters and spaces only"
             accept=".jpg,.jpeg,.png,image/jpeg,image/png,image/webp"
             className={styles.fileInput}
             onChange={handleImageUpload}
-            required
           />
           <input
             className={styles.input}
@@ -773,7 +753,6 @@ title="Use letters and spaces only"
             name="productShortVideo"
             placeholder="Product Short Video URL"
             onChange={handleChange}
-            required
           />
         </div>
 
@@ -792,7 +771,6 @@ title="Use letters and spaces only"
             name="skinHairType"
             placeholder="Skin / Hair Type"
             onChange={handleChange}
-            required
             pattern="[A-Za-z ]+"
             title="Use letters and spaces only"
           />
@@ -801,7 +779,6 @@ title="Use letters and spaces only"
             name="barcode"
             placeholder="Barcode / SKU"
             onChange={handleChange}
-            required
           />
         </div>
 

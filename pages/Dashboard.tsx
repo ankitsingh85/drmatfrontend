@@ -69,6 +69,14 @@ import {
   FiChevronDown,
   FiChevronRight,
   FiLock,
+  FiTag,
+  FiBookOpen,
+  FiAward,
+  FiBook,
+  FiTool,
+  FiClipboard,
+  FiShield,
+  FiActivity,
 } from "react-icons/fi";
 
 import CreateB2BCategory from "@/components/AdminPanel/CreateB2BCategory";
@@ -93,6 +101,7 @@ type ModuleSectionConfig = {
   label: string;
   listLabel: string;
   createLabel: string;
+  icon: React.ReactNode;
   ListComponent: ComponentType<any>;
   CreateComponent: ComponentType<any>;
 };
@@ -257,6 +266,7 @@ export default function SuperAdminDashboard() {
       label: "ADMIN",
       listLabel: "List of Admin",
       createLabel: "Create Admin",
+      icon: <FiUserCheck />,
       ListComponent: ListOfAdmin,
       CreateComponent: CreateAdmin,
     },
@@ -265,6 +275,7 @@ export default function SuperAdminDashboard() {
       label: "USER",
       listLabel: "List of User",
       createLabel: "Create User",
+      icon: <FiUsers />,
       ListComponent: ListOfUser,
       CreateComponent: CreateUser,
     },
@@ -273,6 +284,7 @@ export default function SuperAdminDashboard() {
       label: "PRODUCT CATEGORY",
       listLabel: "List of Product Category",
       createLabel: "Create Product Category",
+      icon: <FiTag />,
       ListComponent: ListOfCategory,
       CreateComponent: CreateCategory,
     },
@@ -281,6 +293,7 @@ export default function SuperAdminDashboard() {
       label: "PRODUCT",
       listLabel: "List of Product",
       createLabel: "Create Product",
+      icon: <FiBox />,
       ListComponent: ListOfProduct,
       CreateComponent: CreateProduct,
     },
@@ -289,6 +302,7 @@ export default function SuperAdminDashboard() {
       label: "COURSE TYPE",
       listLabel: "List of Course Type",
       createLabel: "Create Course Type",
+      icon: <FiBookOpen />,
       ListComponent: ListOfCourseType,
       CreateComponent: CreateCourseType,
     },
@@ -297,6 +311,7 @@ export default function SuperAdminDashboard() {
       label: "TRAINING TYPE",
       listLabel: "List of Training Type",
       createLabel: "Create Training Type",
+      icon: <FiAward />,
       ListComponent: ListOfTrainingType,
       CreateComponent: CreateTrainingType,
     },
@@ -305,6 +320,7 @@ export default function SuperAdminDashboard() {
       label: "COURSE",
       listLabel: "List of Course",
       createLabel: "Create Course",
+      icon: <FiBook />,
       ListComponent: ListOfCourse,
       CreateComponent: CreateCourse,
     },
@@ -313,6 +329,7 @@ export default function SuperAdminDashboard() {
       label: "WORKSHOP TRAINING",
       listLabel: "List of Workshop Training",
       createLabel: "Create Workshop Training",
+      icon: <FiTool />,
       ListComponent: ListOfWorkshopTraning,
       CreateComponent: CreateWorkshopTraning,
     },
@@ -321,6 +338,7 @@ export default function SuperAdminDashboard() {
       label: "DOCTOR",
       listLabel: "List of Doctor",
       createLabel: "Create Doctor",
+      icon: <FiUser />,
       ListComponent: ListOfDoctor,
       CreateComponent: CreateDoctor,
     },
@@ -329,6 +347,7 @@ export default function SuperAdminDashboard() {
       label: "CLINIC CATEGORY",
       listLabel: "List of Clinic Category",
       createLabel: "Create Clinic Category",
+      icon: <FiLayers />,
       ListComponent: ListOfClinicCategory,
       CreateComponent: CreateClinicCategory,
     },
@@ -337,6 +356,7 @@ export default function SuperAdminDashboard() {
       label: "CLINIC",
       listLabel: "List of Clinic",
       createLabel: "Create Clinic",
+      icon: <FiHome />,
       ListComponent: ListOfClinic,
       CreateComponent: CreateClinic,
     },
@@ -345,6 +365,7 @@ export default function SuperAdminDashboard() {
       label: "B2B PRODUCT CATEGORY",
       listLabel: "List of B2B Product Category",
       createLabel: "Create B2B Product Category",
+      icon: <FiClipboard />,
       ListComponent: ListofB2BCategory,
       CreateComponent: CreateB2BCategory,
     },
@@ -353,6 +374,7 @@ export default function SuperAdminDashboard() {
       label: "B2B PRODUCT",
       listLabel: "List of B2B Product",
       createLabel: "Create B2B Product",
+      icon: <FiBriefcase />,
       ListComponent: ListOfB2BProduct,
       CreateComponent: CreateB2BProduct,
     },
@@ -361,6 +383,7 @@ export default function SuperAdminDashboard() {
       label: "TREATMENT CATEGORY",
       listLabel: "List of Service Category",
       createLabel: "Create Service Category",
+      icon: <FiShield />,
       ListComponent: ListOfServiceCategory,
       CreateComponent: CreateServiceCategory,
     },
@@ -369,6 +392,7 @@ export default function SuperAdminDashboard() {
       label: "TREATMENT PLANS",
       listLabel: "List of Treatment",
       createLabel: "Create Treatment",
+      icon: <FiActivity />,
       ListComponent: ListOfTreatment,
       CreateComponent: CreateTreatment,
     },
@@ -602,6 +626,22 @@ export default function SuperAdminDashboard() {
     ? "Super Admin"
     : adminCustomRoleLabel || adminRole.charAt(0).toUpperCase() + adminRole.slice(1);
 
+  const adminInitials =
+    (adminName || "Admin")
+      .trim()
+      .split(/\s+/)
+      .map((part) => part[0])
+      .slice(0, 2)
+      .join("")
+      .toUpperCase() || "A";
+
+  const greeting = (() => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good morning";
+    if (hour < 17) return "Good afternoon";
+    return "Good evening";
+  })();
+
   if (checkingAuth) {
     return <FullPageLoader />;
   }
@@ -614,20 +654,7 @@ export default function SuperAdminDashboard() {
       </div>
 
       {/* HEADER */}
-      <div
-        style={{
-          height: "130px",
-          background: "#ffffff",
-          borderBottom: "1px solid #e5e7eb",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "0 24px",
-          position: "sticky",
-          top: 0,
-          zIndex: 100,
-        }}
-      >
+      <div className={styles.adminHeader}>
         <Image
           className={styles.logo}
           src="/logo.jpeg"
@@ -636,30 +663,15 @@ export default function SuperAdminDashboard() {
           height={90}
         />
 
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+        <div className={styles.adminHeaderRight}>
+          <div className={styles.headerAvatar}>{adminInitials}</div>
           <div style={{ textAlign: "right" }}>
-            <div style={{ fontWeight: 600, color: "#334155" }}>
+            <div style={{ fontWeight: 700, color: "#0f172a", fontSize: 14 }}>
               {adminName || "Admin"}
             </div>
-            <div style={{ fontSize: "12px", color: "#64748b" }}>
-              {roleDisplayLabel}
-            </div>
+            <span className={styles.adminTitleBadge}>{roleDisplayLabel}</span>
           </div>
-          <button
-            onClick={handleLogout}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              background: "#ef4444",
-              color: "#fff",
-              border: "none",
-              padding: "8px 14px",
-              borderRadius: 8,
-              cursor: "pointer",
-              fontWeight: 600,
-            }}
-          >
+          <button onClick={handleLogout} className={styles.logoutTopBtn}>
             <FiLogOut /> Logout
           </button>
         </div>
@@ -697,7 +709,7 @@ export default function SuperAdminDashboard() {
             onClick={() => handleSectionChange("dashBoard")}
           >
             <span className={styles.iconLabel}>
-              <FiUsers />
+              <FiGrid />
               <span className={styles.label}>Dashboard</span>
             </span>
           </li>
@@ -712,7 +724,7 @@ export default function SuperAdminDashboard() {
               onClick={() => handleModuleChange(module.id)}
             >
               <span className={styles.iconLabel}>
-                <FiGrid />
+                {module.icon}
                 <span className={styles.label}>{module.label}</span>
               </span>
             </li>
@@ -786,11 +798,16 @@ export default function SuperAdminDashboard() {
             <div className={styles.premiumDashboard}>
               <div className={styles.dashboardHero}>
                 <div>
-                  <h2 className={styles.heroTitle}>{adminName || "Admin"}</h2>
+                  <h2 className={styles.heroTitle}>
+                    {greeting}, {adminName || "Admin"} 👋
+                  </h2>
                   <p className={styles.heroSubtitle}>
                     Real-time snapshot of all critical modules across your
                     platform.
                   </p>
+                  <span className={styles.heroRoleBadge}>
+                    <FiShield /> {roleDisplayLabel}
+                  </span>
                 </div>
                 <div className={styles.heroActions}>
                   <p className={styles.lastUpdatedText}>

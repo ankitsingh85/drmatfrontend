@@ -38,6 +38,10 @@ type Clinic = {
   photos?: string[];
   createdAt?: string;
   updatedAt?: string;
+
+  approvalStatus?: "pending" | "approved" | "rejected";
+  rejectionReason?: string;
+  approvedAt?: string;
 };
 
 function ListOfClinic() {
@@ -45,6 +49,7 @@ function ListOfClinic() {
   const [categories, setCategories] = useState<ClinicCategory[]>([]);
   const [search, setSearch] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
+  const [filterApproval, setFilterApproval] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [loading, setLoading] = useState(true);
@@ -113,16 +118,22 @@ function ListOfClinic() {
       data = data.filter((c) => c.dermaCategory?._id === filterCategory);
     }
 
+    if (filterApproval !== "all") {
+      data = data.filter(
+        (c) => (c.approvalStatus || "pending") === filterApproval
+      );
+    }
+
     data.sort((a, b) => getClinicTimestamp(b) - getClinicTimestamp(a));
 
     return data;
-  }, [clinics, search, filterCategory]);
+  }, [clinics, search, filterCategory, filterApproval]);
 
   const totalPages = Math.max(1, Math.ceil(filteredClinics.length / itemsPerPage));
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [search, filterCategory, itemsPerPage]);
+  }, [search, filterCategory, filterApproval, itemsPerPage]);
 
   useEffect(() => {
     if (currentPage > totalPages) setCurrentPage(totalPages);
@@ -194,6 +205,62 @@ function ListOfClinic() {
         )
       );
       alert(error instanceof Error ? error.message : "Failed to update clinic status");
+    }
+  };
+
+  const handleApprove = async (clinic: Clinic) => {
+    if (!confirm(`Approve "${clinic.clinicName}"? They'll be notified by email and can log in right away.`)) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_URL}/clinics/${clinic._id}/approve`, {
+        method: "PATCH",
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(data?.message || "Failed to approve clinic");
+      }
+
+      setClinics((prev) =>
+        prev.map((item) =>
+          item._id === clinic._id
+            ? { ...item, approvalStatus: "approved", rejectionReason: "" }
+            : item
+        )
+      );
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Failed to approve clinic");
+    }
+  };
+
+  const handleReject = async (clinic: Clinic) => {
+    const reason = window.prompt(
+      `Reject "${clinic.clinicName}"? Optionally add a reason (sent to the clinic by email):`,
+      ""
+    );
+    if (reason === null) return; // cancelled
+
+    try {
+      const res = await fetch(`${API_URL}/clinics/${clinic._id}/reject`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(data?.message || "Failed to reject clinic");
+      }
+
+      setClinics((prev) =>
+        prev.map((item) =>
+          item._id === clinic._id
+            ? { ...item, approvalStatus: "rejected", rejectionReason: reason }
+            : item
+        )
+      );
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Failed to reject clinic");
     }
   };
 
@@ -362,6 +429,16 @@ function ListOfClinic() {
           ))}
         </select>
         <select
+          className={styles.filter}
+          value={filterApproval}
+          onChange={(e) => setFilterApproval(e.target.value)}
+        >
+          <option value="all">All Registrations</option>
+          <option value="pending">Pending Approval</option>
+          <option value="approved">Approved</option>
+          <option value="rejected">Rejected</option>
+        </select>
+        <select
           className={`${styles.filter} ${styles.pageFilter}`}
           value={itemsPerPage}
           onChange={(e) => setItemsPerPage(Number(e.target.value))}
@@ -403,6 +480,7 @@ function ListOfClinic() {
                 <th>Category</th>
                 <th>Verified</th>
                 <th>Active</th>
+                <th>Registration</th>
                 <th>View</th>
                 <th>Actions</th>
               </tr>
@@ -450,6 +528,33 @@ function ListOfClinic() {
                     </button>
                   </td>
                   <td>
+                    {(() => {
+                      const status = clinic.approvalStatus || "pending";
+                      const badgeClass =
+                        status === "approved"
+                          ? styles.approvedBadge
+                          : status === "rejected"
+                          ? styles.rejectedBadge
+                          : styles.pendingBadge;
+                      return (
+                        <span
+                          className={badgeClass}
+                          title={
+                            status === "rejected" && clinic.rejectionReason
+                              ? `Reason: ${clinic.rejectionReason}`
+                              : undefined
+                          }
+                        >
+                          {status === "approved"
+                            ? "Approved"
+                            : status === "rejected"
+                            ? "Rejected"
+                            : "Pending"}
+                        </span>
+                      );
+                    })()}
+                  </td>
+                  <td>
                     <button
                       className={styles.viewBtn}
                       onClick={() => setViewClinic(clinic)}
@@ -458,24 +563,42 @@ function ListOfClinic() {
                     </button>
                   </td>
                   <td>
-                    <button
-                      className={styles.editBtn}
-                      onClick={() => handleEdit(clinic)}
-                    >
-                      ✏️
-                    </button>
-                    <button
-                      className={styles.deleteBtn}
-                      onClick={() => handleDelete(clinic._id)}
-                    >
-                      🗑
-                    </button>
+                    <div className={styles.actions}>
+                      {(clinic.approvalStatus || "pending") !== "approved" && (
+                        <button
+                          className={styles.approveBtn}
+                          onClick={() => handleApprove(clinic)}
+                        >
+                          Approve
+                        </button>
+                      )}
+                      {(clinic.approvalStatus || "pending") !== "rejected" && (
+                        <button
+                          className={styles.rejectBtn}
+                          onClick={() => handleReject(clinic)}
+                        >
+                          Reject
+                        </button>
+                      )}
+                      <button
+                        className={styles.editBtn}
+                        onClick={() => handleEdit(clinic)}
+                      >
+                        ✏️
+                      </button>
+                      <button
+                        className={styles.deleteBtn}
+                        onClick={() => handleDelete(clinic._id)}
+                      >
+                        🗑
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
               {paginatedClinics.length === 0 && (
                 <tr>
-                  <td colSpan={9}>No clinics found.</td>
+                  <td colSpan={10}>No clinics found.</td>
                 </tr>
               )}
             </tbody>
@@ -704,6 +827,10 @@ function ListOfClinic() {
               <p><b>Status:</b> {viewClinic.clinicStatus}</p>
               <p><b>Verified:</b> {viewClinic.verifiedBadge ? "Yes" : "No"}</p>
               <p><b>Active:</b> {viewClinic.isActive === false ? "No" : "Yes"}</p>
+              <p><b>Registration:</b> {viewClinic.approvalStatus || "pending"}</p>
+              {viewClinic.approvalStatus === "rejected" && viewClinic.rejectionReason && (
+                <p><b>Rejection Reason:</b> {viewClinic.rejectionReason}</p>
+              )}
               <p><b>Address:</b> {viewClinic.address}</p>
             </div>
 

@@ -64,39 +64,21 @@ const isValidUrl = (value: string) => {
   }
 };
 
-const stripHtml = (value: string) =>
-  value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
-
 const sanitizeTextOnly = (value: string) => value.replace(/[^A-Za-z ]/g, "");
 const sanitizeDigitsOnly = (value: string) => value.replace(/\D/g, "");
 
+// Only Product Name, Category and Discounted Price are mandatory —
+// everything else is optional. Optional fields are still format-checked
+// when the admin does fill them in, but an empty value is never an error.
 const validateField = (
   name: keyof FormState,
   value: FormState[keyof FormState],
   form: FormState
 ) => {
-  if (name === "productImages" && (!Array.isArray(value) || value.length === 0)) {
-    return "At least one product image is required";
-  }
-
   if (name === "category") {
     if (!Array.isArray(value) || value.length === 0) {
       return "Select at least one category";
     }
-    return "";
-  }
-
-  // Pack size now accepts numbers, symbols, and text together
-  // (e.g. "10x5 ml", "Box of 24", "500g"). Only "required" is enforced.
-  if (name === "packSize") {
-    if (!String(value ?? "").trim()) {
-      return "Pack size is required";
-    }
-    return "";
-  }
-
-  if (name === "gstOption") {
-    if (!value) return "GST % is required";
     return "";
   }
 
@@ -111,75 +93,42 @@ const validateField = (
     return "";
   }
 
-  const requiredTextFields: Array<keyof FormState> = [
-    "productName",
-    "hsnCode",
-    "brandName",
-    "pricePerUnit",
-    "bulkPriceTier",
-    "moq",
-    "stockAvailable",
-    "expiryDate",
-    "shelfLife",
-    "description",
-    "ingredients",
-    "usageInstructions",
-    "treatmentIndications",
-    "manufacturerName",
-    "licenseNumber",
-    "mrp",
-    "discountedPrice",
-    "productVideoUrl",
-  ];
+  const requiredTextFields: Array<keyof FormState> = ["productName", "discountedPrice"];
 
   if (requiredTextFields.includes(name)) {
     const stringValue = String(value ?? "").trim();
     if (!stringValue) {
       const labels: Record<string, string> = {
         productName: "Product name",
-        hsnCode: "HSN code",
-        brandName: "Brand name",
-        pricePerUnit: "Price per unit",
-        bulkPriceTier: "Bulk price tier",
-        moq: "MOQ",
-        stockAvailable: "Stock available",
-        expiryDate: "Expiry date",
-        shelfLife: "Shelf life",
-        description: "Description",
-        ingredients: "Ingredients",
-        usageInstructions: "Usage instructions",
-        treatmentIndications: "Treatment indications",
-        manufacturerName: "Manufacturer name",
-        licenseNumber: "License number",
-        mrp: "MRP",
         discountedPrice: "Discounted price",
-        productVideoUrl: "Product video URL",
       };
       return `${labels[name]} is required`;
     }
   }
 
+  const stringValue = String(value ?? "").trim();
+
   if (name === "productName" && !textOnlyRegex.test(String(value))) {
     return "Product name should contain only letters and spaces";
   }
 
-  if (name === "brandName" && !textOnlyRegex.test(String(value))) {
+  if (name === "brandName" && stringValue && !textOnlyRegex.test(stringValue)) {
     return "Brand name should contain only letters and spaces";
   }
 
-  if (name === "manufacturerName" && !textOnlyRegex.test(String(value))) {
+  if (name === "manufacturerName" && stringValue && !textOnlyRegex.test(stringValue)) {
     return "Manufacturer name should contain only letters and spaces";
   }
 
-  if (name === "hsnCode" && !digitsOnlyRegex.test(String(value))) {
+  if (name === "hsnCode" && stringValue && !digitsOnlyRegex.test(stringValue)) {
     return "HSN code must contain digits only";
   }
 
-  if (name === "bulkPriceTier" && !digitsOnlyRegex.test(String(value))) {
+  if (name === "bulkPriceTier" && stringValue && !digitsOnlyRegex.test(stringValue)) {
     return "Bulk price tier must contain digits only";
   }
 
-  if (name === "licenseNumber" && !digitsOnlyRegex.test(String(value))) {
+  if (name === "licenseNumber" && stringValue && !digitsOnlyRegex.test(stringValue)) {
     return "License number must contain digits only";
   }
 
@@ -193,17 +142,8 @@ const validateField = (
     return `${String(name)} must be a valid number`;
   }
 
-  if (name === "productVideoUrl" && !isValidUrl(String(value))) {
+  if (name === "productVideoUrl" && stringValue && !isValidUrl(stringValue)) {
     return "Product video URL must be a valid URL";
-  }
-
-  if (
-    ["description", "ingredients", "usageInstructions", "treatmentIndications"].includes(
-      String(name)
-    ) &&
-    !stripHtml(String(value))
-  ) {
-    return `${String(name).replace(/([A-Z])/g, " $1")} is required`;
   }
 
   return "";
@@ -645,7 +585,9 @@ export default function CreateB2BProduct() {
           </div>
 
           <div className={styles.field}>
-            <label className={styles.label}>Product Name</label>
+            <label className={styles.label}>
+              Product Name<span className={styles.required}>*</span>
+            </label>
             <input
               className={styles.input}
               name="productName"
@@ -660,7 +602,9 @@ export default function CreateB2BProduct() {
 
           {/* ===== MULTI-SELECT CATEGORY ===== */}
           <div className={styles.field}>
-            <label className={styles.label}>Category (select one or more)</label>
+            <label className={styles.label}>
+              Category (select one or more)<span className={styles.required}>*</span>
+            </label>
             {loadingCategories ? (
               <p>Loading categories...</p>
             ) : (
@@ -720,7 +664,6 @@ export default function CreateB2BProduct() {
               pattern="[0-9]*"
               placeholder="HSN Code"
               onKeyDown={handleNumberKeyDown}
-              required
             />
             {showError("hsnCode") && <p className={styles.fieldError}>{showError("hsnCode")}</p>}
           </div>
@@ -734,7 +677,6 @@ export default function CreateB2BProduct() {
               onChange={handleChange}
               onBlur={handleBlur}
               placeholder="Brand Name"
-              required
             />
             {showError("brandName") && <p className={styles.fieldError}>{showError("brandName")}</p>}
           </div>
@@ -754,7 +696,6 @@ export default function CreateB2BProduct() {
               placeholder="e.g. 10x5 ml, Box of 24, 500g"
               onChange={handleChange}
               onBlur={handleBlur}
-              required
             />
             {showError("packSize") && <p className={styles.fieldError}>{showError("packSize")}</p>}
           </div>
@@ -779,7 +720,6 @@ export default function CreateB2BProduct() {
                 onKeyDown={handleNumberKeyDown}
                 onChange={handleChange}
                 onBlur={handleBlur}
-                required
               />
               {showError(name as keyof FormState) && (
                 <p className={styles.fieldError}>{showError(name as keyof FormState)}</p>
@@ -796,7 +736,6 @@ export default function CreateB2BProduct() {
               value={form.expiryDate}
               onChange={handleChange}
               onBlur={handleBlur}
-              required
             />
             {showError("expiryDate") && <p className={styles.fieldError}>{showError("expiryDate")}</p>}
           </div>
@@ -810,7 +749,6 @@ export default function CreateB2BProduct() {
               onChange={handleChange}
               onBlur={handleBlur}
               placeholder="Shelf Life"
-              required
             />
             {showError("shelfLife") && <p className={styles.fieldError}>{showError("shelfLife")}</p>}
           </div>
@@ -865,7 +803,6 @@ export default function CreateB2BProduct() {
               onChange={handleChange}
               onBlur={handleBlur}
               placeholder="Manufacturer Name"
-              required
             />
             {showError("manufacturerName") && (
               <p className={styles.fieldError}>{showError("manufacturerName")}</p>
@@ -884,7 +821,6 @@ export default function CreateB2BProduct() {
               pattern="[0-9]*"
               placeholder="License Number"
               onKeyDown={handleNumberKeyDown}
-              required
             />
             {showError("licenseNumber") && (
               <p className={styles.fieldError}>{showError("licenseNumber")}</p>
@@ -905,13 +841,14 @@ export default function CreateB2BProduct() {
               onKeyDown={handleNumberKeyDown}
               onChange={handleChange}
               onBlur={handleBlur}
-              required
             />
             {showError("mrp") && <p className={styles.fieldError}>{showError("mrp")}</p>}
           </div>
 
           <div className={styles.field}>
-            <label className={styles.label}>Discounted Price</label>
+            <label className={styles.label}>
+              Discounted Price<span className={styles.required}>*</span>
+            </label>
             <input
               type="number"
               min="0"
@@ -1039,7 +976,6 @@ export default function CreateB2BProduct() {
               onChange={handleChange}
               onBlur={handleBlur}
               placeholder="https://example.com/video"
-              required
             />
             {showError("productVideoUrl") && (
               <p className={styles.fieldError}>{showError("productVideoUrl")}</p>

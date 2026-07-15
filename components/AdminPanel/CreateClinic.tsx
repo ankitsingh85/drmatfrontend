@@ -253,10 +253,12 @@ export default function CreateClinic() {
     if (
       !form.clinicName.trim() ||
       !form.dermaCategory ||
-      !form.address.trim() ||
-      !form.email.trim()
+      !form.contactNumber.trim() ||
+      !form.whatsapp.trim()
     ) {
-      alert("Please fill Clinic Name, Category, Address and Email before creating the clinic.");
+      alert(
+        "Please fill Clinic Name, Category, Contact Number and Whatsapp Contact Number before creating the clinic."
+      );
       return;
     }
 
@@ -349,13 +351,27 @@ export default function CreateClinic() {
             </div>
 
             <div className={styles.field}>
-              <label>Clinic Name</label>
-              <input className={styles.input} name="clinicName" onChange={handleChange} />
+              <label>
+                Clinic Name<span className={styles.required}>*</span>
+              </label>
+              <input
+                className={styles.input}
+                name="clinicName"
+                onChange={handleChange}
+                required
+              />
             </div>
 
             <div className={styles.field}>
-              <label>Clinic Category</label>
-              <select className={styles.input} value={form.dermaCategory} onChange={handleCategoryChange}>
+              <label>
+                Clinic Category<span className={styles.required}>*</span>
+              </label>
+              <select
+                className={styles.input}
+                value={form.dermaCategory}
+                onChange={handleCategoryChange}
+                required
+              >
                 <option value="">Select Clinic Category</option>
                 {categories.map((cat) => (
                   <option key={cat._id} value={cat._id}>{cat.name}</option>
@@ -369,8 +385,15 @@ export default function CreateClinic() {
             </div>
 
             <div className={styles.field}>
-              <label>Contact Number</label>
-              <input className={styles.input} name="contactNumber" onChange={handleChange} />
+              <label>
+                Contact Number<span className={styles.required}>*</span>
+              </label>
+              <input
+                className={styles.input}
+                name="contactNumber"
+                onChange={handleChange}
+                required
+              />
             </div>
 
             <div className={styles.field}>
@@ -553,8 +576,15 @@ export default function CreateClinic() {
             </div>
 
             <div className={styles.field}>
-              <label>Whatsapp Contact</label>
-              <input className={styles.input} name="whatsapp" onChange={handleChange} />
+              <label>
+                Whatsapp Contact<span className={styles.required}>*</span>
+              </label>
+              <input
+                className={styles.input}
+                name="whatsapp"
+                onChange={handleChange}
+                required
+              />
             </div>
 
             {/* ===== WORKING HOURS (WhatsApp-Business style) ===== */}

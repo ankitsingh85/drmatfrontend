@@ -65,9 +65,6 @@ useState<string[]>([]);
   ]);
   const textOnlyRegex = /^[A-Za-z ]+$/;
 
-  const stripHtml = (value: string) =>
-    value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
-
   const isValidUrl = (value: string) => {
     try {
       const parsed = new URL(value.trim());
@@ -166,53 +163,33 @@ prev.length ? prev : []
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
- if (selectedClinics.length===0) {
-
-setNotification(
-"Please select clinic before submitting."
-);
-
-return;
-
-}
+    // Only Treatment Plan Name, Treatment Category and Offer Price are
+    // mandatory — everything else is optional.
     if (!treatmentName.trim()) {
       setNotification("Treatment plan name is required.");
       return;
     }
-   if (serviceCategory.length === 0) {
-
-  setNotification(
-    "Please select a treatment category."
-  );
-
-  return;
-
-}
     if (!textOnlyRegex.test(treatmentName.trim())) {
       setNotification("Treatment plan name should contain only letters and spaces.");
       return;
     }
-    if (!isValidUrl(shortReelUrl)) {
+    if (serviceCategory.length === 0) {
+      setNotification("Please select a treatment category.");
+      return;
+    }
+    if (!offerPrice.trim()) {
+      setNotification("Offer price is required.");
+      return;
+    }
+    if (shortReelUrl.trim() && !isValidUrl(shortReelUrl)) {
       setNotification("Treatment short reel must be a valid URL.");
       return;
     }
-    if (!stripHtml(description)) {
-      setNotification("Plan description is required.");
-      return;
-    }
-    if (!treatmentImages.length) {
-      setNotification("Please upload at least one treatment image.");
-      return;
-    }
-    if (!mrp || !offerPrice || !discountPercent || !sessions) {
-      setNotification("Pricing fields and sessions are required.");
-      return;
-    }
     if (
-      !/^\d+$/.test(mrp) ||
+      (mrp && !/^\d+$/.test(mrp)) ||
       !/^\d+$/.test(offerPrice) ||
-      !/^\d+$/.test(discountPercent) ||
-      !/^\d+$/.test(sessions)
+      (discountPercent && !/^\d+$/.test(discountPercent)) ||
+      (sessions && !/^\d+$/.test(sessions))
     ) {
       setNotification("Numeric fields must contain numbers only.");
       return;
@@ -291,7 +268,9 @@ JSON.stringify(serviceCategory)
           <h2 className={styles.sectionTitle}>Basic Information</h2>
 
           <div className={styles.field}>
-            <label>Treatment Plan Name</label>
+            <label>
+              Treatment Plan Name<span className={styles.required}>*</span>
+            </label>
             <input
               value={treatmentName}
               onChange={(e) => handleTextChange(setTreatmentName, e.target.value)}
@@ -366,7 +345,6 @@ value={clinic._id}
               value={shortReelUrl}
               onChange={(e) => handleTextChange(setShortReelUrl, e.target.value)}
               className={styles.input}
-              required
             />
           </div>
 
@@ -377,7 +355,6 @@ value={clinic._id}
               multiple
               className={styles.fileInput}
               onChange={(e) => handleFileChange(e, "treatmentImages")}
-              required
             />
           </div>
 
@@ -406,7 +383,9 @@ value={clinic._id}
           <h2 className={styles.sectionTitle}>Category</h2>
 
           <div className={styles.field}>
-            <label>Treatment Category</label>
+            <label>
+              Treatment Category<span className={styles.required}>*</span>
+            </label>
           <select
 
 multiple
@@ -464,12 +443,13 @@ value={category.name}
               onChange={(e) => handleNumericChange(setMrp, e.target.value)}
               inputMode="numeric"
               pattern="[0-9]*"
-              required
             />
           </div>
 
           <div className={styles.field}>
-            <label>Offer Price (Incl. Taxes)</label>
+            <label>
+              Offer Price (Incl. Taxes)<span className={styles.required}>*</span>
+            </label>
             <input
               type="text"
               className={styles.input}
@@ -506,7 +486,6 @@ value={category.name}
               }
               inputMode="numeric"
               pattern="[0-9]*"
-              required
             />
           </div>
         </section>
@@ -523,7 +502,6 @@ value={category.name}
               onChange={(e) => handleNumericChange(setSessions, e.target.value)}
               inputMode="numeric"
               pattern="[0-9]*"
-              required
             />
           </div>
 

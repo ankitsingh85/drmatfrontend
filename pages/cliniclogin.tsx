@@ -24,8 +24,11 @@ export default function ClinicLogin() {
   const [address, setAddress] = useState("");
   const [ownerName, setOwnerName] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
-  const [step, setStep] = useState<"mobile" | "otp" | "profile">("mobile");
+  const [step, setStep] = useState<
+    "mobile" | "otp" | "profile" | "pending" | "rejected"
+  >("mobile");
   const [loading, setLoading] = useState(false);
+  const [statusMessage, setStatusMessage] = useState("");
 
   const completeLogin = (data: any, fallbackMobile: string) => {
     const cookieOptions = {
@@ -152,6 +155,18 @@ if (data?.needsProfile || data?.message === "Clinic details are required") {
   return;
 }
 
+if (data?.pendingApproval) {
+  setStatusMessage(data?.message || "");
+  setStep("pending");
+  return;
+}
+
+if (data?.rejected) {
+  setStatusMessage(data?.message || "");
+  setStep("rejected");
+  return;
+}
+
 throw new Error(data?.message || "Login failed");
     } catch (err: any) {
       alert(err.message || "Login failed");
@@ -187,7 +202,20 @@ throw new Error(data?.message || "Login failed");
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data?.message || "Login failed");
+
+      if (!res.ok) {
+        if (data?.pendingApproval) {
+          setStatusMessage(data?.message || "");
+          setStep("pending");
+          return;
+        }
+        if (data?.rejected) {
+          setStatusMessage(data?.message || "");
+          setStep("rejected");
+          return;
+        }
+        throw new Error(data?.message || "Login failed");
+      }
 
       completeLogin(data, normalizedMobile);
     } catch (err: any) {
@@ -270,6 +298,50 @@ throw new Error(data?.message || "Login failed");
                       {loading ? "Please wait..." : "Confirm OTP"}
                     </button>
                   </form>
+                </>
+              )}
+
+              {step === "pending" && (
+                <>
+                  <h2 className={styles.modalTitle}>Registration submitted</h2>
+                  <p className={styles.modalText}>
+                    {statusMessage ||
+                      "Your clinic registration is pending admin approval. You'll receive an email once it's reviewed."}
+                  </p>
+                  <button
+                    type="button"
+                    className={styles.primaryBtn}
+                    onClick={() => {
+                      setStep("mobile");
+                      setMobile("");
+                      setOtp("");
+                      setOtpSessionId("");
+                    }}
+                  >
+                    Back to Sign in
+                  </button>
+                </>
+              )}
+
+              {step === "rejected" && (
+                <>
+                  <h2 className={styles.modalTitle}>Registration not approved</h2>
+                  <p className={styles.modalText}>
+                    {statusMessage ||
+                      "Your clinic registration was not approved by the admin."}
+                  </p>
+                  <button
+                    type="button"
+                    className={styles.primaryBtn}
+                    onClick={() => {
+                      setStep("mobile");
+                      setMobile("");
+                      setOtp("");
+                      setOtpSessionId("");
+                    }}
+                  >
+                    Back to Sign in
+                  </button>
                 </>
               )}
 

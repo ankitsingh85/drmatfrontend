@@ -132,15 +132,20 @@ const Field = ({
   label,
   error,
   full = false,
+  required = false,
   children,
 }: {
   label: string;
   error?: string;
   full?: boolean;
+  required?: boolean;
   children: React.ReactNode;
 }) => (
   <div className={full ? styles.fullField : styles.field}>
-    <label className={styles.label}>{label}</label>
+    <label className={styles.label}>
+      {label}
+      {required && <span className={styles.required}>*</span>}
+    </label>
     {children}
     {error ? <p className={styles.fieldError}>{error}</p> : null}
   </div>
@@ -179,45 +184,17 @@ export default function CreateWorkshopTraning() {
     setMessage("");
   };
 
+  // Only Training Name, Institute Name and Net Fees (INR) are mandatory —
+  // everything else is optional. Optional fields are still format-checked
+  // when the admin does fill them in, but an empty value is never an error.
   const validate = (data: FormState) => {
     const next: Errors = {};
-    const required: (keyof FormState)[] = [
-      "trainingName",
-      "trainingUniqueCode",
-      "hsnCode",
-      "instituteName",
-      "trainingDuration",
-      "modeOfTraining",
-      "startDate",
-      "endDate",
-      "registrationDeadline",
-      "curriculumTopicsCovered",
-      "certificationProvided",
-      "affiliationAccreditation",
-      "feesInr",
-      "netFeesInr",
-      "location",
-      "maximumSeatsBatchSize",
-      "currentAvailability",
-      "trainerInstructorName",
-      "trainerExperience",
-      "languageOfDelivery",
-      "whatsIncluded",
-      "whatsNotIncluded",
-      "learningOutcomes",
-      "refundCancellationPolicy",
-      "postTrainingSupport",
-      "contactForQueries",
-    ];
+    const required: (keyof FormState)[] = ["trainingName", "instituteName", "netFeesInr"];
 
     for (const key of required) {
       if (!String(data[key] ?? "").trim()) next[key] = `${labelMap[key]} is required`;
     }
 
-    if (!data.trainingType.length) next.trainingType = "Please select at least one training type";
-    if (!data.trainingImage) next.trainingImage = "Training image is required";
-    if (!data.brochurePdfDownload.length) next.brochurePdfDownload = "At least one brochure PDF is required";
-    if (!data.targetAudienceText.trim()) next.targetAudienceText = "At least one target audience item is required";
     if (data.instituteName && !textOnly.test(data.instituteName.trim())) next.instituteName = "Institute name should contain only letters and spaces";
     if (data.trainerInstructorName && !textOnly.test(data.trainerInstructorName.trim())) next.trainerInstructorName = "Trainer / instructor name should contain only letters and spaces";
     for (const key of ["feesInr", "netFeesInr", "maximumSeatsBatchSize", "discountPercent"] as const) {
@@ -228,9 +205,6 @@ export default function CreateWorkshopTraning() {
     }
     if (data.certificationProvided && !yesNo.includes(data.certificationProvided)) next.certificationProvided = "Select Yes or No";
     if (data.languageOfDelivery && !languages.includes(data.languageOfDelivery)) next.languageOfDelivery = "Select a valid language";
-    if (!loadingTrainingTypes && trainingTypes.length === 0) {
-      next.trainingType = "No training types available. Please create one first.";
-    }
     if (data.endDate && data.startDate && new Date(data.endDate) < new Date(data.startDate)) next.endDate = "End date must be on or after start date";
     if (data.registrationDeadline && data.startDate && new Date(data.registrationDeadline) > new Date(data.startDate)) next.registrationDeadline = "Registration deadline should be on or before start date";
 
@@ -442,7 +416,7 @@ export default function CreateWorkshopTraning() {
         <div className={styles.section}>
           <h3 className={styles.sectionTitle}>Workshop Basics</h3>
           <div className={styles.fieldGrid}>
-            <Field label={labelMap.trainingName} error={errorFor("trainingName")}>
+            <Field label={labelMap.trainingName} error={errorFor("trainingName")} required>
               <input
                 className={styles.input}
                 value={form.trainingName}
@@ -499,7 +473,7 @@ export default function CreateWorkshopTraning() {
               />
             </Field>
 
-            <Field label={labelMap.instituteName} error={errorFor("instituteName")}>
+            <Field label={labelMap.instituteName} error={errorFor("instituteName")} required>
               <input className={styles.input} value={form.instituteName} onChange={(e) => setValue("instituteName", e.target.value.replace(/[^A-Za-z ]/g, ""))} />
             </Field>
             <Field label={labelMap.trainingDuration} error={errorFor("trainingDuration")}>
@@ -541,7 +515,7 @@ export default function CreateWorkshopTraning() {
             <Field label={labelMap.feesInr} error={errorFor("feesInr")}>
               <input className={styles.input} value={form.feesInr} onChange={(e) => setValue("feesInr", e.target.value.replace(/\D/g, ""))} />
             </Field>
-            <Field label={labelMap.netFeesInr} error={errorFor("netFeesInr")}>
+            <Field label={labelMap.netFeesInr} error={errorFor("netFeesInr")} required>
               <input className={styles.input} value={form.netFeesInr} onChange={(e) => setValue("netFeesInr", e.target.value.replace(/\D/g, ""))} />
             </Field>
             <Field label={labelMap.discountPercent} error={errorFor("discountPercent")}>

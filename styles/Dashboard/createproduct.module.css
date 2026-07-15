@@ -26,6 +26,12 @@
   margin-bottom: 36px;
 }
 
+.required {
+  color: #dc2626;
+  margin-left: 4px;
+  font-weight: 900;
+}
+
 /* ===== FORM ===== */
 .form {
   display: flex;

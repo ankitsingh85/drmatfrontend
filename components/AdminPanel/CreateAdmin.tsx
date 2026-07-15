@@ -5,21 +5,48 @@ import React, { useEffect, useMemo, useState } from "react";
 import styles from "@/styles/Dashboard/adminpages.module.css";
 
 /* ================= MODULES =================
-   Mirrors ADMIN_MODULES in models/admin.ts. Fetched from
-   /admins/modules on mount, with this as a fallback so the form still
-   renders if that call fails.
+   Mirrors ADMIN_MODULES / ADMIN_MODULE_LABELS in models/admin.ts.
+   Fetched from /admins/modules on mount; these are the fallback so the
+   form still renders (with the same keys the backend expects) if that
+   call fails.
 */
 const FALLBACK_MODULES = [
-  "Dashboard",
-  "Clinics",
-  "Clinic Categories",
-  "B2B Products",
-  "B2B Categories",
-  "Treatment Plans",
-  "Service Categories",
-  "Customers",
-  "Admins",
+  "admin",
+  "user",
+  "productCategory",
+  "product",
+  "courseType",
+  "trainingType",
+  "course",
+  "workshopTraining",
+  "doctor",
+  "clinicCategory",
+  "clinic",
+  "b2bProductCategory",
+  "b2bProduct",
+  "serviceCategory",
+  "treatment",
+  "others",
 ];
+
+const FALLBACK_MODULE_LABELS: Record<string, string> = {
+  admin: "Admin",
+  user: "User",
+  productCategory: "Product Category",
+  product: "Product",
+  courseType: "Course Type",
+  trainingType: "Training Type",
+  course: "Course",
+  workshopTraining: "Workshop Training",
+  doctor: "Doctor",
+  clinicCategory: "Clinic Category",
+  clinic: "Clinic",
+  b2bProductCategory: "B2B Product Category",
+  b2bProduct: "B2B Product",
+  serviceCategory: "Treatment Category",
+  treatment: "Treatment Plans",
+  others: "Others (Top Products, Offers, Featured Section, Shorts, Hiring Requests)",
+};
 
 type PermissionRow = {
   module: string;
@@ -52,7 +79,9 @@ const slugifyRole = (value: string) =>
 export default function CreateAdmin() {
   const [userId] = useState(`ADM-${Date.now().toString().slice(-6)}`);
   const [modules, setModules] = useState<string[]>(FALLBACK_MODULES);
-  const [moduleLabels, setModuleLabels] = useState<Record<string, string>>({});
+  const [moduleLabels, setModuleLabels] = useState<Record<string, string>>(
+    FALLBACK_MODULE_LABELS
+  );
   const [existingAdmins, setExistingAdmins] = useState<ExistingAdmin[]>([]);
   const [copyFromId, setCopyFromId] = useState("");
 

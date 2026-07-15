@@ -39,6 +39,12 @@
   gap: 42px;
 }
 
+.required {
+  color: #dc2626;
+  margin-left: 4px;
+  font-weight: 900;
+}
+
 /* ===== SECTION ===== */
 .section {
   display: grid;

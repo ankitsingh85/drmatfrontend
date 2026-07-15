@@ -4,10 +4,13 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 14px;
-  background: #ffffff;
+  gap: 18px;
+  background:
+    radial-gradient(circle at 10% 12%, rgba(198, 226, 255, 0.45) 0%, transparent 34%),
+    radial-gradient(circle at 90% 88%, rgba(255, 222, 189, 0.35) 0%, transparent 32%),
+    linear-gradient(180deg, #f7fafd 0%, #eef2f9 100%);
   overflow: hidden;
-  padding: 20px 14px;
+  padding: 28px 14px;
 }
 
 .logoTop {
@@ -35,7 +38,22 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   background: #ffffff;
+  border-radius: 26px;
+  border: 1px solid #dfe6f0;
+  box-shadow: 0 30px 80px rgba(15, 23, 42, 0.14);
   overflow: hidden;
+  animation: fadeInUp 0.45s ease both;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ===== LEFT: IMAGE ===== */
@@ -44,8 +62,19 @@
   align-items: center;
   justify-content: center;
   padding: 40px;
-  background: #ffffff;
   position: relative;
+  background:
+    radial-gradient(circle at 18% 20%, rgba(255, 255, 255, 0.55) 0%, transparent 40%),
+    linear-gradient(155deg, #0a4b83 0%, #12659e 55%, #1a7ab7 100%);
+}
+
+.imagePane::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 85% 85%, rgba(255, 200, 140, 0.28) 0%, transparent 40%);
+  pointer-events: none;
 }
 
 .imageWrap {
@@ -53,11 +82,15 @@
   width: 100%;
   max-width: 380px;
   aspect-ratio: 1;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 20px 50px rgba(6, 30, 55, 0.35);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .heroImage {
   object-fit: contain;
-  border-radius: 10px;
+  border-radius: 20px;
 }
 
 /* ===== RIGHT: FORM ===== */
@@ -71,15 +104,36 @@
 
 .formCard {
   width: 100%;
-  max-width: 340px;
+  max-width: 360px;
+  animation: fadeInUp 0.5s ease both;
+}
+
+.iconBadge {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 16px;
+  background: linear-gradient(135deg, #0a4b83 0%, #1264a3 100%);
+  color: #ffffff;
+  font-size: 1.35rem;
+  box-shadow: 0 12px 24px rgba(10, 75, 131, 0.28);
 }
 
 .title {
-  margin: 0 0 28px;
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: #1a2238;
+  margin: 0 0 6px;
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #0f172a;
   letter-spacing: -0.02em;
+}
+
+.subtitle {
+  margin: 0 0 26px;
+  font-size: 0.9rem;
+  color: #64748b;
+  line-height: 1.5;
 }
 
 .titleUnderline {
@@ -111,20 +165,35 @@
 .input {
   width: 100%;
   padding: 14px 44px 14px 16px;
-  border: 1px solid #d1d5db;
-  border-radius: 10px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
   font-size: 0.95rem;
   outline: none;
-  transition: border-color 0.2s;
-  background: #ffffff;
+  background: #f8fafc;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
 .input:focus {
   border-color: #0a4b83;
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(10, 75, 131, 0.1);
 }
 
 .input::placeholder {
   color: #9ca3af;
+}
+
+.input:disabled {
+  background: #f1f5f9;
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
+.otpInput {
+  letter-spacing: 0.5em;
+  font-weight: 700;
+  text-align: center;
+  padding-right: 16px;
 }
 
 .inputIcon {
@@ -132,8 +201,9 @@
   top: 50%;
   right: 14px;
   transform: translateY(-50%);
-  color: #9ca3af;
+  color: #94a3b8;
   pointer-events: none;
+  display: inline-flex;
 }
 
 .inputWrapper .inputIcon[role="button"] {
@@ -147,21 +217,23 @@
 
 .button {
   padding: 14px 24px;
-  background: #0a4b83;
+  background: linear-gradient(180deg, #2981b7 0%, #0a4b83 100%);
   color: #ffffff;
-  font-size: 1rem;
-  font-weight: 600;
-  letter-spacing: 0.05em;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   border: none;
-  border-radius: 10px;
+  border-radius: 12px;
   cursor: pointer;
-  transition: background 0.2s, transform 0.15s;
-  margin-top: 0.5rem;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+  margin-top: 0.4rem;
+  box-shadow: 0 14px 26px rgba(10, 75, 131, 0.28);
 }
 
 .button:hover:not(:disabled) {
-  background: #0d5a9e;
+  transform: translateY(-1px);
+  box-shadow: 0 18px 32px rgba(10, 75, 131, 0.34);
 }
 
 .button:active:not(:disabled) {
@@ -170,31 +242,64 @@
 
 .button:disabled {
   background: #94a3b8;
+  box-shadow: none;
   cursor: not-allowed;
 }
 
+.error,
+.success {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
 .error {
-  color: #dc2626;
-  font-size: 0.875rem;
+  color: #b91c1c;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
 }
 
 .success {
   color: #15803d;
-  font-size: 0.875rem;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+}
+
+.alertIcon {
+  flex-shrink: 0;
+  font-size: 1.05rem;
+  margin-top: 1px;
+}
+
+.linkRow {
+  display: flex;
+  justify-content: center;
+  margin-top: 22px;
 }
 
 .homeLink {
-  display: inline-block;
-  margin-top: 20px;
-  font-size: 0.875rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 700;
   color: #0a4b83;
-  text-decoration: underline;
-  transition: color 0.2s;
-  margin-left: 6rem;
+  background: #eef5ff;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease;
 }
 
 .homeLink:hover {
-  color: #0d5a9e;
+  background: #dbeafe;
+  transform: translateY(-1px);
 }
 
 /* ===== RESPONSIVE ===== */
@@ -217,7 +322,7 @@
   }
 
   .title {
-    font-size: 1.35rem;
+    font-size: 1.4rem;
   }
 
   .websiteLogo {
@@ -237,5 +342,9 @@
   .imagePane,
   .formPane {
     padding: 24px 20px;
+  }
+
+  .splitCard {
+    border-radius: 20px;
   }
 }

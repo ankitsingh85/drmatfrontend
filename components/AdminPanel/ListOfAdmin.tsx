@@ -6,6 +6,13 @@ import styles from "@/styles/Dashboard/listofadmin.module.css";
 import createStyles from "@/styles/Dashboard/adminpages.module.css";
 import FullPageLoader from "@/components/common/FullPageLoader";
 
+type PermissionRow = {
+  module: string;
+  view: boolean;
+  create: boolean;
+  delete: boolean;
+};
+
 interface Admin {
   _id: string;
 
@@ -17,7 +24,11 @@ interface Admin {
 
   phone: string;
 
-  role: "admin" | "superadmin" | "manager";
+  role: string;
+
+  customRoleLabel?: string;
+
+  permissions?: PermissionRow[];
 
   createdAt: string;
 
@@ -25,6 +36,62 @@ interface Admin {
 
   lastModifiedField?: string;
 }
+
+type RoleChoice = "admin" | "superadmin" | "manager" | "custom";
+
+// Mirrors ADMIN_MODULES / ADMIN_MODULE_LABELS in dermatbackend/src/models/admin.ts.
+// Fetched from /admins/modules on mount; these are the fallback so the
+// permissions table still renders (with the keys the backend expects)
+// if that call fails.
+const FALLBACK_MODULES = [
+  "admin",
+  "user",
+  "productCategory",
+  "product",
+  "courseType",
+  "trainingType",
+  "course",
+  "workshopTraining",
+  "doctor",
+  "clinicCategory",
+  "clinic",
+  "b2bProductCategory",
+  "b2bProduct",
+  "serviceCategory",
+  "treatment",
+  "others",
+];
+
+const FALLBACK_MODULE_LABELS: Record<string, string> = {
+  admin: "Admin",
+  user: "User",
+  productCategory: "Product Category",
+  product: "Product",
+  courseType: "Course Type",
+  trainingType: "Training Type",
+  course: "Course",
+  workshopTraining: "Workshop Training",
+  doctor: "Doctor",
+  clinicCategory: "Clinic Category",
+  clinic: "Clinic",
+  b2bProductCategory: "B2B Product Category",
+  b2bProduct: "B2B Product",
+  serviceCategory: "Treatment Category",
+  treatment: "Treatment Plans",
+  others: "Others (Top Products, Offers, Featured Section, Shorts, Hiring Requests)",
+};
+
+const FIXED_ROLES: RoleChoice[] = ["admin", "superadmin", "manager"];
+
+const buildEmptyPermissions = (modules: string[]): PermissionRow[] =>
+  modules.map((module) => ({ module, view: false, create: false, delete: false }));
+
+const slugifyRole = (value: string) =>
+  value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "manager";
 
 export default function ListOfAdmin() {
   const [admins, setAdmins] = useState<Admin[]>([]);
@@ -39,8 +106,13 @@ export default function ListOfAdmin() {
   /* ✏️ EDIT STATE */
   const [editingAdmin, setEditingAdmin] = useState<Admin | null>(null);
   const [editForm, setEditForm] = useState<
-    Partial<Admin & { password?: string }>
+    Partial<Admin & { password?: string; roleChoice?: RoleChoice }>
   >({});
+  const [editPermissions, setEditPermissions] = useState<PermissionRow[]>([]);
+  const [modules, setModules] = useState<string[]>(FALLBACK_MODULES);
+  const [moduleLabels, setModuleLabels] = useState<Record<string, string>>(
+    FALLBACK_MODULE_LABELS
+  );
 
   const premiumButtonStyle: React.CSSProperties = {
     border: "1px solid #d6d6d6",
@@ -61,7 +133,23 @@ export default function ListOfAdmin() {
 
   useEffect(() => {
     fetchAdmins();
+    fetchModules();
   }, []);
+
+  const fetchModules = async () => {
+    try {
+      const res = await fetch(`${API_URL}/admins/modules`);
+      const data = await res.json();
+      if (Array.isArray(data?.modules) && data.modules.length) {
+        setModules(data.modules);
+      }
+      if (data?.labels && typeof data.labels === "object") {
+        setModuleLabels(data.labels);
+      }
+    } catch (error) {
+      console.error("Failed to fetch admin modules, using fallback list", error);
+    }
+  };
   
 const fetchAdmins = async () => {
   try {
@@ -262,15 +350,33 @@ new Date(a.lastModifiedAt)
 
   /* ================= EDIT ================= */
   const handleEdit = (admin: Admin) => {
+    const isCustom = !FIXED_ROLES.includes(admin.role as RoleChoice);
+
     setEditingAdmin(admin);
     setEditForm({
       empId: admin.empId,
       name: admin.name,
       email: admin.email,
       phone: admin.phone,
-      role: admin.role,
+      roleChoice: isCustom ? "custom" : (admin.role as RoleChoice),
+      customRoleLabel: admin.customRoleLabel || (isCustom ? admin.role : ""),
       password: "",
     });
+
+    // Merge the admin's saved permissions onto the current module list —
+    // any module they don't have a saved row for defaults to no access.
+    const byModule = new Map((admin.permissions || []).map((p) => [p.module, p]));
+    setEditPermissions(
+      modules.map((module) => {
+        const found = byModule.get(module);
+        return {
+          module,
+          view: Boolean(found?.view),
+          create: Boolean(found?.create),
+          delete: Boolean(found?.delete),
+        };
+      })
+    );
   };
 
   const handleEditChange = (
@@ -279,12 +385,59 @@ new Date(a.lastModifiedAt)
     setEditForm({ ...editForm, [e.target.name]: e.target.value });
   };
 
+  /* ================= EDIT PERMISSIONS TABLE HANDLERS ================= */
+  const toggleEditCell = (module: string, action: "view" | "create" | "delete") => {
+    setEditPermissions((prev) =>
+      prev.map((row) =>
+        row.module === module ? { ...row, [action]: !row[action] } : row
+      )
+    );
+  };
+
+  const toggleEditRowAll = (module: string) => {
+    setEditPermissions((prev) =>
+      prev.map((row) => {
+        if (row.module !== module) return row;
+        const allOn = row.view && row.create && row.delete;
+        return { ...row, view: !allOn, create: !allOn, delete: !allOn };
+      })
+    );
+  };
+
+  const toggleEditColumnAll = (action: "view" | "create" | "delete") => {
+    setEditPermissions((prev) => {
+      const allOn = prev.every((row) => row[action]);
+      return prev.map((row) => ({ ...row, [action]: !allOn }));
+    });
+  };
+
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingAdmin) return;
 
-    const payload: any = { ...editForm };
-    if (!payload.password) delete payload.password;
+    const roleChoice = editForm.roleChoice || "admin";
+    const roleMap: Record<RoleChoice, string> = {
+      admin: "admin",
+      superadmin: "superadmin",
+      manager: "manager",
+      custom: slugifyRole(editForm.customRoleLabel || ""),
+    };
+    const resolvedRole = roleMap[roleChoice];
+
+    const payload: any = {
+      name: editForm.name,
+      email: editForm.email,
+      phone: editForm.phone,
+      role: resolvedRole,
+      ...(roleChoice === "custom"
+        ? { customRoleLabel: (editForm.customRoleLabel || "").trim() }
+        : {}),
+      // Super Admin's permissions are forced to full-access server-side
+      // regardless of what's sent, but we still send the current table
+      // for every other role so the edit is actually saved.
+      permissions: resolvedRole === "superadmin" ? [] : editPermissions,
+    };
+    if (editForm.password) payload.password = editForm.password;
 
     await fetch(`${API_URL}/admins/${editingAdmin._id}`, {
       method: "PUT",
@@ -294,6 +447,7 @@ new Date(a.lastModifiedAt)
 
     setEditingAdmin(null);
     setEditForm({});
+    setEditPermissions([]);
     fetchAdmins();
     alert("✅ Admin updated successfully");
   };
@@ -543,17 +697,107 @@ new Date(a.lastModifiedAt)
               <div className={createStyles.field}>
                 <label className={createStyles.label}>Role</label>
                 <select
-                  name="role"
-                  value={editForm.role || "admin"}
+                  name="roleChoice"
+                  value={editForm.roleChoice || "admin"}
                   onChange={handleEditChange}
                   className={createStyles.select}
                 >
                   <option value="admin">Admin</option>
                   <option value="superadmin">Super Admin</option>
                   <option value="manager">Manager</option>
+                  <option value="custom">Custom Role...</option>
                 </select>
+                {editForm.roleChoice === "superadmin" && (
+                  <p style={{ fontSize: "12px", color: "#666", marginTop: "6px" }}>
+                    Super Admin always has full access to every section.
+                  </p>
+                )}
               </div>
+
+              {editForm.roleChoice === "custom" && (
+                <div className={createStyles.field}>
+                  <label className={createStyles.label}>Custom Role Name</label>
+                  <input
+                    name="customRoleLabel"
+                    value={editForm.customRoleLabel || ""}
+                    onChange={handleEditChange}
+                    className={createStyles.input}
+                    placeholder="e.g. Support Staff"
+                    required
+                  />
+                </div>
+              )}
             </div>
+
+            {editForm.roleChoice !== "superadmin" && (
+              <div className={createStyles.section}>
+                <h2 className={createStyles.sectionTitle}>Module Permissions</h2>
+
+                <div style={{ overflowX: "auto" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
+                    <thead>
+                      <tr style={{ background: "#f4f4f4" }}>
+                        <th style={{ textAlign: "left", padding: "8px", border: "1px solid #ddd" }}>
+                          Module
+                        </th>
+                        {(["view", "create", "delete"] as const).map((action) => (
+                          <th
+                            key={action}
+                            style={{
+                              padding: "8px",
+                              border: "1px solid #ddd",
+                              textAlign: "center",
+                              cursor: "pointer",
+                            }}
+                            onClick={() => toggleEditColumnAll(action)}
+                            title={`Toggle ${action} for all modules`}
+                          >
+                            {action === "view"
+                              ? "View"
+                              : action === "create"
+                              ? "Create / Modify"
+                              : "Delete"}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {editPermissions.map((row) => (
+                        <tr key={row.module}>
+                          <td
+                            style={{
+                              padding: "8px",
+                              border: "1px solid #ddd",
+                              cursor: "pointer",
+                            }}
+                            onClick={() => toggleEditRowAll(row.module)}
+                            title="Toggle all permissions for this module"
+                          >
+                            {moduleLabels[row.module] || row.module}
+                          </td>
+                          {(["view", "create", "delete"] as const).map((action) => (
+                            <td
+                              key={action}
+                              style={{
+                                padding: "8px",
+                                border: "1px solid #ddd",
+                                textAlign: "center",
+                              }}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={row[action]}
+                                onChange={() => toggleEditCell(row.module, action)}
+                              />
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
 
             <div className={createStyles.section}>
               <h2 className={createStyles.sectionTitle}>Update Password</h2>

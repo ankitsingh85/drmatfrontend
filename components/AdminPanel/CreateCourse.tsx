@@ -200,8 +200,6 @@ const isValidYoutubeUrl = (value: string) => {
   if (!value.trim()) return false;
   return isYoutubeUrl(value);
 };
-const stripHtml = (value: string) =>
-  value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 const sanitizeTextOnly = (value: string) => value.replace(/[^A-Za-z ]/g, "");
 const sanitizeDigitsOnly = (value: string) => value.replace(/\D/g, "");
 
@@ -215,6 +213,12 @@ const numericFields: Array<keyof CourseFormData> = [
   "maximumSeatsBatchSize",
 ];
 
+// Only these three fields are mandatory when creating a course.
+const MANDATORY_FIELDS = ["courseName", "instituteName", "netFeesInr"] as const;
+
+// Only Course Name, Institute Name and Net Fees (INR) are mandatory —
+// everything else is optional. Optional fields are still format-checked
+// when the admin does fill them in, but an empty value is never an error.
 const validateCourseField = (
   field: keyof CourseFormData,
   value: CourseFormData[keyof CourseFormData],
@@ -223,83 +227,30 @@ const validateCourseField = (
   const stringValue = String(value ?? "").trim();
   const requiredTextFields: Array<keyof CourseFormData> = [
     "courseName",
-    "courseType",
     "instituteName",
-    "courseDuration",
-    "modeOfTraining",
-    "startDate",
-    "endDate",
-    "registrationDeadline",
-    "curriculumTopicsCovered",
-    "certificationProvided",
-    "affiliationAccreditation",
-    "location",
-    "currentAvailability",
-    "trainerInstructorName",
-    "trainerExperience",
-    "languageOfDelivery",
-    "refundCancellationPolicy",
-    "postCourseSupport",
-    "mobileNo",
-    "contactForQueries",
-    "courseDemoVideo",
-    "hsnCode",
   ];
-
-  if (field === "targetAudience" && (!Array.isArray(value) || value.length === 0)) {
-    return "At least one target audience item is required";
-  }
-
-  if (field === "courseImage" && !(value instanceof File)) {
-    return "Course image is required";
-  }
-
-  if (field === "trainerImage" && !(value instanceof File)) {
-    return "Trainer image is required";
-  }
-
-  if (field === "brochurePdfDownload" && (!Array.isArray(value) || value.length === 0)) {
-    return "At least one brochure PDF is required";
-  }
 
   if (requiredTextFields.includes(field) && !stringValue) {
     const labels: Record<string, string> = {
       courseName: "Course name",
-      courseUniqueCode: "Course unique code",
-      courseType: "Course type",
       instituteName: "Institute name",
-      courseDuration: "Course duration",
-      modeOfTraining: "Mode of training",
-      startDate: "Start date",
-      endDate: "End date",
-      registrationDeadline: "Registration deadline",
-      curriculumTopicsCovered: "Curriculum / Topics Covered",
-      certificationProvided: "Certification Provided",
-      affiliationAccreditation: "Affiliation / Accreditation",
-      location: "Location",
-      currentAvailability: "Current Availability",
-      trainerInstructorName: "Trainer / Instructor Name",
-      trainerExperience: "Trainer Experience",
-      languageOfDelivery: "Language of Delivery",
-      refundCancellationPolicy: "Refund / Cancellation Policy",
-      postCourseSupport: "Post-Course Support",
-      mobileNo: "Mobile number",
-      contactForQueries: "Contact for Queries",
-      courseDemoVideo: "Course Demo Video",
-      hsnCode: "HSN Code",
     };
     return `${labels[field] || String(field)} is required`;
+  }
+
+  if (field === "netFeesInr" && !stringValue) {
+    return "Net Fees (INR) is required";
   }
 
   if (field === "instituteName" && !textOnlyRegex.test(stringValue)) {
     return "Institute name should contain only letters and spaces";
   }
 
-  if (field === "trainerInstructorName" && !textOnlyRegex.test(stringValue)) {
+  if (field === "trainerInstructorName" && stringValue && !textOnlyRegex.test(stringValue)) {
     return "Trainer / instructor name should contain only letters and spaces";
   }
 
-  if (field === "mobileNo" && !digitsOnlyRegex.test(stringValue)) {
+  if (field === "mobileNo" && stringValue && !digitsOnlyRegex.test(stringValue)) {
     return "Mobile number must contain digits only";
   }
 
@@ -319,10 +270,6 @@ const validateCourseField = (
     return `${fieldLabels[field]} must contain digits only`;
   }
 
-  if (numericFields.includes(field) && !stringValue) {
-    return `${fieldLabels[field]} is required`;
-  }
-
   if (
     field === "discountPercent" &&
     stringValue &&
@@ -331,33 +278,8 @@ const validateCourseField = (
     return "Discount % must be between 0 and 100";
   }
 
-  if (field === "courseDemoVideo" && !isValidYoutubeUrl(stringValue)) {
+  if (field === "courseDemoVideo" && stringValue && !isValidYoutubeUrl(stringValue)) {
     return "Course demo video must be a valid YouTube link";
-  }
-
-  if (field === "courseType" && Array.isArray(value) && value.length === 0) {
-    return "Please select at least one course type";
-  }
-
-  if (field === "certificationProvided" && !stringValue) {
-    return "Please select certification provided";
-  }
-  if (field === "languageOfDelivery" && !stringValue) {
-    return "Please select language of delivery";
-  }
-
-  if (field === "whatsIncluded" && !stripHtml(String(value))) {
-    return "What's Included is required";
-  }
-  if (field === "whatsNotIncluded" && !stripHtml(String(value))) {
-    return "What's Not Included is required";
-  }
-  if (field === "learningOutcomes" && !stripHtml(String(value))) {
-    return "Learning Outcomes is required";
-  }
-
-  if (field === "startDate" || field === "endDate" || field === "registrationDeadline") {
-    if (!stringValue) return `${fieldLabels[field]} is required`;
   }
 
   return "";
@@ -752,6 +674,7 @@ const CreateCourse = () => {
       field === "netFeesInr" ||
       field === "discountPercent" ||
       field === "maximumSeatsBatchSize";
+    const isMandatory = MANDATORY_FIELDS.includes(field as (typeof MANDATORY_FIELDS)[number]);
     const inputType = isDateField
       ? "date"
       : isNumberField
@@ -769,7 +692,10 @@ const CreateCourse = () => {
           isTextArea || field === "courseDemoVideo" ? styles.fullField : styles.field
         }
       >
-        <label className={styles.label}>{fieldLabels[field]}</label>
+        <label className={styles.label}>
+          {fieldLabels[field]}
+          {isMandatory && <span className={styles.required}>*</span>}
+        </label>
         {isTextArea ? (
           <textarea
             className={styles.input}
@@ -784,6 +710,7 @@ const CreateCourse = () => {
             }}
             placeholder={`Enter ${fieldLabels[field]}`}
             rows={5}
+            required={isMandatory}
           />
         ) : (
           <input
@@ -805,6 +732,7 @@ const CreateCourse = () => {
             }}
             placeholder={`Enter ${fieldLabels[field]}`}
             readOnly={field === "courseUniqueCode"}
+            required={isMandatory}
           />
         )}
         {field === "courseUniqueCode" && (

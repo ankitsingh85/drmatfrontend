@@ -6,7 +6,17 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import Cookies from "js-cookie";
-import { FiEye, FiEyeOff, FiUser } from "react-icons/fi";
+import {
+  FiEye,
+  FiEyeOff,
+  FiUser,
+  FiMail,
+  FiLock,
+  FiShield,
+  FiArrowLeft,
+  FiAlertCircle,
+  FiCheckCircle,
+} from "react-icons/fi";
 import styles from "@/styles/adminlogin.module.css";
 
 export default function AdminLogin() {
@@ -267,9 +277,23 @@ const [forgotStep, setForgotStep] = useState<"email" | "reset">("email");
 
         <div className={styles.formPane}>
           <div className={styles.formCard}>
+            {forgotMode && (
+              <div className={styles.iconBadge}>
+                <FiShield />
+              </div>
+            )}
+
             <h2 className={styles.title}>
               {forgotMode ? "Forgot Password" : "Login as Admin"}
             </h2>
+
+            {forgotMode && (
+              <p className={styles.subtitle}>
+                {forgotStep === "email"
+                  ? "Enter your admin email and we'll send you a one-time verification code."
+                  : "Enter the OTP sent to your email along with your new password."}
+              </p>
+            )}
 
             {forgotMode ? (
               <form
@@ -278,55 +302,70 @@ const [forgotStep, setForgotStep] = useState<"email" | "reset">("email");
                   forgotStep === "email" ? handleSendResetOtp : handleResetPassword
                 }
               >
-                <input
-                  className={styles.input}
-                  type="email"
-                  placeholder="Enter Email"
-                  value={forgotData.email}
-                  onChange={(e) =>
-                    setForgotData({
-                      ...forgotData,
+                <div className={styles.inputWrapper}>
+                  <input
+                    className={styles.input}
+                    type="email"
+                    placeholder="Enter Email"
+                    value={forgotData.email}
+                    onChange={(e) =>
+                      setForgotData({
+                        ...forgotData,
 
-                      email: e.target.value,
-                    })
-                  }
-                  required
-                  disabled={forgotStep === "reset"}
-                />
+                        email: e.target.value,
+                      })
+                    }
+                    required
+                    disabled={forgotStep === "reset"}
+                  />
+                  <span className={styles.inputIcon}>
+                    <FiMail />
+                  </span>
+                </div>
 
                 {forgotStep === "reset" && (
                   <>
-                    <input
-                      className={styles.input}
-                      type="text"
-                      inputMode="numeric"
-                      maxLength={6}
-                      placeholder="Enter OTP"
-                      value={forgotData.otp}
-                      onChange={(e) =>
-                        setForgotData({
-                          ...forgotData,
+                    <div className={styles.inputWrapper}>
+                      <input
+                        className={`${styles.input} ${styles.otpInput}`}
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={6}
+                        placeholder="• • • • • •"
+                        value={forgotData.otp}
+                        onChange={(e) =>
+                          setForgotData({
+                            ...forgotData,
 
-                          otp: e.target.value.replace(/\D/g, ""),
-                        })
-                      }
-                      required
-                    />
+                            otp: e.target.value.replace(/\D/g, ""),
+                          })
+                        }
+                        required
+                      />
+                      <span className={styles.inputIcon}>
+                        <FiShield />
+                      </span>
+                    </div>
 
-                    <input
-                      className={styles.input}
-                      type="password"
-                      placeholder="New Password"
-                      value={forgotData.password}
-                      onChange={(e) =>
-                        setForgotData({
-                          ...forgotData,
+                    <div className={styles.inputWrapper}>
+                      <input
+                        className={styles.input}
+                        type="password"
+                        placeholder="New Password"
+                        value={forgotData.password}
+                        onChange={(e) =>
+                          setForgotData({
+                            ...forgotData,
 
-                          password: e.target.value,
-                        })
-                      }
-                      required
-                    />
+                            password: e.target.value,
+                          })
+                        }
+                        required
+                      />
+                      <span className={styles.inputIcon}>
+                        <FiLock />
+                      </span>
+                    </div>
                   </>
                 )}
 
@@ -338,12 +377,11 @@ const [forgotStep, setForgotStep] = useState<"email" | "reset">("email");
                       : "Update Password"}
                 </button>
 
-                <p
-                  className={styles.homeLink}
-                  onClick={backToLogin}
-                >
-                  Back to Login
-                </p>
+                <div className={styles.linkRow}>
+                  <p className={styles.homeLink} onClick={backToLogin}>
+                    <FiArrowLeft /> Back to Login
+                  </p>
+                </div>
               </form>
             ) : (
               <form className={styles.form} onSubmit={handleSubmit}>
@@ -393,18 +431,27 @@ const [forgotStep, setForgotStep] = useState<"email" | "reset">("email");
                   {loading ? "Logging..." : "LOGIN"}
                 </button>
 
-                <p
-                  className={styles.homeLink}
-                  onClick={openForgotPassword}
-                >
-                  Forgot Password?
-                </p>
+                <div className={styles.linkRow}>
+                  <p className={styles.homeLink} onClick={openForgotPassword}>
+                    <FiLock /> Forgot Password?
+                  </p>
+                </div>
               </form>
             )}
 
-            {error && <p className={styles.error}>{error}</p>}
+            {error && (
+              <p className={styles.error}>
+                <FiAlertCircle className={styles.alertIcon} />
+                <span>{error}</span>
+              </p>
+            )}
 
-            {success && <p className={styles.success}>{success}</p>}
+            {success && (
+              <p className={styles.success}>
+                <FiCheckCircle className={styles.alertIcon} />
+                <span>{success}</span>
+              </p>
+            )}
           </div>
         </div>
       </div>

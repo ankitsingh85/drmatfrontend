@@ -16,7 +16,7 @@
   flex-direction: row !important;
   align-items: stretch;
   flex: 1;
-  height: calc(100vh - 70px);
+  height: calc(100vh - 84px);
   position: relative;
   overflow: hidden;
 }
@@ -141,6 +141,15 @@
   background-color: #ecf2ff;
   color: #0f172a;
   transform: translateX(2px);
+}
+
+.menuItem svg {
+  flex-shrink: 0;
+  transition: color 0.2s ease;
+}
+
+.menuItemActive svg {
+  color: #1d4ed8;
 }
 
 .iconLabel {
@@ -726,14 +735,31 @@
 }
 
 .adminTitleBadge {
+  display: inline-block;
   font-weight: 700;
-  color: #0f172a;
-  font-size: 0.9rem;
+  color: #0a4b83;
+  font-size: 0.78rem;
   letter-spacing: 0.01em;
   border: 1px solid #d7e1ec;
   background: #f8fbff;
   border-radius: 999px;
-  padding: 6px 11px;
+  padding: 3px 10px;
+  margin-top: 3px;
+}
+
+.headerAvatar {
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, #0a4b83 0%, #1264a3 100%);
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 0.92rem;
+  letter-spacing: 0.02em;
+  box-shadow: 0 6px 14px rgba(10, 75, 131, 0.25);
 }
 
 .logoutTopBtn {
@@ -794,6 +820,20 @@
   color: #334155;
   font-size: 0.96rem;
   max-width: 60ch;
+}
+
+.heroRoleBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: rgba(10, 75, 131, 0.1);
+  color: #0a4b83;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
 }
 
 .heroActions {
@@ -893,46 +933,112 @@
 
 .toneAdmins {
   background: linear-gradient(180deg, #fff 0%, #eef6ff 100%);
+  border-left: 3px solid #2563eb;
 }
 
 .toneUsers {
   background: linear-gradient(180deg, #fff 0%, #f5efff 100%);
+  border-left: 3px solid #7c3aed;
 }
 
 .toneDoctors {
   background: linear-gradient(180deg, #fff 0%, #ecfeff 100%);
+  border-left: 3px solid #0891b2;
 }
 
 .toneClinics {
   background: linear-gradient(180deg, #fff 0%, #f0fdf4 100%);
+  border-left: 3px solid #16a34a;
 }
 
 .toneProducts {
   background: linear-gradient(180deg, #fff 0%, #fff7ed 100%);
+  border-left: 3px solid #ea580c;
 }
 
 .toneB2BProducts {
   background: linear-gradient(180deg, #fff 0%, #f8fafc 100%);
+  border-left: 3px solid #475569;
 }
 
 .toneProductCategories {
   background: linear-gradient(180deg, #fff 0%, #fefce8 100%);
+  border-left: 3px solid #b45309;
 }
 
 .toneClinicCategories {
   background: linear-gradient(180deg, #fff 0%, #ecfccb 100%);
+  border-left: 3px solid #4d7c0f;
 }
 
 .toneServiceCategories {
   background: linear-gradient(180deg, #fff 0%, #ffe4e6 100%);
+  border-left: 3px solid #e11d48;
 }
 
 .toneB2BCategories {
   background: linear-gradient(180deg, #fff 0%, #e0f2fe 100%);
+  border-left: 3px solid #0284c7;
 }
 
 .toneCourseTypes {
   background: linear-gradient(180deg, #fff 0%, #ede9fe 100%);
+  border-left: 3px solid #7c3aed;
+}
+
+.toneAdmins .statIcon {
+  background: rgba(37, 99, 235, 0.12);
+  color: #2563eb;
+}
+
+.toneUsers .statIcon {
+  background: rgba(124, 58, 237, 0.12);
+  color: #7c3aed;
+}
+
+.toneDoctors .statIcon {
+  background: rgba(8, 145, 178, 0.12);
+  color: #0891b2;
+}
+
+.toneClinics .statIcon {
+  background: rgba(22, 163, 74, 0.12);
+  color: #16a34a;
+}
+
+.toneProducts .statIcon {
+  background: rgba(234, 88, 12, 0.12);
+  color: #ea580c;
+}
+
+.toneB2BProducts .statIcon {
+  background: rgba(71, 85, 105, 0.12);
+  color: #475569;
+}
+
+.toneProductCategories .statIcon {
+  background: rgba(180, 83, 9, 0.14);
+  color: #b45309;
+}
+
+.toneClinicCategories .statIcon {
+  background: rgba(77, 124, 15, 0.14);
+  color: #4d7c0f;
+}
+
+.toneServiceCategories .statIcon {
+  background: rgba(225, 29, 72, 0.12);
+  color: #e11d48;
+}
+
+.toneB2BCategories .statIcon {
+  background: rgba(2, 132, 199, 0.12);
+  color: #0284c7;
+}
+
+.toneCourseTypes .statIcon {
+  background: rgba(124, 58, 237, 0.12);
+  color: #7c3aed;
 }
 
 .insightGrid {
