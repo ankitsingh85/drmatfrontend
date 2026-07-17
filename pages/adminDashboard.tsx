@@ -77,11 +77,14 @@ import {
   FiClipboard,
   FiShield,
   FiActivity,
+  FiVideo,
 } from "react-icons/fi";
 
 import CreateB2BCategory from "@/components/AdminPanel/CreateB2BCategory";
 import ListofB2BCategory from "@/components/AdminPanel/ListofB2BCategory";
 import ListOfTreatment from "@/components/AdminPanel/ListOfTreatment";
+import CreateOnlineConsultationService from "@/components/AdminPanel/CreateOnlineConsultationService";
+import ListOfOnlineConsultationService from "@/components/AdminPanel/ListOfOnlineConsultationService";
 import Topbar from "@/components/Layout/Topbar";
 import Footer from "@/components/Layout/Footer";
 import MobileNavbar from "@/components/Layout/MobileNavbar";
@@ -401,6 +404,15 @@ export default function AdminDashboard() {
       icon: <FiActivity />,
       ListComponent: ListOfTreatment,
       CreateComponent: CreateTreatment,
+    },
+    {
+      id: "onlineConsultationService",
+      label: "ONLINE CONSULTATION",
+      listLabel: "List of Online Consultation Services",
+      createLabel: "Create Online Consultation Service",
+      icon: <FiVideo />,
+      ListComponent: ListOfOnlineConsultationService,
+      CreateComponent: CreateOnlineConsultationService,
     },
   ];
 

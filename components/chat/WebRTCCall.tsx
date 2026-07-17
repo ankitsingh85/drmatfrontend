@@ -36,6 +36,12 @@ type WebRTCCallProps = {
   onExternalIncomingHandled?: (callId: string) => void;
 };
 
+const formatDuration = (totalSeconds: number) => {
+  const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, "0");
+  const seconds = Math.floor(totalSeconds % 60).toString().padStart(2, "0");
+  return `${minutes}:${seconds}`;
+};
+
 const createCallId = () =>
   typeof crypto !== "undefined" && "randomUUID" in crypto
     ? crypto.randomUUID()
@@ -57,6 +63,7 @@ const WebRTCCall = ({
   const [micEnabled, setMicEnabled] = useState(true);
   const [cameraEnabled, setCameraEnabled] = useState(true);
   const [callError, setCallError] = useState("");
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
@@ -88,6 +95,15 @@ const WebRTCCall = ({
   useEffect(() => {
     attachStreams();
   }, [attachStreams, mode]);
+
+  useEffect(() => {
+    if (mode !== "active") {
+      setElapsedSeconds(0);
+      return;
+    }
+    const interval = setInterval(() => setElapsedSeconds((s) => s + 1), 1000);
+    return () => clearInterval(interval);
+  }, [mode]);
 
   const stopLocalMedia = useCallback(() => {
     localStreamRef.current?.getTracks().forEach((track) => track.stop());
@@ -431,70 +447,81 @@ const WebRTCCall = ({
 
       {mode !== "idle" ? (
         <div className={styles.callOverlay}>
-          <div className={styles.callPanel}>
-            <div className={styles.callStage}>
-              <video
-                ref={remoteVideoRef}
-                autoPlay
-                playsInline
-                className={styles.remoteVideo}
-              />
-              {callType === "audio" || mode !== "active" ? (
-                <div className={styles.callPlaceholder}>
-                  <span>{peerName.slice(0, 1).toUpperCase()}</span>
-                  <p>
-                    {mode === "incoming"
-                      ? `Incoming ${callType} call`
-                      : mode === "calling"
-                        ? `Calling ${peerName}`
-                        : "Connecting call"}
-                  </p>
-                </div>
-              ) : null}
-              <video
-                ref={localVideoRef}
-                autoPlay
-                muted
-                playsInline
-                className={styles.localVideo}
-              />
-            </div>
+          <div className={styles.callScreen}>
+            <video
+              ref={remoteVideoRef}
+              autoPlay
+              playsInline
+              className={styles.remoteVideo}
+            >
+              <track kind="captions" />
+            </video>
 
-            <div className={styles.callFooter}>
-              <div>
-                <h3>{peerName}</h3>
-                <p>{callType === "video" ? "Video call" : "Audio call"}</p>
+            {(callType === "audio" || mode !== "active") && (
+              <div className={styles.callPlaceholder}>
+                <span className={styles.callAvatar}>{peerName.slice(0, 1).toUpperCase()}</span>
+                <h3 className={styles.callPeerName}>{peerName}</h3>
+                <p className={styles.callStatusText}>
+                  {mode === "incoming"
+                    ? `Incoming ${callType} call...`
+                    : mode === "calling"
+                    ? "Calling..."
+                    : mode === "connecting"
+                    ? "Connecting..."
+                    : callType === "audio"
+                    ? formatDuration(elapsedSeconds)
+                    : ""}
+                </p>
               </div>
+            )}
 
-              {mode === "incoming" ? (
-                <div className={styles.callControls}>
-                  <button type="button" className={styles.endCallBtn} onClick={rejectCall}>
-                    <FiPhoneOff />
+            {mode === "active" && callType === "video" ? (
+              <div className={styles.callTopBar}>
+                <span className={styles.callTopBarName}>{peerName}</span>
+                <span className={styles.callTopBarTimer}>{formatDuration(elapsedSeconds)}</span>
+              </div>
+            ) : null}
+
+            <video
+              ref={localVideoRef}
+              autoPlay
+              muted
+              playsInline
+              className={styles.localVideo}
+            >
+              <track kind="captions" />
+            </video>
+
+            {mode === "incoming" ? (
+              <div className={styles.incomingControls}>
+                <button type="button" className={styles.declineBtn} onClick={rejectCall}>
+                  <FiPhoneOff />
+                  <span>Decline</span>
+                </button>
+                <button type="button" className={styles.acceptBtn} onClick={acceptCall}>
+                  <FiPhone />
+                  <span>Accept</span>
+                </button>
+              </div>
+            ) : (
+              <div className={styles.activeControls}>
+                <button type="button" onClick={toggleMic}>
+                  {micEnabled ? <FiMic /> : <FiMicOff />}
+                </button>
+                {callType === "video" ? (
+                  <button type="button" onClick={toggleCamera}>
+                    {cameraEnabled ? <FiVideo /> : <FiVideoOff />}
                   </button>
-                  <button type="button" className={styles.acceptCallBtn} onClick={acceptCall}>
-                    <FiPhone />
-                  </button>
-                </div>
-              ) : (
-                <div className={styles.callControls}>
-                  <button type="button" onClick={toggleMic}>
-                    {micEnabled ? <FiMic /> : <FiMicOff />}
-                  </button>
-                  {callType === "video" ? (
-                    <button type="button" onClick={toggleCamera}>
-                      {cameraEnabled ? <FiVideo /> : <FiVideoOff />}
-                    </button>
-                  ) : null}
-                  <button
-                    type="button"
-                    className={styles.endCallBtn}
-                    onClick={() => resetCall(true)}
-                  >
-                    <FiPhoneOff />
-                  </button>
-                </div>
-              )}
-            </div>
+                ) : null}
+                <button
+                  type="button"
+                  className={styles.endCallBtn}
+                  onClick={() => resetCall(true)}
+                >
+                  <FiPhoneOff />
+                </button>
+              </div>
+            )}
           </div>
         </div>
       ) : null}

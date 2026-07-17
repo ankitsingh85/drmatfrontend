@@ -59,6 +59,7 @@ const FALLBACK_MODULES = [
   "b2bProduct",
   "serviceCategory",
   "treatment",
+  "onlineConsultationService",
   "others",
 ];
 
@@ -78,6 +79,7 @@ const FALLBACK_MODULE_LABELS: Record<string, string> = {
   b2bProduct: "B2B Product",
   serviceCategory: "Treatment Category",
   treatment: "Treatment Plans",
+  onlineConsultationService: "Online Consultation Services",
   others: "Others (Top Products, Offers, Featured Section, Shorts, Hiring Requests)",
 };
 

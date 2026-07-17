@@ -20,7 +20,7 @@ export interface CartItem {
   discountPrice?: number;
   company?: string;
   image?: string;
-  itemType?: "product" | "treatment";
+  itemType?: "product" | "treatment" | "consultation";
   quantity: number;
 }
 
@@ -86,7 +86,10 @@ const normalizeItems = (items: any[]): CartItem[] =>
       discountPrice: it.discountPrice != null ? Number(it.discountPrice) : undefined,
       company: it.company,
       image: it.image,
-      itemType: it.itemType === "treatment" ? "treatment" : "product",
+      itemType:
+        it.itemType === "treatment" || it.itemType === "consultation"
+          ? it.itemType
+          : "product",
       quantity: Math.max(1, Number(it.quantity || 1)),
     }));
 
@@ -254,7 +257,10 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
     const normalizedProduct: Omit<CartItem, "quantity"> = {
       ...product,
-      itemType: product.itemType === "treatment" ? "treatment" : "product",
+      itemType:
+        product.itemType === "treatment" || product.itemType === "consultation"
+          ? product.itemType
+          : "product",
     };
 
     const existingItem = cartItems.find((item) => item.id === normalizedProduct.id);

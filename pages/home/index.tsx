@@ -39,7 +39,7 @@ const defaultFeaturedSlides = [
     heading: "Book A Clinic Appointment",
     link: "/home/findClinicsPage",
   },
-  { url: "/card-2.png", heading: "Book A Video Consultation", link: "/#" },
+  { url: "/card-2.png", heading: "Book A Video Consultation", link: "/video-consultation" },
   { url: "/card-3.png", heading: "Take Free Hair & Skin Test", link: "/#" },
 ];
 

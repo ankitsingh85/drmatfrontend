@@ -13,14 +13,14 @@ export interface IOrder {
   clinicId?: string;
   doctorId?: string;
   ownerType?: "user" | "clinic" | "doctor";
-  orderType?: "product" | "treatment";
+  orderType?: "product" | "treatment" | "consultation";
   products: {
     id: string;
     name?: string;
     quantity: number;
     price: number;
     image?: string;
-    itemType?: "product" | "treatment";
+    itemType?: "product" | "treatment" | "consultation";
   }[];
   totalAmount: number;
   address: { type: string; address: string };
@@ -33,7 +33,7 @@ interface OrderContextType {
     items: CartItem[],
     total: number,
     address: { type: string; address: string },
-    orderType?: "product" | "treatment",
+    orderType?: "product" | "treatment" | "consultation",
     options?: { ownerType?: "user" | "clinic" | "doctor"; clinicId?: string; doctorId?: string }
   ) => Promise<void>;
   setOrders: React.Dispatch<React.SetStateAction<IOrder[]>>;
@@ -50,7 +50,7 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({
     items: CartItem[],
     total: number,
     address: { type: string; address: string },
-    orderType: "product" | "treatment" = "product",
+    orderType: "product" | "treatment" | "consultation" = "product",
     options?: { ownerType?: "user" | "clinic" | "doctor"; clinicId?: string; doctorId?: string }
   ) => {
     const role = Cookies.get("role")?.toLowerCase();
@@ -90,12 +90,17 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({
         price: item.price,
         quantity: item.quantity,
         image: item.image,
-        itemType: item.itemType === "treatment" ? "treatment" : "product",
+        itemType:
+          item.itemType === "treatment" || item.itemType === "consultation"
+            ? item.itemType
+            : "product",
       }));
 
       const derivedOrderType =
         items.length > 0 && items.every((item) => item.itemType === "treatment")
           ? "treatment"
+          : items.length > 0 && items.every((item) => item.itemType === "consultation")
+          ? "consultation"
           : orderType;
 
       const endpoint =

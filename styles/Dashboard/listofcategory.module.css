@@ -422,6 +422,17 @@
   border: 2px solid #e2e8f0;
 }
 
+.noImage {
+  margin-top: 10px;
+  padding: 11px 13px;
+  border-radius: 12px;
+  border: 1px dashed #cbd5e1;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 600;
+}
+
 /* ===== MODAL ACTIONS ===== */
 .modalActions {
   display: flex;
