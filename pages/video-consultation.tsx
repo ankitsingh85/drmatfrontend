@@ -7,32 +7,23 @@ import { useRouter } from "next/router";
 import {
   FiVideo,
   FiSearch,
-  FiX,
   FiShield,
   FiHome,
   FiLock,
-  FiClock,
   FiUsers,
   FiCheckCircle,
-  FiXCircle,
-  FiUser,
-  FiMic,
-  FiPhoneOff,
   FiFileText,
   FiArrowRight,
 } from "react-icons/fi";
 import Topbar from "@/components/Layout/Topbar";
 import Footer from "@/components/Layout/Footer";
-import { socket } from "@/utils/socket";
 import { API_URL } from "@/config/api";
 import { resolveMediaUrl } from "@/lib/media";
-import WebRTCCall, { WebRTCCallSignalPayload } from "@/components/chat/WebRTCCall";
 import styles from "@/styles/videoConsultation.module.css";
 
 const CONSULTATION_CHECKOUT_KEY = "consultationCheckout";
 const PAYMENT_PATH = "/home/PaymentPage?flow=consultation";
-
-type ChatStatus = "pending" | "accepted" | "declined";
+const DASHBOARD_CONSULTATIONS_PATH = "/UserDashboard?section=chat";
 
 type Doctor = {
   _id: string;
@@ -57,15 +48,6 @@ type ConsultationService = {
   isActive?: boolean;
   doctors?: Doctor[];
   nextAvailableSlot?: string;
-};
-
-type ChatRequest = {
-  _id: string;
-  status?: ChatStatus;
-};
-
-type ConsultationOrder = {
-  products?: { id: string; itemType?: string }[];
 };
 
 const getDoctorName = (doctor?: Doctor | null) => {
@@ -119,24 +101,12 @@ export default function VideoConsultation() {
   const [loadingServices, setLoadingServices] = useState(true);
   const [paidServiceIds, setPaidServiceIds] = useState<Set<string>>(new Set());
 
-  const [connectPickerService, setConnectPickerService] =
-    useState<ConsultationService | null>(null);
-
-  const [bookingDoctor, setBookingDoctor] = useState<Doctor | null>(null);
-  const [chatId, setChatId] = useState("");
-  const [chatStatus, setChatStatus] = useState<ChatStatus | "">("");
-  const [loadingBooking, setLoadingBooking] = useState(false);
-  const [requesting, setRequesting] = useState(false);
-  const [cancelling, setCancelling] = useState(false);
-  const [bookingError, setBookingError] = useState("");
-  const [pendingIncomingCall, setPendingIncomingCall] =
-    useState<WebRTCCallSignalPayload | null>(null);
-
   const servicesRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
+    const token = Cookies.get("token");
     const id = localStorage.getItem("userId") || Cookies.get("userId");
-    if (id) setUserId(id);
+    if (token && id) setUserId(id);
   }, []);
 
   useEffect(() => {
@@ -174,25 +144,22 @@ export default function VideoConsultation() {
   }, []);
 
   useEffect(() => {
-    if (!userId) {
+    const token = Cookies.get("token");
+    if (!token) {
       setPaidServiceIds(new Set());
       return;
     }
 
     const fetchPaidServices = async () => {
       try {
-        const res = await axios.get(`${API_URL}/orders/my`, {
-          params: { orderType: "consultation" },
-          headers: { "x-user-id": userId },
+        // Access is decided server-side from the verified JWT (never from a
+        // client-supplied user id) so a purchased consultation can only ever
+        // be reached by the account that actually paid for it.
+        const res = await axios.get(`${API_URL}/orders/my/consultation-access`, {
+          headers: { Authorization: `Bearer ${token}` },
         });
-        const orders: ConsultationOrder[] = Array.isArray(res.data) ? res.data : [];
-        const ids = new Set<string>();
-        orders.forEach((order) => {
-          (order.products || []).forEach((product) => {
-            if (product.itemType === "consultation" && product.id) ids.add(product.id);
-          });
-        });
-        setPaidServiceIds(ids);
+        const ids: string[] = Array.isArray(res.data?.serviceIds) ? res.data.serviceIds : [];
+        setPaidServiceIds(new Set(ids));
       } catch {
         setPaidServiceIds(new Set());
       }
@@ -230,142 +197,12 @@ export default function VideoConsultation() {
     }
   };
 
-  // Socket: register identity, and keep the open booking's status live.
-  useEffect(() => {
-    if (!userId) return;
-
-    const registerSocket = () => socket.emit("register", userId);
-    registerSocket();
-
-    const handleChatStatus = (data: { chatId: string; status: ChatStatus }) => {
-      if (data.chatId === chatId) setChatStatus(data.status);
-    };
-
-    const handleChatDeleted = (data: { chatId: string }) => {
-      if (data.chatId !== chatId) return;
-      setChatId("");
-      setChatStatus("");
-    };
-
-    const handleCallInvite = (data: WebRTCCallSignalPayload) => {
-      if (data.to !== userId) return;
-      setPendingIncomingCall(data);
-    };
-
-    socket.on("chat_status_updated", handleChatStatus);
-    socket.on("chat_deleted", handleChatDeleted);
-    socket.on("call:invite", handleCallInvite);
-    socket.on("connect", registerSocket);
-
-    return () => {
-      socket.off("chat_status_updated", handleChatStatus);
-      socket.off("chat_deleted", handleChatDeleted);
-      socket.off("call:invite", handleCallInvite);
-      socket.off("connect", registerSocket);
-    };
-  }, [userId, chatId]);
-
   const scrollToServices = () => {
     servicesRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-  const openBooking = async (doctor: Doctor) => {
-    setBookingDoctor(doctor);
-    setBookingError("");
-    setChatId("");
-    setChatStatus("");
+  const goToDashboard = () => router.push(DASHBOARD_CONSULTATIONS_PATH);
 
-    if (!userId) return;
-
-    try {
-      setLoadingBooking(true);
-      const res = await axios.get<ChatRequest | null>(
-        `${API_URL}/chat/user/${userId}/doctor/${doctor._id}`
-      );
-      setChatId(res.data?._id || "");
-      setChatStatus(res.data?.status || "");
-    } catch (err: any) {
-      setBookingError(err?.response?.data?.error || "Failed to load booking status.");
-    } finally {
-      setLoadingBooking(false);
-    }
-  };
-
-  const closeBooking = () => {
-    setBookingDoctor(null);
-    setChatId("");
-    setChatStatus("");
-    setBookingError("");
-  };
-
-  const connectToService = (service: ConsultationService) => {
-    const assignedDoctors = service.doctors || [];
-    if (assignedDoctors.length === 0) return;
-    if (assignedDoctors.length === 1) {
-      openBooking(assignedDoctors[0]);
-      return;
-    }
-    setConnectPickerService(service);
-  };
-
-  const closeConnectPicker = () => setConnectPickerService(null);
-
-  const sendBookingRequest = async () => {
-    if (!bookingDoctor || !userId) return;
-
-    try {
-      setRequesting(true);
-      setBookingError("");
-
-      const res = await axios.post<ChatRequest>(`${API_URL}/chat`, {
-        doctorId: bookingDoctor._id,
-        userId,
-      });
-
-      const nextChatId = res.data?._id || "";
-      const nextStatus = res.data?.status || "pending";
-      setChatId(nextChatId);
-      setChatStatus(nextStatus);
-
-      socket.emit("chat_request_created", {
-        chatId: nextChatId,
-        doctorId: bookingDoctor._id,
-        userId,
-        status: nextStatus,
-      });
-    } catch (err: any) {
-      setBookingError(err?.response?.data?.error || "Could not send the request. Please try again.");
-    } finally {
-      setRequesting(false);
-    }
-  };
-
-  const cancelBookingRequest = async () => {
-    if (!chatId || !bookingDoctor || cancelling) return;
-
-    try {
-      setCancelling(true);
-      setBookingError("");
-      await axios.delete(`${API_URL}/chat/${chatId}`, {
-        data: { userId, doctorId: bookingDoctor._id },
-      });
-
-      socket.emit("chat_deleted", {
-        chatId,
-        from: userId,
-        to: bookingDoctor._id,
-      });
-
-      setChatId("");
-      setChatStatus("");
-    } catch (err: any) {
-      setBookingError(err?.response?.data?.error || "Could not cancel the request.");
-    } finally {
-      setCancelling(false);
-    }
-  };
-
-  const bookingDoctorName = getDoctorName(bookingDoctor);
   const previewDoctors = doctors.slice(0, 3);
 
   return (
@@ -426,46 +263,11 @@ export default function VideoConsultation() {
           </div>
 
           <div className={styles.heroArt}>
-            <div className={styles.heroArtBlobOne} />
-            <div className={styles.heroArtBlobTwo} />
-
-            <div className={styles.phoneMock}>
-              <div className={styles.phoneNotch} />
-              <div className={styles.phoneScreen}>
-                <div className={styles.phoneCallTop}>
-                  <span className={styles.phoneLiveDot} />
-                  <span className={styles.phoneDoctorName}>Video Consultation</span>
-                  <span className={styles.phoneCallTimer}>02:14</span>
-                </div>
-
-                <div className={styles.phoneMainAvatar}>
-                  {previewDoctors[0] && resolveMediaUrl(previewDoctors[0].profileImage) ? (
-                    <img
-                      src={resolveMediaUrl(previewDoctors[0].profileImage) as string}
-                      alt=""
-                    />
-                  ) : (
-                    <FiUser />
-                  )}
-                </div>
-
-                <div className={styles.phoneSelfPreview}>
-                  <FiUser />
-                </div>
-
-                <div className={styles.phoneCallControls}>
-                  <span className={styles.phoneControlBtn}>
-                    <FiMic />
-                  </span>
-                  <span className={`${styles.phoneControlBtn} ${styles.phoneControlEnd}`}>
-                    <FiPhoneOff />
-                  </span>
-                  <span className={styles.phoneControlBtn}>
-                    <FiVideo />
-                  </span>
-                </div>
-              </div>
-            </div>
+            <img
+              src="/video-consultation-hero.png"
+              alt="Patient having a video consultation with a doctor"
+              className={styles.heroBannerImage}
+            />
           </div>
         </section>
 
@@ -489,8 +291,6 @@ export default function VideoConsultation() {
                   service.offerPrice < service.consultationFee;
                 const effectivePrice = hasOffer ? service.offerPrice! : service.consultationFee;
                 const isPaid = paidServiceIds.has(service._id);
-                const assignedDoctors = service.doctors || [];
-                const hasSlot = Boolean(service.nextAvailableSlot);
 
                 return (
                   <div key={service._id} className={styles.serviceCard}>
@@ -516,18 +316,19 @@ export default function VideoConsultation() {
                       >
                         Consult now <FiArrowRight />
                       </button>
-                    ) : assignedDoctors.length === 0 ? (
-                      <span className={styles.serviceUnavailable}>Doctor not assigned yet</span>
-                    ) : !hasSlot ? (
-                      <span className={styles.serviceUnavailable}>No slots available</span>
                     ) : (
-                      <button
-                        type="button"
-                        className={styles.consultNowLink}
-                        onClick={() => connectToService(service)}
-                      >
-                        Connect now <FiArrowRight />
-                      </button>
+                      <div className={styles.purchasedRow}>
+                        <span className={styles.purchasedBadge}>
+                          <FiCheckCircle /> Purchased
+                        </span>
+                        <button
+                          type="button"
+                          className={styles.dashboardLink}
+                          onClick={goToDashboard}
+                        >
+                          Go to Dashboard <FiArrowRight />
+                        </button>
+                      </div>
                     )}
                   </div>
                 );
@@ -556,151 +357,6 @@ export default function VideoConsultation() {
 
       </div>
       <Footer />
-
-      {/* ================= DOCTOR PICKER MODAL (multiple doctors on one service) ================= */}
-      {connectPickerService && (
-        <div className={styles.modalOverlay} onClick={closeConnectPicker}>
-          <div className={styles.modalPanel} onClick={(event) => event.stopPropagation()}>
-            <button type="button" className={styles.modalClose} onClick={closeConnectPicker}>
-              <FiX />
-            </button>
-
-            <div className={styles.modalHeader}>
-              <div>
-                <h3>{connectPickerService.serviceType}</h3>
-                <p>Choose a doctor to connect with</p>
-              </div>
-            </div>
-
-            <div className={styles.doctorPickerList}>
-              {(connectPickerService.doctors || []).map((doctor) => {
-                const name = getDoctorName(doctor);
-                const image = resolveMediaUrl(doctor.profileImage);
-                return (
-                  <button
-                    key={doctor._id}
-                    type="button"
-                    className={styles.doctorPickerRow}
-                    onClick={() => {
-                      closeConnectPicker();
-                      openBooking(doctor);
-                    }}
-                  >
-                    <span className={styles.doctorPickerAvatar}>
-                      {image ? <img src={image} alt={name} /> : getInitials(name)}
-                    </span>
-                    <span>
-                      <span className={styles.doctorPickerName}>{name}</span>
-                      <span className={styles.doctorPickerSpecialist}>
-                        {doctor.specialist || "General Physician"}
-                      </span>
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ================= BOOKING MODAL ================= */}
-      {bookingDoctor && (
-        <div className={styles.modalOverlay} onClick={closeBooking}>
-          <div className={styles.modalPanel} onClick={(event) => event.stopPropagation()}>
-            <button type="button" className={styles.modalClose} onClick={closeBooking}>
-              <FiX />
-            </button>
-
-            <div className={styles.modalHeader}>
-              <span className={styles.modalAvatar}>
-                {resolveMediaUrl(bookingDoctor.profileImage) ? (
-                  <img
-                    src={resolveMediaUrl(bookingDoctor.profileImage) as string}
-                    alt={bookingDoctorName}
-                  />
-                ) : (
-                  getInitials(bookingDoctorName)
-                )}
-              </span>
-              <div>
-                <h3>{bookingDoctorName}</h3>
-                <p>{bookingDoctor.specialist || "General Physician"}</p>
-              </div>
-            </div>
-
-            {!userId ? (
-              <p className={styles.modalState}>Please login to book a video consultation.</p>
-            ) : loadingBooking ? (
-              <p className={styles.modalState}>Checking booking status...</p>
-            ) : !chatStatus ? (
-              <div className={styles.modalState}>
-                <FiVideo className={styles.modalStateIcon} />
-                <p>
-                  Send a request to {bookingDoctorName}. Once accepted, you can start a
-                  private video call right here.
-                </p>
-                <button
-                  type="button"
-                  className={styles.primaryBtn}
-                  onClick={sendBookingRequest}
-                  disabled={requesting}
-                >
-                  {requesting ? "Sending request..." : "Request Video Consultation"}
-                </button>
-              </div>
-            ) : chatStatus === "pending" ? (
-              <div className={styles.modalState}>
-                <FiClock className={styles.modalStateIcon} />
-                <p>
-                  Request sent to {bookingDoctorName}. You'll be notified as soon as the
-                  doctor accepts.
-                </p>
-                <button
-                  type="button"
-                  className={styles.secondaryBtn}
-                  onClick={cancelBookingRequest}
-                  disabled={cancelling}
-                >
-                  {cancelling ? "Cancelling..." : "Cancel Request"}
-                </button>
-              </div>
-            ) : chatStatus === "declined" ? (
-              <div className={styles.modalState}>
-                <FiXCircle className={styles.modalStateIcon} />
-                <p>{bookingDoctorName} is unavailable for this request right now.</p>
-                <button
-                  type="button"
-                  className={styles.primaryBtn}
-                  onClick={sendBookingRequest}
-                  disabled={requesting}
-                >
-                  {requesting ? "Sending request..." : "Send Request Again"}
-                </button>
-              </div>
-            ) : (
-              <div className={styles.callSection}>
-                <p className={styles.callReadyText}>
-                  <FiCheckCircle /> {bookingDoctorName} accepted your request — start your
-                  video consultation below.
-                </p>
-                <WebRTCCall
-                  chatId={chatId}
-                  currentUserId={userId}
-                  peerId={bookingDoctor._id}
-                  peerName={bookingDoctorName}
-                  canCall
-                  externalIncomingCall={
-                    pendingIncomingCall?.chatId === chatId ? pendingIncomingCall : null
-                  }
-                  onExternalIncomingHandled={() => setPendingIncomingCall(null)}
-                />
-              </div>
-            )}
-
-            {bookingError && <p className={styles.modalError}>{bookingError}</p>}
-          </div>
-        </div>
-      )}
     </>
   );
 }

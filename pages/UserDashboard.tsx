@@ -24,7 +24,7 @@ import TreatmentOrderHistory from "@/components/UserPanel/TreatmentOrderHistory"
 import AppointmentHistory from "@/components/UserPanel/AppointmentHistory";
 import UserProfile from "@/components/UserPanel/UserProfile";
 import YourResult from "@/components/UserPanel/YourResult";
-import UserChat from "@/components/UserPanel/Chat";
+import MyConsultations from "@/components/UserPanel/MyConsultations";
 
 import Topbar from "@/components/Layout/Topbar";
 import Footer from "@/components/Layout/Footer";
@@ -211,7 +211,7 @@ const UserDashboard: React.FC = () => {
     }
     if (activeSection === "appointmenthistory") return <AppointmentHistory />;
     if (activeSection === "servicehistory") return <ServiceHistory />;
-    if (activeSection === "chat") return <UserChat />;
+    if (activeSection === "chat") return <MyConsultations />;
 
     return (
       <div className={styles.comingSoonCard}>

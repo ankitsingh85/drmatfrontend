@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import axios from "axios";
 import Cookies from "js-cookie";
 import {
+  FiFileText,
   FiMessageSquare,
   FiPhoneIncoming,
   FiSearch,
@@ -47,6 +48,9 @@ type ChatMessage = {
   messageType?: "text" | "call";
   callType?: "audio" | "video";
   callStatus?: "started" | "missed" | "ended";
+  attachmentUrl?: string;
+  attachmentType?: "image" | "pdf";
+  attachmentName?: string;
   createdAt?: string;
 };
 
@@ -548,13 +552,37 @@ const DoctorChat = () => {
                     );
                   }
 
+                  const imageUrl =
+                    msg.attachmentType === "image" ? resolveMediaUrl(msg.attachmentUrl) : null;
+                  const fileUrl =
+                    msg.attachmentType === "pdf" ? resolveMediaUrl(msg.attachmentUrl) : null;
+
                   return (
                     <div
                       key={msg._id || `${msg.chatId}-${index}`}
                       className={`${styles.msgRow} ${isMe ? styles.right : styles.left}`}
                     >
                       <div className={`${styles.bubble} ${isMe ? styles.me : styles.other}`}>
-                        <p>{msg.message}</p>
+                        {imageUrl ? (
+                          <a href={imageUrl} target="_blank" rel="noreferrer">
+                            <img
+                              src={imageUrl}
+                              alt={msg.attachmentName || "Attachment"}
+                              className={styles.attachmentImage}
+                            />
+                          </a>
+                        ) : fileUrl ? (
+                          <a
+                            href={fileUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className={styles.attachmentFile}
+                          >
+                            <FiFileText />
+                            <span>{msg.attachmentName || "Document.pdf"}</span>
+                          </a>
+                        ) : null}
+                        {msg.message ? <p>{msg.message}</p> : null}
                         <span>{formatTime(msg.createdAt)}</span>
                       </div>
                     </div>

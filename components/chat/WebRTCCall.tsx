@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   FiMic,
   FiMicOff,
@@ -422,6 +423,73 @@ const WebRTCCall = ({
     resetCall,
   ]);
 
+  const callOverlay =
+    mode !== "idle" ? (
+      <div className={styles.callOverlay}>
+        <div className={styles.callScreen}>
+          <video ref={remoteVideoRef} autoPlay playsInline className={styles.remoteVideo}>
+            <track kind="captions" />
+          </video>
+
+          {(callType === "audio" || mode !== "active") && (
+            <div className={styles.callPlaceholder}>
+              <span className={styles.callAvatar}>{peerName.slice(0, 1).toUpperCase()}</span>
+              <h3 className={styles.callPeerName}>{peerName}</h3>
+              <p className={styles.callStatusText}>
+                {mode === "incoming"
+                  ? `Incoming ${callType} call...`
+                  : mode === "calling"
+                  ? "Calling..."
+                  : mode === "connecting"
+                  ? "Connecting..."
+                  : callType === "audio"
+                  ? formatDuration(elapsedSeconds)
+                  : ""}
+              </p>
+            </div>
+          )}
+
+          {mode === "active" && callType === "video" ? (
+            <div className={styles.callTopBar}>
+              <span className={styles.callTopBarName}>{peerName}</span>
+              <span className={styles.callTopBarTimer}>{formatDuration(elapsedSeconds)}</span>
+            </div>
+          ) : null}
+
+          <video ref={localVideoRef} autoPlay muted playsInline className={styles.localVideo}>
+            <track kind="captions" />
+          </video>
+
+          {mode === "incoming" ? (
+            <div className={styles.incomingControls}>
+              <button type="button" className={styles.declineBtn} onClick={rejectCall}>
+                <FiPhoneOff />
+                <span>Decline</span>
+              </button>
+              <button type="button" className={styles.acceptBtn} onClick={acceptCall}>
+                <FiPhone />
+                <span>Accept</span>
+              </button>
+            </div>
+          ) : (
+            <div className={styles.activeControls}>
+              <button type="button" onClick={toggleMic}>
+                {micEnabled ? <FiMic /> : <FiMicOff />}
+              </button>
+              {callType === "video" ? (
+                <button type="button" onClick={toggleCamera}>
+                  {cameraEnabled ? <FiVideo /> : <FiVideoOff />}
+                </button>
+              ) : null}
+              <button type="button" className={styles.endCallBtn} onClick={() => resetCall(true)}>
+                <FiPhoneOff />
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    ) : null;
+
   return (
     <>
       <div className={styles.callActions}>
@@ -445,86 +513,9 @@ const WebRTCCall = ({
 
       {callError ? <div className={styles.callError}>{callError}</div> : null}
 
-      {mode !== "idle" ? (
-        <div className={styles.callOverlay}>
-          <div className={styles.callScreen}>
-            <video
-              ref={remoteVideoRef}
-              autoPlay
-              playsInline
-              className={styles.remoteVideo}
-            >
-              <track kind="captions" />
-            </video>
-
-            {(callType === "audio" || mode !== "active") && (
-              <div className={styles.callPlaceholder}>
-                <span className={styles.callAvatar}>{peerName.slice(0, 1).toUpperCase()}</span>
-                <h3 className={styles.callPeerName}>{peerName}</h3>
-                <p className={styles.callStatusText}>
-                  {mode === "incoming"
-                    ? `Incoming ${callType} call...`
-                    : mode === "calling"
-                    ? "Calling..."
-                    : mode === "connecting"
-                    ? "Connecting..."
-                    : callType === "audio"
-                    ? formatDuration(elapsedSeconds)
-                    : ""}
-                </p>
-              </div>
-            )}
-
-            {mode === "active" && callType === "video" ? (
-              <div className={styles.callTopBar}>
-                <span className={styles.callTopBarName}>{peerName}</span>
-                <span className={styles.callTopBarTimer}>{formatDuration(elapsedSeconds)}</span>
-              </div>
-            ) : null}
-
-            <video
-              ref={localVideoRef}
-              autoPlay
-              muted
-              playsInline
-              className={styles.localVideo}
-            >
-              <track kind="captions" />
-            </video>
-
-            {mode === "incoming" ? (
-              <div className={styles.incomingControls}>
-                <button type="button" className={styles.declineBtn} onClick={rejectCall}>
-                  <FiPhoneOff />
-                  <span>Decline</span>
-                </button>
-                <button type="button" className={styles.acceptBtn} onClick={acceptCall}>
-                  <FiPhone />
-                  <span>Accept</span>
-                </button>
-              </div>
-            ) : (
-              <div className={styles.activeControls}>
-                <button type="button" onClick={toggleMic}>
-                  {micEnabled ? <FiMic /> : <FiMicOff />}
-                </button>
-                {callType === "video" ? (
-                  <button type="button" onClick={toggleCamera}>
-                    {cameraEnabled ? <FiVideo /> : <FiVideoOff />}
-                  </button>
-                ) : null}
-                <button
-                  type="button"
-                  className={styles.endCallBtn}
-                  onClick={() => resetCall(true)}
-                >
-                  <FiPhoneOff />
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      ) : null}
+      {callOverlay && typeof document !== "undefined"
+        ? createPortal(callOverlay, document.body)
+        : null}
     </>
   );
 };
