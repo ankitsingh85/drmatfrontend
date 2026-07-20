@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
+// Roles that belong to the other, separate portals (user/doctor/clinic
+// dashboards). Everything else — "admin", "manager", or any custom role
+// label — is a valid Admin-model account and belongs on /adminDashboard.
+const NON_ADMIN_PANEL_ROLES = ["user", "doctor", "clinic"];
+
 export function middleware(req: NextRequest) {
   const token = req.cookies.get("token")?.value;
   const role = req.cookies.get("role")?.value?.toLowerCase();
@@ -21,7 +26,7 @@ export function middleware(req: NextRequest) {
       if (role === "superadmin") {
         return NextResponse.redirect(new URL("/Dashboard", req.url));
       }
-      if (role === "admin") {
+      if (role && !NON_ADMIN_PANEL_ROLES.includes(role)) {
         return NextResponse.redirect(new URL("/adminDashboard", req.url));
       }
     }
@@ -30,7 +35,7 @@ export function middleware(req: NextRequest) {
       return NextResponse.redirect(new URL("/adminlogin", req.url));
     }
 
-    if (lowerPath.startsWith("/admindashboard") && role !== "admin") {
+    if (lowerPath.startsWith("/admindashboard") && NON_ADMIN_PANEL_ROLES.includes(role || "")) {
       return NextResponse.redirect(new URL("/adminlogin", req.url));
     }
   }
