@@ -14,7 +14,15 @@ interface Short {
 // ✅ Use environment variable for API base URL
 // const API_URL = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000/api";
 
-const TreatmentShorts: React.FC = () => {
+type TreatmentShortsProps = {
+  canEdit?: boolean;
+  canDelete?: boolean;
+};
+
+const TreatmentShorts: React.FC<TreatmentShortsProps> = ({
+  canEdit = true,
+  canDelete = true,
+}) => {
   const [shorts, setShorts] = useState<Short[]>([]);
   const [platform, setPlatform] = useState<"youtube" | "instagram">("youtube");
   const [videoUrl, setVideoUrl] = useState("");
@@ -88,6 +96,7 @@ const TreatmentShorts: React.FC = () => {
       <h1 className={styles.heading}>Manage Treatment Shorts</h1>
 
       {/* Upload Section */}
+      {canEdit && (
       <div className={styles.uploadSection}>
         <select
           value={platform}
@@ -118,6 +127,7 @@ const TreatmentShorts: React.FC = () => {
           Add Short
         </button>
       </div>
+      )}
 
       {/* Shorts List */}
       <div className={styles.grid}>
@@ -145,18 +155,22 @@ const TreatmentShorts: React.FC = () => {
             )}
 
             <div className={styles.actions}>
-              <button
-                onClick={() => handleUpdate(short)}
-                className={styles.updateBtn}
-              >
-                Update
-              </button>
-              <button
-                onClick={() => handleDelete(short._id)}
-                className={styles.deleteBtn}
-              >
-                Delete
-              </button>
+              {canEdit && (
+                <button
+                  onClick={() => handleUpdate(short)}
+                  className={styles.updateBtn}
+                >
+                  Update
+                </button>
+              )}
+              {canDelete && (
+                <button
+                  onClick={() => handleDelete(short._id)}
+                  className={styles.deleteBtn}
+                >
+                  Delete
+                </button>
+              )}
             </div>
           </div>
         ))}

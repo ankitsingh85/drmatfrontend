@@ -31,7 +31,12 @@ interface B2BProductEditForm extends Partial<Omit<B2BProduct, "category">> {
   category?: string[];
 }
 
-export default function ListOfB2BProduct() {
+type ListOfB2BProductProps = {
+  canEdit?: boolean;
+  canDelete?: boolean;
+};
+
+export default function ListOfB2BProduct({ canEdit = true, canDelete = true }: ListOfB2BProductProps) {
   const [products, setProducts] = useState<B2BProduct[]>([]);
   const [allCategories, setAllCategories] = useState<B2BCategory[]>([]);
   const [search, setSearch] = useState("");
@@ -430,12 +435,16 @@ export default function ListOfB2BProduct() {
                   <button className={styles.eye} onClick={() => setViewProduct(p)}>
                     👁
                   </button>
-                  <button className={styles.edit} onClick={() => handleEdit(p)}>
-                    ✏️
-                  </button>
-                  <button className={styles.delete} onClick={() => handleDelete(p._id)}>
-                    🗑
-                  </button>
+                  {canEdit && (
+                    <button className={styles.edit} onClick={() => handleEdit(p)}>
+                      ✏️
+                    </button>
+                  )}
+                  {canDelete && (
+                    <button className={styles.delete} onClick={() => handleDelete(p._id)}>
+                      🗑
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}

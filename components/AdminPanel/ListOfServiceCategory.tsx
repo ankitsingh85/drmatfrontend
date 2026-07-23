@@ -11,7 +11,12 @@ interface ServiceCategory {
   imageUrl: string;
 }
 
-const ListOfServiceCategory = () => {
+type ListOfServiceCategoryProps = {
+  canEdit?: boolean;
+  canDelete?: boolean;
+};
+
+const ListOfServiceCategory = ({ canEdit = true, canDelete = true }: ListOfServiceCategoryProps) => {
   const [categories, setCategories] = useState<ServiceCategory[]>([]);
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -312,18 +317,22 @@ const ListOfServiceCategory = () => {
                 />
               </td>
               <td>
-                <button
-                  className={styles.editBtn}
-                  onClick={() => handleEdit(cat)}
-                >
-                  Edit
-                </button>
-                <button
-                  className={styles.deleteBtn}
-                  onClick={() => handleDelete(cat._id)}
-                >
-                  Delete
-                </button>
+                {canEdit && (
+                  <button
+                    className={styles.editBtn}
+                    onClick={() => handleEdit(cat)}
+                  >
+                    Edit
+                  </button>
+                )}
+                {canDelete && (
+                  <button
+                    className={styles.deleteBtn}
+                    onClick={() => handleDelete(cat._id)}
+                  >
+                    Delete
+                  </button>
+                )}
               </td>
             </tr>
           ))}

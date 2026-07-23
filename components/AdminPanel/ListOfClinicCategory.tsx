@@ -11,7 +11,12 @@ interface ClinicCategory {
   name: string;
   imageUrl: string;
 }
-const ListOfClinicCategory = () => {
+type ListOfClinicCategoryProps = {
+  canEdit?: boolean;
+  canDelete?: boolean;
+};
+
+const ListOfClinicCategory = ({ canEdit = true, canDelete = true }: ListOfClinicCategoryProps) => {
   const [categories, setCategories] = useState<ClinicCategory[]>([]);
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -311,12 +316,16 @@ const ListOfClinicCategory = () => {
   </td>
 
   <td className={styles.actions}>
-                  <button className={styles.editBtn} onClick={() => handleEdit(cat)}>
-                    ✏️
-                  </button>
-                  <button className={styles.deleteBtn} onClick={() => handleDelete(cat._id)}>
-                    🗑
-                  </button>
+                  {canEdit && (
+                    <button className={styles.editBtn} onClick={() => handleEdit(cat)}>
+                      ✏️
+                    </button>
+                  )}
+                  {canDelete && (
+                    <button className={styles.deleteBtn} onClick={() => handleDelete(cat._id)}>
+                      🗑
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}

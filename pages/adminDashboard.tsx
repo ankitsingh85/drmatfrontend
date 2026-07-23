@@ -172,6 +172,11 @@ export default function AdminDashboard() {
     [isSuperAdmin, permissionFor]
   );
 
+  const canDelete = useCallback(
+    (moduleId: string) => isSuperAdmin || permissionFor(moduleId).delete,
+    [isSuperAdmin, permissionFor]
+  );
+
   /* ================= AUTH =================
      Any admin role can log in here now — not just role === "admin".
      What they actually see inside is gated by their permissions,
@@ -424,6 +429,7 @@ export default function AdminDashboard() {
   const ActiveListComponent = activeModule?.ListComponent;
   const ActiveCreateComponent = activeModule?.CreateComponent;
   const activeModuleCanCreate = activeModule ? canCreate(activeModule.id) : false;
+  const activeModuleCanDelete = activeModule ? canDelete(activeModule.id) : false;
 
   // If permissions load (or change) and the admin is currently sitting
   // on a section they no longer have view access to, bounce them back
@@ -991,7 +997,12 @@ export default function AdminDashboard() {
 
               <div className={styles.moduleBody}>
                 {sectionMode === "list" || !activeModuleCanCreate ? (
-                  ActiveListComponent ? <ActiveListComponent /> : null
+                  ActiveListComponent ? (
+                    <ActiveListComponent
+                      canEdit={activeModuleCanCreate}
+                      canDelete={activeModuleCanDelete}
+                    />
+                  ) : null
                 ) : (
                   ActiveCreateComponent ? <ActiveCreateComponent /> : null
                 )}
@@ -1000,22 +1011,34 @@ export default function AdminDashboard() {
           ) : (
             <>
               {canView("others") && activeSection === "listOfTopProduct" && (
-                <ListOfTopProduct />
+                <ListOfTopProduct canEdit={canCreate("others")} canDelete={canDelete("others")} />
               )}
-              {canView("others") && activeSection === "offer1" && <Offer1 />}
-              {canView("others") && activeSection === "offer2" && <Offer2 />}
-              {canView("others") && activeSection === "offer3" && <Offer3 />}
+              {canView("others") && activeSection === "offer1" && (
+                <Offer1 canEdit={canCreate("others")} canDelete={canDelete("others")} />
+              )}
+              {canView("others") && activeSection === "offer2" && (
+                <Offer2 canEdit={canCreate("others")} canDelete={canDelete("others")} />
+              )}
+              {canView("others") && activeSection === "offer3" && (
+                <Offer3 canEdit={canCreate("others")} canDelete={canDelete("others")} />
+              )}
               {canView("others") && activeSection === "featuredSection" && (
-                <FeaturedSectionManager />
+                <FeaturedSectionManager
+                  canEdit={canCreate("others")}
+                  canDelete={canDelete("others")}
+                />
               )}
               {canView("others") && activeSection === "latestshorts" && (
-                <LatestShorts />
+                <LatestShorts canEdit={canCreate("others")} canDelete={canDelete("others")} />
               )}
               {canView("others") && activeSection === "treatmentshorts" && (
-                <TreatmentShorts />
+                <TreatmentShorts canEdit={canCreate("others")} canDelete={canDelete("others")} />
               )}
               {canView("others") && activeSection === "clinicHiringRequests" && (
-                <ClinicHiringRequests />
+                <ClinicHiringRequests
+                  canEdit={canCreate("others")}
+                  canDelete={canDelete("others")}
+                />
               )}
               {/* {activeSection === "userorderhistory" && <UserOrderHistory />} */}
               {activeSection === "createPatient" && <CreatePatient />}

@@ -31,7 +31,12 @@ const specialists = [
   "Orthopedic",
 ];
 
-const ListOfDoctor: React.FC = () => {
+type ListOfDoctorProps = {
+  canEdit?: boolean;
+  canDelete?: boolean;
+};
+
+const ListOfDoctor: React.FC<ListOfDoctorProps> = ({ canEdit = true, canDelete = true }) => {
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -332,19 +337,23 @@ const ListOfDoctor: React.FC = () => {
   <td className={styles.td}>{d.phone || "-"}</td>
 
   <td className={styles.td}>
-    <button
-      className={styles.editButton}
-      onClick={() => handleEdit(d)}
-    >
-      ✏️
-    </button>
+    {canEdit && (
+      <button
+        className={styles.editButton}
+        onClick={() => handleEdit(d)}
+      >
+        ✏️
+      </button>
+    )}
 
-    <button
-      className={styles.deleteButton}
-      onClick={() => handleDelete(d._id)}
-    >
-      🗑
-    </button>
+    {canDelete && (
+      <button
+        className={styles.deleteButton}
+        onClick={() => handleDelete(d._id)}
+      >
+        🗑
+      </button>
+    )}
   </td>
 </tr>
           ))}

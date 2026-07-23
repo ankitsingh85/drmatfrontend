@@ -35,7 +35,12 @@ interface TreatmentEditForm {
   offerPrice: string;
 }
 
-const ListOfTreatment = () => {
+type ListOfTreatmentProps = {
+  canEdit?: boolean;
+  canDelete?: boolean;
+};
+
+const ListOfTreatment = ({ canEdit = true, canDelete = true }: ListOfTreatmentProps) => {
   const [treatments, setTreatments] = useState<Treatment[]>([]);
   const [serviceCategories, setServiceCategories] = useState<ServiceCategory[]>(
     []
@@ -523,6 +528,7 @@ const ListOfTreatment = () => {
                     }`}
                     onClick={() => handleToggleStatus(treatment)}
                     aria-pressed={treatment.isActive !== false}
+                    disabled={!canEdit}
                     title={
                       treatment.isActive === false
                         ? "Inactive. Click to activate"
@@ -537,22 +543,26 @@ const ListOfTreatment = () => {
                 </td>
                 <td>
                   <>
-                    <button
-                      onClick={() => handleEdit(treatment)}
-                      className={styles.editBtn}
-                      title="Edit treatment"
-                      aria-label="Edit treatment"
-                    >
-                      <FiEdit2 />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(treatment._id)}
-                      className={styles.deleteBtn}
-                      title="Delete treatment"
-                      aria-label="Delete treatment"
-                    >
-                      <FiTrash2 />
-                    </button>
+                    {canEdit && (
+                      <button
+                        onClick={() => handleEdit(treatment)}
+                        className={styles.editBtn}
+                        title="Edit treatment"
+                        aria-label="Edit treatment"
+                      >
+                        <FiEdit2 />
+                      </button>
+                    )}
+                    {canDelete && (
+                      <button
+                        onClick={() => handleDelete(treatment._id)}
+                        className={styles.deleteBtn}
+                        title="Delete treatment"
+                        aria-label="Delete treatment"
+                      >
+                        <FiTrash2 />
+                      </button>
+                    )}
                   </>
                 </td>
               </tr>

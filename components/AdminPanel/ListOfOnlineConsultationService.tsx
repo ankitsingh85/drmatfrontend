@@ -35,7 +35,15 @@ const getDoctorName = (doctor: PopulatedDoctor) =>
   [doctor.title || "Dr.", doctor.firstName, doctor.lastName].filter(Boolean).join(" ") ||
   "Doctor";
 
-const ListOfOnlineConsultationService = () => {
+type ListOfOnlineConsultationServiceProps = {
+  canEdit?: boolean;
+  canDelete?: boolean;
+};
+
+const ListOfOnlineConsultationService = ({
+  canEdit = true,
+  canDelete = true,
+}: ListOfOnlineConsultationServiceProps) => {
   const [services, setServices] = useState<OnlineConsultationService[]>([]);
   const [allDoctors, setAllDoctors] = useState<PopulatedDoctor[]>([]);
   const [search, setSearch] = useState("");
@@ -418,6 +426,7 @@ const ListOfOnlineConsultationService = () => {
                   <button
                     type="button"
                     onClick={() => handleToggleActive(service)}
+                    disabled={!canEdit}
                     style={{
                       ...premiumButtonStyle,
                       background: service.isActive === false ? "#f1f5f9" : "#dcfce7",
@@ -428,15 +437,19 @@ const ListOfOnlineConsultationService = () => {
                   </button>
                 </td>
                 <td>
-                  <button className={styles.editBtn} onClick={() => handleEdit(service)}>
-                    Edit
-                  </button>
-                  <button
-                    className={styles.deleteBtn}
-                    onClick={() => handleDelete(service._id)}
-                  >
-                    Delete
-                  </button>
+                  {canEdit && (
+                    <button className={styles.editBtn} onClick={() => handleEdit(service)}>
+                      Edit
+                    </button>
+                  )}
+                  {canDelete && (
+                    <button
+                      className={styles.deleteBtn}
+                      onClick={() => handleDelete(service._id)}
+                    >
+                      Delete
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}

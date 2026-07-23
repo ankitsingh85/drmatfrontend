@@ -137,7 +137,12 @@ const resolveAssetUrl = (value?: string) => {
   return value;
 };
 
-const ListOfCourse = () => {
+type ListOfCourseProps = {
+  canEdit?: boolean;
+  canDelete?: boolean;
+};
+
+const ListOfCourse = ({ canEdit = true, canDelete = true }: ListOfCourseProps) => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -526,22 +531,26 @@ const ListOfCourse = () => {
                         >
                           <FaEye />
                         </button>
-                        <button
-                          type="button"
-                          className={styles.iconBtn}
-                          onClick={() => openEditModal(course)}
-                          title="Edit course"
-                        >
-                          <FaEdit />
-                        </button>
-                        <button
-                          type="button"
-                          className={`${styles.iconBtn} ${styles.iconDeleteBtn}`}
-                          onClick={() => handleDelete(course._id)}
-                          title="Delete course"
-                        >
-                          <FaTrash />
-                        </button>
+                        {canEdit && (
+                          <button
+                            type="button"
+                            className={styles.iconBtn}
+                            onClick={() => openEditModal(course)}
+                            title="Edit course"
+                          >
+                            <FaEdit />
+                          </button>
+                        )}
+                        {canDelete && (
+                          <button
+                            type="button"
+                            className={`${styles.iconBtn} ${styles.iconDeleteBtn}`}
+                            onClick={() => handleDelete(course._id)}
+                            title="Delete course"
+                          >
+                            <FaTrash />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

@@ -32,7 +32,15 @@ const emptyForm: FormState = {
   isActive: true,
 };
 
-const FeaturedSectionManager = () => {
+type FeaturedSectionManagerProps = {
+  canEdit?: boolean;
+  canDelete?: boolean;
+};
+
+const FeaturedSectionManager = ({
+  canEdit = true,
+  canDelete = true,
+}: FeaturedSectionManagerProps) => {
   const [items, setItems] = useState<FeaturedItem[]>([]);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -211,6 +219,7 @@ const FeaturedSectionManager = () => {
       {error && <p className={styles.error}>{error}</p>}
       {message && <p style={{ color: "#15803d", fontWeight: 600 }}>{message}</p>}
 
+      {canEdit && (
       <form onSubmit={handleSubmit} className={styles.offerCard}>
         <label className={styles.fieldLabel}>Heading</label>
         <input
@@ -282,6 +291,7 @@ const FeaturedSectionManager = () => {
           )}
         </div>
       </form>
+      )}
 
       <div className={styles.offersGrid} style={{ marginTop: 24 }}>
         {items.map((item) => (
@@ -306,20 +316,24 @@ const FeaturedSectionManager = () => {
               </p>
             </div>
             <div className={styles.buttons}>
-              <button
-                type="button"
-                className={styles.updateBtn}
-                onClick={() => startEdit(item)}
-              >
-                Edit
-              </button>
-              <button
-                type="button"
-                className={styles.deleteBtn}
-                onClick={() => handleDelete(item._id)}
-              >
-                Delete
-              </button>
+              {canEdit && (
+                <button
+                  type="button"
+                  className={styles.updateBtn}
+                  onClick={() => startEdit(item)}
+                >
+                  Edit
+                </button>
+              )}
+              {canDelete && (
+                <button
+                  type="button"
+                  className={styles.deleteBtn}
+                  onClick={() => handleDelete(item._id)}
+                >
+                  Delete
+                </button>
+              )}
             </div>
           </div>
         ))}

@@ -51,7 +51,14 @@ const statusLabels: Record<HiringStatus, string> = {
 
 const statuses = Object.keys(statusLabels) as HiringStatus[];
 
-export default function ClinicHiringRequests() {
+type ClinicHiringRequestsProps = {
+  canEdit?: boolean;
+  canDelete?: boolean;
+};
+
+export default function ClinicHiringRequests({
+  canEdit = true,
+}: ClinicHiringRequestsProps) {
   const [requests, setRequests] = useState<HiringRequest[]>([]);
   const [selectedId, setSelectedId] = useState("");
   const [message, setMessage] = useState("");
@@ -207,6 +214,7 @@ export default function ClinicHiringRequests() {
                     <select
                       className={styles.statusSelect}
                       value={request.status}
+                      disabled={!canEdit}
                       onChange={(event) =>
                         updateStatus(
                           request._id,
@@ -305,16 +313,18 @@ export default function ClinicHiringRequests() {
                     </div>
                   ))}
                 </div>
-                <div className={styles.chatInputRow}>
-                  <input
-                    value={message}
-                    onChange={(event) => setMessage(event.target.value)}
-                    placeholder="Reply to clinic"
-                  />
-                  <button type="button" onClick={sendReply}>
-                    <FiSend />
-                  </button>
-                </div>
+                {canEdit && (
+                  <div className={styles.chatInputRow}>
+                    <input
+                      value={message}
+                      onChange={(event) => setMessage(event.target.value)}
+                      placeholder="Reply to clinic"
+                    />
+                    <button type="button" onClick={sendReply}>
+                      <FiSend />
+                    </button>
+                  </div>
+                )}
               </div>
             </>
           )}

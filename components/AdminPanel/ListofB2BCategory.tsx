@@ -11,7 +11,15 @@ interface Category {
   imageUrl: string;
 }
 
-export default function ListofB2BCategory() {
+type ListofB2BCategoryProps = {
+  canEdit?: boolean;
+  canDelete?: boolean;
+};
+
+export default function ListofB2BCategory({
+  canEdit = true,
+  canDelete = true,
+}: ListofB2BCategoryProps) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -273,20 +281,24 @@ export default function ListofB2BCategory() {
                 </td>
                 <td>
                   <div className={styles.actions}>
-                    <button
-                      className={styles.editBtn}
-                      onClick={() => handleEdit(cat)}
-                      title="Edit category"
-                    >
-                      ✏️
-                    </button>
-                    <button
-                      className={styles.deleteBtn}
-                      onClick={() => handleDelete(cat._id)}
-                      title="Delete category"
-                    >
-                      🗑
-                    </button>
+                    {canEdit && (
+                      <button
+                        className={styles.editBtn}
+                        onClick={() => handleEdit(cat)}
+                        title="Edit category"
+                      >
+                        ✏️
+                      </button>
+                    )}
+                    {canDelete && (
+                      <button
+                        className={styles.deleteBtn}
+                        onClick={() => handleDelete(cat._id)}
+                        title="Delete category"
+                      >
+                        🗑
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>

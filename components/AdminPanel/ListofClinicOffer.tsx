@@ -56,7 +56,12 @@ const MAX_SIZE_MB = 5;
 const REQUIRED_WIDTH = 1600;
 const REQUIRED_HEIGHT = 350;
 
-const ListofClinicOffer = () => {
+type ListofClinicOfferProps = {
+  canEdit?: boolean;
+  canDelete?: boolean;
+};
+
+const ListofClinicOffer = ({ canEdit = true, canDelete = true }: ListofClinicOfferProps) => {
   const [offers, setOffers] = useState<Offer[]>([]);
   const [clinics, setClinics] = useState<ClinicOption[]>([]);
   const [categories, setCategories] = useState<ClinicCategoryOption[]>([]);
@@ -514,15 +519,19 @@ const ListofClinicOffer = () => {
               </p>
             </div>
             <div className={styles.buttons}>
-              <button
-                onClick={() => handleUpdateClick(offer._id)}
-                className={styles.updateBtn}
-              >
-                Update
-              </button>
-              <button onClick={() => handleDelete(offer._id)} className={styles.deleteBtn}>
-                Delete
-              </button>
+              {canEdit && (
+                <button
+                  onClick={() => handleUpdateClick(offer._id)}
+                  className={styles.updateBtn}
+                >
+                  Update
+                </button>
+              )}
+              {canDelete && (
+                <button onClick={() => handleDelete(offer._id)} className={styles.deleteBtn}>
+                  Delete
+                </button>
+              )}
             </div>
           </div>
         ))}

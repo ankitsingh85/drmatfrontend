@@ -12,7 +12,12 @@ interface CourseType {
   imageUrl: string;
 }
 
-const ListOfCourseType = () => {
+type ListOfCourseTypeProps = {
+  canEdit?: boolean;
+  canDelete?: boolean;
+};
+
+const ListOfCourseType = ({ canEdit = true, canDelete = true }: ListOfCourseTypeProps) => {
   const [courseTypes, setCourseTypes] = useState<CourseType[]>([]);
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -297,15 +302,19 @@ const ListOfCourseType = () => {
                   />
                 </td>
                 <td className={styles.actions}>
-                  <button className={styles.editBtn} onClick={() => handleEdit(item)}>
-                    Edit
-                  </button>
-                  <button
-                    className={styles.deleteBtn}
-                    onClick={() => handleDelete(item._id)}
-                  >
-                    Delete
-                  </button>
+                  {canEdit && (
+                    <button className={styles.editBtn} onClick={() => handleEdit(item)}>
+                      Edit
+                    </button>
+                  )}
+                  {canDelete && (
+                    <button
+                      className={styles.deleteBtn}
+                      onClick={() => handleDelete(item._id)}
+                    >
+                      Delete
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}

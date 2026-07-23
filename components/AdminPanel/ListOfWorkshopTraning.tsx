@@ -108,7 +108,15 @@ const thTdStyle: React.CSSProperties = {
   verticalAlign: "top",
 };
 
-export default function ListOfWorkshopTraning() {
+type ListOfWorkshopTraningProps = {
+  canEdit?: boolean;
+  canDelete?: boolean;
+};
+
+export default function ListOfWorkshopTraning({
+  canEdit = true,
+  canDelete = true,
+}: ListOfWorkshopTraningProps) {
   const [items, setItems] = useState<WorkshopTraining[]>([]);
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState("all");
@@ -559,24 +567,28 @@ export default function ListOfWorkshopTraning() {
                   <td style={thTdStyle}>{item.currentAvailability || "-"}</td>
                   <td style={thTdStyle}>
                     <div style={{ display: "flex", gap: 8 }}>
-                      <button
-                        type="button"
-                        onClick={() => handleEdit(item)}
-                        style={editIconStyle}
-                        title="Edit workshop training"
-                        aria-label="Edit workshop training"
-                      >
-                        <FiEdit2 />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(item._id)}
-                        style={deleteIconStyle}
-                        title="Delete workshop training"
-                        aria-label="Delete workshop training"
-                      >
-                        <FiTrash2 />
-                      </button>
+                      {canEdit && (
+                        <button
+                          type="button"
+                          onClick={() => handleEdit(item)}
+                          style={editIconStyle}
+                          title="Edit workshop training"
+                          aria-label="Edit workshop training"
+                        >
+                          <FiEdit2 />
+                        </button>
+                      )}
+                      {canDelete && (
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(item._id)}
+                          style={deleteIconStyle}
+                          title="Delete workshop training"
+                          aria-label="Delete workshop training"
+                        >
+                          <FiTrash2 />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

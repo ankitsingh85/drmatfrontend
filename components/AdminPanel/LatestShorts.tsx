@@ -15,7 +15,12 @@ interface Short {
   title?: string;
 }
 
-const LatestShorts = () => {
+type LatestShortsProps = {
+  canEdit?: boolean;
+  canDelete?: boolean;
+};
+
+const LatestShorts = ({ canEdit = true, canDelete = true }: LatestShortsProps) => {
   const [shorts, setShorts] = useState<Short[]>([]);
   const [platform, setPlatform] = useState<"youtube" | "instagram">("youtube");
   const [videoUrl, setVideoUrl] = useState("");
@@ -99,6 +104,7 @@ const LatestShorts = () => {
       <h1 className={styles.heading}>Manage Latest Shorts</h1>
 
       {/* Upload Section */}
+      {canEdit && (
       <div className={styles.uploadSection}>
         <select
           value={platform}
@@ -129,6 +135,7 @@ const LatestShorts = () => {
           Add Short
         </button>
       </div>
+      )}
 
       {/* Shorts List */}
       <div className={styles.grid}>
@@ -159,18 +166,22 @@ const LatestShorts = () => {
             )}
 
             <div className={styles.actions}>
-              <button
-                onClick={() => handleUpdate(short)}
-                className={styles.updateBtn}
-              >
-                Update
-              </button>
-              <button
-                onClick={() => handleDelete(short._id)}
-                className={styles.deleteBtn}
-              >
-                Delete
-              </button>
+              {canEdit && (
+                <button
+                  onClick={() => handleUpdate(short)}
+                  className={styles.updateBtn}
+                >
+                  Update
+                </button>
+              )}
+              {canDelete && (
+                <button
+                  onClick={() => handleDelete(short._id)}
+                  className={styles.deleteBtn}
+                >
+                  Delete
+                </button>
+              )}
             </div>
           </div>
         ))}

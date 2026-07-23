@@ -95,7 +95,12 @@ const slugifyRole = (value: string) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "") || "manager";
 
-export default function ListOfAdmin() {
+type ListOfAdminProps = {
+  canEdit?: boolean;
+  canDelete?: boolean;
+};
+
+export default function ListOfAdmin({ canEdit = true, canDelete = true }: ListOfAdminProps) {
   const [admins, setAdmins] = useState<Admin[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -581,20 +586,24 @@ new Date(a.lastModifiedAt)
 
                   {/* ✅ ICON ACTIONS */}
                   <td className={styles.actions}>
-                    <button
-                      className={styles.iconBtn}
-                      title="Edit"
-                      onClick={() => handleEdit(admin)}
-                    >
-                      ✏️
-                    </button>
-                    <button
-                      className={styles.iconBtn}
-                      title="Delete"
-                      onClick={() => handleDelete(admin._id)}
-                    >
-                      🗑
-                    </button>
+                    {canEdit && (
+                      <button
+                        className={styles.iconBtn}
+                        title="Edit"
+                        onClick={() => handleEdit(admin)}
+                      >
+                        ✏️
+                      </button>
+                    )}
+                    {canDelete && (
+                      <button
+                        className={styles.iconBtn}
+                        title="Delete"
+                        onClick={() => handleDelete(admin._id)}
+                      >
+                        🗑
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}

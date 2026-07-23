@@ -79,7 +79,15 @@ const getServiceCategoryValues = (value?: ServiceCategoryValue): string[] => {
   return [value._id, value.id, value.name].filter(Boolean) as string[];
 };
 
-const ListofTreatementOffer = () => {
+type ListofTreatementOfferProps = {
+  canEdit?: boolean;
+  canDelete?: boolean;
+};
+
+const ListofTreatementOffer = ({
+  canEdit = true,
+  canDelete = true,
+}: ListofTreatementOfferProps) => {
   const [offers, setOffers] = useState<Offer[]>([]);
   const [categories, setCategories] = useState<ServiceCategoryOption[]>([]);
   const [treatments, setTreatments] = useState<TreatmentPlanOption[]>([]);
@@ -521,15 +529,19 @@ const ListofTreatementOffer = () => {
               </p>
             </div>
             <div className={styles.buttons}>
-              <button
-                onClick={() => handleUpdateClick(offer._id)}
-                className={styles.updateBtn}
-              >
-                Update
-              </button>
-              <button onClick={() => handleDelete(offer._id)} className={styles.deleteBtn}>
-                Delete
-              </button>
+              {canEdit && (
+                <button
+                  onClick={() => handleUpdateClick(offer._id)}
+                  className={styles.updateBtn}
+                >
+                  Update
+                </button>
+              )}
+              {canDelete && (
+                <button onClick={() => handleDelete(offer._id)} className={styles.deleteBtn}>
+                  Delete
+                </button>
+              )}
             </div>
           </div>
         ))}

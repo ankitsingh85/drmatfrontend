@@ -44,7 +44,12 @@ type Clinic = {
   approvedAt?: string;
 };
 
-function ListOfClinic() {
+type ListOfClinicProps = {
+  canEdit?: boolean;
+  canDelete?: boolean;
+};
+
+function ListOfClinic({ canEdit = true, canDelete = true }: ListOfClinicProps) {
   const [clinics, setClinics] = useState<Clinic[]>([]);
   const [categories, setCategories] = useState<ClinicCategory[]>([]);
   const [search, setSearch] = useState("");
@@ -564,7 +569,7 @@ function ListOfClinic() {
                   </td>
                   <td>
                     <div className={styles.actions}>
-                      {(clinic.approvalStatus || "pending") !== "approved" && (
+                      {canEdit && (clinic.approvalStatus || "pending") !== "approved" && (
                         <button
                           className={styles.approveBtn}
                           onClick={() => handleApprove(clinic)}
@@ -572,7 +577,7 @@ function ListOfClinic() {
                           Approve
                         </button>
                       )}
-                      {(clinic.approvalStatus || "pending") !== "rejected" && (
+                      {canEdit && (clinic.approvalStatus || "pending") !== "rejected" && (
                         <button
                           className={styles.rejectBtn}
                           onClick={() => handleReject(clinic)}
@@ -580,18 +585,22 @@ function ListOfClinic() {
                           Reject
                         </button>
                       )}
-                      <button
-                        className={styles.editBtn}
-                        onClick={() => handleEdit(clinic)}
-                      >
-                        ✏️
-                      </button>
-                      <button
-                        className={styles.deleteBtn}
-                        onClick={() => handleDelete(clinic._id)}
-                      >
-                        🗑
-                      </button>
+                      {canEdit && (
+                        <button
+                          className={styles.editBtn}
+                          onClick={() => handleEdit(clinic)}
+                        >
+                          ✏️
+                        </button>
+                      )}
+                      {canDelete && (
+                        <button
+                          className={styles.deleteBtn}
+                          onClick={() => handleDelete(clinic._id)}
+                        >
+                          🗑
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

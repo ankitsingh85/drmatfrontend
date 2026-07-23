@@ -25,7 +25,15 @@ interface Product {
 
 const MAX_TOP_PRODUCTS = 12;
 
-const ListOfTopProduct: React.FC = () => {
+type ListOfTopProductProps = {
+  canEdit?: boolean;
+  canDelete?: boolean;
+};
+
+const ListOfTopProduct: React.FC<ListOfTopProductProps> = ({
+  canEdit = true,
+  canDelete = true,
+}) => {
   const [topProducts, setTopProducts] = useState<(Product | null)[]>(
     Array(MAX_TOP_PRODUCTS).fill(null)
   );
@@ -90,7 +98,7 @@ const ListOfTopProduct: React.FC = () => {
 
   /* ================= DRAG ================= */
   const handleDragEnd = (result: DropResult) => {
-    if (!result.destination) return;
+    if (!canEdit || !result.destination) return;
 
     const items = Array.from(topProducts);
     const [moved] = items.splice(result.source.index, 1);
@@ -122,7 +130,7 @@ const ListOfTopProduct: React.FC = () => {
                       className={`${styles.productCard} ${
                         !product ? styles.emptyCard : ""
                       }`}
-                      onClick={() => !product && setShowModal(true)}
+                      onClick={() => canEdit && !product && setShowModal(true)}
                     >
                       {product ? (
                         <>
@@ -147,15 +155,17 @@ const ListOfTopProduct: React.FC = () => {
                             ₹{product.discountedPrice || product.mrpPrice}
                           </p>
 
-                          <button
-                            className={styles.deleteButton}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteProduct(idx);
-                            }}
-                          >
-                            Remove
-                          </button>
+                          {canDelete && (
+                            <button
+                              className={styles.deleteButton}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteProduct(idx);
+                              }}
+                            >
+                              Remove
+                            </button>
+                          )}
                         </>
                       ) : (
                         <p>Empty Slot</p>

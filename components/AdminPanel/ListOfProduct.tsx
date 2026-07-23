@@ -47,7 +47,12 @@ packagingType:string;
   createdAt: string;
 }
 
-const ListOfProduct: React.FC = () => {
+type ListOfProductProps = {
+  canEdit?: boolean;
+  canDelete?: boolean;
+};
+
+const ListOfProduct: React.FC<ListOfProductProps> = ({ canEdit = true, canDelete = true }) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [search, setSearch] = useState("");
@@ -469,21 +474,23 @@ onClick={() => setViewProduct(p)}
 </button>
 
 
+{canEdit && (
 <button
 className={styles.edit}
 onClick={() => handleEdit(p)}
 >
 ✏️
 </button>
+)}
 
-
+{canDelete && (
 <button
 className={styles.delete}
 onClick={() => handleDelete(p._id)}
 >
 🗑
 </button>
-
+)}
 
 </td>
 

@@ -483,6 +483,18 @@
   font-size: 0.84rem;
 }
 
+.paymentErrorText {
+  margin: 12px 0 0;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(220, 38, 38, 0.25);
+  background: rgba(254, 226, 226, 0.6);
+  color: #b91c1c;
+  text-align: center;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
 .successShell {
   position: relative;
   z-index: 1;

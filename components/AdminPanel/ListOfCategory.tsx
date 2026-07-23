@@ -15,7 +15,12 @@ interface Category {
 // ✅ Use environment variable for API base
 // const API_URL = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000/api";
 
-const ListOfCategory = () => {
+type ListOfCategoryProps = {
+  canEdit?: boolean;
+  canDelete?: boolean;
+};
+
+const ListOfCategory = ({ canEdit = true, canDelete = true }: ListOfCategoryProps) => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -300,15 +305,19 @@ const ListOfCategory = () => {
                 />
               </td>
               <td className={styles.actions}>
-                <button className={styles.editBtn} onClick={() => handleEdit(cat)}>
-                  ✏️
-                </button>
-                <button
-                  className={styles.deleteBtn}
-                  onClick={() => handleDelete(cat._id)}
-                >
-                  🗑
-                </button>
+                {canEdit && (
+                  <button className={styles.editBtn} onClick={() => handleEdit(cat)}>
+                    ✏️
+                  </button>
+                )}
+                {canDelete && (
+                  <button
+                    className={styles.deleteBtn}
+                    onClick={() => handleDelete(cat._id)}
+                  >
+                    🗑
+                  </button>
+                )}
               </td>
             </tr>
           ))}

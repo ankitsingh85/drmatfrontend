@@ -16,7 +16,12 @@ const notifyTrainingTypeChange = () => {
   window.dispatchEvent(new Event("admin-dashboard:create-success"));
 };
 
-const ListOfTrainingType = () => {
+type ListOfTrainingTypeProps = {
+  canEdit?: boolean;
+  canDelete?: boolean;
+};
+
+const ListOfTrainingType = ({ canEdit = true, canDelete = true }: ListOfTrainingTypeProps) => {
   const [trainingTypes, setTrainingTypes] = useState<TrainingType[]>([]);
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -306,15 +311,19 @@ const ListOfTrainingType = () => {
   </td>
 
   <td className={styles.actions}>
-                  <button className={styles.editBtn} onClick={() => handleEdit(item)}>
-                    Edit
-                  </button>
-                  <button
-                    className={styles.deleteBtn}
-                    onClick={() => handleDelete(item._id)}
-                  >
-                    Delete
-                  </button>
+                  {canEdit && (
+                    <button className={styles.editBtn} onClick={() => handleEdit(item)}>
+                      Edit
+                    </button>
+                  )}
+                  {canDelete && (
+                    <button
+                      className={styles.deleteBtn}
+                      onClick={() => handleDelete(item._id)}
+                    >
+                      Delete
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}

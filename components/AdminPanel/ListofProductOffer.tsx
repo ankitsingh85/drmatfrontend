@@ -82,7 +82,12 @@ const getCategoryValues = (value?: CategoryValue): string[] => {
   return [value._id, value.id, value.name].filter(Boolean) as string[];
 };
 
-const ListofProductOffer = () => {
+type ListofProductOfferProps = {
+  canEdit?: boolean;
+  canDelete?: boolean;
+};
+
+const ListofProductOffer = ({ canEdit = true, canDelete = true }: ListofProductOfferProps) => {
   const [offers, setOffers] = useState<Offer[]>([]);
   const [products, setProducts] = useState<ProductOption[]>([]);
   const [categories, setCategories] = useState<CategoryOption[]>([]);
@@ -565,15 +570,19 @@ const getCategoryLabel = (offer: Offer) => {
               </p>
             </div>
             <div className={styles.buttons}>
-              <button
-                onClick={() => handleUpdateClick(offer._id)}
-                className={styles.updateBtn}
-              >
-                Update
-              </button>
-              <button onClick={() => handleDelete(offer._id)} className={styles.deleteBtn}>
-                Delete
-              </button>
+              {canEdit && (
+                <button
+                  onClick={() => handleUpdateClick(offer._id)}
+                  className={styles.updateBtn}
+                >
+                  Update
+                </button>
+              )}
+              {canDelete && (
+                <button onClick={() => handleDelete(offer._id)} className={styles.deleteBtn}>
+                  Delete
+                </button>
+              )}
             </div>
           </div>
         ))}

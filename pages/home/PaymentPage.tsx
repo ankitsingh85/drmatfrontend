@@ -30,6 +30,7 @@ const PaymentPage: React.FC = () => {
   const [isHydrated, setIsHydrated] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [paymentError, setPaymentError] = useState("");
   const [checkoutItems, setCheckoutItems] = useState<CartItem[]>([]);
   const [checkoutLoaded, setCheckoutLoaded] = useState(false);
   const [clinicName, setClinicName] = useState("");
@@ -56,6 +57,13 @@ const PaymentPage: React.FC = () => {
   const isConsultationCheckout = flowMode === "consultation";
 
   useEffect(() => {
+    // router.query (and therefore flowMode/isConsultationCheckout) is empty
+    // until the router is ready on a fresh/hard navigation — e.g. right
+    // after login does a window.location.replace(...) back to this page.
+    // Reading sessionStorage before that resolves picks the wrong key and
+    // silently falls back to the real cart. Wait for isReady first.
+    if (!router.isReady) return;
+
     try {
       const key = isConsultationCheckout ? CONSULTATION_CHECKOUT_KEY : TREATMENT_CHECKOUT_KEY;
       const stored = sessionStorage.getItem(key);
@@ -69,7 +77,7 @@ const PaymentPage: React.FC = () => {
       setCheckoutLoaded(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isConsultationCheckout]);
+  }, [router.isReady, isConsultationCheckout]);
 
   const currentRole = isHydrated ? Cookies.get("role")?.toLowerCase() : null;
   const isClinicCheckout = flowMode === "clinic" || currentRole === "clinic";
@@ -83,6 +91,22 @@ const PaymentPage: React.FC = () => {
     (flowMode === "treatment" ||
       (checkoutLoaded && checkoutItems.length > 0 && cartItems.length === 0) ||
       (activeItems.length > 0 && hasTreatmentItems && !hasProductItems));
+
+  const needsLogin = isHydrated && !Cookies.get("token");
+  const loginNextPath = isClinicCheckout
+    ? "/home/PaymentPage?flow=clinic"
+    : isDoctorCheckout
+    ? "/home/PaymentPage?flow=doctor"
+    : isConsultationCheckout
+    ? "/home/PaymentPage?flow=consultation"
+    : isTreatmentCheckout
+    ? "/home/PaymentPage?flow=treatment"
+    : "/home/Address";
+  const loginHref = isClinicCheckout
+    ? `/cliniclogin?next=${encodeURIComponent(loginNextPath)}`
+    : isDoctorCheckout
+    ? `/doctorlogin?next=${encodeURIComponent(loginNextPath)}`
+    : `/Login?next=${encodeURIComponent(loginNextPath)}`;
 
   const subtotal = useMemo(
     () => activeItems.reduce((acc, item) => acc + item.price * item.quantity, 0),
@@ -161,13 +185,19 @@ const PaymentPage: React.FC = () => {
   }, [isDoctorCheckout, isHydrated, router.query.address, router.query.doctorId, router.query.doctorName]);
 
   const handlePayment = async () => {
+    if (!Cookies.get("token")) {
+      router.push(loginHref);
+      return;
+    }
+
     if (!orderAddressType || !orderAddressText) {
-      alert("Please go back and select a delivery address.");
+      setPaymentError("Please go back and select a delivery address.");
       return;
     }
 
     try {
       setLoading(true);
+      setPaymentError("");
       const snapshotItems = [...activeItems];
       const snapshotTotal = grandTotal;
       setPaymentSnapshot({
@@ -210,32 +240,27 @@ const PaymentPage: React.FC = () => {
         clearCart();
       }
       setPaymentSuccess(true);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Payment failed:", error);
-      alert("Something went wrong! Please try again.");
+      const message = String(error?.message || "");
+      if (message.toLowerCase().includes("log in")) {
+        router.push(loginHref);
+        return;
+      }
+      setPaymentError(
+        message === "Payment cancelled"
+          ? "Payment was cancelled."
+          : "Something went wrong while processing your payment. Please try again."
+      );
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (!Cookies.get("token")) {
-      const nextPath = isClinicCheckout
-        ? "/home/PaymentPage?flow=clinic"
-        : isDoctorCheckout
-        ? "/home/PaymentPage?flow=doctor"
-        : isConsultationCheckout
-        ? "/home/PaymentPage?flow=consultation"
-        : isTreatmentCheckout
-        ? "/home/PaymentPage?flow=treatment"
-        : "/home/Address";
-      router.replace(
-        isClinicCheckout
-          ? `/cliniclogin?next=${encodeURIComponent(nextPath)}`
-          : isDoctorCheckout
-          ? `/doctorlogin?next=${encodeURIComponent(nextPath)}`
-          : `/Login?next=${encodeURIComponent(nextPath)}`
-      );
+    if (!isHydrated) return;
+    if (needsLogin) {
+      router.replace(loginHref);
       return;
     }
 
@@ -250,19 +275,54 @@ const PaymentPage: React.FC = () => {
       );
     }
   }, [
+    isHydrated,
+    needsLogin,
+    loginHref,
     activeItems.length,
     checkoutLoaded,
     cartHydrated,
-    isClinicCheckout,
-    isDoctorCheckout,
     isConsultationCheckout,
     isTreatmentCheckout,
     paymentSuccess,
     router,
   ]);
 
-  if (!checkoutLoaded || !cartHydrated) {
+  if (!isHydrated || !checkoutLoaded || !cartHydrated) {
     return <FullPageLoader />;
+  }
+
+  if (needsLogin) {
+    return (
+      <div className={styles.wrapper}>
+        <Topbar />
+        <div className={styles.successBackdrop} />
+        <div className={styles.successShell}>
+          <div className={styles.paymentSuccess}>
+            <div className={styles.successIcon}>
+              <FaShieldAlt />
+            </div>
+            <p className={styles.successPill}>Login required</p>
+            <h2>Please log in to continue</h2>
+            <p className={styles.successText}>
+              {isConsultationCheckout
+                ? "You need to be logged in to book and pay for a video consultation."
+                : isTreatmentCheckout
+                ? "You need to be logged in to book and pay for this treatment."
+                : "You need to be logged in to complete this checkout."}
+            </p>
+            <div className={styles.successActions}>
+              <button
+                type="button"
+                className={styles.primaryAction}
+                onClick={() => router.push(loginHref)}
+              >
+                Log in to continue
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (paymentSuccess) {
@@ -619,6 +679,8 @@ const PaymentPage: React.FC = () => {
           >
             {loading ? "Processing..." : `Pay ₹${grandTotal}`}
           </button>
+
+          {paymentError && <p className={styles.paymentErrorText}>{paymentError}</p>}
 
           <p className={styles.checkoutNote}>
             Secure payment, fast confirmation, and no extra checkout steps.

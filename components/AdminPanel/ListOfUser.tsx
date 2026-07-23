@@ -62,7 +62,12 @@ type UserDetailTab =
   | "medical_records"
   | "payment_methods";
 
-export default function ListOfUser() {
+type ListOfUserProps = {
+  canEdit?: boolean;
+  canDelete?: boolean;
+};
+
+export default function ListOfUser({ canEdit = true, canDelete = true }: ListOfUserProps) {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -668,15 +673,19 @@ export default function ListOfUser() {
                   >
                     <FiEye />
                   </button>
-                  <button className={styles.actionBtn} onClick={() => handleEdit(u)}>
-                    ✏️
-                  </button>
-                  <button
-                    className={styles.actionBtn}
-                    onClick={() => handleDelete(u._id)}
-                  >
-                    🗑
-                  </button>
+                  {canEdit && (
+                    <button className={styles.actionBtn} onClick={() => handleEdit(u)}>
+                      ✏️
+                    </button>
+                  )}
+                  {canDelete && (
+                    <button
+                      className={styles.actionBtn}
+                      onClick={() => handleDelete(u._id)}
+                    >
+                      🗑
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}
