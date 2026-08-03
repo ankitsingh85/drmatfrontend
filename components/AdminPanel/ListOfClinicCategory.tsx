@@ -132,6 +132,7 @@ const ListOfClinicCategory = ({ canEdit = true, canDelete = true }: ListOfClinic
       setExistingImageUrl("");
     } catch (error) {
       console.error("Update failed:", error);
+      console.log("");
       setError("Unexpected error occurred");
     }
   };
