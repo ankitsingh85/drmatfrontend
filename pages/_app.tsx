@@ -8,6 +8,8 @@ import { CartProvider } from "@/context/CartContext";
 import { UserProvider } from "@/context/UserContext";
 import { OrderProvider } from "@/context/OrderContext";
 import { TopbarProfileProvider } from "@/context/TopbarProfileContext";
+import { ToastProvider } from "@/context/ToastContext";
+import { ConfirmProvider } from "@/context/ConfirmContext";
 
 // Global Loader
 import { LoaderProvider } from "@/components/global/LoderProvider";
@@ -28,29 +30,33 @@ export default function App({ Component, pageProps }: AppProps) {
   }, []);
 
   return (
-    <UserProvider>
-      <TopbarProfileProvider>
-        <CartProvider>
-          <OrderProvider>
-            <LoaderProvider>
-              <Component {...pageProps} />
-              <CartToast />
+    <ToastProvider>
+      <ConfirmProvider>
+        <UserProvider>
+          <TopbarProfileProvider>
+            <CartProvider>
+              <OrderProvider>
+                <LoaderProvider>
+                  <Component {...pageProps} />
+                  <CartToast />
 
-            {/* Optional cursor */}
-            {/* {isDesktop && (
-              <AnimatedCursor
-                innerSize={12}
-                outerSize={20}
-                color="79, 70, 229"
-                outerAlpha={0.3}
-                innerScale={0.7}
-                outerScale={2}
-              />
-            )} */}
-            </LoaderProvider>
-          </OrderProvider>
-        </CartProvider>
-      </TopbarProfileProvider>
-    </UserProvider>
+                {/* Optional cursor */}
+                {/* {isDesktop && (
+                  <AnimatedCursor
+                    innerSize={12}
+                    outerSize={20}
+                    color="79, 70, 229"
+                    outerAlpha={0.3}
+                    innerScale={0.7}
+                    outerScale={2}
+                  />
+                )} */}
+                </LoaderProvider>
+              </OrderProvider>
+            </CartProvider>
+          </TopbarProfileProvider>
+        </UserProvider>
+      </ConfirmProvider>
+    </ToastProvider>
   );
 }

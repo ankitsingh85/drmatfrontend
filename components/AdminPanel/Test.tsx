@@ -4,6 +4,8 @@ import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import styles from "@/styles/clinicdashboard/test.module.css";
 import { API_URL } from "@/config/api";
+import { useToast } from "@/context/ToastContext";
+import { useConfirm } from "@/context/ConfirmContext";
 
 interface Option {
   text: string;
@@ -24,6 +26,8 @@ const categories: ("Hair" | "Skin")[] = ["Hair", "Skin"];
 // const API_URL = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000/api";
 
 const Test: React.FC = () => {
+  const toast = useToast();
+  const confirmDialog = useConfirm();
   const [questions, setQuestions] = useState<Question[]>([]);
   const [activeCategory, setActiveCategory] = useState<"Hair" | "Skin">("Hair");
   const [showModal, setShowModal] = useState(false);
@@ -73,8 +77,8 @@ const Test: React.FC = () => {
   };
 
   const saveQuestion = async () => {
-    if (!newQuestion.trim()) return alert("Enter a question");
-    if (options.some((o) => !o.text.trim())) return alert("Fill all options");
+    if (!newQuestion.trim()) return toast.error("Enter a question");
+    if (options.some((o) => !o.text.trim())) return toast.error("Fill all options");
 
     const payload = { category: activeCategory, question: newQuestion, options, type: questionType };
 
@@ -89,12 +93,12 @@ const Test: React.FC = () => {
       closeModal();
     } catch (err) {
       console.error("Failed to save question:", err);
-      alert("Failed to save question");
+      toast.error("Failed to save question");
     }
   };
 
   const deleteQuestion = async (id: string) => {
-    if (!confirm("Delete this question?")) return;
+    if (!(await confirmDialog("Delete this question?", { danger: true }))) return;
     try {
       await axios.delete(`${API_URL}/quiz/${id}`);
       setQuestions((prev) => prev.filter((q) => q._id !== id));

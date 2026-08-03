@@ -127,7 +127,7 @@ export default function ClinicDashboard() {
 
     if (!token || role !== "clinic") {
       setCheckingAuth(false);
-      router.replace("/cliniclogin");
+      router.replace("/businesslogin");
       return;
     }
 
@@ -136,7 +136,7 @@ export default function ClinicDashboard() {
       if (decoded.exp * 1000 < Date.now() || decoded.role?.toLowerCase() !== "clinic") {
         Cookies.remove("token");
         Cookies.remove("role");
-        router.replace("/cliniclogin");
+        router.replace("/businesslogin");
         return;
       }
 
@@ -145,7 +145,7 @@ export default function ClinicDashboard() {
     } catch {
       Cookies.remove("token");
       Cookies.remove("role");
-      router.replace("/cliniclogin");
+      router.replace("/businesslogin");
       setCheckingAuth(false);
     }
   }, [router]);
@@ -283,7 +283,7 @@ export default function ClinicDashboard() {
     localStorage.removeItem("clinicId");
     localStorage.removeItem("profileImage");
     window.dispatchEvent(new CustomEvent("user-logged-out"));
-    router.replace("/cliniclogin");
+    router.replace("/businesslogin");
   };
 
   const menuItems = useMemo(

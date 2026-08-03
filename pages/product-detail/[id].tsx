@@ -13,6 +13,7 @@ import { API_URL } from "@/config/api";
 import FullPageLoader from "@/components/common/FullPageLoader";
 import { resolveMediaUrl } from "@/lib/media";
 import { useCart } from "@/context/CartContext";
+import { useToast } from "@/context/ToastContext";
 
 interface Review {
   _id: string;
@@ -36,6 +37,7 @@ interface Product {
 }
 
 export default function ProductDetail() {
+  const toast = useToast();
   const router = useRouter();
   const { id } = router.query;
   const resolvedId = Array.isArray(id) ? id[0] : id;
@@ -76,7 +78,7 @@ export default function ProductDetail() {
 
   const handleSubmitReview = async () => {
     if (!rating || !comment.trim()) {
-      alert("Please provide rating and comment");
+      toast.error("Please provide rating and comment");
       return;
     }
 
@@ -95,7 +97,7 @@ export default function ProductDetail() {
       setRating(0);
       setComment("");
     } catch (err) {
-      alert("Failed to submit review");
+      toast.error("Failed to submit review");
     } finally {
       setSubmitting(false);
     }

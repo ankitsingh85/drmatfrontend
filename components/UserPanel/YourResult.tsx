@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import Cookies from "js-cookie";
 import { useRouter } from "next/router";
+import { useToast } from "@/context/ToastContext";
 import {
   FiClipboard,
   FiFileText,
@@ -132,6 +133,7 @@ const slugify = (value: string) =>
 const formatMoney = (value?: number) => `₹${Number(value || 0).toLocaleString("en-IN")}`;
 
 export default function YourResult({ userId, userName, initialTab }: UserResultProps) {
+  const toast = useToast();
   const router = useRouter();
   const { addToCart, cartItems, toggleWishlist, wishlistItems } = useCart();
   const [activeTab, setActiveTab] = useState<TabKey>(initialTab || "gallery");
@@ -318,7 +320,7 @@ export default function YourResult({ userId, userName, initialTab }: UserResultP
     if (!userId) return;
 
     if (!galleryForm.beforeImage && !galleryForm.afterImage) {
-      alert("Please choose at least one image");
+      toast.error("Please choose at least one image");
       return;
     }
 
@@ -340,9 +342,9 @@ export default function YourResult({ userId, userName, initialTab }: UserResultP
 
       setGalleryItems(Array.isArray(data.resultGallery) ? data.resultGallery : []);
       setGalleryForm(emptyGalleryForm);
-      alert("Gallery item uploaded successfully");
+      toast.success("Gallery item uploaded successfully");
     } catch (err: any) {
-      alert(err.message || "Failed to upload gallery item");
+      toast.error(err.message || "Failed to upload gallery item");
     } finally {
       setSavingGallery(false);
     }
@@ -367,9 +369,9 @@ export default function YourResult({ userId, userName, initialTab }: UserResultP
 
       setPrescriptions(Array.isArray(data.prescriptions) ? data.prescriptions : []);
       setPrescriptionFile(null);
-      alert("Prescription uploaded successfully");
+      toast.success("Prescription uploaded successfully");
     } catch (err: any) {
-      alert(err.message || "Failed to upload prescription");
+      toast.error(err.message || "Failed to upload prescription");
     } finally {
       setSavingPrescription(false);
     }
@@ -394,9 +396,9 @@ export default function YourResult({ userId, userName, initialTab }: UserResultP
 
       setTestReports(Array.isArray(data.testReports) ? data.testReports : []);
       setTestReportFile(null);
-      alert("Test report uploaded successfully");
+      toast.success("Test report uploaded successfully");
     } catch (err: any) {
-      alert(err.message || "Failed to upload test report");
+      toast.error(err.message || "Failed to upload test report");
     } finally {
       setSavingTestReport(false);
     }
@@ -414,7 +416,7 @@ export default function YourResult({ userId, userName, initialTab }: UserResultP
       if (!res.ok) throw new Error(data.message || "Failed to delete gallery item");
       setGalleryItems(Array.isArray(data.resultGallery) ? data.resultGallery : []);
     } catch (err: any) {
-      alert(err.message || "Failed to delete gallery item");
+      toast.error(err.message || "Failed to delete gallery item");
     }
   };
 
@@ -429,7 +431,7 @@ export default function YourResult({ userId, userName, initialTab }: UserResultP
       if (!res.ok) throw new Error(data.message || "Failed to delete prescription");
       setPrescriptions(Array.isArray(data.prescriptions) ? data.prescriptions : []);
     } catch (err: any) {
-      alert(err.message || "Failed to delete prescription");
+      toast.error(err.message || "Failed to delete prescription");
     }
   };
 
@@ -444,7 +446,7 @@ export default function YourResult({ userId, userName, initialTab }: UserResultP
       if (!res.ok) throw new Error(data.message || "Failed to delete test report");
       setTestReports(Array.isArray(data.testReports) ? data.testReports : []);
     } catch (err: any) {
-      alert(err.message || "Failed to delete test report");
+      toast.error(err.message || "Failed to delete test report");
     }
   };
 

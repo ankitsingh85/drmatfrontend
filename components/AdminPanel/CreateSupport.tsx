@@ -2,9 +2,11 @@
 
 import React, { useState } from "react";
 import styles from "@/styles/Dashboard/createb2bproduct.module.css";
+import { useToast } from "@/context/ToastContext";
 
 
 export default function CreateSupport() {
+  const toast = useToast();
   const [form, setForm] = useState({
     issueType: "",
     issueDescription: "",
@@ -31,7 +33,7 @@ export default function CreateSupport() {
     e.preventDefault();
 
     console.log("✅ SUPPORT REQUEST PAYLOAD", form);
-    alert("Support request submitted successfully (check console)");
+    toast.success("Support request submitted successfully (check console)");
   };
 
   return (

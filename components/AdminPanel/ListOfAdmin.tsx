@@ -5,6 +5,9 @@ import React, { useEffect, useMemo, useState } from "react";
 import styles from "@/styles/Dashboard/listofadmin.module.css";
 import createStyles from "@/styles/Dashboard/adminpages.module.css";
 import FullPageLoader from "@/components/common/FullPageLoader";
+import { useToast } from "@/context/ToastContext";
+import { useConfirm } from "@/context/ConfirmContext";
+import TableActions from "@/components/AdminPanel/common/TableActions";
 
 type PermissionRow = {
   module: string;
@@ -101,6 +104,8 @@ type ListOfAdminProps = {
 };
 
 export default function ListOfAdmin({ canEdit = true, canDelete = true }: ListOfAdminProps) {
+  const toast = useToast();
+  const confirmDialog = useConfirm();
   const [admins, setAdmins] = useState<Admin[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -290,7 +295,7 @@ new Date(a.lastModifiedAt)
   const handleDownloadPDF = () => {
     const printable = window.open("", "_blank");
     if (!printable) {
-      alert("Unable to open print window. Please allow popups.");
+      toast.error("Unable to open print window. Please allow popups.");
       return;
     }
 
@@ -350,7 +355,7 @@ new Date(a.lastModifiedAt)
 
   /* ================= DELETE ================= */
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this admin?")) return;
+    if (!(await confirmDialog("Are you sure you want to delete this admin?", { danger: true }))) return;
     await fetch(`${API_URL}/admins/${id}`, { method: "DELETE" });
     fetchAdmins();
   };
@@ -456,7 +461,7 @@ new Date(a.lastModifiedAt)
     setEditForm({});
     setEditPermissions([]);
     fetchAdmins();
-    alert("✅ Admin updated successfully");
+    toast.success("Admin updated successfully");
   };
 
   if (loading) {
@@ -586,24 +591,12 @@ new Date(a.lastModifiedAt)
 
                   {/* ✅ ICON ACTIONS */}
                   <td className={styles.actions}>
-                    {canEdit && (
-                      <button
-                        className={styles.iconBtn}
-                        title="Edit"
-                        onClick={() => handleEdit(admin)}
-                      >
-                        ✏️
-                      </button>
-                    )}
-                    {canDelete && (
-                      <button
-                        className={styles.iconBtn}
-                        title="Delete"
-                        onClick={() => handleDelete(admin._id)}
-                      >
-                        🗑
-                      </button>
-                    )}
+                    <TableActions
+                      onEdit={() => handleEdit(admin)}
+                      onDelete={() => handleDelete(admin._id)}
+                      canEdit={canEdit}
+                      canDelete={canDelete}
+                    />
                   </td>
                 </tr>
               ))}

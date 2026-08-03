@@ -2,8 +2,10 @@
 import { API_URL } from "@/config/api";
 import React, { useRef, useState } from "react";
 import styles from "@/styles/Dashboard/createcliniccategory.module.css";
+import { useToast } from "@/context/ToastContext";
 
 export default function CreateB2BCategory() {
+  const toast = useToast();
   const [name, setName] = useState("");
   const [image, setImage] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -57,7 +59,7 @@ export default function CreateB2BCategory() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Failed to create category");
 
-      alert("B2B Category created successfully");
+      toast.success("B2B Category created successfully");
       window.dispatchEvent(new Event("admin-dashboard:create-success"));
       setName("");
       setImage(null);

@@ -2,8 +2,10 @@
 import React, { useRef, useState } from "react";
 import styles from "@/styles/Dashboard/createcliniccategory.module.css";
 import { API_URL } from "@/config/api";
+import { useToast } from "@/context/ToastContext";
 
 const CreateClinicCategory = () => {
+  const toast = useToast();
   const [categoryName, setCategoryName] = useState("");
   const [categoryImage, setCategoryImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -60,7 +62,7 @@ const CreateClinicCategory = () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
 
-      alert("Clinic category created successfully");
+      toast.success("Clinic category created successfully");
       window.dispatchEvent(new Event("admin-dashboard:create-success"));
       setCategoryName("");
       setCategoryImage(null);

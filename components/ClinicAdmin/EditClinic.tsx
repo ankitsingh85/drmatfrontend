@@ -12,6 +12,7 @@ import {
 import { IoClose } from "react-icons/io5";
 import styles from "@/styles/clinicdashboard/editprofile.module.css";
 import { API_URL } from "@/config/api";
+import { useToast } from "@/context/ToastContext";
 
 type Doctor = {
   name: string;
@@ -296,6 +297,7 @@ const storeClinicAddresses = (clinicId?: string, addresses?: ClinicAddress[], se
 const initialClinicRecord = (): ClinicRecord | null => null;
 
 export default function EditClinic({ clinicId, clinic, onSaved }: EditClinicProps) {
+  const toast = useToast();
   const [categories, setCategories] = useState<ClinicCategory[]>([]);
   const [form, setForm] = useState(emptyForm);
   const [doctors, setDoctors] = useState<Doctor[]>([emptyDoctor]);
@@ -360,11 +362,11 @@ export default function EditClinic({ clinicId, clinic, onSaved }: EditClinicProp
       !addr.district?.trim() ||
       !addr.state?.trim()
     ) {
-      alert("Please fill all address fields.");
+      toast.error("Please fill all address fields.");
       return false;
     }
     if (!/^\d{6}$/.test(addr.pincode || "")) {
-      alert("Please enter a valid 6-digit pincode.");
+      toast.error("Please enter a valid 6-digit pincode.");
       return false;
     }
     return true;

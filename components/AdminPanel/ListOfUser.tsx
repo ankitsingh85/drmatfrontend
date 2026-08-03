@@ -7,16 +7,18 @@ import styles from "@/styles/Dashboard/listofuser.module.css";
 import editStyles from "@/styles/Dashboard/createUser.module.css";
 import FullPageLoader from "@/components/common/FullPageLoader";
 import { resolveMediaUrl } from "@/lib/media";
+import { useToast } from "@/context/ToastContext";
+import { useConfirm } from "@/context/ConfirmContext";
 import {
   FiActivity,
   FiCalendar,
   FiCreditCard,
   FiEdit3,
-  FiEye,
   FiFileText,
   FiHome,
   FiUser,
 } from "react-icons/fi";
+import TableActions from "@/components/AdminPanel/common/TableActions";
 
 interface User {
   _id: string;
@@ -68,6 +70,8 @@ type ListOfUserProps = {
 };
 
 export default function ListOfUser({ canEdit = true, canDelete = true }: ListOfUserProps) {
+  const toast = useToast();
+  const confirmDialog = useConfirm();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -175,7 +179,7 @@ export default function ListOfUser({ canEdit = true, canDelete = true }: ListOfU
   const handleDownloadPDF = () => {
     const printable = window.open("", "_blank");
     if (!printable) {
-      alert("Unable to open print window. Please allow popups.");
+      toast.error("Unable to open print window. Please allow popups.");
       return;
     }
 
@@ -234,7 +238,7 @@ export default function ListOfUser({ canEdit = true, canDelete = true }: ListOfU
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Delete this user?")) return;
+    if (!(await confirmDialog("Delete this user?", { danger: true }))) return;
     await fetch(`${API_URL}/users/${id}`, { method: "DELETE" });
     fetchUsers();
   };
@@ -278,7 +282,7 @@ export default function ListOfUser({ canEdit = true, canDelete = true }: ListOfU
       body: JSON.stringify(payload),
     });
 
-    alert("User updated successfully");
+    toast.success("User updated successfully");
     setIsEditing(false);
     setEditingUser(null);
     setEditForm({});
@@ -665,27 +669,13 @@ export default function ListOfUser({ canEdit = true, canDelete = true }: ListOfU
                 <td>{u.contactNo || "-"}</td>
                 <td>{new Date(u.createdAt).toLocaleString()}</td>
                 <td className={styles.actions}>
-                  <button
-                    className={styles.actionBtn}
-                    onClick={() => handleView(u)}
-                    title="View user details"
-                    aria-label={`View ${u.name}`}
-                  >
-                    <FiEye />
-                  </button>
-                  {canEdit && (
-                    <button className={styles.actionBtn} onClick={() => handleEdit(u)}>
-                      ✏️
-                    </button>
-                  )}
-                  {canDelete && (
-                    <button
-                      className={styles.actionBtn}
-                      onClick={() => handleDelete(u._id)}
-                    >
-                      🗑
-                    </button>
-                  )}
+                  <TableActions
+                    onView={() => handleView(u)}
+                    onEdit={() => handleEdit(u)}
+                    onDelete={() => handleDelete(u._id)}
+                    canEdit={canEdit}
+                    canDelete={canDelete}
+                  />
                 </td>
               </tr>
             ))}

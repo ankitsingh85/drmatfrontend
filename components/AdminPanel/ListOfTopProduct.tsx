@@ -3,6 +3,7 @@
 import { API_URL } from "@/config/api";
 import React, { useEffect, useState } from "react";
 import { resolveMediaUrl } from "@/lib/media";
+import { useToast } from "@/context/ToastContext";
 
 // @ts-ignore
 import {
@@ -34,6 +35,7 @@ const ListOfTopProduct: React.FC<ListOfTopProductProps> = ({
   canEdit = true,
   canDelete = true,
 }) => {
+  const toast = useToast();
   const [topProducts, setTopProducts] = useState<(Product | null)[]>(
     Array(MAX_TOP_PRODUCTS).fill(null)
   );
@@ -73,7 +75,7 @@ const ListOfTopProduct: React.FC<ListOfTopProductProps> = ({
   const handleAddProduct = (product: Product) => {
     const firstEmpty = topProducts.findIndex((p) => p === null);
     if (firstEmpty === -1) {
-      alert(`Only ${MAX_TOP_PRODUCTS} products allowed`);
+      toast.error(`Only ${MAX_TOP_PRODUCTS} products allowed`);
       return;
     }
 

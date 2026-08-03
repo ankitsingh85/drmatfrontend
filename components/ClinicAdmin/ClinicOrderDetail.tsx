@@ -10,6 +10,7 @@ import styles from "@/styles/userpanel/orderdetail.module.css";
 import { API_URL } from "@/config/api";
 import FullPageLoader from "@/components/common/FullPageLoader";
 import { resolveMediaUrl } from "@/lib/media";
+import { useToast } from "@/context/ToastContext";
 
 interface OrderProduct {
   id: string;
@@ -203,6 +204,7 @@ const categoryChipStyle = (category: string): React.CSSProperties => {
 
 export default function ClinicOrderDetail({ orderKey }: ClinicOrderDetailProps) {
   const router = useRouter();
+  const toast = useToast();
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [clinicId, setClinicId] = useState("");
   const [clinicProfile, setClinicProfile] = useState<ClinicRef | null>(null);
@@ -218,7 +220,7 @@ export default function ClinicOrderDetail({ orderKey }: ClinicOrderDetailProps) 
 
     if (!token || role !== "clinic") {
       setCheckingAuth(false);
-      router.replace("/cliniclogin");
+      router.replace("/businesslogin");
       return;
     }
 
@@ -308,7 +310,7 @@ export default function ClinicOrderDetail({ orderKey }: ClinicOrderDetailProps) 
 
     const printable = window.open("", "_blank", "width=900,height=700");
     if (!printable) {
-      alert("Unable to open print window. Please allow popups.");
+      toast.error("Unable to open print window. Please allow popups.");
       return;
     }
 

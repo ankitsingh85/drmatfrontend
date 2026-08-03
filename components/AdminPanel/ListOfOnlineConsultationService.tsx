@@ -5,6 +5,9 @@ import styles from "@/styles/Dashboard/listofcategory.module.css";
 import createStyles from "@/styles/Dashboard/createcategory.module.css";
 import { API_URL } from "@/config/api";
 import { resolveMediaUrl } from "@/lib/media";
+import { useToast } from "@/context/ToastContext";
+import { useConfirm } from "@/context/ConfirmContext";
+import TableActions from "@/components/AdminPanel/common/TableActions";
 
 type PopulatedDoctor = {
   _id: string;
@@ -44,6 +47,8 @@ const ListOfOnlineConsultationService = ({
   canEdit = true,
   canDelete = true,
 }: ListOfOnlineConsultationServiceProps) => {
+  const toast = useToast();
+  const confirmDialog = useConfirm();
   const [services, setServices] = useState<OnlineConsultationService[]>([]);
   const [allDoctors, setAllDoctors] = useState<PopulatedDoctor[]>([]);
   const [search, setSearch] = useState("");
@@ -108,7 +113,7 @@ const ListOfOnlineConsultationService = ({
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this service?")) return;
+    if (!(await confirmDialog("Are you sure you want to delete this service?", { danger: true }))) return;
 
     try {
       const res = await fetch(`${API_URL}/online-consultation-services/${id}`, {
@@ -117,7 +122,7 @@ const ListOfOnlineConsultationService = ({
       const data = await res.json();
 
       if (!res.ok) {
-        alert(data.message || "Failed to delete service");
+        toast.error(data.message || "Failed to delete service");
         return;
       }
 
@@ -437,19 +442,12 @@ const ListOfOnlineConsultationService = ({
                   </button>
                 </td>
                 <td>
-                  {canEdit && (
-                    <button className={styles.editBtn} onClick={() => handleEdit(service)}>
-                      Edit
-                    </button>
-                  )}
-                  {canDelete && (
-                    <button
-                      className={styles.deleteBtn}
-                      onClick={() => handleDelete(service._id)}
-                    >
-                      Delete
-                    </button>
-                  )}
+                  <TableActions
+                    onEdit={() => handleEdit(service)}
+                    onDelete={() => handleDelete(service._id)}
+                    canEdit={canEdit}
+                    canDelete={canDelete}
+                  />
                 </td>
               </tr>
             ))}

@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import styles from "@/styles/Dashboard/createproduct.module.css";
 import "react-quill/dist/quill.snow.css";
 import { API_URL } from "@/config/api";
+import { useToast } from "@/context/ToastContext";
 
 const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
 
@@ -19,6 +20,7 @@ interface Category {
   // process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000/api";
 
 export default function CreateProduct() {
+  const toast = useToast();
   /* ================= AUTO SKU ================= */
   // const [productSKU] = useState(`SKU-${Date.now().toString().slice(-6)}`);
   const [productSKU] = useState("Auto Generated");
@@ -172,7 +174,7 @@ packagingType: "",
       !form.category.length ||
       !form.discountedPrice.trim()
     ) {
-      alert("Please fill Product Name, Category and Discounted Price before creating the product.");
+      toast.error("Please fill Product Name, Category and Discounted Price before creating the product.");
       return;
     }
 
@@ -225,10 +227,10 @@ packagingType: form.packagingType,
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Failed to create product");
 
-      alert("Product saved successfully");
+      toast.success("Product saved successfully");
       window.dispatchEvent(new Event("admin-dashboard:create-success"));
     } catch (err: any) {
-      alert(err.message || "Failed to create product");
+      toast.error(err.message || "Failed to create product");
     }
   };
 

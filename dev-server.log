@@ -1,0 +1,7 @@
+
+> marketplace@0.1.0 dev
+> next dev
+
+- info Loaded env from E:\dermat\drmatfrontend\.env.local
+- [32mready[39m started server on [::]:3001, url: http://localhost:3001
+- [35mevent[39m compiled client and server successfully in 614 ms (18 modules)

@@ -3,6 +3,8 @@
 import React, { useEffect, useState } from "react";
 import Cookies from "js-cookie";
 import { jwtDecode } from "jwt-decode";
+import { useToast } from "@/context/ToastContext";
+import { useConfirm } from "@/context/ConfirmContext";
 import {
   FiClock,
   FiDownload,
@@ -187,6 +189,8 @@ const buildPdfBlob = (leads: LeadItem[], clinicId: string) => {
 };
 
 export default function Lead({ clinicId }: LeadProps) {
+  const toast = useToast();
+  const confirmDialog = useConfirm();
   const [leads, setLeads] = useState<LeadItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -257,7 +261,7 @@ export default function Lead({ clinicId }: LeadProps) {
   }, [clinicId]);
 
   const handleDeleteLead = async (leadId: string) => {
-    if (!window.confirm("Delete this lead?")) return;
+    if (!(await confirmDialog("Delete this lead?", { danger: true }))) return;
 
     setDeletingLeadId(leadId);
     try {
@@ -275,7 +279,7 @@ export default function Lead({ clinicId }: LeadProps) {
 
       setLeads((prev) => prev.filter((lead) => lead._id !== leadId));
     } catch (err: any) {
-      alert(err.message || "Failed to delete lead");
+      toast.error(err.message || "Failed to delete lead");
     } finally {
       setDeletingLeadId("");
     }

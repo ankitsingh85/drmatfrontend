@@ -47,7 +47,8 @@ const Index = () => {
   const router = useRouter();
   const [isHydrated, setIsHydrated] = useState(false);
   const currentRole = isHydrated ? Cookies.get("role")?.toLowerCase() : null;
-  const isBusinessMode = currentRole === "clinic" || currentRole === "doctor";
+  const isBusinessMode =
+    currentRole === "clinic" || currentRole === "doctor" || currentRole === "b2buser";
   const isClinicMode = currentRole === "clinic";
 
   // loader / prefetch state

@@ -4,6 +4,9 @@ import React, { useEffect, useMemo, useState } from "react";
 import { API_URL } from "@/config/api";
 import { resolveMediaUrl } from "@/lib/media";
 import styles from "@/styles/Dashboard/listofcliniccategory.module.css";
+import { useToast } from "@/context/ToastContext";
+import { useConfirm } from "@/context/ConfirmContext";
+import TableActions from "@/components/AdminPanel/common/TableActions";
 
 interface ClinicCategory {
   _id: string;
@@ -17,6 +20,8 @@ type ListOfClinicCategoryProps = {
 };
 
 const ListOfClinicCategory = ({ canEdit = true, canDelete = true }: ListOfClinicCategoryProps) => {
+  const toast = useToast();
+  const confirmDialog = useConfirm();
   const [categories, setCategories] = useState<ClinicCategory[]>([]);
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -43,7 +48,7 @@ const ListOfClinicCategory = ({ canEdit = true, canDelete = true }: ListOfClinic
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this clinic category?")) return;
+    if (!(await confirmDialog("Are you sure you want to delete this clinic category?", { danger: true }))) return;
 
     try {
       const res = await fetch(`${API_URL}/clinic-categories/${id}`, {
@@ -52,7 +57,7 @@ const ListOfClinicCategory = ({ canEdit = true, canDelete = true }: ListOfClinic
       const data = await res.json();
 
       if (!res.ok) {
-        alert(data.message || "Failed to delete clinic category");
+        toast.error(data.message || "Failed to delete clinic category");
         return;
       }
 
@@ -199,7 +204,7 @@ const ListOfClinicCategory = ({ canEdit = true, canDelete = true }: ListOfClinic
   const handleDownloadPDF = () => {
     const printable = window.open("", "_blank");
     if (!printable) {
-      alert("Unable to open print window. Please allow popups.");
+      toast.error("Unable to open print window. Please allow popups.");
       return;
     }
 
@@ -316,16 +321,12 @@ const ListOfClinicCategory = ({ canEdit = true, canDelete = true }: ListOfClinic
   </td>
 
   <td className={styles.actions}>
-                  {canEdit && (
-                    <button className={styles.editBtn} onClick={() => handleEdit(cat)}>
-                      ✏️
-                    </button>
-                  )}
-                  {canDelete && (
-                    <button className={styles.deleteBtn} onClick={() => handleDelete(cat._id)}>
-                      🗑
-                    </button>
-                  )}
+                  <TableActions
+                    onEdit={() => handleEdit(cat)}
+                    onDelete={() => handleDelete(cat._id)}
+                    canEdit={canEdit}
+                    canDelete={canDelete}
+                  />
                 </td>
               </tr>
             ))}

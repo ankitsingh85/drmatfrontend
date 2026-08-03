@@ -2,8 +2,10 @@
 
 import React, { useState } from "react";
 import styles from "@/styles/Dashboard/createpatient.module.css";
+import { useToast } from "@/context/ToastContext";
 
 export default function CreatePatient() {
+  const toast = useToast();
   /* ================= AUTO PATIENT ID ================= */
   const [patientId] = useState(`PAT-${Date.now().toString().slice(-6)}`);
 
@@ -58,7 +60,7 @@ export default function CreatePatient() {
     };
 
     console.log("✅ PATIENT PAYLOAD", payload);
-    alert("Patient created successfully (check console)");
+    toast.success("Patient created successfully (check console)");
   };
 
   /* ================= UI ================= */

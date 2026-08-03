@@ -102,11 +102,14 @@ const PaymentPage: React.FC = () => {
     : isTreatmentCheckout
     ? "/home/PaymentPage?flow=treatment"
     : "/home/Address";
-  const loginHref = isClinicCheckout
-    ? `/cliniclogin?next=${encodeURIComponent(loginNextPath)}`
-    : isDoctorCheckout
-    ? `/doctorlogin?next=${encodeURIComponent(loginNextPath)}`
-    : `/Login?next=${encodeURIComponent(loginNextPath)}`;
+  const loginHref =
+    isClinicCheckout || isDoctorCheckout
+      ? `/businesslogin?next=${encodeURIComponent(loginNextPath)}`
+      : `/Login?next=${encodeURIComponent(loginNextPath)}`;
+
+  const treatmentClinicItem = isTreatmentCheckout
+    ? activeItems.find((item) => item.itemType === "treatment" && item.clinicName)
+    : undefined;
 
   const subtotal = useMemo(
     () => activeItems.reduce((acc, item) => acc + item.price * item.quantity, 0),
@@ -128,7 +131,11 @@ const PaymentPage: React.FC = () => {
   const orderAddressText = isConsultationCheckout
     ? "Online consultation booking - no delivery address required"
     : isTreatmentCheckout
-    ? "Treatment booking - no delivery address required"
+    ? treatmentClinicItem
+      ? `Treatment booking at ${treatmentClinicItem.clinicName}${
+          treatmentClinicItem.clinicAddress ? `, ${treatmentClinicItem.clinicAddress}` : ""
+        }`
+      : "Treatment booking - no delivery address required"
     : isClinicCheckout
     ? clinicAddress || deliveryAddress
     : isDoctorCheckout
@@ -142,10 +149,18 @@ const PaymentPage: React.FC = () => {
     : isConsultationCheckout
     ? "Consultation booking"
     : isTreatmentCheckout
-    ? "Treatment booking"
+    ? treatmentClinicItem
+      ? "Visiting clinic"
+      : "Treatment booking"
     : deliveryType;
-  const displayAddressText = isTreatmentCheckout || isConsultationCheckout
+  const displayAddressText = isConsultationCheckout
     ? "No delivery address required"
+    : isTreatmentCheckout
+    ? treatmentClinicItem
+      ? `${treatmentClinicItem.clinicName}${
+          treatmentClinicItem.clinicAddress ? ` — ${treatmentClinicItem.clinicAddress}` : ""
+        }`
+      : "No delivery address required"
     : isClinicCheckout
     ? clinicAddress || deliveryAddress
     : isDoctorCheckout
@@ -229,6 +244,8 @@ const PaymentPage: React.FC = () => {
           ? { ownerType: "clinic", clinicId: clinicId || Cookies.get("clinicId") || "" }
           : isDoctorCheckout
           ? { ownerType: "doctor", doctorId: doctorId || Cookies.get("doctorId") || "" }
+          : currentRole === "b2buser"
+          ? { ownerType: "b2buser", b2bUserId: Cookies.get("b2bUserId") || "" }
           : { ownerType: "user" }
       );
 
@@ -592,7 +609,9 @@ const PaymentPage: React.FC = () => {
                   : isConsultationCheckout
                   ? "Consultation booking"
                   : isTreatmentCheckout
-                  ? "Treatment booking"
+                  ? treatmentClinicItem
+                    ? "Visiting clinic"
+                    : "Treatment booking"
                   : "Deliver to"}
               </p>
               <p className={styles.addressType}>
@@ -603,7 +622,7 @@ const PaymentPage: React.FC = () => {
                   : isConsultationCheckout
                   ? "No address required"
                   : isTreatmentCheckout
-                  ? "No address required"
+                  ? treatmentClinicItem?.clinicName || "No address required"
                   : deliveryType}
               </p>
               <p className={styles.addressText}>
@@ -614,7 +633,8 @@ const PaymentPage: React.FC = () => {
                   : isConsultationCheckout
                   ? "You are paying directly for the video consultation. No address selection is needed."
                   : isTreatmentCheckout
-                  ? "You are paying directly for the treatment plan. No address selection is needed."
+                  ? treatmentClinicItem?.clinicAddress ||
+                    "You are paying directly for the treatment plan. No address selection is needed."
                   : deliveryAddress}
               </p>
             </div>

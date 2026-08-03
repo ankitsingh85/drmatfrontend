@@ -1,25 +1,44 @@
 "use client";
 import React, { useEffect, useMemo, useState } from "react";
-import styles from "@/styles/Dashboard/listofcategory.module.css";
+import dynamic from "next/dynamic";
+import styles from "@/styles/Dashboard/listoftreatment.module.css";
 import { API_URL } from "@/config/api";
-import { FiEdit2, FiTrash2 } from "react-icons/fi";
-import editStyles from "@/styles/Dashboard/createUser.module.css";
+import editStyles from "@/styles/Dashboard/edittreatment.module.css";
+import { useToast } from "@/context/ToastContext";
+import { useConfirm } from "@/context/ConfirmContext";
+import TableActions from "@/components/AdminPanel/common/TableActions";
+import "react-quill/dist/quill.snow.css";
+
+const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
+
+interface ClinicRef {
+  _id: string;
+  clinicName: string;
+}
 
 interface Treatment {
   _id: string;
   treatmentName: string;
+  description?: string;
+  shortReelUrl?: string;
   serviceCategory?: string[];
   gender?: string;
   mrp?: number;
   offerPrice?: number;
+  pricePerSession?: number;
+  discountPercent?: number;
+  sessions?: string;
+  duration?: string;
+  validity?: string;
+  technologyUsed?: string;
+  promoCode?: string;
+  addToCart?: boolean;
   isActive?: boolean;
   createdAt?: string;
-  clinic?:
-    | {
-        _id: string;
-        clinicName: string;
-      }
-    | string;
+  clinic?: ClinicRef[];
+  treatmentImages?: string[];
+  beforeImages?: string[];
+  afterImages?: string[];
 }
 
 interface ServiceCategory {
@@ -29,11 +48,43 @@ interface ServiceCategory {
 
 interface TreatmentEditForm {
   treatmentName: string;
-  clinicId: string;
+  clinicIds: string[];
   serviceCategory: string[];
+  description: string;
+  shortReelUrl: string;
   mrp: string;
   offerPrice: string;
+  pricePerSession: string;
+  discountPercent: string;
+  sessions: string;
+  duration: string;
+  validity: string;
+  technologyUsed: string;
+  gender: "Unisex" | "Male" | "Female";
+  promoCode: string;
+  addToCart: boolean;
+  isActive: boolean;
 }
+
+const emptyEditForm: TreatmentEditForm = {
+  treatmentName: "",
+  clinicIds: [],
+  serviceCategory: [],
+  description: "",
+  shortReelUrl: "",
+  mrp: "",
+  offerPrice: "",
+  pricePerSession: "",
+  discountPercent: "",
+  sessions: "",
+  duration: "",
+  validity: "",
+  technologyUsed: "",
+  gender: "Unisex",
+  promoCode: "",
+  addToCart: true,
+  isActive: true,
+};
 
 type ListOfTreatmentProps = {
   canEdit?: boolean;
@@ -41,27 +92,29 @@ type ListOfTreatmentProps = {
 };
 
 const ListOfTreatment = ({ canEdit = true, canDelete = true }: ListOfTreatmentProps) => {
+  const toast = useToast();
+  const confirmDialog = useConfirm();
   const [treatments, setTreatments] = useState<Treatment[]>([]);
   const [serviceCategories, setServiceCategories] = useState<ServiceCategory[]>(
     []
   );
+  const [clinics, setClinics] = useState<ClinicRef[]>([]);
   const [search, setSearch] = useState("");
   const [filterClinic, setFilterClinic] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [editingTreatment, setEditingTreatment] = useState<Treatment | null>(null);
-  const [editForm, setEditForm] = useState<TreatmentEditForm>({
-    treatmentName: "",
-    clinicId: "",
-    serviceCategory: [],
-    mrp: "",
-    offerPrice: "",
-  });
+  const [editForm, setEditForm] = useState<TreatmentEditForm>(emptyEditForm);
+  const [editTreatmentImages, setEditTreatmentImages] = useState<File[]>([]);
+  const [editBeforeImages, setEditBeforeImages] = useState<File[]>([]);
+  const [editAfterImages, setEditAfterImages] = useState<File[]>([]);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
     fetchTreatments();
     fetchServiceCategories();
+    fetchClinics();
   }, []);
 
   const fetchTreatments = async () => {
@@ -80,6 +133,7 @@ const ListOfTreatment = ({ canEdit = true, canDelete = true }: ListOfTreatmentPr
               : treatment.serviceCategory
               ? [treatment.serviceCategory]
               : [],
+            clinic: Array.isArray(treatment.clinic) ? treatment.clinic : [],
           }))
         );
       } else {
@@ -109,33 +163,40 @@ const ListOfTreatment = ({ canEdit = true, canDelete = true }: ListOfTreatmentPr
     }
   };
 
-  const clinicOptions = useMemo(() => {
-    const map = new Map<string, string>();
-    treatments.forEach((treatment) => {
-      if (typeof treatment.clinic === "object" && treatment.clinic?._id) {
-        map.set(treatment.clinic._id, treatment.clinic.clinicName);
+  const fetchClinics = async () => {
+    try {
+      const res = await fetch(`${API_URL}/clinics`);
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setClinics(
+          data
+            .map((clinic: any) => ({
+              _id: String(clinic._id || "").trim(),
+              clinicName: String(clinic.clinicName || "").trim(),
+            }))
+            .filter((clinic: ClinicRef) => clinic._id && clinic.clinicName)
+        );
       }
-    });
-    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
-  }, [treatments]);
+    } catch (err) {
+      console.error("Failed to fetch clinics", err);
+    }
+  };
 
   const filteredTreatments = useMemo(() => {
     const query = search.trim().toLowerCase();
     return treatments.filter((treatment) => {
-      const clinicName =
-        typeof treatment.clinic === "object"
-          ? treatment.clinic?.clinicName || ""
-          : "";
+      const clinicNames = (treatment.clinic || [])
+        .map((c) => c.clinicName)
+        .join(" ");
       const categoryText = (treatment.serviceCategory || []).join(" ");
       const isQueryMatch =
         treatment.treatmentName.toLowerCase().includes(query) ||
-        clinicName.toLowerCase().includes(query) ||
+        clinicNames.toLowerCase().includes(query) ||
         categoryText.toLowerCase().includes(query);
 
       const isClinicMatch =
         filterClinic === "all" ||
-        (typeof treatment.clinic === "object" &&
-          treatment.clinic?._id === filterClinic);
+        (treatment.clinic || []).some((c) => c._id === filterClinic);
 
       return isQueryMatch && isClinicMatch;
     });
@@ -150,12 +211,8 @@ const ListOfTreatment = ({ canEdit = true, canDelete = true }: ListOfTreatmentPr
     setCurrentPage(1);
   }, [search, filterClinic, itemsPerPage]);
 
-  const stripHtml = (value?: string) =>
-    (value || "")
-      .replace(/<[^>]*>/g, " ")
-      .replace(/&nbsp;/gi, " ")
-      .replace(/\s+/g, " ")
-      .trim();
+  const clinicNamesFor = (treatment: Treatment) =>
+    (treatment.clinic || []).map((c) => c.clinicName).join(", ") || "-";
 
   const handleDownloadCSV = () => {
     const rows = [
@@ -170,9 +227,7 @@ const ListOfTreatment = ({ canEdit = true, canDelete = true }: ListOfTreatmentPr
       ],
       ...filteredTreatments.map((treatment) => [
         treatment.treatmentName || "",
-        typeof treatment.clinic === "object"
-          ? treatment.clinic?.clinicName || ""
-          : "",
+        clinicNamesFor(treatment),
         (treatment.serviceCategory || []).join(", "),
         treatment.gender || "",
         treatment.mrp ?? "",
@@ -203,7 +258,7 @@ const ListOfTreatment = ({ canEdit = true, canDelete = true }: ListOfTreatmentPr
   const handleDownloadPDF = () => {
     const printable = window.open("", "_blank");
     if (!printable) {
-      alert("Unable to open print window. Please allow popups.");
+      toast.error("Unable to open print window. Please allow popups.");
       return;
     }
 
@@ -219,11 +274,7 @@ const ListOfTreatment = ({ canEdit = true, canDelete = true }: ListOfTreatmentPr
       .map(
         (treatment) => `<tr>
           <td>${escapeHtml(treatment.treatmentName || "-")}</td>
-          <td>${escapeHtml(
-            typeof treatment.clinic === "object"
-              ? treatment.clinic?.clinicName || "-"
-              : "-"
-          )}</td>
+          <td>${escapeHtml(clinicNamesFor(treatment))}</td>
           <td>${escapeHtml(
             (treatment.serviceCategory || []).join(", ") || "-"
           )}</td>
@@ -276,7 +327,7 @@ const ListOfTreatment = ({ canEdit = true, canDelete = true }: ListOfTreatmentPr
   );
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this treatment?")) return;
+    if (!(await confirmDialog("Are you sure you want to delete this treatment?", { danger: true }))) return;
     try {
       const res = await fetch(`${API_URL}/treatment-plans/${id}`, {
         method: "DELETE",
@@ -322,6 +373,7 @@ const ListOfTreatment = ({ canEdit = true, canDelete = true }: ListOfTreatmentPr
                 serviceCategory: Array.isArray(data?.serviceCategory)
                   ? data.serviceCategory
                   : item.serviceCategory,
+                clinic: Array.isArray(data?.clinic) ? data.clinic : item.clinic,
               }
             : item
         )
@@ -339,22 +391,40 @@ const ListOfTreatment = ({ canEdit = true, canDelete = true }: ListOfTreatmentPr
   };
 
   const handleEdit = (treatment: Treatment) => {
-    const clinicId =
-      typeof treatment.clinic === "object"
-        ? treatment.clinic?._id || ""
-        : typeof treatment.clinic === "string"
-        ? treatment.clinic
-        : "";
-
     setEditingTreatment(treatment);
     setEditForm({
       treatmentName: treatment.treatmentName || "",
-      clinicId,
+      clinicIds: (treatment.clinic || []).map((c) => c._id),
       serviceCategory: treatment.serviceCategory || [],
+      description: treatment.description || "",
+      shortReelUrl: treatment.shortReelUrl || "",
       mrp: treatment.mrp != null ? String(treatment.mrp) : "",
       offerPrice: treatment.offerPrice != null ? String(treatment.offerPrice) : "",
+      pricePerSession:
+        treatment.pricePerSession != null ? String(treatment.pricePerSession) : "",
+      discountPercent:
+        treatment.discountPercent != null ? String(treatment.discountPercent) : "",
+      sessions: treatment.sessions || "",
+      duration: treatment.duration || "",
+      validity: treatment.validity || "",
+      technologyUsed: treatment.technologyUsed || "",
+      gender: (treatment.gender as "Unisex" | "Male" | "Female") || "Unisex",
+      promoCode: treatment.promoCode || "",
+      addToCart: treatment.addToCart !== false,
+      isActive: treatment.isActive !== false,
     });
+    setEditTreatmentImages([]);
+    setEditBeforeImages([]);
+    setEditAfterImages([]);
     setError("");
+  };
+
+  const closeEdit = () => {
+    setEditingTreatment(null);
+    setEditForm(emptyEditForm);
+    setEditTreatmentImages([]);
+    setEditBeforeImages([]);
+    setEditAfterImages([]);
   };
 
   const toggleEditCategory = (categoryName: string) => {
@@ -369,6 +439,18 @@ const ListOfTreatment = ({ canEdit = true, canDelete = true }: ListOfTreatmentPr
     });
   };
 
+  const toggleEditClinic = (clinicId: string) => {
+    setEditForm((prev) => {
+      const exists = prev.clinicIds.includes(clinicId);
+      return {
+        ...prev,
+        clinicIds: exists
+          ? prev.clinicIds.filter((id) => id !== clinicId)
+          : [...prev.clinicIds, clinicId],
+      };
+    });
+  };
+
   const handleUpdate = async () => {
     if (!editingTreatment) return;
     if (!editForm.treatmentName.trim()) {
@@ -379,75 +461,81 @@ const ListOfTreatment = ({ canEdit = true, canDelete = true }: ListOfTreatmentPr
       setError("Please select at least one category");
       return;
     }
-
-    const parsedMrp =
-      editForm.mrp.trim() === "" ? undefined : Number(editForm.mrp);
-    const parsedOffer =
-      editForm.offerPrice.trim() === "" ? undefined : Number(editForm.offerPrice);
-
-    if (
-      (parsedMrp !== undefined && Number.isNaN(parsedMrp)) ||
-      (parsedOffer !== undefined && Number.isNaN(parsedOffer))
-    ) {
-      setError("MRP and Offer Price must be valid numbers");
+    if (!editForm.offerPrice.trim()) {
+      setError("Offer price is required");
       return;
     }
 
-    const payload = {
-      treatmentName: editForm.treatmentName.trim(),
-      clinic: editForm.clinicId || undefined,
-      serviceCategory: editForm.serviceCategory,
-      mrp: parsedMrp,
-      offerPrice: parsedOffer,
-    };
+    const parsedMrp = editForm.mrp.trim() === "" ? undefined : Number(editForm.mrp);
+    const parsedOffer = Number(editForm.offerPrice);
+    const parsedPricePerSession =
+      editForm.pricePerSession.trim() === ""
+        ? undefined
+        : Number(editForm.pricePerSession);
+    const parsedDiscount =
+      editForm.discountPercent.trim() === ""
+        ? undefined
+        : Number(editForm.discountPercent);
+
+    if (
+      (parsedMrp !== undefined && Number.isNaN(parsedMrp)) ||
+      Number.isNaN(parsedOffer) ||
+      (parsedPricePerSession !== undefined && Number.isNaN(parsedPricePerSession)) ||
+      (parsedDiscount !== undefined && Number.isNaN(parsedDiscount))
+    ) {
+      setError("Price fields must be valid numbers");
+      return;
+    }
 
     try {
+      setSaving(true);
+      setError("");
+
+      const formData = new FormData();
+      formData.append("treatmentName", editForm.treatmentName.trim());
+      formData.append("clinic", JSON.stringify(editForm.clinicIds));
+      formData.append("serviceCategory", JSON.stringify(editForm.serviceCategory));
+      formData.append("description", editForm.description);
+      formData.append("shortReelUrl", editForm.shortReelUrl);
+      if (parsedMrp !== undefined) formData.append("mrp", String(parsedMrp));
+      formData.append("offerPrice", String(parsedOffer));
+      if (parsedPricePerSession !== undefined) {
+        formData.append("pricePerSession", String(parsedPricePerSession));
+      }
+      if (parsedDiscount !== undefined) {
+        formData.append("discountPercent", String(parsedDiscount));
+      }
+      formData.append("sessions", editForm.sessions);
+      formData.append("duration", editForm.duration);
+      formData.append("validity", editForm.validity);
+      formData.append("technologyUsed", editForm.technologyUsed);
+      formData.append("gender", editForm.gender);
+      formData.append("promoCode", editForm.promoCode);
+      formData.append("addToCart", String(editForm.addToCart));
+      formData.append("isActive", String(editForm.isActive));
+      editTreatmentImages.forEach((file) => formData.append("treatmentImages", file));
+      editBeforeImages.forEach((file) => formData.append("beforeImages", file));
+      editAfterImages.forEach((file) => formData.append("afterImages", file));
+
       const res = await fetch(
         `${API_URL}/treatment-plans/${editingTreatment._id}`,
         {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+          method: "PUT",
+          body: formData,
         }
       );
+
       if (res.ok) {
-        const clinicMatch = clinicOptions.find((c) => c.id === payload.clinic);
-        setTreatments(
-          treatments.map((t) =>
-            t._id === editingTreatment._id
-              ? {
-                  ...t,
-                  treatmentName: payload.treatmentName,
-                  serviceCategory: payload.serviceCategory,
-                  mrp: payload.mrp,
-                  offerPrice: payload.offerPrice,
-                  clinic: payload.clinic
-                    ? {
-                        _id: payload.clinic,
-                        clinicName:
-                          clinicMatch?.name ||
-                          (typeof t.clinic === "object"
-                            ? t.clinic?.clinicName || "-"
-                            : "-"),
-                      }
-                    : t.clinic,
-                }
-              : t
-          )
-        );
-        setEditingTreatment(null);
-        setEditForm({
-          treatmentName: "",
-          clinicId: "",
-          serviceCategory: [],
-          mrp: "",
-          offerPrice: "",
-        });
+        await fetchTreatments();
+        closeEdit();
       } else {
-        setError("Failed to update treatment");
+        const data = await res.json().catch(() => null);
+        setError(data?.message || "Failed to update treatment");
       }
     } catch (err) {
       setError("Failed to update treatment");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -469,9 +557,9 @@ const ListOfTreatment = ({ canEdit = true, canDelete = true }: ListOfTreatmentPr
           className={styles.filter}
         >
           <option value="all">All Clinics</option>
-          {clinicOptions.map((clinic) => (
-            <option key={clinic.id} value={clinic.id}>
-              {clinic.name}
+          {clinics.map((clinic) => (
+            <option key={clinic._id} value={clinic._id}>
+              {clinic.clinicName}
             </option>
           ))}
         </select>
@@ -511,11 +599,7 @@ const ListOfTreatment = ({ canEdit = true, canDelete = true }: ListOfTreatmentPr
             {paginatedTreatments.map((treatment) => (
               <tr key={treatment._id}>
                 <td>{treatment.treatmentName}</td>
-                <td>
-                  {typeof treatment.clinic === "object"
-                    ? treatment.clinic?.clinicName
-                    : "-"}
-                </td>
+                <td>{clinicNamesFor(treatment)}</td>
                 <td>{(treatment.serviceCategory || []).join(", ") || "-"}</td>
                 <td>{treatment.gender || "-"}</td>
                 <td>{treatment.mrp ?? "-"}</td>
@@ -542,28 +626,12 @@ const ListOfTreatment = ({ canEdit = true, canDelete = true }: ListOfTreatmentPr
                   </button>
                 </td>
                 <td>
-                  <>
-                    {canEdit && (
-                      <button
-                        onClick={() => handleEdit(treatment)}
-                        className={styles.editBtn}
-                        title="Edit treatment"
-                        aria-label="Edit treatment"
-                      >
-                        <FiEdit2 />
-                      </button>
-                    )}
-                    {canDelete && (
-                      <button
-                        onClick={() => handleDelete(treatment._id)}
-                        className={styles.deleteBtn}
-                        title="Delete treatment"
-                        aria-label="Delete treatment"
-                      >
-                        <FiTrash2 />
-                      </button>
-                    )}
-                  </>
+                  <TableActions
+                    onEdit={() => handleEdit(treatment)}
+                    onDelete={() => handleDelete(treatment._id)}
+                    canEdit={canEdit}
+                    canDelete={canDelete}
+                  />
                 </td>
               </tr>
             ))}
@@ -631,7 +699,9 @@ const ListOfTreatment = ({ canEdit = true, canDelete = true }: ListOfTreatmentPr
               <h2 className={editStyles.sectionTitle}>Treatment Information</h2>
 
               <div className={editStyles.field}>
-                <label className={editStyles.label}>Treatment Name</label>
+                <label className={editStyles.label}>
+                  Treatment Name<span className={editStyles.required}>*</span>
+                </label>
                 <input
                   type="text"
                   value={editForm.treatmentName}
@@ -646,61 +716,148 @@ const ListOfTreatment = ({ canEdit = true, canDelete = true }: ListOfTreatmentPr
                 />
               </div>
 
+              {/* ===== MULTI-SELECT CLINIC ===== */}
               <div className={editStyles.field}>
-                <label className={editStyles.label}>Clinic</label>
-                <select
-                  value={editForm.clinicId}
-                  onChange={(e) =>
-                    setEditForm((prev) => ({ ...prev, clinicId: e.target.value }))
-                  }
-                  className={editStyles.select}
-                >
-                  <option value="">Select clinic</option>
-                  {clinicOptions.map((clinic) => (
-                    <option key={clinic.id} value={clinic.id}>
-                      {clinic.name}
-                    </option>
-                  ))}
-                </select>
+                <label className={editStyles.label}>
+                  Clinic (select one or more)
+                </label>
+                <div className={editStyles.chipScrollBox}>
+                  <div className={editStyles.chipRow}>
+                    {clinics.length === 0 && (
+                      <p className={editStyles.chipEmpty}>No clinics found.</p>
+                    )}
+                    {clinics.map((clinic) => {
+                      const selected = editForm.clinicIds.includes(clinic._id);
+                      return (
+                        <button
+                          key={clinic._id}
+                          type="button"
+                          onClick={() => toggleEditClinic(clinic._id)}
+                          className={`${editStyles.chip} ${
+                            selected ? editStyles.chipSelected : ""
+                          }`}
+                        >
+                          {clinic.clinicName}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
+
+              <div className={editStyles.field}>
+                <label className={editStyles.label}>Plan Description</label>
+                <ReactQuill
+                  value={editForm.description}
+                  onChange={(value) =>
+                    setEditForm((prev) => ({ ...prev, description: value }))
+                  }
+                />
+              </div>
+            </div>
+
+            <div className={editStyles.section}>
+              <h2 className={editStyles.sectionTitle}>Media & Visuals</h2>
+
+              <div className={editStyles.field}>
+                <label className={editStyles.label}>Treatment Short Reel URL</label>
+                <input
+                  type="url"
+                  value={editForm.shortReelUrl}
+                  onChange={(e) =>
+                    setEditForm((prev) => ({ ...prev, shortReelUrl: e.target.value }))
+                  }
+                  className={editStyles.input}
+                  placeholder="https://..."
+                />
+              </div>
+
+              <div className={editStyles.field}>
+                <label className={editStyles.label}>
+                  Treatment Images ({(editingTreatment.treatmentImages || []).length}{" "}
+                  current — choose files to replace)
+                </label>
+                <input
+                  type="file"
+                  multiple
+                  className={editStyles.input}
+                  onChange={(e) =>
+                    setEditTreatmentImages(Array.from(e.target.files || []))
+                  }
+                />
+              </div>
+
+              <div className={editStyles.field}>
+                <label className={editStyles.label}>
+                  Before Images ({(editingTreatment.beforeImages || []).length}{" "}
+                  current — choose files to replace)
+                </label>
+                <input
+                  type="file"
+                  multiple
+                  className={editStyles.input}
+                  onChange={(e) =>
+                    setEditBeforeImages(Array.from(e.target.files || []))
+                  }
+                />
+              </div>
+
+              <div className={editStyles.field}>
+                <label className={editStyles.label}>
+                  After Images ({(editingTreatment.afterImages || []).length}{" "}
+                  current — choose files to replace)
+                </label>
+                <input
+                  type="file"
+                  multiple
+                  className={editStyles.input}
+                  onChange={(e) =>
+                    setEditAfterImages(Array.from(e.target.files || []))
+                  }
+                />
+              </div>
+            </div>
+
+            <div className={editStyles.section}>
+              <h2 className={editStyles.sectionTitle}>Category</h2>
 
               {/* ===== MULTI-SELECT CATEGORY ===== */}
               <div className={editStyles.field}>
                 <label className={editStyles.label}>
                   Category (select one or more)
                 </label>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-                  {serviceCategories.map((cat) => {
-                    const selected = editForm.serviceCategory.includes(cat.name);
-                    return (
-                      <button
-                        key={cat._id}
-                        type="button"
-                        onClick={() => toggleEditCategory(cat.name)}
-                        style={{
-                          padding: "6px 14px",
-                          borderRadius: "16px",
-                          border: selected ? "1px solid #2563eb" : "1px solid #ccc",
-                          background: selected ? "#dbeafe" : "#fff",
-                          color: selected ? "#1e40af" : "#333",
-                          cursor: "pointer",
-                          fontSize: "13px",
-                        }}
-                      >
-                        {cat.name}
-                      </button>
-                    );
-                  })}
+                <div className={editStyles.chipScrollBox}>
+                  <div className={editStyles.chipRow}>
+                    {serviceCategories.map((cat) => {
+                      const selected = editForm.serviceCategory.includes(cat.name);
+                      return (
+                        <button
+                          key={cat._id}
+                          type="button"
+                          onClick={() => toggleEditCategory(cat.name)}
+                          className={`${editStyles.chip} ${
+                            selected ? editStyles.chipSelected : ""
+                          }`}
+                        >
+                          {cat.name}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
                 {editForm.serviceCategory.length > 0 && (
-                  <p style={{ fontSize: "12px", color: "#555", marginTop: "6px" }}>
+                  <p className={editStyles.chipHint}>
                     Selected: {editForm.serviceCategory.join(", ")}
                   </p>
                 )}
               </div>
+            </div>
+
+            <div className={editStyles.section}>
+              <h2 className={editStyles.sectionTitle}>Pricing</h2>
 
               <div className={editStyles.field}>
-                <label className={editStyles.label}>MRP</label>
+                <label className={editStyles.label}>Gross Price (MRP)</label>
                 <input
                   type="number"
                   min="0"
@@ -714,7 +871,9 @@ const ListOfTreatment = ({ canEdit = true, canDelete = true }: ListOfTreatmentPr
               </div>
 
               <div className={editStyles.field}>
-                <label className={editStyles.label}>Offer Price</label>
+                <label className={editStyles.label}>
+                  Offer Price<span className={editStyles.required}>*</span>
+                </label>
                 <input
                   type="number"
                   min="0"
@@ -727,25 +886,172 @@ const ListOfTreatment = ({ canEdit = true, canDelete = true }: ListOfTreatmentPr
                 />
               </div>
 
+              <div className={editStyles.field}>
+                <label className={editStyles.label}>Price Per Session</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={editForm.pricePerSession}
+                  onChange={(e) =>
+                    setEditForm((prev) => ({
+                      ...prev,
+                      pricePerSession: e.target.value,
+                    }))
+                  }
+                  className={editStyles.input}
+                  placeholder="Price per session"
+                />
+              </div>
+
+              <div className={editStyles.field}>
+                <label className={editStyles.label}>Discount %</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={editForm.discountPercent}
+                  onChange={(e) =>
+                    setEditForm((prev) => ({
+                      ...prev,
+                      discountPercent: e.target.value,
+                    }))
+                  }
+                  className={editStyles.input}
+                  placeholder="Discount %"
+                />
+              </div>
+            </div>
+
+            <div className={editStyles.section}>
+              <h2 className={editStyles.sectionTitle}>Treatment Details</h2>
+
+              <div className={editStyles.field}>
+                <label className={editStyles.label}>No. of Sessions</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={editForm.sessions}
+                  onChange={(e) =>
+                    setEditForm((prev) => ({
+                      ...prev,
+                      sessions: e.target.value.replace(/\D/g, ""),
+                    }))
+                  }
+                  className={editStyles.input}
+                  placeholder="No. of sessions"
+                />
+              </div>
+
+              <div className={editStyles.field}>
+                <label className={editStyles.label}>Treatment Duration</label>
+                <input
+                  type="text"
+                  value={editForm.duration}
+                  onChange={(e) =>
+                    setEditForm((prev) => ({ ...prev, duration: e.target.value }))
+                  }
+                  className={editStyles.input}
+                  placeholder="Duration"
+                />
+              </div>
+
+              <div className={editStyles.field}>
+                <label className={editStyles.label}>Validity Period</label>
+                <input
+                  type="text"
+                  value={editForm.validity}
+                  onChange={(e) =>
+                    setEditForm((prev) => ({ ...prev, validity: e.target.value }))
+                  }
+                  className={editStyles.input}
+                  placeholder="Validity"
+                />
+              </div>
+
+              <div className={editStyles.field}>
+                <label className={editStyles.label}>Technology Used</label>
+                <input
+                  type="text"
+                  value={editForm.technologyUsed}
+                  onChange={(e) =>
+                    setEditForm((prev) => ({
+                      ...prev,
+                      technologyUsed: e.target.value,
+                    }))
+                  }
+                  className={editStyles.input}
+                  placeholder="Technology used"
+                />
+              </div>
+            </div>
+
+            <div className={editStyles.section}>
+              <h2 className={editStyles.sectionTitle}>Meta & Admin</h2>
+
+              <div className={editStyles.field}>
+                <label className={editStyles.label}>Gender Specific</label>
+                <select
+                  className={editStyles.select}
+                  value={editForm.gender}
+                  onChange={(e) =>
+                    setEditForm((prev) => ({
+                      ...prev,
+                      gender: e.target.value as "Unisex" | "Male" | "Female",
+                    }))
+                  }
+                >
+                  <option value="Unisex">Unisex</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                </select>
+              </div>
+
+              <div className={editStyles.field}>
+                <label className={editStyles.label}>Promo Code</label>
+                <input
+                  type="text"
+                  value={editForm.promoCode}
+                  onChange={(e) =>
+                    setEditForm((prev) => ({ ...prev, promoCode: e.target.value }))
+                  }
+                  className={editStyles.input}
+                  placeholder="Promo code"
+                />
+              </div>
+
+              <div className={editStyles.switchRow}>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={editForm.addToCart}
+                    onChange={() =>
+                      setEditForm((prev) => ({ ...prev, addToCart: !prev.addToCart }))
+                    }
+                  />
+                  Add to Cart
+                </label>
+
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={editForm.isActive}
+                    onChange={() =>
+                      setEditForm((prev) => ({ ...prev, isActive: !prev.isActive }))
+                    }
+                  />
+                  Active
+                </label>
+              </div>
             </div>
 
             <div style={{ display: "flex", gap: 12 }}>
-              <button type="submit" className={editStyles.submitBtn}>
-                Update Treatment
+              <button type="submit" className={editStyles.submitBtn} disabled={saving}>
+                {saving ? "Updating..." : "Update Treatment"}
               </button>
               <button
                 type="button"
-                className={editStyles.submitBtn}
-                onClick={() => {
-                  setEditingTreatment(null);
-                  setEditForm({
-                    treatmentName: "",
-                    clinicId: "",
-                    serviceCategory: [],
-                    mrp: "",
-                    offerPrice: "",
-                  });
-                }}
+                className={editStyles.cancelBtn}
+                onClick={closeEdit}
+                disabled={saving}
               >
                 Cancel
               </button>

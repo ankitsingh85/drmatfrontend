@@ -7,6 +7,7 @@ import { getCategoryList } from "../lib/api/productCategories";
 import { updateProduct } from "../lib/api/product";
 import { useSession } from "next-auth/react";
 import { resolveMediaUrl } from "@/lib/media";
+import { useToast } from "@/context/ToastContext";
 
 type ProductPropType = {
   product: Product;
@@ -28,6 +29,7 @@ function ProductUpdateForm({ product }: ProductPropType) {
   >([]);
 
   const session = useSession();
+  const toast = useToast();
 
   async function handleSubmit(event: any) {
     event.preventDefault();
@@ -54,7 +56,7 @@ function ProductUpdateForm({ product }: ProductPropType) {
       console.log(res);
     } catch (error) {
       console.error("Error updating product:", error);
-      alert("Failed to update product. Please try again.");
+      toast.error("Failed to update product. Please try again.");
     }
   }
 

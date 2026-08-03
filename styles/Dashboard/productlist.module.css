@@ -58,7 +58,7 @@
   background: #fff;
   border-collapse: collapse;
   border-radius: 10px;
-  overflow: hidden;
+  min-width: 720px;
 }
 
 .table th,
@@ -69,8 +69,13 @@
 }
 
 .table th {
-  background: #f1f4f8;
-  font-weight: 600;
+  background: linear-gradient(135deg, #0a4b83 0%, #1264a3 100%);
+  color: #eaf3ff;
+  font-weight: 800;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
 }
 
 .actions {

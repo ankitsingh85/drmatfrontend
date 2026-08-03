@@ -3,8 +3,10 @@
 import React, { useRef, useState } from "react";
 import styles from "@/styles/Dashboard/createcategory.module.css";
 import { API_URL } from "@/config/api";
+import { useToast } from "@/context/ToastContext";
 
 const CreateServiceCategory = () => {
+  const toast = useToast();
   const [categoryName, setCategoryName] = useState("");
   const [categoryImage, setCategoryImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -70,7 +72,7 @@ const CreateServiceCategory = () => {
       setCategoryImage(null);
       setPreviewUrl(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
-      alert("Service category created successfully");
+      toast.success("Service category created successfully");
       window.dispatchEvent(new Event("admin-dashboard:create-success"));
     } catch (err: any) {
       console.error(err);

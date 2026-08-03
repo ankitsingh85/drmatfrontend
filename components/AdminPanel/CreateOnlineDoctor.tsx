@@ -2,8 +2,10 @@
 
 import React, { useState } from "react";
 import styles from "@/styles/Dashboard/createonlinedoctor.module.css";
+import { useToast } from "@/context/ToastContext";
 
 export default function CreateOnlineDoctor() {
+  const toast = useToast();
   /* ================= AUTO ODUC ================= */
   const [oduc] = useState(`ODUC-${Date.now().toString().slice(-6)}`);
 
@@ -83,7 +85,7 @@ export default function CreateOnlineDoctor() {
     };
 
     console.log("✅ ONLINE DOCTOR PAYLOAD", payload);
-    alert("Online Doctor saved successfully (check console)");
+    toast.success("Online Doctor saved successfully (check console)");
   };
 
   /* ================= UI ================= */

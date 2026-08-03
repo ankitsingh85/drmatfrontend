@@ -116,6 +116,22 @@ prev.length ? prev : []
     fetchServiceCategories();
   }, []);
 
+  const toggleClinic = (clinicId: string) => {
+    setSelectedClinics((prev) =>
+      prev.includes(clinicId)
+        ? prev.filter((id) => id !== clinicId)
+        : [...prev, clinicId]
+    );
+  };
+
+  const toggleServiceCategory = (categoryName: string) => {
+    setServiceCategory((prev) =>
+      prev.includes(categoryName)
+        ? prev.filter((name) => name !== categoryName)
+        : [...prev, categoryName]
+    );
+  };
+
   const handleFileChange = async (
     e: React.ChangeEvent<HTMLInputElement>,
     type: "treatmentImages" | "beforeImages" | "afterImages"
@@ -282,45 +298,29 @@ JSON.stringify(serviceCategory)
           </div>
 
           <div className={styles.field}>
-            <label>Select Clinic</label>
-           <select
-multiple
-className={styles.select}
-
-value={selectedClinics}
-
-onChange={(e)=>{
-
-const values =
-Array.from(
-e.target.selectedOptions,
-option=>option.value
-);
-
-setSelectedClinics(values);
-
-}}
-
->
-
-
-{
-clinics.map((clinic)=>(
-
-<option
-key={clinic._id}
-value={clinic._id}
->
-
-{clinic.clinicName}
-
-</option>
-
-))
-
-}
-
-</select>
+            <label>Select Clinic (select one or more)</label>
+            <div className={styles.chipScrollBox}>
+              <div className={styles.chipRow}>
+                {clinics.length === 0 && (
+                  <p className={styles.chipEmpty}>No clinics found.</p>
+                )}
+                {clinics.map((clinic) => {
+                  const selected = selectedClinics.includes(clinic._id);
+                  return (
+                    <button
+                      key={clinic._id}
+                      type="button"
+                      onClick={() => toggleClinic(clinic._id)}
+                      className={`${styles.chip} ${
+                        selected ? styles.chipSelected : ""
+                      }`}
+                    >
+                      {clinic.clinicName}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
 
           <div className={styles.fullField}>
@@ -386,48 +386,30 @@ value={clinic._id}
             <label>
               Treatment Category<span className={styles.required}>*</span>
             </label>
-          <select
-
-multiple
-
-className={styles.input}
-
-value={serviceCategory}
-
-onChange={(e)=>{
-
-const values =
-Array.from(
-e.target.selectedOptions,
-option=>option.value
-);
-
-setServiceCategory(values);
-
-}}
-
->
-
-
-{
-serviceCategories.map((category)=>(
-
-
-<option
-key={category._id}
-value={category.name}
->
-
-{category.name}
-
-</option>
-
-
-))
-
-}
-
-</select>
+            <div className={styles.chipScrollBox}>
+              <div className={styles.chipRow}>
+                {serviceCategories.map((category) => {
+                  const selected = serviceCategory.includes(category.name);
+                  return (
+                    <button
+                      key={category._id}
+                      type="button"
+                      onClick={() => toggleServiceCategory(category.name)}
+                      className={`${styles.chip} ${
+                        selected ? styles.chipSelected : ""
+                      }`}
+                    >
+                      {category.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            {serviceCategory.length > 0 && (
+              <p className={styles.chipHint}>
+                Selected: {serviceCategory.join(", ")}
+              </p>
+            )}
           </div>
         </section>
 

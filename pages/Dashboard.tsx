@@ -32,6 +32,7 @@ import CreatePatient from "@/components/AdminPanel/CreatePatient";
 import CreateTestResult from "@/components/AdminPanel/CreateTestResult";
 import CreateOnlineDoctor from "@/components/AdminPanel/CreateOnlineDoctor";
 import CreateB2BProduct from "@/components/AdminPanel/CreateB2BProduct";
+import CreateB2BUser from "@/components/AdminPanel/CreateB2BUser";
 import CreateSupport from "@/components/AdminPanel/CreateSupport";
 import CreateCourse from "@/components/AdminPanel/CreateCourse";
 import CreateCourseType from "@/components/AdminPanel/CreateCourseType";
@@ -41,6 +42,7 @@ import CreateWorkshopTraning from "@/components/AdminPanel/CreateWorkshopTraning
 
 import CreateUser from "@/components/AdminPanel/CreateUser";
 import ListOfUser from "@/components/AdminPanel/ListOfUser";
+import ListOfB2BUser from "@/components/AdminPanel/ListOfB2BUser";
 import ListOfB2BProduct from "@/components/AdminPanel/ListOfB2BProduct";
 import ListOfCourse from "@/components/AdminPanel/ListOfCourse";
 import ListOfCourseType from "@/components/AdminPanel/ListOfCourseType";
@@ -78,6 +80,7 @@ import {
   FiShield,
   FiActivity,
   FiVideo,
+  FiUserPlus,
 } from "react-icons/fi";
 
 import CreateB2BCategory from "@/components/AdminPanel/CreateB2BCategory";
@@ -145,6 +148,7 @@ export default function SuperAdminDashboard() {
     products: [] as any[],
     b2bCategories: [] as any[],
     b2bProducts: [] as any[],
+    b2bUsers: [] as any[],
     courseTypes: [] as any[],
   });
 
@@ -163,6 +167,11 @@ export default function SuperAdminDashboard() {
 
   const canCreate = useCallback(
     (moduleId: string) => isSuperAdmin || permissionFor(moduleId).create,
+    [isSuperAdmin, permissionFor]
+  );
+
+  const canDelete = useCallback(
+    (moduleId: string) => isSuperAdmin || permissionFor(moduleId).delete,
     [isSuperAdmin, permissionFor]
   );
 
@@ -364,6 +373,15 @@ export default function SuperAdminDashboard() {
       CreateComponent: CreateClinic,
     },
     {
+      id: "b2bUser",
+      label: "B2B USER",
+      listLabel: "List of B2B User",
+      createLabel: "Create B2B User",
+      icon: <FiUserPlus />,
+      ListComponent: ListOfB2BUser,
+      CreateComponent: CreateB2BUser,
+    },
+    {
       id: "b2bProductCategory",
       label: "B2B PRODUCT CATEGORY",
       listLabel: "List of B2B Product Category",
@@ -418,6 +436,7 @@ export default function SuperAdminDashboard() {
   const ActiveListComponent = activeModule?.ListComponent;
   const ActiveCreateComponent = activeModule?.CreateComponent;
   const activeModuleCanCreate = activeModule ? canCreate(activeModule.id) : false;
+  const activeModuleCanDelete = activeModule ? canDelete(activeModule.id) : false;
 
   // If permissions load (or change) and the admin is currently sitting
   // on a section they no longer have view access to, bounce them back
@@ -472,6 +491,7 @@ export default function SuperAdminDashboard() {
       { key: "products", url: `${API_URL}/products` },
       { key: "b2bCategories", url: `${API_URL}/b2b-categories` },
       { key: "b2bProducts", url: `${API_URL}/b2b-products` },
+      { key: "b2bUsers", url: `${API_URL}/b2b-users` },
       { key: "courseTypes", url: `${API_URL}/course-types` },
     ] as const;
 
@@ -508,6 +528,7 @@ export default function SuperAdminDashboard() {
           products: [] as any[],
           b2bCategories: [] as any[],
           b2bProducts: [] as any[],
+          b2bUsers: [] as any[],
           courseTypes: [] as any[],
         }
       );
@@ -589,6 +610,13 @@ export default function SuperAdminDashboard() {
       value: summaryData.clinics.length,
       icon: <FiHome />,
       tone: styles.toneClinics,
+    },
+    {
+      moduleId: "b2bUser",
+      label: "B2B Users",
+      value: summaryData.b2bUsers.length,
+      icon: <FiUserPlus />,
+      tone: styles.toneUsers,
     },
     {
       moduleId: "b2bProduct",
@@ -985,7 +1013,12 @@ export default function SuperAdminDashboard() {
 
               <div className={styles.moduleBody}>
                 {sectionMode === "list" || !activeModuleCanCreate ? (
-                  ActiveListComponent ? <ActiveListComponent /> : null
+                  ActiveListComponent ? (
+                    <ActiveListComponent
+                      canEdit={activeModuleCanCreate}
+                      canDelete={activeModuleCanDelete}
+                    />
+                  ) : null
                 ) : (
                   ActiveCreateComponent ? <ActiveCreateComponent /> : null
                 )}
@@ -1016,6 +1049,7 @@ export default function SuperAdminDashboard() {
               {activeSection === "createTestResult" && <CreateTestResult />}
               {activeSection === "createOnlineDoctor" && <CreateOnlineDoctor />}
               {activeSection === "createSupport" && <CreateSupport />}
+
             </>
           )}
         </div>

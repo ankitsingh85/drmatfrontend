@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import styles from "@/styles/LatestUpdateShorts.module.css";
 import { API_URL } from "@/config/api";
+import { useToast } from "@/context/ToastContext";
 
 // ✅ Use environment variable for API base
 // const API_URL = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000/api";
@@ -21,6 +22,7 @@ type LatestShortsProps = {
 };
 
 const LatestShorts = ({ canEdit = true, canDelete = true }: LatestShortsProps) => {
+  const toast = useToast();
   const [shorts, setShorts] = useState<Short[]>([]);
   const [platform, setPlatform] = useState<"youtube" | "instagram">("youtube");
   const [videoUrl, setVideoUrl] = useState("");
@@ -52,7 +54,7 @@ const LatestShorts = ({ canEdit = true, canDelete = true }: LatestShortsProps) =
 
   // ✅ Add short
   const handleAddShort = async () => {
-    if (!videoUrl.trim()) return alert("Please enter a video URL");
+    if (!videoUrl.trim()) return toast.error("Please enter a video URL");
 
     try {
       await axios.post(`${API_URL}/latest-shorts`, {
@@ -65,7 +67,7 @@ const LatestShorts = ({ canEdit = true, canDelete = true }: LatestShortsProps) =
       fetchShorts();
     } catch (err) {
       console.error("Failed to add short", err);
-      alert("Invalid URL format. Only YouTube Shorts or Instagram Reels are allowed.");
+      toast.error("Invalid URL format. Only YouTube Shorts or Instagram Reels are allowed.");
     }
   };
 
@@ -95,7 +97,7 @@ const LatestShorts = ({ canEdit = true, canDelete = true }: LatestShortsProps) =
       fetchShorts();
     } catch (err) {
       console.error("Failed to update short", err);
-      alert("Invalid URL format.");
+      toast.error("Invalid URL format.");
     }
   };
 

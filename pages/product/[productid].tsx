@@ -13,6 +13,7 @@ import { API_URL } from "@/config/api";
 import FullPageLoader from "@/components/common/FullPageLoader";
 import { resolveMediaUrl } from "@/lib/media";
 import { useCart } from "@/context/CartContext";
+import { useToast } from "@/context/ToastContext";
 
 interface Review {
   _id: string;
@@ -64,6 +65,7 @@ const slugify = (value: string) =>
     .replace(/^-+|-+$/g, "");
 
 export default function ProductDetail() {
+  const toast = useToast();
   const router = useRouter();
   const { productid } = router.query;
   const { addToCart, cartItems } = useCart();
@@ -195,7 +197,7 @@ export default function ProductDetail() {
     !reviewForm.comment ||
     reviewForm.rating === 0
   ) {
-    alert("Please fill all review fields");
+    toast.error("Please fill all review fields");
     return;
   }
 
@@ -273,7 +275,7 @@ export default function ProductDetail() {
 
   const handleAddToCart = () => {
     if (!cartProductId) {
-      alert(
+      toast.error(
         "Unable to add this product right now. Please refresh and try again.",
       );
       return;
@@ -287,7 +289,7 @@ export default function ProductDetail() {
 
   const handleBuyNow = () => {
     if (!cartProductId) {
-      alert("Unable to continue right now. Please refresh and try again.");
+      toast.error("Unable to continue right now. Please refresh and try again.");
       return;
     }
     if (!inCart) {

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
+import { useToast } from "@/context/ToastContext";
 
 interface User {
   _id: string;
@@ -9,6 +10,7 @@ interface User {
 }
 
 const Users = () => {
+  const toast = useToast();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -19,7 +21,7 @@ const Users = () => {
       })
       .catch((err) => {
         console.error(err);
-        alert('Error fetching users');
+        toast.error('Error fetching users');
       })
       .finally(() => setLoading(false));
   }, []);

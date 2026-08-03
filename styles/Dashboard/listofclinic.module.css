@@ -88,16 +88,19 @@
 .table {
   width: 100%;
   border-collapse: collapse;
+  min-width: 900px;
 }
 
 .table th {
-  padding: 18px 22px;
+  padding: 16px 20px;
   text-align: left;
-  background: #f1f5f9;
-  font-size: 13px;
+  background: linear-gradient(135deg, #0a4b83 0%, #1264a3 100%);
+  font-size: 12px;
   font-weight: 800;
   text-transform: uppercase;
-  color: #475569;
+  letter-spacing: 0.06em;
+  color: #eaf3ff;
+  white-space: nowrap;
 }
 
 .table td {

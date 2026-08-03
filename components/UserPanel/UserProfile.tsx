@@ -7,6 +7,7 @@ import styles from "@/styles/adminpanel/userprofile.module.css";
 import { API_URL } from "@/config/api";
 import FullPageLoader from "@/components/common/FullPageLoader";
 import { resolveMediaUrl } from "@/lib/media";
+import { useToast } from "@/context/ToastContext";
 
 interface IUserAddress {
   type: string;
@@ -173,6 +174,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
   onProfileSaved,
 }) => {
   const router = useRouter();
+  const toast = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showForm, setShowForm] = useState(showFormInitially);
@@ -292,12 +294,12 @@ const UserProfile: React.FC<UserProfileProps> = ({
       const file = e.target.files[0];
 
       if (!file.type.startsWith("image/")) {
-        alert("Only image files allowed");
+        toast.error("Only image files allowed");
         return;
       }
 
       if (file.size > MAX_IMAGE_SIZE) {
-        alert("Image must be less than 200KB");
+        toast.error("Image must be less than 200KB");
         return;
       }
 
@@ -337,12 +339,12 @@ const UserProfile: React.FC<UserProfileProps> = ({
     e.preventDefault();
 
     if (!form._id) {
-      alert("User ID not found");
+      toast.error("User ID not found");
       return;
     }
 
     if (!form.name.trim() || !form.email.trim()) {
-      alert("Name and Email are required");
+      toast.error("Name and Email are required");
       return;
     }
 
@@ -404,9 +406,9 @@ const UserProfile: React.FC<UserProfileProps> = ({
         profileImage: data.user.profileImage,
       });
 
-      alert("Profile updated successfully");
+      toast.success("Profile updated successfully");
     } catch (err: any) {
-      alert(err.message || "Failed to update profile");
+      toast.error(err.message || "Failed to update profile");
     } finally {
       setSaving(false);
     }

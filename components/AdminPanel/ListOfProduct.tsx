@@ -5,6 +5,9 @@ import styles from "@/styles/Dashboard/productlist.module.css";
 import createStyles from "@/styles/Dashboard/createproduct.module.css";
 import { API_URL } from "@/config/api";
 import { resolveMediaUrl } from "@/lib/media";
+import { useToast } from "@/context/ToastContext";
+import { useConfirm } from "@/context/ConfirmContext";
+import TableActions from "@/components/AdminPanel/common/TableActions";
 
 interface Category {
   _id: string;
@@ -53,6 +56,8 @@ type ListOfProductProps = {
 };
 
 const ListOfProduct: React.FC<ListOfProductProps> = ({ canEdit = true, canDelete = true }) => {
+  const toast = useToast();
+  const confirmDialog = useConfirm();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [search, setSearch] = useState("");
@@ -179,7 +184,7 @@ const getCategoryName = (ids: string[]) => {
   const handleDownloadPDF = () => {
     const printable = window.open("", "_blank");
     if (!printable) {
-      alert("Unable to open print window. Please allow popups.");
+      toast.error("Unable to open print window. Please allow popups.");
       return;
     }
 
@@ -239,7 +244,7 @@ const getCategoryName = (ids: string[]) => {
 
   /* ================= DELETE ================= */
   const handleDelete = async (id: string) => {
-    if (!confirm("Delete this product?")) return;
+    if (!(await confirmDialog("Delete this product?", { danger: true }))) return;
     await fetch(`${API_URL}/products/${id}`, { method: "DELETE" });
     setProducts((prev) => prev.filter((p) => p._id !== id));
   };
@@ -276,7 +281,7 @@ const getCategoryName = (ids: string[]) => {
     setIsEditing(false);
     setEditingProduct(null);
     setEditForm({});
-    alert("✅ Product updated successfully");
+    toast.success("Product updated successfully");
   };
 
   const handleCancelEdit = () => {
@@ -464,34 +469,13 @@ height={50}
 
 
 <td className={styles.actions}>
-
-
-<button
-className={styles.eye}
-onClick={() => setViewProduct(p)}
->
-👁
-</button>
-
-
-{canEdit && (
-<button
-className={styles.edit}
-onClick={() => handleEdit(p)}
->
-✏️
-</button>
-)}
-
-{canDelete && (
-<button
-className={styles.delete}
-onClick={() => handleDelete(p._id)}
->
-🗑
-</button>
-)}
-
+<TableActions
+  onView={() => setViewProduct(p)}
+  onEdit={() => handleEdit(p)}
+  onDelete={() => handleDelete(p._id)}
+  canEdit={canEdit}
+  canDelete={canDelete}
+/>
 </td>
 
 

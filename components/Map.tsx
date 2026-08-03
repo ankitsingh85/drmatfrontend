@@ -3,11 +3,13 @@
 import { GoogleMap, Marker, useJsApiLoader } from "@react-google-maps/api";
 import { useEffect, useState } from "react";
 import { getGoogleMapsLoaderOptions } from "@/lib/googleMaps";
+import { useToast } from "@/context/ToastContext";
 
 export default function Map() {
   const [location, setLocation] = useState<any>(null);
   const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAP_KEY || "";
   const { isLoaded } = useJsApiLoader(getGoogleMapsLoaderOptions(googleMapsApiKey));
+  const toast = useToast();
 
   useEffect(() => {
     navigator.geolocation.getCurrentPosition(
@@ -17,7 +19,7 @@ export default function Map() {
           lng: pos.coords.longitude,
         });
       },
-      () => alert("Please allow location")
+      () => toast.error("Please allow location")
     );
   }, []);
 

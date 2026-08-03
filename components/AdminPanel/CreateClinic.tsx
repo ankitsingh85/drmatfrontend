@@ -5,6 +5,7 @@ import React, { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import styles from "@/styles/Dashboard/createclinic.module.css";
 import "react-quill/dist/quill.snow.css";
+import { useToast } from "@/context/ToastContext";
 
 const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
 
@@ -39,6 +40,7 @@ const WEEK_DAYS = [
 
 /* ================= BASE64 HELPER ================= */
 export default function CreateClinic() {
+  const toast = useToast();
   const [cuc, setCuc] = useState("Auto-assigned on save");
   const [videoUrls, setVideoUrls] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -235,7 +237,7 @@ export default function CreateClinic() {
 
   const saveDoctor = () => {
     if (!doctorForm.name || !doctorForm.regNo || !doctorForm.specialization) {
-      alert("Please fill all doctor details");
+      toast.error("Please fill all doctor details");
       return;
     }
     setDoctors((prev) => [...prev, doctorForm]);
@@ -256,7 +258,7 @@ export default function CreateClinic() {
       !form.contactNumber.trim() ||
       !form.whatsapp.trim()
     ) {
-      alert(
+      toast.error(
         "Please fill Clinic Name, Category, Contact Number and Whatsapp Contact Number before creating the clinic."
       );
       return;
@@ -324,12 +326,12 @@ export default function CreateClinic() {
       }
 
       const createdCuc = data?.clinic?.cuc || "Auto-assigned on save";
-      alert(`Clinic created successfully. CUC: ${createdCuc}`);
+      toast.success(`Clinic created successfully. CUC: ${createdCuc}`);
       setCuc(createdCuc);
       window.dispatchEvent(new Event("admin-dashboard:create-success"));
     } catch (error) {
       console.error("Failed to create clinic:", error);
-      alert(error instanceof Error ? error.message : "Failed to create clinic");
+      toast.error(error instanceof Error ? error.message : "Failed to create clinic");
     } finally {
       setSubmitting(false);
     }

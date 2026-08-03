@@ -3,6 +3,7 @@ import styles from "@/styles/components/productPageComps/PrdCardListPg.module.cs
 import { useRouter } from "next/router";
 import { Product } from "../types/product";
 import { resolveMediaUrl } from "@/lib/media";
+import { useToast } from "@/context/ToastContext";
 
 interface ProductCardProps {
   products: Product[];
@@ -11,6 +12,7 @@ interface ProductCardProps {
 
 const ProductCard: React.FC<ProductCardProps> = ({ products }) => {
   const router = useRouter();
+  const toast = useToast();
   const slugify = (value: string) =>
     value
       .toLowerCase()
@@ -24,7 +26,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ products }) => {
 
   const buttonAction = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
-    alert("Product added!");
+    toast.success("Product added!");
   };
 
   return (

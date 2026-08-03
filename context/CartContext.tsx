@@ -22,6 +22,11 @@ export interface CartItem {
   image?: string;
   itemType?: "product" | "treatment" | "consultation";
   quantity: number;
+  // Only set for treatment items, once the user has picked which clinic
+  // they'll visit for that treatment.
+  clinicId?: string;
+  clinicName?: string;
+  clinicAddress?: string;
 }
 
 export const CART_TOAST_EVENT = "cart-item-added";
@@ -55,6 +60,10 @@ interface CartContextType {
   addToCart: (product: Omit<CartItem, "quantity">, quantity?: number) => void;
   removeFromCart: (id: string) => void;
   updateQuantity: (id: string, quantity: number) => void;
+  setCartItemClinic: (
+    id: string,
+    clinic: { clinicId: string; clinicName: string; clinicAddress?: string }
+  ) => void;
   clearCart: () => void;
   dismissCartPreview: () => void;
   addToWishlist: (product: Omit<CartItem, "quantity">) => void;
@@ -91,6 +100,9 @@ const normalizeItems = (items: any[]): CartItem[] =>
           ? it.itemType
           : "product",
       quantity: Math.max(1, Number(it.quantity || 1)),
+      clinicId: it.clinicId || undefined,
+      clinicName: it.clinicName || undefined,
+      clinicAddress: it.clinicAddress || undefined,
     }));
 
 // Guest carts (no logged-in account) auto-expire after this long since the
@@ -125,19 +137,54 @@ const mergeWishlistItems = (base: CartItem[], incoming: CartItem[]): CartItem[] 
   return merged;
 };
 
+// Union two item lists by id, keeping the FIRST list's copy whenever an id
+// appears in both (no quantity math). Used to reconcile local state against
+// whatever the backend already has saved — those two are normally just two
+// copies of the *same* cart, not two separate purchases, so unlike
+// mergeCartItems this must never add their quantities together. Doing that
+// on every reload/login is what caused cart quantities to snowball
+// (1 -> 2 -> 4 -> ...) each time the hydration effect re-ran.
+const unionItemsPreferFirst = (base: CartItem[], incoming: CartItem[]): CartItem[] => {
+  if (incoming.length === 0) return base;
+  const merged = [...base];
+  incoming.forEach((item) => {
+    if (!merged.some((existing) => existing.id === item.id)) merged.push(item);
+  });
+  return merged;
+};
+
 const toCompactItems = (items: CartItem[]): CartItem[] =>
-  items.map(({ id, name, price, mrp, discount, discountPrice, company, image, itemType, quantity }) => ({
-    id,
-    name,
-    price,
-    mrp,
-    discount,
-    discountPrice,
-    company,
-    image,
-    itemType,
-    quantity,
-  }));
+  items.map(
+    ({
+      id,
+      name,
+      price,
+      mrp,
+      discount,
+      discountPrice,
+      company,
+      image,
+      itemType,
+      quantity,
+      clinicId,
+      clinicName,
+      clinicAddress,
+    }) => ({
+      id,
+      name,
+      price,
+      mrp,
+      discount,
+      discountPrice,
+      company,
+      image,
+      itemType,
+      quantity,
+      clinicId,
+      clinicName,
+      clinicAddress,
+    })
+  );
 
 const safeSetStorageItems = (key: string, items: CartItem[]) => {
   try {
@@ -233,6 +280,24 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const cartStorageKey = `cart:${identityKey}`;
   const wishlistStorageKey = `wishlist:${identityKey}`;
 
+  // Set the instant the user interacts with the cart/wishlist, so an
+  // in-flight post-login backend hydration fetch (which may have been
+  // kicked off before this action, and can resolve after it) knows its
+  // result is now stale and must not clobber what the user just did — e.g.
+  // removing an item right after login, before that one-time fetch
+  // resolves, must not let it resurrect the just-removed item.
+  const cartTouchedRef = useRef(false);
+  // Bumped every time a new login/identity-hydration cycle starts, so a
+  // slow-to-resolve fetch from a previous cycle (e.g. rapid logout ->
+  // login -> logout -> login) can detect it's been superseded and discard
+  // its result instead of applying stale data on top of the new identity.
+  const hydrationGenRef = useRef(0);
+  // Coalesces rapid-fire persistBackend calls: without this, removing two
+  // items in quick succession fires two independent fetch+PUT sequences
+  // that can land on the server out of order, with the older (stale) write
+  // finishing last and silently undoing the newer one.
+  const persistTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
     cartStorageKeyRef.current = cartStorageKey;
     wishlistStorageKeyRef.current = wishlistStorageKey;
@@ -278,6 +343,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   useEffect(() => {
+    const gen = ++hydrationGenRef.current;
+    cartTouchedRef.current = false;
     setHydrated(false);
     let localCart = parseStored(localStorage.getItem(cartStorageKey));
     let localWishlist = parseStored(localStorage.getItem(wishlistStorageKey));
@@ -323,17 +390,34 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
           Array.isArray(user?.wishlistItems) ? user.wishlistItems : []
         );
 
+        // Discard this result if a newer login/identity cycle has since
+        // started, or if the user already acted on their cart/wishlist
+        // while this fetch was in flight — applying it now would silently
+        // resurrect something the user just removed.
+        if (hydrationGenRef.current !== gen || cartTouchedRef.current) return;
+
         if (backendCart.length || backendWishlist.length) {
-          // Merge rather than replace — a cart added on this device (or
-          // carried over from a pre-login guest session) should never be
-          // silently discarded just because the account already had some
-          // items saved from another session.
-          const mergedCart = mergeCartItems(localCart, backendCart);
-          const mergedWishlist = mergeWishlistItems(localWishlist, backendWishlist);
-          setCartItems(mergedCart);
-          setWishlistItems(mergedWishlist);
-          safeSetStorageItems(cartStorageKey, mergedCart);
-          safeSetStorageItems(wishlistStorageKey, mergedWishlist);
+          // Union against whatever is *currently* in state (via the
+          // functional updater) rather than the `localCart`/`localWishlist`
+          // snapshot captured when this effect started — this fetch is
+          // async, so the user may have already added something in the
+          // meantime, and overwriting with a stale snapshot would silently
+          // discard it. Conflicts keep the current/local copy: local and
+          // backend are normally two copies of the *same* cart, not two
+          // separate purchases, so quantities must not be added together
+          // here (that caused quantities to snowball on every reload/login).
+          let finalCart: CartItem[] = [];
+          setCartItems((prev) => {
+            finalCart = unionItemsPreferFirst(prev, backendCart);
+            return finalCart;
+          });
+          let finalWishlist: CartItem[] = [];
+          setWishlistItems((prev) => {
+            finalWishlist = unionItemsPreferFirst(prev, backendWishlist);
+            return finalWishlist;
+          });
+          safeSetStorageItems(cartStorageKey, finalCart);
+          safeSetStorageItems(wishlistStorageKey, finalWishlist);
         }
       } catch {
         // Ignore hydrate failures and continue with local state.
@@ -341,7 +425,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     };
 
     hydrateFromBackend().finally(() => {
-      setHydrated(true);
+      if (hydrationGenRef.current === gen) setHydrated(true);
     });
   }, [identityKey, userEmail, cartStorageKey, wishlistStorageKey, currentRole]);
 
@@ -355,8 +439,25 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         // Ignore storage failures — expiry just won't be enforced this write.
       }
     }
-    persistBackend(cartItems, wishlistItems);
+
+    // Debounced: firing an independent fetch+PUT on every single change lets
+    // two rapid edits (e.g. removing two items back to back) race each
+    // other on the server, where the older/stale write can land last and
+    // silently undo the newer one. Coalescing into one write of the final
+    // state after a short pause avoids that.
+    if (persistTimerRef.current) clearTimeout(persistTimerRef.current);
+    const cartToPersist = cartItems;
+    const wishlistToPersist = wishlistItems;
+    persistTimerRef.current = setTimeout(() => {
+      persistBackend(cartToPersist, wishlistToPersist);
+    }, 600);
   }, [cartItems, wishlistItems, cartStorageKey, wishlistStorageKey, currentRole]);
+
+  useEffect(() => {
+    return () => {
+      if (persistTimerRef.current) clearTimeout(persistTimerRef.current);
+    };
+  }, []);
 
   // Proactively clear an expired guest cart while the tab stays open past
   // the 1-hour mark, instead of only checking on the next load/hydration.
@@ -388,6 +489,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     ) {
       return;
     }
+
+    cartTouchedRef.current = true;
 
     const normalizedProduct: Omit<CartItem, "quantity"> = {
       ...product,
@@ -426,10 +529,12 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const removeFromCart = (id: string) => {
+    cartTouchedRef.current = true;
     setCartItems((prev) => prev.filter((item) => item.id !== id));
   };
 
   const updateQuantity = (id: string, quantity: number) => {
+    cartTouchedRef.current = true;
     setCartItems((prev) =>
       prev.map((item) =>
         item.id === id ? { ...item, quantity: Math.max(1, quantity) } : item
@@ -437,10 +542,33 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     );
   };
 
-  const clearCart = () => setCartItems([]);
+  const setCartItemClinic = (
+    id: string,
+    clinic: { clinicId: string; clinicName: string; clinicAddress?: string }
+  ) => {
+    cartTouchedRef.current = true;
+    setCartItems((prev) =>
+      prev.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              clinicId: clinic.clinicId,
+              clinicName: clinic.clinicName,
+              clinicAddress: clinic.clinicAddress,
+            }
+          : item
+      )
+    );
+  };
+
+  const clearCart = () => {
+    cartTouchedRef.current = true;
+    setCartItems([]);
+  };
   const dismissCartPreview = () => setCartPreview(null);
 
   const addToWishlist = (product: Omit<CartItem, "quantity">) => {
+    cartTouchedRef.current = true;
     setWishlistItems((prev) => {
       if (prev.some((item) => item.id === product.id)) return prev;
       return [...prev, { ...product, quantity: 1 }];
@@ -449,10 +577,12 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const removeFromWishlist = (id: string) => {
+    cartTouchedRef.current = true;
     setWishlistItems((prev) => prev.filter((item) => item.id !== id));
   };
 
   const toggleWishlist = (product: Omit<CartItem, "quantity">) => {
+    cartTouchedRef.current = true;
     setWishlistItems((prev) => {
       const exists = prev.some((item) => item.id === product.id);
       if (exists) {
@@ -474,6 +604,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         addToCart,
         removeFromCart,
         updateQuantity,
+        setCartItemClinic,
         clearCart,
         dismissCartPreview,
         addToWishlist,

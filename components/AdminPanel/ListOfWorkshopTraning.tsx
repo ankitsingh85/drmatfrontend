@@ -2,7 +2,9 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { API_URL } from "@/config/api";
-import { FiEdit2, FiTrash2 } from "react-icons/fi";
+import { useToast } from "@/context/ToastContext";
+import { useConfirm } from "@/context/ConfirmContext";
+import TableActions from "@/components/AdminPanel/common/TableActions";
 
 type WorkshopTraining = {
   _id: string;
@@ -108,6 +110,17 @@ const thTdStyle: React.CSSProperties = {
   verticalAlign: "top",
 };
 
+const theadStyle: React.CSSProperties = {
+  ...thTdStyle,
+  background: "linear-gradient(135deg, #0a4b83 0%, #1264a3 100%)",
+  color: "#eaf3ff",
+  fontSize: 12,
+  fontWeight: 800,
+  textTransform: "uppercase",
+  letterSpacing: "0.06em",
+  whiteSpace: "nowrap",
+};
+
 type ListOfWorkshopTraningProps = {
   canEdit?: boolean;
   canDelete?: boolean;
@@ -117,6 +130,8 @@ export default function ListOfWorkshopTraning({
   canEdit = true,
   canDelete = true,
 }: ListOfWorkshopTraningProps) {
+  const toast = useToast();
+  const confirmDialog = useConfirm();
   const [items, setItems] = useState<WorkshopTraining[]>([]);
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState("all");
@@ -270,7 +285,7 @@ export default function ListOfWorkshopTraning({
   const handleDownloadPDF = () => {
     const printable = window.open("", "_blank");
     if (!printable) {
-      alert("Unable to open print window. Please allow popups.");
+      toast.error("Unable to open print window. Please allow popups.");
       return;
     }
 
@@ -341,7 +356,7 @@ export default function ListOfWorkshopTraning({
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this workshop training?")) return;
+    if (!(await confirmDialog("Are you sure you want to delete this workshop training?", { danger: true }))) return;
 
     try {
       const endpointCandidates = [
@@ -541,15 +556,15 @@ export default function ListOfWorkshopTraning({
           <table style={tableStyle}>
             <thead>
               <tr>
-                <th style={thTdStyle}>Training</th>
-                <th style={thTdStyle}>Code</th>
-                <th style={thTdStyle}>Type</th>
-                <th style={thTdStyle}>Institute</th>
-                <th style={thTdStyle}>Trainer</th>
-                <th style={thTdStyle}>Start Date</th>
-                <th style={thTdStyle}>Fee</th>
-                <th style={thTdStyle}>Availability</th>
-                <th style={thTdStyle}>Actions</th>
+                <th style={theadStyle}>Training</th>
+                <th style={theadStyle}>Code</th>
+                <th style={theadStyle}>Type</th>
+                <th style={theadStyle}>Institute</th>
+                <th style={theadStyle}>Trainer</th>
+                <th style={theadStyle}>Start Date</th>
+                <th style={theadStyle}>Fee</th>
+                <th style={theadStyle}>Availability</th>
+                <th style={theadStyle}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -566,30 +581,12 @@ export default function ListOfWorkshopTraning({
                   </td>
                   <td style={thTdStyle}>{item.currentAvailability || "-"}</td>
                   <td style={thTdStyle}>
-                    <div style={{ display: "flex", gap: 8 }}>
-                      {canEdit && (
-                        <button
-                          type="button"
-                          onClick={() => handleEdit(item)}
-                          style={editIconStyle}
-                          title="Edit workshop training"
-                          aria-label="Edit workshop training"
-                        >
-                          <FiEdit2 />
-                        </button>
-                      )}
-                      {canDelete && (
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(item._id)}
-                          style={deleteIconStyle}
-                          title="Delete workshop training"
-                          aria-label="Delete workshop training"
-                        >
-                          <FiTrash2 />
-                        </button>
-                      )}
-                    </div>
+                    <TableActions
+                      onEdit={() => handleEdit(item)}
+                      onDelete={() => handleDelete(item._id)}
+                      canEdit={canEdit}
+                      canDelete={canDelete}
+                    />
                   </td>
                 </tr>
               ))}

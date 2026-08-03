@@ -16,6 +16,9 @@ interface OrderProduct {
   price: number;
   image?: string;
   itemType?: "product" | "treatment";
+  clinicId?: string;
+  clinicName?: string;
+  clinicAddress?: string;
 }
 
 interface Order {
@@ -334,6 +337,12 @@ const UserOrderHistory: React.FC<OrderHistoryProps> = ({ mode = "all" }) => {
                         <div className={styles.itemMeta}>
                           <p className={styles.itemName}>{p.name}</p>
                           <span className={styles.itemQty}>Qty: {p.quantity}</span>
+                          {p.itemType === "treatment" && p.clinicName && (
+                            <p className={styles.clinicInfo}>
+                              Clinic: {p.clinicName}
+                              {p.clinicAddress ? ` — ${p.clinicAddress}` : ""}
+                            </p>
+                          )}
                         </div>
                       </div>
                       <div className={styles.itemPrice}>

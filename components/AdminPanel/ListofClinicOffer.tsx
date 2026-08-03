@@ -5,6 +5,8 @@ import axios from "axios";
 import styles from "@/styles/UpdateOffer.module.css";
 import { API_URL } from "@/config/api";
 import { resolveMediaUrl } from "@/lib/media";
+import { useToast } from "@/context/ToastContext";
+import TableActions from "@/components/AdminPanel/common/TableActions";
 
 interface ClinicCategoryOption {
   _id: string;
@@ -62,6 +64,7 @@ type ListofClinicOfferProps = {
 };
 
 const ListofClinicOffer = ({ canEdit = true, canDelete = true }: ListofClinicOfferProps) => {
+  const toast = useToast();
   const [offers, setOffers] = useState<Offer[]>([]);
   const [clinics, setClinics] = useState<ClinicOption[]>([]);
   const [categories, setCategories] = useState<ClinicCategoryOption[]>([]);
@@ -278,7 +281,7 @@ const ListofClinicOffer = ({ canEdit = true, canDelete = true }: ListofClinicOff
 
       await axios.post(`${API_URL}/offer3`, formData);
 
-      alert("Offer uploaded successfully");
+      toast.success("Offer uploaded successfully");
       await fetchOffers();
       closeUploadModal(true);
     } catch (err) {
@@ -519,19 +522,12 @@ const ListofClinicOffer = ({ canEdit = true, canDelete = true }: ListofClinicOff
               </p>
             </div>
             <div className={styles.buttons}>
-              {canEdit && (
-                <button
-                  onClick={() => handleUpdateClick(offer._id)}
-                  className={styles.updateBtn}
-                >
-                  Update
-                </button>
-              )}
-              {canDelete && (
-                <button onClick={() => handleDelete(offer._id)} className={styles.deleteBtn}>
-                  Delete
-                </button>
-              )}
+              <TableActions
+                onEdit={() => handleUpdateClick(offer._id)}
+                onDelete={() => handleDelete(offer._id)}
+                canEdit={canEdit}
+                canDelete={canDelete}
+              />
             </div>
           </div>
         ))}

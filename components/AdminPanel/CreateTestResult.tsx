@@ -2,8 +2,10 @@
 
 import React, { useState } from "react";
 import styles from "@/styles/Dashboard/createtestresult.module.css";
+import { useToast } from "@/context/ToastContext";
 
 export default function CreateTestResult() {
+  const toast = useToast();
   /* ================= AUTO PATIENT ID ================= */
   const [patientId] = useState(`PAT-${Date.now().toString().slice(-6)}`);
 
@@ -47,7 +49,7 @@ export default function CreateTestResult() {
     };
 
     console.log("✅ TEST RESULT PAYLOAD", payload);
-    alert("Test Result saved successfully (check console)");
+    toast.success("Test Result saved successfully (check console)");
   };
 
   /* ================= UI ================= */

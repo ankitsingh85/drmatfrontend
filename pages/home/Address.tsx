@@ -20,6 +20,7 @@ import { IoClose } from "react-icons/io5";
 import { CartItem, useCart } from "@/context/CartContext";
 import { API_URL } from "@/config/api";
 import { resolveMediaUrl } from "@/lib/media";
+import { useToast } from "@/context/ToastContext";
 // import {logo} from "@/public/logo.jpeg"
 interface Address {
   type: string;
@@ -300,6 +301,7 @@ const readStoredDoctorAddressIndex = (doctorId?: string) => {
 
 const AddressPage: React.FC = () => {
   const router = useRouter();
+  const toast = useToast();
   const currentRole = Cookies.get("role")?.toLowerCase();
   const isClinicMode = currentRole === "clinic";
   const isDoctorMode = currentRole === "doctor";
@@ -559,7 +561,7 @@ const AddressPage: React.FC = () => {
     if (!isClinicMode) return;
     const clinicId = Cookies.get("clinicId") || localStorage.getItem("clinicId");
     if (!clinicId) {
-      router.replace("/cliniclogin?next=/home/Address");
+      router.replace("/businesslogin?next=/home/Address");
       return;
     }
 
@@ -619,7 +621,7 @@ const AddressPage: React.FC = () => {
         })(),
       });
     } catch {
-      router.replace("/cliniclogin?next=/home/Address");
+      router.replace("/businesslogin?next=/home/Address");
     } finally {
       setIsLoadingUser(false);
     }
@@ -630,7 +632,7 @@ const AddressPage: React.FC = () => {
     const token = Cookies.get("token");
     const doctorId = Cookies.get("doctorId") || localStorage.getItem("doctorId") || "";
     if (!token || !doctorId) {
-      router.replace("/doctorlogin?next=/home/Address");
+      router.replace("/businesslogin?next=/home/Address");
       return;
     }
 
@@ -669,7 +671,7 @@ const AddressPage: React.FC = () => {
       setDoctorAddresses(mergedAddresses);
       setSelectedDoctorAddressIndex(selectedIndex);
     } catch {
-      router.replace("/doctorlogin?next=/home/Address");
+      router.replace("/businesslogin?next=/home/Address");
     } finally {
       setIsLoadingUser(false);
     }
@@ -1553,7 +1555,7 @@ const AddressPage: React.FC = () => {
               className={styles.saveDeliver}
               onClick={() => {
                 if (!formatAddressText(selectedDoctorAddress)) {
-                  alert("Please add a doctor billing address.");
+                  toast.error("Please add a doctor billing address.");
                   return;
                 }
 
@@ -1852,15 +1854,15 @@ const AddressPage: React.FC = () => {
       !addr.district?.trim() ||
       !addr.state?.trim()
     ) {
-      alert("Please fill all address fields.");
+      toast.error("Please fill all address fields.");
       return false;
     }
     if (!/^\d{10}$/.test(addr.mobileNo || "")) {
-      alert("Please enter a valid 10-digit mobile number.");
+      toast.error("Please enter a valid 10-digit mobile number.");
       return false;
     }
     if (!/^\d{6}$/.test(addr.pincode || "")) {
-      alert("Please enter a valid 6-digit pincode.");
+      toast.error("Please enter a valid 6-digit pincode.");
       return false;
     }
     return true;
@@ -1974,7 +1976,7 @@ const AddressPage: React.FC = () => {
     const nextAddress = formatAddressText(nextClinicAddress);
 
     if (!nextClinicName || !nextEmail || !nextAddress) {
-      alert("Please fill clinic name, email, and address details.");
+      toast.error("Please fill clinic name, email, and address details.");
       return;
     }
     if (!validateAddress(nextClinicAddress)) return;
@@ -2052,7 +2054,7 @@ const AddressPage: React.FC = () => {
       setShowClinicEditModal(false);
     } catch (err) {
       console.error("Failed to update clinic profile:", err);
-      alert("Could not update clinic details. Please try again.");
+      toast.error("Could not update clinic details. Please try again.");
     }
   }
 
@@ -2198,7 +2200,7 @@ const AddressPage: React.FC = () => {
         });
 
       if (!clinic?.clinicName || !formatAddressText(clinicPaymentAddress)) {
-        alert("Clinic profile is incomplete.");
+        toast.error("Clinic profile is incomplete.");
         return;
       }
 
@@ -2216,12 +2218,12 @@ const AddressPage: React.FC = () => {
     }
 
     if (!user || !user.addresses.length) {
-      alert("Please add at least one delivery address.");
+      toast.error("Please add at least one delivery address.");
       return;
     }
     const selectedAddress = user.addresses[selectedAddressIndex];
     if (!selectedAddress) {
-      alert("Please select a delivery address.");
+      toast.error("Please select a delivery address.");
       return;
     }
 

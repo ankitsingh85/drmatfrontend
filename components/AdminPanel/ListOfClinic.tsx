@@ -3,10 +3,38 @@ export const dynamic = "force-dynamic";
 
 import { API_URL } from "@/config/api";
 import React, { useEffect, useMemo, useState } from "react";
+import dynamicImport from "next/dynamic";
 import styles from "@/styles/Dashboard/listofclinic.module.css";
-import createStyles from "@/styles/Dashboard/createclinic.module.css";
+import editStyles from "@/styles/Dashboard/editclinic.module.css";
 import FullPageLoader from "@/components/common/FullPageLoader";
 import { resolveMediaUrl } from "@/lib/media";
+import { useToast } from "@/context/ToastContext";
+import TableActions from "@/components/AdminPanel/common/TableActions";
+import { useConfirm } from "@/context/ConfirmContext";
+import "react-quill/dist/quill.snow.css";
+
+const ReactQuill = dynamicImport(() => import("react-quill"), { ssr: false });
+
+const WEEK_DAYS = [
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+  "Sunday",
+];
+
+const quillModules = {
+  toolbar: [
+    [{ header: [1, 2, 3, false] }],
+    ["bold", "italic", "underline", "strike"],
+    [{ list: "ordered" }, { list: "bullet" }],
+    [{ color: [] }, { background: [] }],
+    ["link"],
+    ["clean"],
+  ],
+};
 
 type ClinicCategory = {
   _id: string;
@@ -19,23 +47,57 @@ type Doctor = {
   specialization: string;
 };
 
+type WorkingHours = {
+  openTime: string;
+  closeTime: string;
+  days: string[];
+  offDays: string[];
+};
+
 type Clinic = {
   _id: string;
   cuc: string;
   clinicName: string;
+  slug?: string;
+  clinicType?: string;
+  ownerName?: string;
   website?: string;
   contactNumber?: string;
+  whatsapp?: string;
   email: string;
   dermaCategory?: ClinicCategory;
   address: string;
+  city?: string;
+  services?: string;
+  sector?: string;
+  pincode?: string;
+  mapLink?: string;
   clinicStatus?: string;
   verifiedBadge?: boolean;
   isActive?: boolean;
   doctors: Doctor[];
+  workingHours?: WorkingHours;
 
   clinicLogo?: string;
   bannerImage?: string;
+  rateCard?: string[];
+  specialOffers?: string[];
   photos?: string[];
+  certifications?: string[];
+  video?: string;
+
+  licenseNo?: string;
+  experience?: string;
+  treatmentsAvailable?: string;
+  availableServices?: string;
+  consultationFee?: string;
+  bookingMode?: string;
+  clinicDescription?: string;
+  instagram?: string;
+  linkedin?: string;
+  facebook?: string;
+  standardPlanLink?: string;
+
   createdAt?: string;
   updatedAt?: string;
 
@@ -44,12 +106,76 @@ type Clinic = {
   approvedAt?: string;
 };
 
+type EditForm = {
+  clinicName: string;
+  dermaCategory: string;
+  clinicType: string;
+  ownerName: string;
+  website: string;
+  contactNumber: string;
+  whatsapp: string;
+  email: string;
+  address: string;
+  city: string;
+  services: string;
+  sector: string;
+  pincode: string;
+  mapLink: string;
+  video: string;
+  clinicDescription: string;
+  licenseNo: string;
+  experience: string;
+  treatmentsAvailable: string;
+  availableServices: string;
+  consultationFee: string;
+  bookingMode: string;
+  instagram: string;
+  linkedin: string;
+  facebook: string;
+  standardPlanLink: string;
+  clinicStatus: string;
+  verifiedBadge: boolean;
+};
+
+const emptyEditForm: EditForm = {
+  clinicName: "",
+  dermaCategory: "",
+  clinicType: "",
+  ownerName: "",
+  website: "",
+  contactNumber: "",
+  whatsapp: "",
+  email: "",
+  address: "",
+  city: "",
+  services: "",
+  sector: "",
+  pincode: "",
+  mapLink: "",
+  video: "",
+  clinicDescription: "",
+  licenseNo: "",
+  experience: "",
+  treatmentsAvailable: "",
+  availableServices: "",
+  consultationFee: "",
+  bookingMode: "",
+  instagram: "",
+  linkedin: "",
+  facebook: "",
+  standardPlanLink: "",
+  clinicStatus: "Open",
+  verifiedBadge: false,
+};
+
 type ListOfClinicProps = {
   canEdit?: boolean;
   canDelete?: boolean;
 };
 
 function ListOfClinic({ canEdit = true, canDelete = true }: ListOfClinicProps) {
+  const toast = useToast();
+  const confirmDialog = useConfirm();
   const [clinics, setClinics] = useState<Clinic[]>([]);
   const [categories, setCategories] = useState<ClinicCategory[]>([]);
   const [search, setSearch] = useState("");
@@ -60,8 +186,43 @@ function ListOfClinic({ canEdit = true, canDelete = true }: ListOfClinicProps) {
   const [loading, setLoading] = useState(true);
 
   const [editingClinic, setEditingClinic] = useState<Clinic | null>(null);
-  const [editForm, setEditForm] = useState<Partial<Clinic>>({});
+  const [editForm, setEditForm] = useState<EditForm>(emptyEditForm);
   const [isEditing, setIsEditing] = useState(false);
+  const [editLoading, setEditLoading] = useState(false);
+  const [editSubmitting, setEditSubmitting] = useState(false);
+
+  const [editDoctors, setEditDoctors] = useState<Doctor[]>([]);
+  const [showEditDoctorModal, setShowEditDoctorModal] = useState(false);
+  const [editDoctorForm, setEditDoctorForm] = useState<Doctor>({
+    name: "",
+    regNo: "",
+    specialization: "",
+  });
+
+  const [editWorkingHours, setEditWorkingHours] = useState<WorkingHours>({
+    openTime: "",
+    closeTime: "",
+    days: [],
+    offDays: [],
+  });
+
+  // "Kept" existing media URLs (removable) — merged server-side with any
+  // newly uploaded files instead of wiping the field on every save.
+  const [editKeptLogo, setEditKeptLogo] = useState("");
+  const [editKeptBanner, setEditKeptBanner] = useState("");
+  const [editKeptRateCard, setEditKeptRateCard] = useState<string[]>([]);
+  const [editKeptSpecialOffers, setEditKeptSpecialOffers] = useState<string[]>([]);
+  const [editKeptPhotos, setEditKeptPhotos] = useState<string[]>([]);
+  const [editKeptCertifications, setEditKeptCertifications] = useState<string[]>([]);
+
+  const [editMedia, setEditMedia] = useState({
+    clinicLogo: null as File | null,
+    bannerImage: null as File | null,
+    rateCard: [] as File[],
+    specialOffers: [] as File[],
+    photos: [] as File[],
+    certifications: [] as File[],
+  });
 
   const [viewClinic, setViewClinic] = useState<Clinic | null>(null);
 
@@ -150,31 +311,261 @@ function ListOfClinic({ canEdit = true, canDelete = true }: ListOfClinicProps) {
   }, [filteredClinics, currentPage, itemsPerPage]);
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Delete this clinic?")) return;
+    if (!(await confirmDialog("Delete this clinic?", { danger: true }))) return;
     await fetch(`${API_URL}/clinics/${id}`, { method: "DELETE" });
     setClinics((prev) => prev.filter((c) => c._id !== id));
   };
 
-  const handleEdit = (clinic: Clinic) => {
-    setEditingClinic(clinic);
-    setEditForm({
-      clinicName: clinic.clinicName,
-      website: clinic.website,
-      contactNumber: clinic.contactNumber,
-      email: clinic.email,
-      address: clinic.address,
-      clinicStatus: clinic.clinicStatus,
-      verifiedBadge: clinic.verifiedBadge,
-      isActive: clinic.isActive,
-      dermaCategory: clinic.dermaCategory,
+  const resetEditMediaState = () => {
+    setEditMedia({
+      clinicLogo: null,
+      bannerImage: null,
+      rateCard: [],
+      specialOffers: [],
+      photos: [],
+      certifications: [],
     });
+  };
+
+  const handleEdit = async (clinic: Clinic) => {
     setIsEditing(true);
+    setEditingClinic(clinic);
+    setEditLoading(true);
+    resetEditMediaState();
+
+    try {
+      const res = await fetch(`${API_URL}/clinics/${clinic._id}`);
+      if (!res.ok) throw new Error("Failed to load clinic details");
+      const full: Clinic = await res.json();
+
+      setEditingClinic(full);
+      setEditForm({
+        clinicName: full.clinicName || "",
+        dermaCategory: full.dermaCategory?._id || "",
+        clinicType: full.clinicType || "",
+        ownerName: full.ownerName || "",
+        website: full.website || "",
+        contactNumber: full.contactNumber || "",
+        whatsapp: full.whatsapp || "",
+        email: full.email || "",
+        address: full.address || "",
+        city: full.city || "",
+        services: full.services || "",
+        sector: full.sector || "",
+        pincode: full.pincode || "",
+        mapLink: full.mapLink || "",
+        video: full.video || "",
+        clinicDescription: full.clinicDescription || "",
+        licenseNo: full.licenseNo || "",
+        experience: full.experience || "",
+        treatmentsAvailable: full.treatmentsAvailable || "",
+        availableServices: full.availableServices || "",
+        consultationFee: full.consultationFee || "",
+        bookingMode: full.bookingMode || "",
+        instagram: full.instagram || "",
+        linkedin: full.linkedin || "",
+        facebook: full.facebook || "",
+        standardPlanLink: full.standardPlanLink || "",
+        clinicStatus: full.clinicStatus || "Open",
+        verifiedBadge: !!full.verifiedBadge,
+      });
+      setEditDoctors(full.doctors || []);
+      setEditWorkingHours({
+        openTime: full.workingHours?.openTime || "",
+        closeTime: full.workingHours?.closeTime || "",
+        days: full.workingHours?.days || [],
+        offDays: full.workingHours?.offDays || [],
+      });
+      setEditKeptLogo(full.clinicLogo || "");
+      setEditKeptBanner(full.bannerImage || "");
+      setEditKeptRateCard(full.rateCard || []);
+      setEditKeptSpecialOffers(full.specialOffers || []);
+      setEditKeptPhotos(full.photos || []);
+      setEditKeptCertifications(full.certifications || []);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to load clinic for editing");
+      setIsEditing(false);
+      setEditingClinic(null);
+    } finally {
+      setEditLoading(false);
+    }
   };
 
   const handleEditChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
-    setEditForm({ ...editForm, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setEditForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleEditWorkingTimeChange = (
+    field: "openTime" | "closeTime",
+    value: string
+  ) => {
+    setEditWorkingHours((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const toggleEditWorkingDay = (day: string) => {
+    setEditWorkingHours((prev) => {
+      const isSelected = prev.days.includes(day);
+      return {
+        ...prev,
+        days: isSelected ? prev.days.filter((d) => d !== day) : [...prev.days, day],
+        offDays: isSelected ? prev.offDays : prev.offDays.filter((d) => d !== day),
+      };
+    });
+  };
+
+  const toggleEditOffDay = (day: string) => {
+    setEditWorkingHours((prev) => {
+      const isSelected = prev.offDays.includes(day);
+      return {
+        ...prev,
+        offDays: isSelected ? prev.offDays.filter((d) => d !== day) : [...prev.offDays, day],
+        days: isSelected ? prev.days : prev.days.filter((d) => d !== day),
+      };
+    });
+  };
+
+  const handleEditDoctorFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setEditDoctorForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const saveEditDoctor = () => {
+    if (!editDoctorForm.name || !editDoctorForm.regNo || !editDoctorForm.specialization) {
+      toast.error("Please fill all doctor details");
+      return;
+    }
+    setEditDoctors((prev) => [...prev, editDoctorForm]);
+    setEditDoctorForm({ name: "", regNo: "", specialization: "" });
+    setShowEditDoctorModal(false);
+  };
+
+  const removeEditDoctor = (index: number) => {
+    setEditDoctors((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleEditFileChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    field: "clinicLogo" | "bannerImage" | "rateCard" | "specialOffers" | "photos" | "certifications"
+  ) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    if (field === "specialOffers" || field === "photos" || field === "certifications" || field === "rateCard") {
+      setEditMedia((prev) => ({
+        ...prev,
+        [field]: [...prev[field], ...Array.from(files)],
+      }));
+    } else {
+      setEditMedia((prev) => ({ ...prev, [field]: files[0] }));
+    }
+    e.target.value = "";
+  };
+
+  const removeStagedFile = (
+    field: "rateCard" | "specialOffers" | "photos" | "certifications",
+    index: number
+  ) => {
+    setEditMedia((prev) => ({
+      ...prev,
+      [field]: prev[field].filter((_, i) => i !== index),
+    }));
+  };
+
+  const getImage = (img?: string) => resolveMediaUrl(img) || "";
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingClinic) return;
+
+    if (
+      !editForm.clinicName.trim() ||
+      !editForm.dermaCategory ||
+      !editForm.contactNumber.trim() ||
+      !editForm.whatsapp.trim()
+    ) {
+      toast.error(
+        "Please fill Clinic Name, Category, Contact Number and Whatsapp Contact Number before saving."
+      );
+      return;
+    }
+
+    try {
+      setEditSubmitting(true);
+      const formData = new FormData();
+      formData.append("clinicName", editForm.clinicName);
+      formData.append("dermaCategory", editForm.dermaCategory);
+      formData.append("clinicType", editForm.clinicType);
+      formData.append("ownerName", editForm.ownerName);
+      formData.append("website", editForm.website);
+      formData.append("address", editForm.address);
+      formData.append("city", editForm.city);
+      formData.append("services", editForm.services);
+      formData.append("sector", editForm.sector);
+      formData.append("pincode", editForm.pincode);
+      formData.append("mapLink", editForm.mapLink);
+      formData.append("contactNumber", editForm.contactNumber);
+      formData.append("whatsapp", editForm.whatsapp);
+      formData.append("email", editForm.email);
+      formData.append("video", editForm.video);
+      formData.append("workingHours", JSON.stringify(editWorkingHours));
+      formData.append("clinicDescription", editForm.clinicDescription);
+      formData.append("licenseNo", editForm.licenseNo);
+      formData.append("experience", editForm.experience);
+      formData.append("treatmentsAvailable", editForm.treatmentsAvailable);
+      formData.append("availableServices", editForm.availableServices);
+      formData.append("consultationFee", editForm.consultationFee);
+      formData.append("bookingMode", editForm.bookingMode);
+      formData.append("instagram", editForm.instagram);
+      formData.append("linkedin", editForm.linkedin);
+      formData.append("facebook", editForm.facebook);
+      formData.append("standardPlanLink", editForm.standardPlanLink);
+      formData.append("clinicStatus", editForm.clinicStatus);
+      formData.append("verifiedBadge", String(editForm.verifiedBadge));
+      formData.append("doctors", JSON.stringify(editDoctors));
+
+      formData.append("rateCard", JSON.stringify(editKeptRateCard));
+      formData.append("specialOffers", JSON.stringify(editKeptSpecialOffers));
+      formData.append("photos", JSON.stringify(editKeptPhotos));
+      formData.append("certifications", JSON.stringify(editKeptCertifications));
+
+      if (editMedia.clinicLogo) formData.append("clinicLogo", editMedia.clinicLogo);
+      if (editMedia.bannerImage) formData.append("bannerImage", editMedia.bannerImage);
+      editMedia.rateCard.forEach((file) => formData.append("rateCard", file));
+      editMedia.specialOffers.forEach((file) => formData.append("specialOffers", file));
+      editMedia.photos.forEach((file) => formData.append("photos", file));
+      editMedia.certifications.forEach((file) => formData.append("certifications", file));
+
+      const res = await fetch(`${API_URL}/clinics/${editingClinic._id}`, {
+        method: "PUT",
+        body: formData,
+      });
+
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(data?.message || "Failed to update clinic");
+      }
+
+      await fetchClinics();
+      setIsEditing(false);
+      setEditingClinic(null);
+      setEditForm(emptyEditForm);
+      resetEditMediaState();
+      toast.success("Clinic updated successfully");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to update clinic");
+    } finally {
+      setEditSubmitting(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditingClinic(null);
+    setEditForm(emptyEditForm);
+    resetEditMediaState();
   };
 
   const handleToggleActive = async (clinic: Clinic) => {
@@ -209,12 +600,17 @@ function ListOfClinic({ canEdit = true, canDelete = true }: ListOfClinicProps) {
           item._id === clinic._id ? { ...item, isActive: clinic.isActive } : item
         )
       );
-      alert(error instanceof Error ? error.message : "Failed to update clinic status");
+      toast.error(error instanceof Error ? error.message : "Failed to update clinic status");
     }
   };
 
   const handleApprove = async (clinic: Clinic) => {
-    if (!confirm(`Approve "${clinic.clinicName}"? They'll be notified by email and can log in right away.`)) {
+    if (
+      !(await confirmDialog(
+        `Approve "${clinic.clinicName}"? They'll be notified by email and can log in right away.`,
+        { confirmLabel: "Approve" }
+      ))
+    ) {
       return;
     }
 
@@ -235,7 +631,7 @@ function ListOfClinic({ canEdit = true, canDelete = true }: ListOfClinicProps) {
         )
       );
     } catch (error) {
-      alert(error instanceof Error ? error.message : "Failed to approve clinic");
+      toast.error(error instanceof Error ? error.message : "Failed to approve clinic");
     }
   };
 
@@ -265,45 +661,8 @@ function ListOfClinic({ canEdit = true, canDelete = true }: ListOfClinicProps) {
         )
       );
     } catch (error) {
-      alert(error instanceof Error ? error.message : "Failed to reject clinic");
+      toast.error(error instanceof Error ? error.message : "Failed to reject clinic");
     }
-  };
-
-  const handleEditSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingClinic) return;
-
-    const payload = {
-      ...editForm,
-      dermaCategory: editForm.dermaCategory?._id,
-    };
-
-    const res = await fetch(`${API_URL}/clinics/${editingClinic._id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-
-    const updated = await res.json();
-
-    setClinics((prev) =>
-      prev.map((c) => (c._id === updated._id ? updated : c))
-    );
-
-    setIsEditing(false);
-    setEditingClinic(null);
-    setEditForm({});
-    alert("✅ Clinic updated successfully");
-  };
-
-  const handleCancelEdit = () => {
-    setIsEditing(false);
-    setEditingClinic(null);
-    setEditForm({});
-  };
-
-  const getImage = (img?: string) => {
-    return resolveMediaUrl(img) || "";
   };
 
   const handleDownloadCSV = () => {
@@ -344,7 +703,7 @@ function ListOfClinic({ canEdit = true, canDelete = true }: ListOfClinicProps) {
   const handleDownloadPDF = () => {
     const printable = window.open("", "_blank");
     if (!printable) {
-      alert("Unable to open print window. Please allow popups.");
+      toast.error("Unable to open print window. Please allow popups.");
       return;
     }
 
@@ -477,7 +836,6 @@ function ListOfClinic({ canEdit = true, canDelete = true }: ListOfClinicProps) {
           <table className={styles.table}>
             <thead>
               <tr>
-                
                 <th>CUC</th>
                 <th>Name</th>
                 <th>Website</th>
@@ -486,7 +844,6 @@ function ListOfClinic({ canEdit = true, canDelete = true }: ListOfClinicProps) {
                 <th>Verified</th>
                 <th>Active</th>
                 <th>Registration</th>
-                <th>View</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -494,21 +851,6 @@ function ListOfClinic({ canEdit = true, canDelete = true }: ListOfClinicProps) {
             <tbody>
               {paginatedClinics.map((clinic) => (
                 <tr key={clinic._id}>
-                  {/* <td>
-                    {clinic.clinicLogo ? (
-                      <img
-                        src={getImage(clinic.clinicLogo)}
-                        style={{
-                          width: 48,
-                          height: 48,
-                          borderRadius: 8,
-                          objectFit: "cover",
-                        }}
-                      />
-                    ) : (
-                      "—"
-                    )}
-                  </td> */}
                   <td>{clinic.cuc}</td>
                   <td>{clinic.clinicName}</td>
                   <td>{clinic.website || "—"}</td>
@@ -560,54 +902,29 @@ function ListOfClinic({ canEdit = true, canDelete = true }: ListOfClinicProps) {
                     })()}
                   </td>
                   <td>
-                    <button
-                      className={styles.viewBtn}
-                      onClick={() => setViewClinic(clinic)}
-                    >
-                      👁
-                    </button>
-                  </td>
-                  <td>
-                    <div className={styles.actions}>
-                      {canEdit && (clinic.approvalStatus || "pending") !== "approved" && (
-                        <button
-                          className={styles.approveBtn}
-                          onClick={() => handleApprove(clinic)}
-                        >
-                          Approve
-                        </button>
-                      )}
-                      {canEdit && (clinic.approvalStatus || "pending") !== "rejected" && (
-                        <button
-                          className={styles.rejectBtn}
-                          onClick={() => handleReject(clinic)}
-                        >
-                          Reject
-                        </button>
-                      )}
-                      {canEdit && (
-                        <button
-                          className={styles.editBtn}
-                          onClick={() => handleEdit(clinic)}
-                        >
-                          ✏️
-                        </button>
-                      )}
-                      {canDelete && (
-                        <button
-                          className={styles.deleteBtn}
-                          onClick={() => handleDelete(clinic._id)}
-                        >
-                          🗑
-                        </button>
-                      )}
-                    </div>
+                    <TableActions
+                      onView={() => setViewClinic(clinic)}
+                      onEdit={() => handleEdit(clinic)}
+                      onDelete={() => handleDelete(clinic._id)}
+                      onApprove={
+                        canEdit && (clinic.approvalStatus || "pending") !== "approved"
+                          ? () => handleApprove(clinic)
+                          : undefined
+                      }
+                      onReject={
+                        canEdit && (clinic.approvalStatus || "pending") !== "rejected"
+                          ? () => handleReject(clinic)
+                          : undefined
+                      }
+                      canEdit={canEdit}
+                      canDelete={canDelete}
+                    />
                   </td>
                 </tr>
               ))}
               {paginatedClinics.length === 0 && (
                 <tr>
-                  <td colSpan={10}>No clinics found.</td>
+                  <td colSpan={9}>No clinics found.</td>
                 </tr>
               )}
             </tbody>
@@ -657,156 +974,637 @@ function ListOfClinic({ canEdit = true, canDelete = true }: ListOfClinicProps) {
         </div>
       )}
 
+      {/* ================= FULL INLINE EDIT FORM ================= */}
+      {isEditing && editingClinic && (
+        <div className={editStyles.container} style={{ marginTop: 40 }}>
+          <h1 className={editStyles.heading}>Edit Clinic</h1>
 
+          {editLoading ? (
+            <FullPageLoader />
+          ) : (
+            <form className={editStyles.form} onSubmit={handleEditSubmit}>
+              {/* 1. CLINIC IDENTITY */}
+              <section className={editStyles.section}>
+                <h2 className={editStyles.sectionTitle}>Clinic Identity</h2>
 
-{/* ================= INLINE EDIT FORM (RESTORED) ================= */}
-{isEditing && editingClinic && (
-  <div className={createStyles.container} style={{ marginTop: 40 }}>
-    <h1 className={createStyles.heading}>Edit Clinic</h1>
+                <div className={editStyles.field}>
+                  <label className={editStyles.label}>Clinic Unique Code</label>
+                  <input value={editingClinic.cuc} disabled className={editStyles.readonlyInput} />
+                </div>
 
-    <form className={createStyles.form} onSubmit={handleEditSubmit}>
-      {/* ===== BASIC INFO ===== */}
-      <div className={createStyles.section}>
-        <h2 className={createStyles.sectionTitle}>Basic Information</h2>
+                <div className={editStyles.field}>
+                  <label className={editStyles.label}>
+                    Clinic Name<span className={editStyles.required}>*</span>
+                  </label>
+                  <input
+                    className={editStyles.input}
+                    name="clinicName"
+                    value={editForm.clinicName}
+                    onChange={handleEditChange}
+                    required
+                  />
+                </div>
 
-        <div className={createStyles.field}>
-          <label className={createStyles.label}>CUC</label>
-          <input
-            value={editingClinic.cuc}
-            disabled
-            className={createStyles.input}
-          />
+                <div className={editStyles.field}>
+                  <label className={editStyles.label}>
+                    Clinic Category<span className={editStyles.required}>*</span>
+                  </label>
+                  <select
+                    className={editStyles.select}
+                    name="dermaCategory"
+                    value={editForm.dermaCategory}
+                    onChange={handleEditChange}
+                    required
+                  >
+                    <option value="">Select Clinic Category</option>
+                    {categories.map((cat) => (
+                      <option key={cat._id} value={cat._id}>
+                        {cat.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className={editStyles.field}>
+                  <label className={editStyles.label}>Clinic Type</label>
+                  <input className={editStyles.input} name="clinicType" value={editForm.clinicType} onChange={handleEditChange} />
+                </div>
+
+                <div className={editStyles.field}>
+                  <label className={editStyles.label}>
+                    Contact Number<span className={editStyles.required}>*</span>
+                  </label>
+                  <input
+                    className={editStyles.input}
+                    name="contactNumber"
+                    value={editForm.contactNumber}
+                    onChange={handleEditChange}
+                    required
+                  />
+                </div>
+
+                <div className={editStyles.field}>
+                  <label className={editStyles.label}>Owner Name</label>
+                  <input className={editStyles.input} name="ownerName" value={editForm.ownerName} onChange={handleEditChange} />
+                </div>
+
+                <div className={editStyles.field}>
+                  <label className={editStyles.label}>Website</label>
+                  <input className={editStyles.input} name="website" value={editForm.website} onChange={handleEditChange} />
+                </div>
+
+                <div className={editStyles.field}>
+                  <label className={editStyles.label}>Verified Badge</label>
+                  <select
+                    className={editStyles.select}
+                    value={String(editForm.verifiedBadge)}
+                    onChange={(e) =>
+                      setEditForm((prev) => ({ ...prev, verifiedBadge: e.target.value === "true" }))
+                    }
+                  >
+                    <option value="false">Verified Badge: No</option>
+                    <option value="true">Verified Badge: Yes</option>
+                  </select>
+                </div>
+
+                <div className={editStyles.field}>
+                  <label className={editStyles.label}>Clinic Status</label>
+                  <select
+                    className={editStyles.select}
+                    name="clinicStatus"
+                    value={editForm.clinicStatus}
+                    onChange={handleEditChange}
+                  >
+                    <option value="Open">Open</option>
+                    <option value="Closed">Closed</option>
+                    <option value="Paused">Paused</option>
+                  </select>
+                </div>
+              </section>
+
+              {/* 2. BRANDING & MEDIA */}
+              <section className={editStyles.section}>
+                <h2 className={editStyles.sectionTitle}>Branding & Media</h2>
+
+                <div className={editStyles.field}>
+                  <label className={editStyles.label}>Clinic Logo</label>
+                  <input
+                    type="file"
+                    accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+                    className={editStyles.input}
+                    onChange={(e) => handleEditFileChange(e, "clinicLogo")}
+                  />
+                  {(editMedia.clinicLogo || editKeptLogo) && (
+                    <img
+                      src={
+                        editMedia.clinicLogo
+                          ? URL.createObjectURL(editMedia.clinicLogo)
+                          : getImage(editKeptLogo)
+                      }
+                      alt=""
+                      className={editStyles.singleMediaPreview}
+                    />
+                  )}
+                </div>
+
+                <div className={editStyles.field}>
+                  <label className={editStyles.label}>Banner Image</label>
+                  <input
+                    type="file"
+                    accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+                    className={editStyles.input}
+                    onChange={(e) => handleEditFileChange(e, "bannerImage")}
+                  />
+                  {(editMedia.bannerImage || editKeptBanner) && (
+                    <img
+                      src={
+                        editMedia.bannerImage
+                          ? URL.createObjectURL(editMedia.bannerImage)
+                          : getImage(editKeptBanner)
+                      }
+                      alt=""
+                      className={editStyles.singleMediaPreview}
+                    />
+                  )}
+                </div>
+
+                <div className={editStyles.fullField}>
+                  <label className={editStyles.label}>Special Offers (Images)</label>
+                  <p className={editStyles.mediaHint}>Existing offers are kept unless removed below.</p>
+                  <input
+                    type="file"
+                    multiple
+                    accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+                    className={editStyles.input}
+                    onChange={(e) => handleEditFileChange(e, "specialOffers")}
+                  />
+                  <div className={editStyles.previewStrip}>
+                    {editKeptSpecialOffers.map((img, i) => (
+                      <div key={`kept-so-${i}`} className={editStyles.previewThumb}>
+                        <img src={getImage(img)} alt="" />
+                        <button
+                          type="button"
+                          className={editStyles.previewRemoveBtn}
+                          onClick={() =>
+                            setEditKeptSpecialOffers((prev) => prev.filter((_, idx) => idx !== i))
+                          }
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                    {editMedia.specialOffers.map((file, i) => (
+                      <div key={`new-so-${i}`} className={editStyles.previewThumb}>
+                        <img src={URL.createObjectURL(file)} alt="" />
+                        <button
+                          type="button"
+                          className={editStyles.previewRemoveBtn}
+                          onClick={() => removeStagedFile("specialOffers", i)}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className={editStyles.fullField}>
+                  <label className={editStyles.label}>Rate Card / Catalogue</label>
+                  <p className={editStyles.mediaHint}>Existing pages are kept unless removed below.</p>
+                  <input
+                    type="file"
+                    multiple
+                    accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+                    className={editStyles.input}
+                    onChange={(e) => handleEditFileChange(e, "rateCard")}
+                  />
+                  <div className={editStyles.previewStrip}>
+                    {editKeptRateCard.map((img, i) => (
+                      <div key={`kept-rc-${i}`} className={editStyles.previewThumb}>
+                        <img src={getImage(img)} alt="" />
+                        <button
+                          type="button"
+                          className={editStyles.previewRemoveBtn}
+                          onClick={() =>
+                            setEditKeptRateCard((prev) => prev.filter((_, idx) => idx !== i))
+                          }
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                    {editMedia.rateCard.map((file, i) => (
+                      <div key={`new-rc-${i}`} className={editStyles.previewThumb}>
+                        <img src={URL.createObjectURL(file)} alt="" />
+                        <button
+                          type="button"
+                          className={editStyles.previewRemoveBtn}
+                          onClick={() => removeStagedFile("rateCard", i)}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className={editStyles.fullField}>
+                  <label className={editStyles.label}>Photos</label>
+                  <p className={editStyles.mediaHint}>Existing photos are kept unless removed below.</p>
+                  <input
+                    type="file"
+                    multiple
+                    accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+                    className={editStyles.input}
+                    onChange={(e) => handleEditFileChange(e, "photos")}
+                  />
+                  <div className={editStyles.previewStrip}>
+                    {editKeptPhotos.map((img, i) => (
+                      <div key={`kept-ph-${i}`} className={editStyles.previewThumb}>
+                        <img src={getImage(img)} alt="" />
+                        <button
+                          type="button"
+                          className={editStyles.previewRemoveBtn}
+                          onClick={() =>
+                            setEditKeptPhotos((prev) => prev.filter((_, idx) => idx !== i))
+                          }
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                    {editMedia.photos.map((file, i) => (
+                      <div key={`new-ph-${i}`} className={editStyles.previewThumb}>
+                        <img src={URL.createObjectURL(file)} alt="" />
+                        <button
+                          type="button"
+                          className={editStyles.previewRemoveBtn}
+                          onClick={() => removeStagedFile("photos", i)}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className={editStyles.field}>
+                  <label className={editStyles.label}>Video URL</label>
+                  <input className={editStyles.input} name="video" value={editForm.video} onChange={handleEditChange} />
+                </div>
+
+                <div className={editStyles.fullField}>
+                  <label className={editStyles.label}>Certifications / Awards (Images)</label>
+                  <p className={editStyles.mediaHint}>Existing certifications are kept unless removed below.</p>
+                  <input
+                    type="file"
+                    multiple
+                    accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+                    className={editStyles.input}
+                    onChange={(e) => handleEditFileChange(e, "certifications")}
+                  />
+                  <div className={editStyles.previewStrip}>
+                    {editKeptCertifications.map((img, i) => (
+                      <div key={`kept-cert-${i}`} className={editStyles.previewThumb}>
+                        <img src={getImage(img)} alt="" />
+                        <button
+                          type="button"
+                          className={editStyles.previewRemoveBtn}
+                          onClick={() =>
+                            setEditKeptCertifications((prev) => prev.filter((_, idx) => idx !== i))
+                          }
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                    {editMedia.certifications.map((file, i) => (
+                      <div key={`new-cert-${i}`} className={editStyles.previewThumb}>
+                        <img src={URL.createObjectURL(file)} alt="" />
+                        <button
+                          type="button"
+                          className={editStyles.previewRemoveBtn}
+                          onClick={() => removeStagedFile("certifications", i)}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </section>
+
+              {/* 3. DOCTORS & EXPERTISE */}
+              <section className={editStyles.section}>
+                <h2 className={editStyles.sectionTitle}>Doctors & Expertise</h2>
+
+                <button
+                  type="button"
+                  className={editStyles.addDoctorBtn}
+                  onClick={() => setShowEditDoctorModal(true)}
+                >
+                  + Add Doctor
+                </button>
+
+                {editDoctors.map((doc, i) => (
+                  <div key={i} className={editStyles.doctorCard}>
+                    <div>
+                      <strong>{doc.name}</strong>
+                      <span>Reg No: {doc.regNo}</span>
+                      <span>{doc.specialization}</span>
+                    </div>
+                    <button
+                      type="button"
+                      className={editStyles.removeDoctorBtn}
+                      onClick={() => removeEditDoctor(i)}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                ))}
+
+                <div className={editStyles.field}>
+                  <label className={editStyles.label}>Standard Treatment Plan Link</label>
+                  <input
+                    className={editStyles.input}
+                    name="standardPlanLink"
+                    value={editForm.standardPlanLink}
+                    onChange={handleEditChange}
+                  />
+                </div>
+              </section>
+
+              {/* 4. LOCATION & CONTACT */}
+              <section className={editStyles.section}>
+                <h2 className={editStyles.sectionTitle}>Location & Contact</h2>
+
+                <div className={editStyles.fullField}>
+                  <label className={editStyles.label}>Clinic Address</label>
+                  <textarea className={editStyles.textarea} name="address" value={editForm.address} onChange={handleEditChange} />
+                </div>
+
+                <div className={editStyles.field}>
+                  <label className={editStyles.label}>City</label>
+                  <input className={editStyles.input} name="city" value={editForm.city} onChange={handleEditChange} />
+                </div>
+
+                <div className={editStyles.field}>
+                  <label className={editStyles.label}>Services</label>
+                  <input className={editStyles.input} name="services" value={editForm.services} onChange={handleEditChange} />
+                </div>
+
+                <div className={editStyles.field}>
+                  <label className={editStyles.label}>Sector</label>
+                  <input className={editStyles.input} name="sector" value={editForm.sector} onChange={handleEditChange} />
+                </div>
+
+                <div className={editStyles.field}>
+                  <label className={editStyles.label}>Pin Code</label>
+                  <input className={editStyles.input} name="pincode" value={editForm.pincode} onChange={handleEditChange} />
+                </div>
+
+                <div className={editStyles.field}>
+                  <label className={editStyles.label}>Google Maps Link</label>
+                  <input className={editStyles.input} name="mapLink" value={editForm.mapLink} onChange={handleEditChange} />
+                </div>
+
+                <div className={editStyles.field}>
+                  <label className={editStyles.label}>Email Address</label>
+                  <input className={editStyles.input} name="email" value={editForm.email} onChange={handleEditChange} />
+                </div>
+
+                <div className={editStyles.field}>
+                  <label className={editStyles.label}>
+                    Whatsapp Contact<span className={editStyles.required}>*</span>
+                  </label>
+                  <input
+                    className={editStyles.input}
+                    name="whatsapp"
+                    value={editForm.whatsapp}
+                    onChange={handleEditChange}
+                    required
+                  />
+                </div>
+
+                <div className={editStyles.fullField}>
+                  <label className={editStyles.label}>Working Hours</label>
+
+                  <div className={editStyles.timeRow}>
+                    <div className={editStyles.field}>
+                      <label className={editStyles.label}>Opening Time</label>
+                      <input
+                        type="time"
+                        className={editStyles.input}
+                        value={editWorkingHours.openTime}
+                        onChange={(e) => handleEditWorkingTimeChange("openTime", e.target.value)}
+                      />
+                    </div>
+                    <div className={editStyles.field}>
+                      <label className={editStyles.label}>Closing Time</label>
+                      <input
+                        type="time"
+                        className={editStyles.input}
+                        value={editWorkingHours.closeTime}
+                        onChange={(e) => handleEditWorkingTimeChange("closeTime", e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ marginTop: 10 }}>
+                    <label className={editStyles.label}>Working Days</label>
+                    <div className={editStyles.dayChipRow} style={{ marginTop: 6 }}>
+                      {WEEK_DAYS.map((day) => {
+                        const selected = editWorkingHours.days.includes(day);
+                        return (
+                          <button
+                            key={`work-${day}`}
+                            type="button"
+                            className={`${editStyles.dayChip} ${selected ? editStyles.dayChipWorking : ""}`}
+                            onClick={() => toggleEditWorkingDay(day)}
+                          >
+                            {day.slice(0, 3)}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div style={{ marginTop: 10 }}>
+                    <label className={editStyles.label}>Clinic Off Days</label>
+                    <div className={editStyles.dayChipRow} style={{ marginTop: 6 }}>
+                      {WEEK_DAYS.map((day) => {
+                        const selected = editWorkingHours.offDays.includes(day);
+                        return (
+                          <button
+                            key={`off-${day}`}
+                            type="button"
+                            className={`${editStyles.dayChip} ${selected ? editStyles.dayChipOff : ""}`}
+                            onClick={() => toggleEditOffDay(day)}
+                          >
+                            {day.slice(0, 3)}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              {/* 5. DESCRIPTION */}
+              <section className={editStyles.section}>
+                <h2 className={editStyles.sectionTitle}>Clinic Description</h2>
+
+                <div className={editStyles.fullField}>
+                  <label className={editStyles.label}>Description</label>
+                  <ReactQuill
+                    theme="snow"
+                    value={editForm.clinicDescription}
+                    onChange={(value) => setEditForm((prev) => ({ ...prev, clinicDescription: value }))}
+                    modules={quillModules}
+                  />
+                </div>
+              </section>
+
+              {/* 6. OPERATIONS & LEGAL */}
+              <section className={editStyles.section}>
+                <h2 className={editStyles.sectionTitle}>Operations & Legal</h2>
+
+                <div className={editStyles.field}>
+                  <label className={editStyles.label}>Clinic Establishment License No.</label>
+                  <input className={editStyles.input} name="licenseNo" value={editForm.licenseNo} onChange={handleEditChange} />
+                </div>
+
+                <div className={editStyles.field}>
+                  <label className={editStyles.label}>Years of Experience</label>
+                  <input className={editStyles.input} name="experience" value={editForm.experience} onChange={handleEditChange} />
+                </div>
+              </section>
+
+              {/* 7. SERVICES & TREATMENTS */}
+              <section className={editStyles.section}>
+                <h2 className={editStyles.sectionTitle}>Services & Treatments</h2>
+
+                <div className={editStyles.fullField}>
+                  <label className={editStyles.label}>Treatments Available</label>
+                  <ReactQuill
+                    theme="snow"
+                    value={editForm.treatmentsAvailable}
+                    onChange={(value) => setEditForm((prev) => ({ ...prev, treatmentsAvailable: value }))}
+                    modules={quillModules}
+                  />
+                </div>
+
+                <div className={editStyles.fullField}>
+                  <label className={editStyles.label}>Available Services</label>
+                  <ReactQuill
+                    theme="snow"
+                    value={editForm.availableServices}
+                    onChange={(value) => setEditForm((prev) => ({ ...prev, availableServices: value }))}
+                    modules={quillModules}
+                  />
+                </div>
+              </section>
+
+              {/* 8. PRICING & BOOKING */}
+              <section className={editStyles.section}>
+                <h2 className={editStyles.sectionTitle}>Pricing & Booking</h2>
+
+                <div className={editStyles.field}>
+                  <label className={editStyles.label}>Consultation Fee</label>
+                  <input className={editStyles.input} name="consultationFee" value={editForm.consultationFee} onChange={handleEditChange} />
+                </div>
+
+                <div className={editStyles.field}>
+                  <label className={editStyles.label}>Booking Mode</label>
+                  <input className={editStyles.input} name="bookingMode" value={editForm.bookingMode} onChange={handleEditChange} />
+                </div>
+              </section>
+
+              {/* 9. SOCIAL */}
+              <section className={editStyles.section}>
+                <h2 className={editStyles.sectionTitle}>Social Presence</h2>
+
+                <div className={editStyles.field}>
+                  <label className={editStyles.label}>Instagram</label>
+                  <input className={editStyles.input} name="instagram" value={editForm.instagram} onChange={handleEditChange} />
+                </div>
+
+                <div className={editStyles.field}>
+                  <label className={editStyles.label}>LinkedIn</label>
+                  <input className={editStyles.input} name="linkedin" value={editForm.linkedin} onChange={handleEditChange} />
+                </div>
+
+                <div className={editStyles.field}>
+                  <label className={editStyles.label}>Facebook</label>
+                  <input className={editStyles.input} name="facebook" value={editForm.facebook} onChange={handleEditChange} />
+                </div>
+              </section>
+
+              <div className={editStyles.actionsRow}>
+                <button type="submit" className={editStyles.submitBtn} disabled={editSubmitting}>
+                  {editSubmitting ? "Saving..." : "Update Clinic"}
+                </button>
+                <button
+                  type="button"
+                  className={editStyles.cancelBtn}
+                  onClick={handleCancelEdit}
+                  disabled={editSubmitting}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* DOCTOR MODAL */}
+          {showEditDoctorModal && (
+            <div className={editStyles.modalOverlay}>
+              <div className={editStyles.modal}>
+                <h3>Add Doctor</h3>
+
+                <div className={editStyles.field}>
+                  <label className={editStyles.label}>Doctor Name</label>
+                  <input
+                    className={editStyles.input}
+                    name="name"
+                    value={editDoctorForm.name}
+                    onChange={handleEditDoctorFormChange}
+                  />
+                </div>
+
+                <div className={editStyles.field}>
+                  <label className={editStyles.label}>Registration No</label>
+                  <input
+                    className={editStyles.input}
+                    name="regNo"
+                    value={editDoctorForm.regNo}
+                    onChange={handleEditDoctorFormChange}
+                  />
+                </div>
+
+                <div className={editStyles.field}>
+                  <label className={editStyles.label}>Specialization</label>
+                  <input
+                    className={editStyles.input}
+                    name="specialization"
+                    value={editDoctorForm.specialization}
+                    onChange={handleEditDoctorFormChange}
+                  />
+                </div>
+
+                <div className={editStyles.modalActions}>
+                  <button type="button" onClick={() => setShowEditDoctorModal(false)}>
+                    Cancel
+                  </button>
+                  <button type="button" onClick={saveEditDoctor}>
+                    Save Doctor
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
-
-        <div className={createStyles.field}>
-          <label className={createStyles.label}>Clinic Name</label>
-          <input
-            name="clinicName"
-            value={editForm.clinicName || ""}
-            onChange={handleEditChange}
-            className={createStyles.input}
-            required
-          />
-        </div>
-
-        <div className={createStyles.field}>
-          <label className={createStyles.label}>Email</label>
-          <input
-            type="email"
-            name="email"
-            value={editForm.email || ""}
-            onChange={handleEditChange}
-            className={createStyles.input}
-          />
-        </div>
-
-        <div className={createStyles.field}>
-          <label className={createStyles.label}>Contact Number</label>
-          <input
-            name="contactNumber"
-            value={editForm.contactNumber || ""}
-            onChange={handleEditChange}
-            className={createStyles.input}
-          />
-        </div>
-
-        <div className={createStyles.field}>
-          <label className={createStyles.label}>Website</label>
-          <input
-            name="website"
-            value={editForm.website || ""}
-            onChange={handleEditChange}
-            className={createStyles.input}
-          />
-        </div>
-
-        <div className={createStyles.field}>
-          <label className={createStyles.label}>Address</label>
-          <input
-            name="address"
-            value={editForm.address || ""}
-            onChange={handleEditChange}
-            className={createStyles.input}
-          />
-        </div>
-      </div>
-
-      {/* ===== CATEGORY & STATUS ===== */}
-      <div className={createStyles.section}>
-        <h2 className={createStyles.sectionTitle}>Category & Status</h2>
-
-        <div className={createStyles.field}>
-          <label className={createStyles.label}>Category</label>
-          <select
-            value={editForm.dermaCategory?._id || ""}
-            onChange={(e) =>
-              setEditForm({
-                ...editForm,
-                dermaCategory: { _id: e.target.value, name: "" },
-              })
-            }
-            className={createStyles.input}
-          >
-            <option value="">Select Category</option>
-            {categories.map((cat) => (
-              <option key={cat._id} value={cat._id}>
-                {cat.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className={createStyles.field}>
-          <label className={createStyles.label}>Clinic Status</label>
-          <select
-            name="clinicStatus"
-            value={editForm.clinicStatus || ""}
-            onChange={handleEditChange}
-            className={createStyles.input}
-          >
-            <option value="">Select Status</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-            <option value="pending">Pending</option>
-          </select>
-        </div>
-
-        <div className={createStyles.field}>
-          <label className={createStyles.label}>Verified Badge</label>
-          <select
-            name="verifiedBadge"
-            value={String(editForm.verifiedBadge === true)}
-            onChange={(e) =>
-              setEditForm({
-                ...editForm,
-                verifiedBadge: e.target.value === "true",
-              })
-            }
-            className={createStyles.input}
-          >
-            <option value="false">No</option>
-            <option value="true">Yes</option>
-          </select>
-        </div>
-      </div>
-
-      {/* ===== ACTIONS ===== */}
-      <div style={{ display: "flex", gap: 12 }}>
-        <button type="submit" className={createStyles.submitBtn}>
-          Update Clinic
-        </button>
-        <button
-          type="button"
-          className={createStyles.submitBtn}
-          onClick={handleCancelEdit}
-        >
-          Cancel
-        </button>
-      </div>
-    </form>
-  </div>
-)}
-
+      )}
 
       {/* ================= VIEW MODAL (FIXED) ================= */}
       {viewClinic && (

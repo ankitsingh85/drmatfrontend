@@ -4,6 +4,9 @@ import React, { useEffect, useMemo, useState } from "react";
 import styles from "@/styles/Dashboard/productlist.module.css";
 import createStyles from "@/styles/Dashboard/createproduct.module.css";
 import { API_URL } from "@/config/api";
+import { useToast } from "@/context/ToastContext";
+import { useConfirm } from "@/context/ConfirmContext";
+import TableActions from "@/components/AdminPanel/common/TableActions";
 
 interface B2BCategory {
   _id: string;
@@ -37,6 +40,8 @@ type ListOfB2BProductProps = {
 };
 
 export default function ListOfB2BProduct({ canEdit = true, canDelete = true }: ListOfB2BProductProps) {
+  const toast = useToast();
+  const confirmDialog = useConfirm();
   const [products, setProducts] = useState<B2BProduct[]>([]);
   const [allCategories, setAllCategories] = useState<B2BCategory[]>([]);
   const [search, setSearch] = useState("");
@@ -182,7 +187,7 @@ export default function ListOfB2BProduct({ canEdit = true, canDelete = true }: L
   const handleDownloadPDF = () => {
     const printable = window.open("", "_blank");
     if (!printable) {
-      alert("Unable to open print window. Please allow popups.");
+      toast.error("Unable to open print window. Please allow popups.");
       return;
     }
 
@@ -248,7 +253,7 @@ export default function ListOfB2BProduct({ canEdit = true, canDelete = true }: L
 
   /* ================= DELETE ================= */
   const handleDelete = async (id: string) => {
-    if (!confirm("Delete this B2B product?")) return;
+    if (!(await confirmDialog("Delete this B2B product?", { danger: true }))) return;
     await fetch(`${API_URL}/b2b-products/${id}`, { method: "DELETE" });
     setProducts((prev) => prev.filter((p) => p._id !== id));
   };
@@ -300,7 +305,7 @@ export default function ListOfB2BProduct({ canEdit = true, canDelete = true }: L
     if (!editingProduct) return;
 
     if (!editForm.category || editForm.category.length === 0) {
-      alert("Please select at least one category");
+      toast.error("Please select at least one category");
       return;
     }
 
@@ -334,9 +339,9 @@ export default function ListOfB2BProduct({ canEdit = true, canDelete = true }: L
       setIsEditing(false);
       setEditingProduct(null);
       setEditForm({});
-      alert("Product updated successfully");
+      toast.success("Product updated successfully");
     } catch (error: any) {
-      alert(error?.message || "Update failed");
+      toast.error(error?.message || "Update failed");
     }
   };
 
@@ -432,19 +437,13 @@ export default function ListOfB2BProduct({ canEdit = true, canDelete = true }: L
                 <td>{p.stockAvailable || 0}</td>
                 <td>{p.moq || 0}</td>
                 <td className={styles.actions}>
-                  <button className={styles.eye} onClick={() => setViewProduct(p)}>
-                    👁
-                  </button>
-                  {canEdit && (
-                    <button className={styles.edit} onClick={() => handleEdit(p)}>
-                      ✏️
-                    </button>
-                  )}
-                  {canDelete && (
-                    <button className={styles.delete} onClick={() => handleDelete(p._id)}>
-                      🗑
-                    </button>
-                  )}
+                  <TableActions
+                    onView={() => setViewProduct(p)}
+                    onEdit={() => handleEdit(p)}
+                    onDelete={() => handleDelete(p._id)}
+                    canEdit={canEdit}
+                    canDelete={canDelete}
+                  />
                 </td>
               </tr>
             ))}

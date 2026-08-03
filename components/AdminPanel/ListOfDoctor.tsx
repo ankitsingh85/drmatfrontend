@@ -7,11 +7,14 @@ import styles from "@/styles/Dashboard/listofdoctor.module.css";
 import createStyles from "@/styles/Dashboard/createdoctor.module.css";
 import { API_URL } from "@/config/api";
 import FullPageLoader from "@/components/common/FullPageLoader";
+import { useToast } from "@/context/ToastContext";
+import { useConfirm } from "@/context/ConfirmContext";
+import TableActions from "@/components/AdminPanel/common/TableActions";
 // import { ListOfDoctors } from '@/components/ClinicAdmin/ListOfDoctors';
 
 interface Doctor {
   _id: string;
-    doctorId: string; 
+  doctorCode: string;
   title?: string;
   firstName: string;
   lastName: string;
@@ -37,6 +40,8 @@ type ListOfDoctorProps = {
 };
 
 const ListOfDoctor: React.FC<ListOfDoctorProps> = ({ canEdit = true, canDelete = true }) => {
+  const toast = useToast();
+  const confirmDialog = useConfirm();
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -72,7 +77,7 @@ const ListOfDoctor: React.FC<ListOfDoctorProps> = ({ canEdit = true, canDelete =
 
   /* ================= DELETE ================= */
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this doctor?")) return;
+    if (!(await confirmDialog("Are you sure you want to delete this doctor?", { danger: true }))) return;
     await axios.delete(`${API_URL}/doctoradmin/${id}`);
     fetchDoctors();
   };
@@ -125,14 +130,14 @@ const ListOfDoctor: React.FC<ListOfDoctorProps> = ({ canEdit = true, canDelete =
         payload
       );
 
-      alert("✅ Doctor updated successfully");
+      toast.success("Doctor updated successfully");
       setIsEditing(false);
       setEditingDoctor(null);
       setEditForm({});
       fetchDoctors();
     } catch (err: any) {
       console.error(err);
-      alert(err.response?.data?.message || "❌ Failed to update doctor");
+      toast.error(err.response?.data?.message || "Failed to update doctor");
     }
   };
 
@@ -146,7 +151,7 @@ const ListOfDoctor: React.FC<ListOfDoctorProps> = ({ canEdit = true, canDelete =
     const q = searchTerm.trim().toLowerCase();
     if (!q) return doctors;
     return doctors.filter((d) =>
-      [d.title, d.firstName, d.lastName, d.specialist, d.email, d.phone]
+      [d.doctorCode, d.title, d.firstName, d.lastName, d.specialist, d.email, d.phone]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(q))
     );
@@ -174,9 +179,9 @@ const ListOfDoctor: React.FC<ListOfDoctorProps> = ({ canEdit = true, canDelete =
 
   const handleDownloadCSV = () => {
     const rows = [
-      ["Title", "First Name", "Last Name", "Specialist", "Email", "Phone"],
+      ["Doctor ID", "Title", "First Name", "Last Name", "Specialist", "Email", "Phone"],
       ...filteredDoctors.map((d) => [
-         d.doctorId,
+        d.doctorCode,
         d.title || "",
         d.firstName,
         d.lastName,
@@ -208,7 +213,7 @@ const ListOfDoctor: React.FC<ListOfDoctorProps> = ({ canEdit = true, canDelete =
   const handleDownloadPDF = () => {
     const printable = window.open("", "_blank");
     if (!printable) {
-      alert("Unable to open print window. Please allow popups.");
+      toast.error("Unable to open print window. Please allow popups.");
       return;
     }
 
@@ -224,6 +229,7 @@ const ListOfDoctor: React.FC<ListOfDoctorProps> = ({ canEdit = true, canDelete =
       .map(
         (d) =>
           `<tr>
+            <td>${escapeHtml(d.doctorCode || "-")}</td>
             <td>${escapeHtml(d.title || "-")}</td>
             <td>${escapeHtml(d.firstName)}</td>
             <td>${escapeHtml(d.lastName)}</td>
@@ -251,6 +257,7 @@ const ListOfDoctor: React.FC<ListOfDoctorProps> = ({ canEdit = true, canDelete =
           <table>
             <thead>
               <tr>
+                <th>Doctor ID</th>
                 <th>Title</th>
                 <th>First Name</th>
                 <th>Last Name</th>
@@ -328,7 +335,7 @@ const ListOfDoctor: React.FC<ListOfDoctorProps> = ({ canEdit = true, canDelete =
         <tbody>
           {paginatedDoctors.map((d) => (
         <tr key={d._id}>
-  <td className={styles.td}>{d.doctorId}</td>
+  <td className={styles.td}>{d.doctorCode || "-"}</td>
   <td className={styles.td}>{d.title || "-"}</td>
   <td className={styles.td}>{d.firstName}</td>
   <td className={styles.td}>{d.lastName}</td>
@@ -337,23 +344,12 @@ const ListOfDoctor: React.FC<ListOfDoctorProps> = ({ canEdit = true, canDelete =
   <td className={styles.td}>{d.phone || "-"}</td>
 
   <td className={styles.td}>
-    {canEdit && (
-      <button
-        className={styles.editButton}
-        onClick={() => handleEdit(d)}
-      >
-        ✏️
-      </button>
-    )}
-
-    {canDelete && (
-      <button
-        className={styles.deleteButton}
-        onClick={() => handleDelete(d._id)}
-      >
-        🗑
-      </button>
-    )}
+    <TableActions
+      onEdit={() => handleEdit(d)}
+      onDelete={() => handleDelete(d._id)}
+      canEdit={canEdit}
+      canDelete={canDelete}
+    />
   </td>
 </tr>
           ))}

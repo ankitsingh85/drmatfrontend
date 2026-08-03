@@ -4,6 +4,9 @@ import { API_URL } from "@/config/api";
 import React, { useEffect, useMemo, useState } from "react";
 import styles from "@/styles/Dashboard/listofcategory.module.css";
 import { resolveMediaUrl } from "@/lib/media";
+import { useToast } from "@/context/ToastContext";
+import { useConfirm } from "@/context/ConfirmContext";
+import TableActions from "@/components/AdminPanel/common/TableActions";
 
 interface Category {
   _id: string;
@@ -21,6 +24,8 @@ type ListOfCategoryProps = {
 };
 
 const ListOfCategory = ({ canEdit = true, canDelete = true }: ListOfCategoryProps) => {
+  const toast = useToast();
+  const confirmDialog = useConfirm();
   const [categories, setCategories] = useState<Category[]>([]);
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -60,7 +65,7 @@ const ListOfCategory = ({ canEdit = true, canDelete = true }: ListOfCategoryProp
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this category?")) return;
+    if (!(await confirmDialog("Are you sure you want to delete this category?", { danger: true }))) return;
     try {
       const res = await fetch(`${API_URL}/categories/${id}`, {
         method: "DELETE",
@@ -192,7 +197,7 @@ const ListOfCategory = ({ canEdit = true, canDelete = true }: ListOfCategoryProp
   const handleDownloadPDF = () => {
     const printable = window.open("", "_blank");
     if (!printable) {
-      alert("Unable to open print window. Please allow popups.");
+      toast.error("Unable to open print window. Please allow popups.");
       return;
     }
 
@@ -305,19 +310,12 @@ const ListOfCategory = ({ canEdit = true, canDelete = true }: ListOfCategoryProp
                 />
               </td>
               <td className={styles.actions}>
-                {canEdit && (
-                  <button className={styles.editBtn} onClick={() => handleEdit(cat)}>
-                    ✏️
-                  </button>
-                )}
-                {canDelete && (
-                  <button
-                    className={styles.deleteBtn}
-                    onClick={() => handleDelete(cat._id)}
-                  >
-                    🗑
-                  </button>
-                )}
+                <TableActions
+                  onEdit={() => handleEdit(cat)}
+                  onDelete={() => handleDelete(cat._id)}
+                  canEdit={canEdit}
+                  canDelete={canDelete}
+                />
               </td>
             </tr>
           ))}

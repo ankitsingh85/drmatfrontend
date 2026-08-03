@@ -4,6 +4,9 @@ import { API_URL } from "@/config/api";
 import React, { useEffect, useMemo, useState } from "react";
 import styles from "@/styles/Dashboard/listofcliniccategory.module.css";
 import { resolveMediaUrl } from "@/lib/media";
+import { useToast } from "@/context/ToastContext";
+import { useConfirm } from "@/context/ConfirmContext";
+import TableActions from "@/components/AdminPanel/common/TableActions";
 
 interface Category {
   _id: string;
@@ -20,6 +23,8 @@ export default function ListofB2BCategory({
   canEdit = true,
   canDelete = true,
 }: ListofB2BCategoryProps) {
+  const toast = useToast();
+  const confirmDialog = useConfirm();
   const [categories, setCategories] = useState<Category[]>([]);
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -43,7 +48,7 @@ export default function ListofB2BCategory({
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Delete this category?")) return;
+    if (!(await confirmDialog("Delete this category?", { danger: true }))) return;
 
     await fetch(`${API_URL}/b2b-categories/${id}`, { method: "DELETE" });
     setCategories((prev) => prev.filter((c) => c._id !== id));
@@ -168,7 +173,7 @@ export default function ListofB2BCategory({
   const handleDownloadPDF = () => {
     const printable = window.open("", "_blank");
     if (!printable) {
-      alert("Unable to open print window. Please allow popups.");
+      toast.error("Unable to open print window. Please allow popups.");
       return;
     }
 
@@ -280,26 +285,12 @@ export default function ListofB2BCategory({
                   />
                 </td>
                 <td>
-                  <div className={styles.actions}>
-                    {canEdit && (
-                      <button
-                        className={styles.editBtn}
-                        onClick={() => handleEdit(cat)}
-                        title="Edit category"
-                      >
-                        ✏️
-                      </button>
-                    )}
-                    {canDelete && (
-                      <button
-                        className={styles.deleteBtn}
-                        onClick={() => handleDelete(cat._id)}
-                        title="Delete category"
-                      >
-                        🗑
-                      </button>
-                    )}
-                  </div>
+                  <TableActions
+                    onEdit={() => handleEdit(cat)}
+                    onDelete={() => handleDelete(cat._id)}
+                    canEdit={canEdit}
+                    canDelete={canDelete}
+                  />
                 </td>
               </tr>
             ))}

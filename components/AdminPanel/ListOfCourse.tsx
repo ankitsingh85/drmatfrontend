@@ -1,11 +1,14 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { FaEdit, FaEye, FaFileExcel, FaFilePdf, FaTrash } from "react-icons/fa";
+import { FaFileExcel, FaFilePdf } from "react-icons/fa";
 import styles from "@/styles/Dashboard/listofcategory.module.css";
 import createStyles from "@/styles/Dashboard/createcategory.module.css";
 import { API_URL } from "@/config/api";
 import FullPageLoader from "@/components/common/FullPageLoader";
+import { useToast } from "@/context/ToastContext";
+import { useConfirm } from "@/context/ConfirmContext";
+import TableActions from "@/components/AdminPanel/common/TableActions";
 
 interface Course {
   _id: string;
@@ -143,6 +146,8 @@ type ListOfCourseProps = {
 };
 
 const ListOfCourse = ({ canEdit = true, canDelete = true }: ListOfCourseProps) => {
+  const toast = useToast();
+  const confirmDialog = useConfirm();
   const [courses, setCourses] = useState<Course[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -304,7 +309,7 @@ const ListOfCourse = ({ canEdit = true, canDelete = true }: ListOfCourseProps) =
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this course?")) return;
+    if (!(await confirmDialog("Are you sure you want to delete this course?", { danger: true }))) return;
 
     try {
       const res = await fetch(`${API_URL}/courses/${id}`, {
@@ -320,7 +325,7 @@ const ListOfCourse = ({ canEdit = true, canDelete = true }: ListOfCourseProps) =
       if (viewingCourse?._id === id) setViewingCourse(null);
       if (editingCourse?._id === id) closeEditModal();
     } catch (err: any) {
-      alert(err.message || "Failed to delete course");
+      toast.error(err.message || "Failed to delete course");
     }
   };
 
@@ -370,7 +375,7 @@ const ListOfCourse = ({ canEdit = true, canDelete = true }: ListOfCourseProps) =
   const handleDownloadPDF = () => {
     const printable = window.open("", "_blank");
     if (!printable) {
-      alert("Unable to open print window. Please allow popups.");
+      toast.error("Unable to open print window. Please allow popups.");
       return;
     }
 
@@ -476,11 +481,8 @@ const ListOfCourse = ({ canEdit = true, canDelete = true }: ListOfCourseProps) =
 
       {!loading && !error && (
         <>
-          <div className={styles.tableWrap} style={{ overflowX: "hidden" }}>
-            <table
-              className={styles.table}
-              style={{ tableLayout: "fixed", width: "100%" }}
-            >
+          <div className={styles.tableWrap}>
+            <table className={styles.table}>
               <thead>
                 <tr>
                   <th>#</th>
@@ -509,7 +511,7 @@ const ListOfCourse = ({ canEdit = true, canDelete = true }: ListOfCourseProps) =
                         "-"
                       )}
                     </td>
-                    <td className={styles.id}>{course.courseUniqueCode || "-"}</td>
+                    <td>{course.courseUniqueCode || "-"}</td>
                     <td style={{ wordBreak: "break-word" }}>
                       {course.courseName || "Untitled Course"}
                     </td>
@@ -522,36 +524,13 @@ const ListOfCourse = ({ canEdit = true, canDelete = true }: ListOfCourseProps) =
                     </td>
                     <td>{formatDate(course.createdAt)}</td>
                     <td>
-                      <div className={styles.actions}>
-                        <button
-                          type="button"
-                          className={styles.iconBtn}
-                          onClick={() => setViewingCourse(course)}
-                          title="View course"
-                        >
-                          <FaEye />
-                        </button>
-                        {canEdit && (
-                          <button
-                            type="button"
-                            className={styles.iconBtn}
-                            onClick={() => openEditModal(course)}
-                            title="Edit course"
-                          >
-                            <FaEdit />
-                          </button>
-                        )}
-                        {canDelete && (
-                          <button
-                            type="button"
-                            className={`${styles.iconBtn} ${styles.iconDeleteBtn}`}
-                            onClick={() => handleDelete(course._id)}
-                            title="Delete course"
-                          >
-                            <FaTrash />
-                          </button>
-                        )}
-                      </div>
+                      <TableActions
+                        onView={() => setViewingCourse(course)}
+                        onEdit={() => openEditModal(course)}
+                        onDelete={() => handleDelete(course._id)}
+                        canEdit={canEdit}
+                        canDelete={canDelete}
+                      />
                     </td>
                   </tr>
                 ))}

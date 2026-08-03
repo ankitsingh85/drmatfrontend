@@ -4,7 +4,7 @@ import type { NextRequest } from "next/server";
 // Roles that belong to the other, separate portals (user/doctor/clinic
 // dashboards). Everything else — "admin", "manager", or any custom role
 // label — is a valid Admin-model account and belongs on /adminDashboard.
-const NON_ADMIN_PANEL_ROLES = ["user", "doctor", "clinic"];
+const NON_ADMIN_PANEL_ROLES = ["user", "doctor", "clinic", "b2buser"];
 
 export function middleware(req: NextRequest) {
   const token = req.cookies.get("token")?.value;
@@ -40,33 +40,39 @@ export function middleware(req: NextRequest) {
     }
   }
 
-  // ================= CLINIC =================
-  if (lowerPath.startsWith("/clinicdashboard") && !token) {
-    return NextResponse.redirect(new URL("/cliniclogin", req.url));
+  // ================= BUSINESS (CLINIC + DOCTOR + B2B USER) =================
+  if (
+    (lowerPath.startsWith("/clinicdashboard") ||
+      lowerPath.startsWith("/doctordashboard") ||
+      lowerPath.startsWith("/b2buserdashboard")) &&
+    !token
+  ) {
+    return NextResponse.redirect(new URL("/businesslogin", req.url));
   }
 
   if (token) {
-    if (lowerPath.startsWith("/cliniclogin") && role === "clinic") {
-      return NextResponse.redirect(new URL("/home", req.url));
+    if (lowerPath.startsWith("/businesslogin")) {
+      if (role === "clinic") {
+        return NextResponse.redirect(new URL("/ClinicDashboard", req.url));
+      }
+      if (role === "doctor") {
+        return NextResponse.redirect(new URL("/DoctorDashboard", req.url));
+      }
+      if (role === "b2buser") {
+        return NextResponse.redirect(new URL("/B2BUserDashboard", req.url));
+      }
     }
 
     if (lowerPath.startsWith("/clinicdashboard") && role !== "clinic") {
-      return NextResponse.redirect(new URL("/cliniclogin", req.url));
-    }
-  }
-
-  // ================= DOCTOR =================
-  if (lowerPath.startsWith("/doctordashboard") && !token) {
-    return NextResponse.redirect(new URL("/doctorlogin", req.url));
-  }
-
-  if (token) {
-    if (lowerPath.startsWith("/doctorlogin") && role === "doctor") {
-      return NextResponse.redirect(new URL("/DoctorDashboard", req.url));
+      return NextResponse.redirect(new URL("/businesslogin", req.url));
     }
 
     if (lowerPath.startsWith("/doctordashboard") && role !== "doctor") {
-      return NextResponse.redirect(new URL("/doctorlogin", req.url));
+      return NextResponse.redirect(new URL("/businesslogin", req.url));
+    }
+
+    if (lowerPath.startsWith("/b2buserdashboard") && role !== "b2buser") {
+      return NextResponse.redirect(new URL("/businesslogin", req.url));
     }
   }
 
@@ -79,8 +85,8 @@ export const config = {
     "/adminDashboard/:path*",
     "/adminlogin",
     "/ClinicDashboard/:path*",
-    "/cliniclogin",
     "/DoctorDashboard/:path*",
-    "/doctorlogin",
+    "/B2BUserDashboard/:path*",
+    "/businesslogin",
   ],
 };

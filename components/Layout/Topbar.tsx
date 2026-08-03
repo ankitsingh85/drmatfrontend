@@ -15,7 +15,10 @@ import {
 } from "lucide-react";
   import { useCart } from "@/context/CartContext";
   import { useTopbarProfile } from "@/context/TopbarProfileContext";
+  import { useToast } from "@/context/ToastContext";
+  import { useConfirm } from "@/context/ConfirmContext";
   import Cookies from "js-cookie";
+  import { API_URL } from "@/config/api";
 
   interface TopbarProps {
     hideHamburgerOnMobile?: boolean;
@@ -26,15 +29,15 @@ import {
   const pathname = usePathname();
   const { cartItems } = useCart();
   const profile = useTopbarProfile();
+  const toast = useToast();
+  const confirmDialog = useConfirm();
   const cartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
 
   const [isHydrated, setIsHydrated] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [location, setLocation] = useState<string>("");
   const [profileOpen, setProfileOpen] = useState(false);
-  const [businessMenuOpen, setBusinessMenuOpen] = useState(false);
   const userBtnRef = useRef<HTMLButtonElement | null>(null);
-  const businessMenuRef = useRef<HTMLDivElement | null>(null);
   const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAP_KEY || "";
 
     const username = profile?.username ?? null;
@@ -42,7 +45,8 @@ import {
     const email = profile?.email ?? null;
     const contactNo = profile?.contactNo ?? null;
     const currentRole = isHydrated ? Cookies.get("role")?.toLowerCase() : null;
-    const isBusinessMode = currentRole === "clinic" || currentRole === "doctor";
+    const isBusinessMode =
+      currentRole === "clinic" || currentRole === "doctor" || currentRole === "b2buser";
 
     useEffect(() => {
       setIsHydrated(true);
@@ -65,20 +69,17 @@ useEffect(() => {
       pathname?.includes("Dashboard");
 
   const getLoginPath = () => {
-    if (currentRole === "clinic") return "/cliniclogin";
-    if (currentRole === "doctor") return "/doctorlogin";
+    if (isBusinessMode || currentRole === "b2buser") return "/businesslogin";
     return "/Login";
   };
 
   const handleClickCart = () => {
-    setBusinessMenuOpen(false);
     router.push("/home/Cart");
   };
 
-  const handleBusinessLogin = (path: string) => {
-    setBusinessMenuOpen(false);
+  const handleBusinessLogin = () => {
     setMenuOpen(false);
-    router.push(path);
+    router.push("/businesslogin");
   };
 
   const getComponent = (components: any[] | undefined, type: string) =>
@@ -171,7 +172,7 @@ return formatDetailedAddress(result);
 
     const fetchLocation = (silent = false) => {
       if (!navigator.geolocation) {
-        if (!silent) alert("Geolocation not supported");
+        if (!silent) toast.error("Geolocation not supported");
         return;
       }
      navigator.geolocation.getCurrentPosition(
@@ -209,7 +210,7 @@ return formatDetailedAddress(result);
   },
   () => {
     if (!silent) {
-      alert("Location access denied");
+      toast.error("Location access denied");
     }
   },
   {
@@ -237,31 +238,6 @@ return formatDetailedAddress(result);
       return () => document.removeEventListener("mousedown", handleClickOutside);
     }, [styles.profileDropdown]);
 
-    useEffect(() => {
-      if (!businessMenuOpen) return;
-
-      const handleBusinessClickOutside = (event: MouseEvent) => {
-        const target = event.target as Node;
-        if (businessMenuRef.current && !businessMenuRef.current.contains(target)) {
-          setBusinessMenuOpen(false);
-        }
-      };
-
-      const handleEscape = (event: KeyboardEvent) => {
-        if (event.key === "Escape") {
-          setBusinessMenuOpen(false);
-        }
-      };
-
-      document.addEventListener("mousedown", handleBusinessClickOutside);
-      document.addEventListener("keydown", handleEscape);
-
-      return () => {
-        document.removeEventListener("mousedown", handleBusinessClickOutside);
-        document.removeEventListener("keydown", handleEscape);
-      };
-    }, [businessMenuOpen]);
-
     const handleLogout = () => {
       const roleBeforeLogout = currentRole;
 
@@ -271,6 +247,7 @@ return formatDetailedAddress(result);
         "clinicName",
         "clinicId",
         "doctorId",
+        "b2bUserId",
         "email",
         "userId",
         "location",
@@ -285,6 +262,7 @@ return formatDetailedAddress(result);
       localStorage.removeItem("userId");
       localStorage.removeItem("clinicId");
       localStorage.removeItem("doctorId");
+      localStorage.removeItem("b2bUserId");
       localStorage.removeItem("profileImage");
       localStorage.removeItem("cartScope");
       profile?.clearProfile();
@@ -292,12 +270,42 @@ return formatDetailedAddress(result);
       setLocation("");
       window.dispatchEvent(new CustomEvent("user-logged-out"));
       router.replace(
-        roleBeforeLogout === "clinic"
-          ? "/cliniclogin"
-          : roleBeforeLogout === "doctor"
-          ? "/doctorlogin"
+        roleBeforeLogout === "clinic" ||
+          roleBeforeLogout === "doctor" ||
+          roleBeforeLogout === "b2buser"
+          ? "/businesslogin"
           : "/Login"
       );
+    };
+
+    const handleBecomeClinic = async () => {
+      const b2bUserId = Cookies.get("b2bUserId") || localStorage.getItem("b2bUserId");
+      if (!b2bUserId) return;
+
+      const confirmed = await confirmDialog(
+        "Your B2B account will be permanently replaced with a clinic registration pending admin approval.",
+        { title: "Convert your account to a Clinic?", confirmLabel: "Convert", danger: true }
+      );
+      if (!confirmed) {
+        return;
+      }
+
+      try {
+        const res = await fetch(
+          `${API_URL}/b2b-users/${b2bUserId}/convert-to-clinic`,
+          { method: "POST" }
+        );
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.message || "Failed to convert to clinic");
+
+        toast.success(
+          data.message ||
+            "Your account has been converted to a clinic and submitted for admin approval."
+        );
+        handleLogout();
+      } catch (err: any) {
+        toast.error(err.message || "Failed to convert to clinic");
+      }
     };
 
   const renderLoginOptions = () => (
@@ -306,7 +314,6 @@ return formatDetailedAddress(result);
         className={styles.loginLink}
         onClick={() => {
           setMenuOpen(false);
-          setBusinessMenuOpen(false);
           router.push(getLoginPath());
         }}
       >
@@ -361,10 +368,7 @@ return formatDetailedAddress(result);
             className={`${styles.hamburger} ${
               hideHamburgerOnMobile ? styles.hideOnMobile : ""
             }`}
-            onClick={() => {
-              setMenuOpen((prev) => !prev);
-              setBusinessMenuOpen(false);
-            }}
+            onClick={() => setMenuOpen((prev) => !prev)}
           >
             <Menu size={26} />
           </div>
@@ -390,14 +394,11 @@ return formatDetailedAddress(result);
             <Link href="/quiz/ques1" className={styles.navLink}>
               Online Test
             </Link>
-            <div className={styles.businessNavWrap} ref={businessMenuRef}>
+            <div className={styles.businessNavWrap}>
               <button
                 type="button"
                 className={styles.businessNavLink}
-                onClick={() => setBusinessMenuOpen((prev) => !prev)}
-                aria-haspopup="menu"
-                aria-expanded={businessMenuOpen}
-                aria-controls="business-login-menu"
+                onClick={handleBusinessLogin}
               >
                 <span className={styles.businessTag}>BUSINESS</span>
                 <span className={styles.businessText}>
@@ -405,39 +406,6 @@ return formatDetailedAddress(result);
                   <ArrowUpRight size={15} className={styles.businessIcon} />
                 </span>
               </button>
-
-              {businessMenuOpen && (
-                <div
-                  id="business-login-menu"
-                  className={styles.businessDropdown}
-                  role="menu"
-                  aria-label="Business login options"
-                >
-                  <button
-                    type="button"
-                    className={styles.businessDropdownItem}
-                    onClick={() => handleBusinessLogin("/cliniclogin")}
-                    role="menuitem"
-                  >
-                    <span className={styles.businessDropdownTitle}>Login as Clinic</span>
-                    <span className={styles.businessDropdownDesc}>
-                      Continue to the clinic login page
-                    </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    className={styles.businessDropdownItem}
-                    onClick={() => handleBusinessLogin("/doctorlogin")}
-                    role="menuitem"
-                  >
-                    <span className={styles.businessDropdownTitle}>Login as Doctor</span>
-                    <span className={styles.businessDropdownDesc}>
-                      Continue to the doctor login page
-                    </span>
-                  </button>
-                </div>
-              )}
             </div>
           </nav>
         </div>
@@ -535,6 +503,10 @@ return formatDetailedAddress(result);
                               router.push("/ClinicDashboard");
                               return;
                             }
+                            if (currentRole === "b2buser") {
+                              router.push("/B2BUserDashboard");
+                              return;
+                            }
                             router.push("/UserDashboard");
                           }}
                         >
@@ -586,10 +558,7 @@ return formatDetailedAddress(result);
             className={`${styles.hamburger} ${
               hideHamburgerOnMobile ? styles.hideOnMobile : ""
             }`}
-            onClick={() => {
-              setMenuOpen((prev) => !prev);
-              setBusinessMenuOpen(false);
-            }}
+            onClick={() => setMenuOpen((prev) => !prev)}
           >
             <Menu size={26} />
           </div>
@@ -627,6 +596,24 @@ return formatDetailedAddress(result);
   <Link href="/home/B2bProductsList" className={styles.navLink}>
     B2B Products
   </Link>
+
+  {currentRole === "b2buser" && (
+    <>
+      <Link href="/B2BUserDashboard" className={styles.navLink}>
+        My Dashboard
+      </Link>
+      <button
+        type="button"
+        className={styles.businessNavLink}
+        onClick={handleBecomeClinic}
+      >
+        <span className={styles.businessText}>
+          <span>Become a Clinic</span>
+          <ArrowUpRight size={15} className={styles.businessIcon} />
+        </span>
+      </button>
+    </>
+  )}
 </nav>
         </div>
 
@@ -687,11 +674,15 @@ return formatDetailedAddress(result);
                       className={styles.profileActionBtn}
                       onClick={() => {
                         setProfileOpen(false);
-                        router.push(
-                          currentRole === "doctor"
-                            ? "/DoctorDashboard"
-                            : "/ClinicDashboard"
-                        );
+                        if (currentRole === "doctor") {
+                          router.push("/DoctorDashboard");
+                          return;
+                        }
+                        if (currentRole === "b2buser") {
+                          router.push("/B2BUserDashboard");
+                          return;
+                        }
+                        router.push("/ClinicDashboard");
                       }}
                     >
                       <User size={18} />

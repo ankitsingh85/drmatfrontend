@@ -3,8 +3,10 @@
 import React, { useRef, useState } from "react";
 import styles from "@/styles/Dashboard/createcategory.module.css";
 import { API_URL } from "@/config/api";
+import { useToast } from "@/context/ToastContext";
 
 const CreateCategory = () => {
+  const toast = useToast();
   const [categoryName, setCategoryName] = useState("");
   const [categoryImage, setCategoryImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -66,7 +68,7 @@ const CreateCategory = () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
 
-      alert("Category created successfully");
+      toast.success("Category created successfully");
       window.dispatchEvent(new Event("admin-dashboard:create-success"));
 
       setCategoryName("");

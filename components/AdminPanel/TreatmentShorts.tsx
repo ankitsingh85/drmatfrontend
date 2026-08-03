@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import styles from "@/styles/LatestUpdateShorts.module.css";
 import { API_URL } from "@/config/api";
+import { useToast } from "@/context/ToastContext";
 
 interface Short {
   _id: string;
@@ -23,6 +24,7 @@ const TreatmentShorts: React.FC<TreatmentShortsProps> = ({
   canEdit = true,
   canDelete = true,
 }) => {
+  const toast = useToast();
   const [shorts, setShorts] = useState<Short[]>([]);
   const [platform, setPlatform] = useState<"youtube" | "instagram">("youtube");
   const [videoUrl, setVideoUrl] = useState("");
@@ -44,7 +46,7 @@ const TreatmentShorts: React.FC<TreatmentShortsProps> = ({
 
   // ✅ Add short
   const handleAddShort = async () => {
-    if (!videoUrl.trim()) return alert("Please enter a video URL");
+    if (!videoUrl.trim()) return toast.error("Please enter a video URL");
 
     try {
       await axios.post(`${API_URL}/treatment-shorts`, {
@@ -57,7 +59,7 @@ const TreatmentShorts: React.FC<TreatmentShortsProps> = ({
       fetchShorts();
     } catch (err) {
       console.error("Failed to add treatment short", err);
-      alert("Invalid URL format. Only YouTube Shorts or Instagram Reels are allowed.");
+      toast.error("Invalid URL format. Only YouTube Shorts or Instagram Reels are allowed.");
     }
   };
 
@@ -87,7 +89,7 @@ const TreatmentShorts: React.FC<TreatmentShortsProps> = ({
       fetchShorts();
     } catch (err) {
       console.error("Failed to update treatment short", err);
-      alert("Invalid URL format.");
+      toast.error("Invalid URL format.");
     }
   };
 

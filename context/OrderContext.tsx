@@ -12,7 +12,8 @@ export interface IOrder {
   userId?: string;
   clinicId?: string;
   doctorId?: string;
-  ownerType?: "user" | "clinic" | "doctor";
+  b2bUserId?: string;
+  ownerType?: "user" | "clinic" | "doctor" | "b2buser";
   orderType?: "product" | "treatment" | "consultation";
   products: {
     id: string;
@@ -21,6 +22,9 @@ export interface IOrder {
     price: number;
     image?: string;
     itemType?: "product" | "treatment" | "consultation";
+    clinicId?: string;
+    clinicName?: string;
+    clinicAddress?: string;
   }[];
   totalAmount: number;
   address: { type: string; address: string };
@@ -34,7 +38,12 @@ interface OrderContextType {
     total: number,
     address: { type: string; address: string },
     orderType?: "product" | "treatment" | "consultation",
-    options?: { ownerType?: "user" | "clinic" | "doctor"; clinicId?: string; doctorId?: string }
+    options?: {
+      ownerType?: "user" | "clinic" | "doctor" | "b2buser";
+      clinicId?: string;
+      doctorId?: string;
+      b2bUserId?: string;
+    }
   ) => Promise<void>;
   setOrders: React.Dispatch<React.SetStateAction<IOrder[]>>;
 }
@@ -51,14 +60,27 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({
     total: number,
     address: { type: string; address: string },
     orderType: "product" | "treatment" | "consultation" = "product",
-    options?: { ownerType?: "user" | "clinic" | "doctor"; clinicId?: string; doctorId?: string }
+    options?: {
+      ownerType?: "user" | "clinic" | "doctor" | "b2buser";
+      clinicId?: string;
+      doctorId?: string;
+      b2bUserId?: string;
+    }
   ) => {
     const role = Cookies.get("role")?.toLowerCase();
     const ownerType =
       options?.ownerType ||
-      (role === "clinic" ? "clinic" : role === "doctor" ? "doctor" : "user");
+      (role === "clinic"
+        ? "clinic"
+        : role === "doctor"
+        ? "doctor"
+        : role === "b2buser"
+        ? "b2buser"
+        : "user");
     const clinicId = options?.clinicId || Cookies.get("clinicId") || localStorage.getItem("clinicId") || "";
     const doctorId = options?.doctorId || Cookies.get("doctorId") || localStorage.getItem("doctorId") || "";
+    const b2bUserId =
+      options?.b2bUserId || Cookies.get("b2bUserId") || localStorage.getItem("b2bUserId") || "";
 
     let userId = Cookies.get("userId") || localStorage.getItem("userId");
     if (ownerType === "user") {
@@ -81,6 +103,8 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({
       throw new Error("Clinic not logged in");
     } else if (ownerType === "doctor" && !doctorId) {
       throw new Error("Doctor not logged in");
+    } else if (ownerType === "b2buser" && !b2bUserId) {
+      throw new Error("B2B account not logged in");
     }
 
     try {
@@ -94,6 +118,13 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({
           item.itemType === "treatment" || item.itemType === "consultation"
             ? item.itemType
             : "product",
+        // The clinic the user picked at checkout for this treatment —
+        // dropping this here was silently losing it before it ever
+        // reached the backend, even though the clinic-picker modal had
+        // already captured it on the cart item.
+        clinicId: item.clinicId,
+        clinicName: item.clinicName,
+        clinicAddress: item.clinicAddress,
       }));
 
       const derivedOrderType =
@@ -118,6 +149,7 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({
           : {
               userId: ownerType === "user" ? userId : undefined,
               clinicId: ownerType === "clinic" ? clinicId : undefined,
+              b2bUserId: ownerType === "b2buser" ? b2bUserId : undefined,
               ownerType,
               products: formattedProducts,
               totalAmount: total,

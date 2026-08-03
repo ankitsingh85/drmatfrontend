@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useEffect } from "react";
-import { useCart } from "@/context/CartContext";
+import React, { useEffect, useState } from "react";
+import { CartItem, useCart } from "@/context/CartContext";
 import styles from "@/styles/Cart.module.css";
 import { FaTrashAlt, FaShoppingCart, FaCreditCard } from "react-icons/fa";
 import { FiHeart } from "react-icons/fi";
@@ -12,6 +12,11 @@ import Cookies from "js-cookie";
 import MobileNavbar from "@/components/Layout/MobileNavbar";
 import Topbar from "@/components/Layout/Topbar";
 import FullPageLoader from "@/components/common/FullPageLoader";
+import TreatmentClinicModal, {
+  TreatmentClinicOption,
+} from "@/components/modal/TreatmentClinicModal";
+
+const TREATMENT_CHECKOUT_KEY = "treatmentCheckout";
 
 // const API_BASE =
 //   process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000/api";
@@ -26,11 +31,18 @@ const CartPage: React.FC = () => {
     wishlistItems,
     removeFromWishlist,
     addToCart,
+    setCartItemClinic,
     hydrated: cartHydrated,
   } = useCart();
 
   const email = Cookies.get("email");
   const token = Cookies.get("token");
+
+  const [clinicQueue, setClinicQueue] = useState<CartItem[]>([]);
+  const [activeClinicItem, setActiveClinicItem] = useState<CartItem | null>(null);
+  const [clinicSelections, setClinicSelections] = useState<
+    Record<string, { clinicId: string; clinicName: string; clinicAddress?: string }>
+  >({});
 
   useEffect(() => {
     // Guests can review cart items; login is required at checkout.
@@ -47,6 +59,85 @@ const CartPage: React.FC = () => {
     0
   );
   const discount = totalMRP - totalPrice;
+
+  const finalizeCheckout = (
+    selections: Record<
+      string,
+      { clinicId: string; clinicName: string; clinicAddress?: string }
+    >
+  ) => {
+    const allTreatment =
+      cartItems.length > 0 && cartItems.every((item) => item.itemType === "treatment");
+
+    if (allTreatment) {
+      const itemsWithClinics = cartItems.map((item) => {
+        const selection = selections[item.id];
+        return selection ? { ...item, ...selection } : item;
+      });
+      try {
+        sessionStorage.setItem(TREATMENT_CHECKOUT_KEY, JSON.stringify(itemsWithClinics));
+      } catch {
+        // Ignore storage failures; PaymentPage falls back to the real cart.
+      }
+      router.push("/home/PaymentPage?flow=treatment");
+      return;
+    }
+
+    router.push("/home/Address");
+  };
+
+  const handleProceedToPay = () => {
+    if (!email || !token) {
+      router.push("/Login?next=/home/Cart");
+      return;
+    }
+
+    const needsClinic = cartItems.filter(
+      (item) => item.itemType === "treatment" && !item.clinicId
+    );
+
+    if (needsClinic.length > 0) {
+      setClinicSelections({});
+      setClinicQueue(needsClinic.slice(1));
+      setActiveClinicItem(needsClinic[0]);
+      return;
+    }
+
+    finalizeCheckout({});
+  };
+
+  const handleClinicConfirm = (clinic: TreatmentClinicOption) => {
+    if (!activeClinicItem) return;
+
+    const addressLine =
+      [clinic.sector, clinic.city].filter(Boolean).join(", ") || clinic.address || "";
+
+    const nextSelections = {
+      ...clinicSelections,
+      [activeClinicItem.id]: {
+        clinicId: clinic._id,
+        clinicName: clinic.clinicName,
+        clinicAddress: addressLine,
+      },
+    };
+
+    setClinicSelections(nextSelections);
+    setCartItemClinic(activeClinicItem.id, nextSelections[activeClinicItem.id]);
+
+    if (clinicQueue.length > 0) {
+      const [next, ...rest] = clinicQueue;
+      setClinicQueue(rest);
+      setActiveClinicItem(next);
+    } else {
+      setActiveClinicItem(null);
+      finalizeCheckout(nextSelections);
+    }
+  };
+
+  const handleClinicModalClose = () => {
+    setActiveClinicItem(null);
+    setClinicQueue([]);
+  };
 
   return (
     <>
@@ -249,20 +340,21 @@ const CartPage: React.FC = () => {
               <span>₹{totalPrice}</span>
             </div>
           </div>
-          <button
-            className={styles.payBtn}
-            onClick={() => {
-              if (!email || !token) {
-                router.push("/Login?next=/home/Address");
-                return;
-              }
-              router.push("/home/Address");
-            }}
-          >
+          <button className={styles.payBtn} onClick={handleProceedToPay}>
             Proceed to Pay ₹{totalPrice}
           </button>
         </div>
       </div>
+
+      {activeClinicItem && (
+        <TreatmentClinicModal
+          treatmentId={activeClinicItem.id}
+          treatmentName={activeClinicItem.name}
+          price={activeClinicItem.price}
+          onConfirm={handleClinicConfirm}
+          onClose={handleClinicModalClose}
+        />
+      )}
 
       <MobileNavbar />
     </>

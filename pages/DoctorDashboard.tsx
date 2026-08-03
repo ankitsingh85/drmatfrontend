@@ -90,7 +90,7 @@ export default function DoctorDashboard() {
 
     if (!token || role !== "doctor") {
       setCheckingAuth(false);
-      router.replace("/doctorlogin");
+      router.replace("/businesslogin");
       return;
     }
 
@@ -223,7 +223,7 @@ export default function DoctorDashboard() {
     });
 
     window.dispatchEvent(new CustomEvent("user-logged-out"));
-    router.replace("/doctorlogin");
+    router.replace("/businesslogin");
   };
 
   const menuItems = useMemo(

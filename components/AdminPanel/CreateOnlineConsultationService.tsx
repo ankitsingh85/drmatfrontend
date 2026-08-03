@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import styles from "@/styles/Dashboard/createcategory.module.css";
 import { API_URL } from "@/config/api";
+import { useToast } from "@/context/ToastContext";
 
 type Doctor = {
   _id: string;
@@ -19,6 +20,7 @@ const getDoctorName = (doctor: Doctor) =>
   "Doctor";
 
 const CreateOnlineConsultationService = () => {
+  const toast = useToast();
   const [serviceCode, setServiceCode] = useState("Auto-assigned on save");
   const [loadingCode, setLoadingCode] = useState(true);
 
@@ -212,7 +214,7 @@ const CreateOnlineConsultationService = () => {
       if (!response.ok) throw new Error(data.message || "Failed to create service");
 
       resetForm();
-      alert("Online consultation service created successfully");
+      toast.success("Online consultation service created successfully");
       window.dispatchEvent(new Event("admin-dashboard:create-success"));
       loadNextCode();
     } catch (err: any) {

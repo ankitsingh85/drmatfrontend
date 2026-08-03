@@ -10,9 +10,11 @@ import registerIllustration from "../public/register.jpg";
 import otpIllustration from "../public/otp.jpg";
 import { API_URL } from "@/config/api";
 import { resolveMediaUrl } from "@/lib/media";
+import { useToast } from "@/context/ToastContext";
 
 export default function Login() {
   const router = useRouter();
+  const toast = useToast();
   const nextPath = (router.query?.next as string) || "/home";
 
   const [mobile, setMobile] = useState("");
@@ -59,7 +61,7 @@ export default function Login() {
   const validateMobile = () => {
     const normalized = mobile.replace(/\D/g, "");
     if (normalized.length !== 10) {
-      alert("Please enter a valid 10 digit mobile number");
+      toast.error("Please enter a valid 10 digit mobile number");
       return null;
     }
     return normalized;
@@ -85,7 +87,7 @@ export default function Login() {
       setOtpSessionId(data.sessionId || "");
       setStep("otp");
     } catch (err: any) {
-      alert(err.message || "Unable to send OTP");
+      toast.error(err.message || "Unable to send OTP");
     } finally {
       setLoading(false);
     }
@@ -94,7 +96,7 @@ export default function Login() {
   const handleConfirmOtp = async (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!otpSessionId) {
-      alert("Please request OTP again");
+      toast.error("Please request OTP again");
       return;
     }
 
@@ -140,7 +142,7 @@ export default function Login() {
 
       throw new Error(data?.message || "Login failed");
     } catch (err: any) {
-      alert(err.message || "Login failed");
+      toast.error(err.message || "Login failed");
     } finally {
       setLoading(false);
     }
@@ -152,7 +154,7 @@ export default function Login() {
     if (!normalizedMobile) return;
 
     if (!name.trim() || !email.trim()) {
-      alert("Name and email are required");
+      toast.error("Name and email are required");
       return;
     }
 
@@ -174,7 +176,7 @@ export default function Login() {
 
       completeLogin(data, normalizedMobile);
     } catch (err: any) {
-      alert(err.message || "Login failed");
+      toast.error(err.message || "Login failed");
     } finally {
       setLoading(false);
     }

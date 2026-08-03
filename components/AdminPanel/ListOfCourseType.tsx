@@ -4,6 +4,9 @@ import { API_URL } from "@/config/api";
 import React, { useEffect, useMemo, useState } from "react";
 import styles from "@/styles/Dashboard/listofcategory.module.css";
 import { resolveMediaUrl } from "@/lib/media";
+import { useToast } from "@/context/ToastContext";
+import { useConfirm } from "@/context/ConfirmContext";
+import TableActions from "@/components/AdminPanel/common/TableActions";
 
 interface CourseType {
   _id: string;
@@ -18,6 +21,8 @@ type ListOfCourseTypeProps = {
 };
 
 const ListOfCourseType = ({ canEdit = true, canDelete = true }: ListOfCourseTypeProps) => {
+  const toast = useToast();
+  const confirmDialog = useConfirm();
   const [courseTypes, setCourseTypes] = useState<CourseType[]>([]);
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -54,7 +59,7 @@ const ListOfCourseType = ({ canEdit = true, canDelete = true }: ListOfCourseType
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this course type?")) return;
+    if (!(await confirmDialog("Are you sure you want to delete this course type?", { danger: true }))) return;
 
     try {
       const res = await fetch(`${API_URL}/course-types/${id}`, {
@@ -189,7 +194,7 @@ const ListOfCourseType = ({ canEdit = true, canDelete = true }: ListOfCourseType
   const handleDownloadPDF = () => {
     const printable = window.open("", "_blank");
     if (!printable) {
-      alert("Unable to open print window. Please allow popups.");
+      toast.error("Unable to open print window. Please allow popups.");
       return;
     }
 
@@ -302,19 +307,12 @@ const ListOfCourseType = ({ canEdit = true, canDelete = true }: ListOfCourseType
                   />
                 </td>
                 <td className={styles.actions}>
-                  {canEdit && (
-                    <button className={styles.editBtn} onClick={() => handleEdit(item)}>
-                      Edit
-                    </button>
-                  )}
-                  {canDelete && (
-                    <button
-                      className={styles.deleteBtn}
-                      onClick={() => handleDelete(item._id)}
-                    >
-                      Delete
-                    </button>
-                  )}
+                  <TableActions
+                    onEdit={() => handleEdit(item)}
+                    onDelete={() => handleDelete(item._id)}
+                    canEdit={canEdit}
+                    canDelete={canDelete}
+                  />
                 </td>
               </tr>
             ))}

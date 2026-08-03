@@ -8,6 +8,7 @@ import { useUser } from "@/context/UserContext";
 import styles from "@/styles/userpanel/orderdetail.module.css";
 import { API_URL } from "@/config/api";
 import FullPageLoader from "@/components/common/FullPageLoader";
+import { useToast } from "@/context/ToastContext";
 
 interface OrderProduct {
   id: string;
@@ -16,6 +17,9 @@ interface OrderProduct {
   price: number;
   image?: string;
   itemType?: "product" | "treatment";
+  clinicId?: string;
+  clinicName?: string;
+  clinicAddress?: string;
 }
 
 interface Order {
@@ -71,6 +75,7 @@ const looksLikeTreatmentOrder = (order: Order | null) => {
 
 const UserOrderDetail: React.FC<OrderDetailProps> = ({ orderKey }) => {
   const router = useRouter();
+  const toast = useToast();
   const { user, loading } = useUser();
   const [order, setOrder] = useState<Order | null>(null);
   const [fetching, setFetching] = useState(false);
@@ -216,6 +221,9 @@ const UserOrderDetail: React.FC<OrderDetailProps> = ({ orderKey }) => {
   }, [orderKey, resolvedUser?.id, token]);
 
   const isTreatment = matchedKind === "treatment" || looksLikeTreatmentOrder(order);
+  const treatmentClinicItem = isTreatment
+    ? order?.products.find((item) => item.itemType === "treatment" && item.clinicName)
+    : undefined;
   const headerTitle = isTreatment ? "Treatment Order Details" : "Order Details";
   const orderTitle = order
     ? isTreatment
@@ -258,7 +266,7 @@ const UserOrderDetail: React.FC<OrderDetailProps> = ({ orderKey }) => {
 
     const printable = window.open("", "_blank", "width=900,height=700");
     if (!printable) {
-      alert("Unable to open print window. Please allow popups.");
+      toast.error("Unable to open print window. Please allow popups.");
       return;
     }
 
@@ -277,6 +285,13 @@ const UserOrderDetail: React.FC<OrderDetailProps> = ({ orderKey }) => {
             <td class="desc">
               <div class="itemName">${item.name}</div>
               <div class="itemMeta">Qty: ${item.quantity}</div>
+              ${
+                item.itemType === "treatment" && item.clinicName
+                  ? `<div class="itemMeta">Clinic: ${item.clinicName}${
+                      item.clinicAddress ? ` — ${item.clinicAddress}` : ""
+                    }</div>`
+                  : ""
+              }
             </td>
             <td class="num">${formatMoney(item.price)}</td>
             <td class="num">${item.quantity}</td>
@@ -715,6 +730,12 @@ const UserOrderDetail: React.FC<OrderDetailProps> = ({ orderKey }) => {
                     <div>
                       <p className={styles.itemName}>{item.name}</p>
                       <span className={styles.itemMeta}>Qty: {item.quantity}</span>
+                      {item.itemType === "treatment" && item.clinicName && (
+                        <p className={styles.clinicInfo}>
+                          Clinic: {item.clinicName}
+                          {item.clinicAddress ? ` — ${item.clinicAddress}` : ""}
+                        </p>
+                      )}
                     </div>
                   </div>
                   <div className={styles.itemPrice}>
@@ -728,17 +749,25 @@ const UserOrderDetail: React.FC<OrderDetailProps> = ({ orderKey }) => {
 
           <div className={styles.card}>
             <div className={styles.cardHeader}>
-              <h2>Delivery & Summary</h2>
+              <h2>{isTreatment ? "Clinic & Summary" : "Delivery & Summary"}</h2>
               <span>Order details</span>
             </div>
             <div className={styles.summaryList}>
               <div className={styles.summaryRow}>
-                <span>Deliver To</span>
-                <strong>{order.address.type}</strong>
+                <span>{isTreatment ? "Clinic" : "Deliver To"}</span>
+                <strong>
+                  {isTreatment
+                    ? treatmentClinicItem?.clinicName || order.address.type
+                    : order.address.type}
+                </strong>
               </div>
               <div className={styles.summaryRow}>
-                <span>Address</span>
-                <strong>{order.address.address}</strong>
+                <span>{isTreatment ? "Clinic Address" : "Address"}</span>
+                <strong>
+                  {isTreatment
+                    ? treatmentClinicItem?.clinicAddress || order.address.address
+                    : order.address.address}
+                </strong>
               </div>
               <div className={styles.summaryRow}>
                 <span>Order Status</span>
