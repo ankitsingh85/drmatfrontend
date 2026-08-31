@@ -13,8 +13,6 @@ type Doctor = {
   specialist?: string;
 };
 
-type SlotEntry = { label: string; booked: boolean };
-
 const getDoctorName = (doctor: Doctor) =>
   [doctor.title || "Dr.", doctor.firstName, doctor.lastName].filter(Boolean).join(" ") ||
   "Doctor";
@@ -32,9 +30,8 @@ const CreateOnlineConsultationService = () => {
   const [consultationFee, setConsultationFee] = useState("");
   const [offerPrice, setOfferPrice] = useState("");
   const [discountPercent, setDiscountPercent] = useState("");
-
-  const [slots, setSlots] = useState<SlotEntry[]>([]);
-  const [slotInput, setSlotInput] = useState("");
+  const [availabilityStartTime, setAvailabilityStartTime] = useState("");
+  const [availabilityEndTime, setAvailabilityEndTime] = useState("");
 
   const [serviceImage, setServiceImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -106,44 +103,14 @@ const CreateOnlineConsultationService = () => {
     );
   };
 
-  const addSlot = () => {
-    const label = slotInput.trim();
-    if (!label) return;
-    if (slots.some((slot) => slot.label.toLowerCase() === label.toLowerCase())) {
-      setSlotInput("");
-      return;
-    }
-    setSlots((prev) => [...prev, { label, booked: false }]);
-    setSlotInput("");
-  };
-
-  const handleSlotKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" || e.key === ",") {
-      e.preventDefault();
-      addSlot();
-    }
-  };
-
-  const toggleSlotBooked = (label: string) => {
-    setSlots((prev) =>
-      prev.map((slot) => (slot.label === label ? { ...slot, booked: !slot.booked } : slot))
-    );
-  };
-
-  const removeSlot = (label: string) => {
-    setSlots((prev) => prev.filter((slot) => slot.label !== label));
-  };
-
-  const nextAvailableSlotPreview = slots.find((slot) => !slot.booked)?.label || "";
-
   const resetForm = () => {
     setServiceType("");
     setConsultationFee("");
     setOfferPrice("");
     setDiscountPercent("");
+    setAvailabilityStartTime("");
+    setAvailabilityEndTime("");
     setSelectedDoctorIds([]);
-    setSlots([]);
-    setSlotInput("");
     setServiceImage(null);
     setPreviewUrl(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
@@ -190,6 +157,11 @@ const CreateOnlineConsultationService = () => {
       }
     }
 
+    if ((availabilityStartTime && !availabilityEndTime) || (!availabilityStartTime && availabilityEndTime)) {
+      setError("Set both a start and end time, or leave both blank for all-day availability");
+      return;
+    }
+
     try {
       setLoading(true);
       const formData = new FormData();
@@ -197,12 +169,9 @@ const CreateOnlineConsultationService = () => {
       formData.append("consultationFee", String(feeValue));
       if (offerPrice.trim()) formData.append("offerPrice", offerPrice.trim());
       if (discountPercent.trim()) formData.append("discountPercent", discountPercent.trim());
+      if (availabilityStartTime) formData.append("availabilityStartTime", availabilityStartTime);
+      if (availabilityEndTime) formData.append("availabilityEndTime", availabilityEndTime);
       formData.append("doctors", JSON.stringify(selectedDoctorIds));
-      formData.append("timingSlots", JSON.stringify(slots.map((slot) => slot.label)));
-      formData.append(
-        "bookedSlots",
-        JSON.stringify(slots.filter((slot) => slot.booked).map((slot) => slot.label))
-      );
       formData.append("imageUrl", serviceImage);
 
       const response = await fetch(`${API_URL}/online-consultation-services`, {
@@ -333,56 +302,31 @@ const CreateOnlineConsultationService = () => {
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>Availability</h2>
 
-          <div className={styles.fullField}>
-            <label className={styles.label}>Timing Slots</label>
-            <div className={styles.tagInputRow}>
-              <input
-                type="text"
-                className={styles.input}
-                value={slotInput}
-                onChange={(e) => setSlotInput(e.target.value)}
-                onKeyDown={handleSlotKeyDown}
-                placeholder="e.g. 10:00 AM - 10:30 AM, press Enter to add"
-              />
-              <button type="button" className={styles.tagAddButton} onClick={addSlot}>
-                Add
-              </button>
-            </div>
-
-            {slots.length > 0 && (
-              <div className={styles.tagChips}>
-                {slots.map((slot) => (
-                  <div
-                    key={slot.label}
-                    className={`${styles.tagChip} ${slot.booked ? styles.tagChipBooked : ""}`}
-                  >
-                    <span className={styles.tagChipText}>{slot.label}</span>
-                    <button
-                      type="button"
-                      className={styles.tagChipBookedToggle}
-                      onClick={() => toggleSlotBooked(slot.label)}
-                    >
-                      {slot.booked ? "Booked" : "Mark booked"}
-                    </button>
-                    <button
-                      type="button"
-                      className={styles.tagChipRemove}
-                      onClick={() => removeSlot(slot.label)}
-                    >
-                      Remove
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {slots.length > 0 && (
-              <p className={styles.nextSlotBanner}>
-                Next available slot:{" "}
-                {nextAvailableSlotPreview || "None — all slots are booked"}
-              </p>
-            )}
+          <div className={styles.field}>
+            <label className={styles.label}>Available From</label>
+            <input
+              type="time"
+              value={availabilityStartTime}
+              onChange={(e) => setAvailabilityStartTime(e.target.value)}
+              className={styles.input}
+            />
           </div>
+
+          <div className={styles.field}>
+            <label className={styles.label}>Available Until</label>
+            <input
+              type="time"
+              value={availabilityEndTime}
+              onChange={(e) => setAvailabilityEndTime(e.target.value)}
+              className={styles.input}
+            />
+          </div>
+
+          <p className={styles.uploadHint}>
+            Leave both blank for all-day availability (requires the doctor to also mark
+            themselves available). Times are IST and repeat daily; within this window, assigned
+            doctors are matched automatically without needing to toggle available themselves.
+          </p>
         </section>
 
         <section className={styles.section}>

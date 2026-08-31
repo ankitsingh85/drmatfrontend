@@ -91,7 +91,7 @@ export default function CourseListing({
     : null;
 
   const isBusinessMode =
-    currentRole === "clinic" || currentRole === "doctor";
+    currentRole === "clinic" || currentRole === "doctor" || currentRole === "b2buser";
 
   const dynamicSeeMorePath = isBusinessMode
     ? "/course-listing"

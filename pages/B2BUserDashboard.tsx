@@ -56,6 +56,7 @@ type B2BUserRecord = {
   state?: string;
   pincode?: string;
   status: "active" | "inactive";
+  pendingClinicId?: string;
 };
 
 type SectionId = "dashboard" | "profile" | "orders" | "help" | "settings";
@@ -81,9 +82,7 @@ const countFilledProfileFields = (user?: B2BUserRecord | null) => {
   if (!user) return 0;
   const fields = [
     user.name,
-    user.contactPerson,
     user.email,
-    user.gstNumber,
     user.address,
     user.city,
     user.state,
@@ -106,6 +105,13 @@ export default function B2BUserDashboard() {
   const [converting, setConverting] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [showClinicModal, setShowClinicModal] = useState(false);
+  const [clinicForm, setClinicForm] = useState({
+    name: "",
+    address: "",
+    email: "",
+    gstNumber: "",
+  });
 
   useEffect(() => {
     const token = Cookies.get("token");
@@ -145,6 +151,26 @@ export default function B2BUserDashboard() {
   }, [router]);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const section = params.get("section");
+    const allowedSections: SectionId[] = [
+      "dashboard",
+      "profile",
+      "orders",
+      "help",
+      "settings",
+    ];
+
+    if (section && allowedSections.includes(section as SectionId)) {
+      setActiveSection(section as SectionId);
+    }
+
+    if (params.get("openBecomeClinic") === "1") {
+      setShowClinicModal(true);
+    }
+  }, []);
+
+  useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 900);
     handleResize();
     window.addEventListener("resize", handleResize);
@@ -163,6 +189,12 @@ export default function B2BUserDashboard() {
       const data = await res.json();
       setUser(data);
       setForm(data);
+      setClinicForm({
+        name: data.name || "",
+        address: data.address || "",
+        email: data.email || "",
+        gstNumber: data.gstNumber || "",
+      });
     } catch (error) {
       console.error("Failed to load B2B user profile:", error);
     } finally {
@@ -224,32 +256,53 @@ export default function B2BUserDashboard() {
     router.replace("/businesslogin");
   };
 
-  const handleBecomeClinic = async () => {
+  const handleClinicFormChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = e.target;
+    setClinicForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleBecomeClinicSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!b2bUserId) return;
-    const confirmed = await confirmDialog(
-      "Your B2B account will be permanently replaced with a clinic registration pending admin approval.",
-      { title: "Convert your account to a Clinic?", confirmLabel: "Convert", danger: true }
-    );
-    if (!confirmed) {
+
+    if (!clinicForm.name.trim() || !clinicForm.address.trim()) {
+      toast.error("Business name and address are required");
       return;
     }
+
+    const confirmed = await confirmDialog(
+      "This submits a clinic registration for admin approval. You'll keep using your B2B account as normal until it's approved.",
+      { title: "Submit clinic application?", confirmLabel: "Submit" }
+    );
+    if (!confirmed) return;
 
     setConverting(true);
     try {
       const res = await fetch(
         `${API_URL}/b2b-users/${b2bUserId}/convert-to-clinic`,
-        { method: "POST" }
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: clinicForm.name.trim(),
+            address: clinicForm.address.trim(),
+            email: clinicForm.email.trim(),
+            gstNumber: clinicForm.gstNumber.trim(),
+          }),
+        }
       );
       const data = await res.json();
-      if (!res.ok) throw new Error(data?.message || "Failed to convert to clinic");
+      if (!res.ok) throw new Error(data?.message || "Failed to submit clinic application");
 
       toast.success(
-        data.message ||
-          "Your account has been converted to a clinic and submitted for admin approval."
+        data.message || "Your clinic application has been submitted for admin approval."
       );
-      handleLogout();
+      setShowClinicModal(false);
+      if (b2bUserId) fetchUser(b2bUserId);
     } catch (error: any) {
-      toast.error(error.message || "Failed to convert to clinic");
+      toast.error(error.message || "Failed to submit clinic application");
     } finally {
       setConverting(false);
     }
@@ -266,7 +319,7 @@ export default function B2BUserDashboard() {
   );
 
   const profileCompletion = Math.round(
-    (countFilledProfileFields(user) / 8) * 100
+    (countFilledProfileFields(user) / 6) * 100
   );
 
   const dashboardCards = [
@@ -303,6 +356,23 @@ export default function B2BUserDashboard() {
 
   const renderDashboardOverview = () => (
     <div className={dashboardStyles.sectionShell}>
+      {user?.pendingClinicId && (
+        <div
+          style={{
+            padding: "14px 18px",
+            borderRadius: 14,
+            background: "rgba(21, 105, 142, 0.08)",
+            border: "1px solid rgba(21, 105, 142, 0.18)",
+            color: "#0d4a66",
+            fontWeight: 600,
+            fontSize: 14,
+          }}
+        >
+          Your clinic application is submitted and awaiting admin approval. You can keep
+          using your B2B account as normal in the meantime.
+        </div>
+      )}
+
       <div className={dashboardStyles.heroTop}>
         <div>
           <p className={dashboardStyles.kicker}>B2B Workspace</p>
@@ -444,18 +514,6 @@ export default function B2BUserDashboard() {
               />
             </div>
             <div className={formStyles.field}>
-              <label htmlFor="b2b-contactPerson">
-                <FiUser size={13} style={{ marginRight: 6 }} />
-                Contact Person
-              </label>
-              <input
-                id="b2b-contactPerson"
-                name="contactPerson"
-                value={form.contactPerson || ""}
-                onChange={handleChange}
-              />
-            </div>
-            <div className={formStyles.field}>
               <label htmlFor="b2b-contactNo">
                 <FiPhone size={13} style={{ marginRight: 6 }} />
                 Contact No.
@@ -477,18 +535,6 @@ export default function B2BUserDashboard() {
                 name="email"
                 type="email"
                 value={form.email || ""}
-                onChange={handleChange}
-              />
-            </div>
-            <div className={formStyles.field}>
-              <label htmlFor="b2b-gst">
-                <FiCreditCard size={13} style={{ marginRight: 6 }} />
-                GST Number
-              </label>
-              <input
-                id="b2b-gst"
-                name="gstNumber"
-                value={form.gstNumber || ""}
                 onChange={handleChange}
               />
             </div>
@@ -545,6 +591,147 @@ export default function B2BUserDashboard() {
       </div>
     </div>
   );
+
+  const renderBecomeClinicModal = () => {
+    if (!showClinicModal) return null;
+
+    return (
+      <div
+        role="presentation"
+        onClick={() => setShowClinicModal(false)}
+        style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 10000,
+          background: "rgba(15, 23, 42, 0.5)",
+          backdropFilter: "blur(2px)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: 20,
+        }}
+      >
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Become a Clinic"
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            width: "100%",
+            maxWidth: 520,
+            maxHeight: "90vh",
+            overflowY: "auto",
+            background: "#fff",
+            borderRadius: 20,
+            padding: 28,
+            boxShadow: "0 30px 70px rgba(15, 23, 42, 0.3)",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "flex-start",
+              marginBottom: 8,
+            }}
+          >
+            <h3 className={formStyles.sectionTitle} style={{ margin: 0 }}>
+              Become a Clinic
+            </h3>
+            <button
+              type="button"
+              onClick={() => setShowClinicModal(false)}
+              aria-label="Close"
+              style={{
+                border: "none",
+                background: "transparent",
+                cursor: "pointer",
+                color: "#64748b",
+                fontSize: 18,
+                lineHeight: 1,
+                padding: 4,
+              }}
+            >
+              <FiX />
+            </button>
+          </div>
+
+          {user?.pendingClinicId ? (
+            <p className={formStyles.message}>
+              Your clinic application is already submitted and awaiting admin approval.
+              You can keep using your B2B account as normal until it's reviewed.
+            </p>
+          ) : (
+            <>
+              <p style={{ color: "#556b84", marginBottom: 16, lineHeight: 1.6 }}>
+                Fill in your business details below to apply. Your B2B account keeps
+                working exactly as before while this is pending — it's only replaced
+                once an admin approves the application.
+              </p>
+              <form onSubmit={handleBecomeClinicSubmit}>
+                <div className={formStyles.grid}>
+                  <div className={formStyles.field}>
+                    <label htmlFor="clinic-name">
+                      <FiUser size={13} style={{ marginRight: 6 }} />
+                      Business Name
+                    </label>
+                    <input
+                      id="clinic-name"
+                      name="name"
+                      value={clinicForm.name}
+                      onChange={handleClinicFormChange}
+                    />
+                  </div>
+                  <div className={formStyles.field}>
+                    <label htmlFor="clinic-email">
+                      <FiMail size={13} style={{ marginRight: 6 }} />
+                      Email
+                    </label>
+                    <input
+                      id="clinic-email"
+                      name="email"
+                      type="email"
+                      value={clinicForm.email}
+                      onChange={handleClinicFormChange}
+                    />
+                  </div>
+                  <div className={formStyles.field}>
+                    <label htmlFor="clinic-gst">
+                      <FiCreditCard size={13} style={{ marginRight: 6 }} />
+                      GST Number
+                    </label>
+                    <input
+                      id="clinic-gst"
+                      name="gstNumber"
+                      value={clinicForm.gstNumber}
+                      onChange={handleClinicFormChange}
+                    />
+                  </div>
+                </div>
+
+                <div className={formStyles.field} style={{ marginTop: 12 }}>
+                  <label htmlFor="clinic-address">
+                    <FiMapPin size={13} style={{ marginRight: 6 }} />
+                    Address
+                  </label>
+                  <textarea
+                    id="clinic-address"
+                    name="address"
+                    value={clinicForm.address}
+                    onChange={handleClinicFormChange}
+                  />
+                </div>
+
+                <button type="submit" className={formStyles.primaryBtn} disabled={converting}>
+                  {converting ? "Submitting..." : "Submit Application"}
+                </button>
+              </form>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   const renderContent = () => {
     if (activeSection === "dashboard") return renderDashboardOverview();
@@ -611,13 +798,16 @@ export default function B2BUserDashboard() {
         <button
           type="button"
           className={dashboardStyles.editProfileBtn}
-          onClick={handleBecomeClinic}
-          disabled={converting}
+          onClick={() => {
+            setShowClinicModal(true);
+            setSidebarOpen(false);
+          }}
+          disabled={Boolean(user?.pendingClinicId)}
           style={{ marginTop: 10 }}
         >
           <span className={dashboardStyles.inlineCenter}>
             <FiTrendingUp />
-            {converting ? "Converting..." : "Become a Clinic"}
+            {user?.pendingClinicId ? "Application Pending" : "Become a Clinic"}
           </span>
         </button>
 
@@ -702,6 +892,8 @@ export default function B2BUserDashboard() {
           </main>
         </div>
       </div>
+
+      {renderBecomeClinicModal()}
 
       <Footer />
     </>

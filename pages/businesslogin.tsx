@@ -35,6 +35,9 @@ export default function BusinessLogin() {
     path: "/",
     sameSite: "lax" as const,
     secure: typeof window !== "undefined" && window.location.protocol === "https:",
+    // Business sessions (clinic/doctor/b2buser) should stay signed in until
+    // explicit logout, matching the 30d JWT expiry in authToken.ts.
+    expires: 30,
   };
 
   const clearExistingSession = () => {

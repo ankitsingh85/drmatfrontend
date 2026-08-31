@@ -1,0 +1,706 @@
+.wrap {
+  --brand-50: #eef4ff;
+  --brand-500: #2563eb;
+  --brand-600: #1d4ed8;
+  --brand-700: #1e3a8a;
+  --ink-900: #0f172a;
+  --ink-700: #334155;
+  --ink-500: #64748b;
+  --border: #e1e7f0;
+
+  width: 100%;
+}
+
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 14px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--brand-600);
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+/* ---------------- Header banner ---------------- */
+
+.headerBanner {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 28px 32px;
+  margin-bottom: 22px;
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(37, 99, 235, 0.14), transparent 55%),
+    linear-gradient(120deg, var(--brand-50) 0%, #ffffff 60%);
+  border: 1px solid var(--border);
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.07);
+}
+
+.ticketNumberTag {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid var(--border);
+  color: var(--ink-500);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.headerBadges {
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.badgeLg {
+  padding: 7px 16px;
+  font-size: 12px;
+}
+
+/* ---------------- Hiring request details ---------------- */
+
+.hiringDetailsCard {
+  padding: 22px 26px;
+  margin-bottom: 22px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05);
+}
+
+.hiringDetailsCard h4 {
+  margin: 0 0 16px;
+  color: var(--ink-900);
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.hiringDetailsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.hiringDetailItem {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #f8fafc;
+  border: 1px solid #f1f5f9;
+}
+
+.hiringDetailItemFull {
+  grid-column: 1 / -1;
+}
+
+.hiringDetailItem > span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink-500);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.hiringDetailItem > strong {
+  color: var(--ink-900);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+/* ---------------- Sidebar ---------------- */
+
+.sidebar {
+  position: sticky;
+  top: 12px;
+}
+
+.sidebarCard {
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05);
+}
+
+.sidebarCard h4 {
+  margin: 0 0 14px;
+  color: var(--ink-900);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.sidebarRow {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.sidebarRow:last-of-type {
+  border-bottom: none;
+}
+
+.sidebarRow > span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink-500);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.sidebarRow > strong {
+  color: var(--ink-900);
+  font-size: 13.5px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sidebarActions {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.replyActionBtn,
+.closedActionBtn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 0;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--brand-600);
+  font-size: 12.5px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.replyActionBtn:hover,
+.closedActionBtn:hover {
+  background: #f0f5ff;
+}
+
+.closedActionBtn {
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+
+.closedActionBtn:hover {
+  background: #fef2f2;
+}
+
+/* ---------------- Main ---------------- */
+
+.main {
+  min-width: 0;
+}
+
+.breadcrumb {
+  margin: 0 0 6px;
+  color: var(--ink-500);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.title {
+  margin: 0;
+  color: var(--ink-900);
+  font-size: 28px;
+  font-weight: 850;
+  letter-spacing: -0.01em;
+}
+
+.closedBanner {
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: #fef9e7;
+  border: 1px solid #fde68a;
+  color: #92400e;
+  font-size: 13.5px;
+  font-weight: 700;
+}
+
+.replyPanel {
+  margin-bottom: 18px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.replyToggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border: none;
+  background: #eaf2ff;
+  color: var(--brand-600);
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.replyForm {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.replyTextarea {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  font-size: 14px;
+  resize: vertical;
+  outline: 0;
+}
+
+.replyTextarea:focus {
+  border-color: var(--brand-500);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.replyFormFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.attachLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px dashed var(--border);
+  color: var(--ink-700);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sendBtn {
+  padding: 10px 22px;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--brand-500), var(--brand-600));
+  color: #fff;
+  font-size: 13.5px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.sendBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ---------------- Messages ---------------- */
+
+.messages {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.messageCard {
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--border);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.04);
+}
+
+.messageCardRequester {
+  border-left-color: #16a34a;
+}
+
+.messageCardAdmin {
+  border-left-color: var(--brand-500);
+  background: var(--brand-50);
+}
+
+.messageHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.messageAvatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #eef2ff;
+  color: var(--brand-600);
+  font-size: 12px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.messageAvatarRequester {
+  background: rgba(22, 163, 74, 0.12);
+  color: #15803d;
+}
+
+.messageAvatarAdmin {
+  background: rgba(37, 99, 235, 0.12);
+  color: var(--brand-600);
+}
+
+.messageMeta {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.messageSender {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink-900);
+  font-size: 13.5px;
+  font-weight: 800;
+}
+
+.messageSub {
+  color: var(--ink-500);
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.messageTime {
+  color: var(--ink-500);
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.messageBody {
+  margin: 0;
+  color: var(--ink-700);
+  font-size: 14px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.attachmentsRow {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #f1f5f9;
+  font-size: 12.5px;
+}
+
+.attachmentsRow > span {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--ink-500);
+  font-weight: 800;
+}
+
+.attachmentsRow a {
+  display: block;
+  color: var(--brand-600);
+  font-weight: 700;
+  text-decoration: none;
+  margin-bottom: 4px;
+}
+
+.attachmentsRow a:hover {
+  text-decoration: underline;
+}
+
+.emptyMessages {
+  padding: 30px;
+  text-align: center;
+  color: var(--ink-500);
+  font-size: 13.5px;
+}
+
+/* ---------------- Badges ---------------- */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.statusOpen {
+  background: rgba(37, 99, 235, 0.1);
+  color: var(--brand-600);
+}
+
+.statusAnswered {
+  background: rgba(22, 163, 74, 0.12);
+  color: #15803d;
+}
+
+.statusClosed {
+  background: rgba(100, 116, 139, 0.12);
+  color: #475569;
+}
+
+.priorityHigh {
+  background: rgba(220, 38, 38, 0.1);
+  color: #dc2626;
+}
+
+.priorityMedium {
+  background: rgba(245, 158, 11, 0.14);
+  color: #b45309;
+}
+
+.priorityLow {
+  background: rgba(100, 116, 139, 0.12);
+  color: #475569;
+}
+
+.roleBadgeOwner {
+  display: inline-flex;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(22, 163, 74, 0.12);
+  color: #15803d;
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.roleBadgeOperator {
+  display: inline-flex;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.1);
+  color: var(--brand-600);
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.statusPending {
+  background: rgba(37, 99, 235, 0.1);
+  color: var(--brand-600);
+}
+
+.statusInReview {
+  background: rgba(245, 158, 11, 0.14);
+  color: #b45309;
+}
+
+.statusFulfilled {
+  background: rgba(22, 163, 74, 0.12);
+  color: #15803d;
+}
+
+.statusCancelled {
+  background: rgba(100, 116, 139, 0.12);
+  color: #475569;
+}
+
+/* ---------------- Ticket list (hiring request detail) ---------------- */
+
+.ticketListCard {
+  padding: 20px 22px;
+  margin-bottom: 22px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05);
+}
+
+.ticketListCard h4 {
+  margin: 0 0 14px;
+  color: var(--ink-900);
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.ticketListItems {
+  display: grid;
+  gap: 8px;
+}
+
+.ticketListItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  background: #f8fafc;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.ticketListItem:hover {
+  border-color: var(--brand-500);
+}
+
+.ticketListItemActive {
+  border-color: var(--brand-500);
+  background: var(--brand-50);
+}
+
+.ticketListItemMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ticketListItemMeta > strong {
+  color: var(--ink-900);
+  font-size: 13.5px;
+  font-weight: 800;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ticketListItemMeta > span {
+  color: var(--ink-500);
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.raiseTicketForm {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.raiseTicketInput {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  font-size: 13.5px;
+  outline: 0;
+}
+
+.raiseTicketInput:focus {
+  border-color: var(--brand-500);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.raiseFormActions {
+  display: flex;
+  gap: 8px;
+}
+
+.cancelRaiseBtn {
+  padding: 10px 18px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--ink-700);
+  font-size: 12.5px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.cancelRaiseBtn:hover {
+  background: #f8fafc;
+}
+
+.raiseTicketBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 11px 20px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--brand-500), var(--brand-600));
+  color: #fff;
+  font-size: 13.5px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.raiseTicketBtn:hover {
+  filter: brightness(1.04);
+}
+
+.activeTicketNotice {
+  margin-top: 14px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #f0f5ff;
+  color: var(--brand-600);
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+/* ---------------- Responsive ---------------- */
+
+@media (max-width: 760px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .hiringDetailsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    position: static;
+  }
+}

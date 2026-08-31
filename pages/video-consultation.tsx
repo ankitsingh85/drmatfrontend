@@ -47,7 +47,6 @@ type ConsultationService = {
   discountPercent?: number;
   isActive?: boolean;
   doctors?: Doctor[];
-  nextAvailableSlot?: string;
 };
 
 const getDoctorName = (doctor?: Doctor | null) => {

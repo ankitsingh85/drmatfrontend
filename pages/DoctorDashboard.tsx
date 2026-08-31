@@ -82,6 +82,7 @@ export default function DoctorDashboard() {
   const [loadingDoctor, setLoadingDoctor] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [updatingAvailability, setUpdatingAvailability] = useState(false);
 
   useEffect(() => {
     const token = Cookies.get("token");
@@ -155,6 +156,32 @@ export default function DoctorDashboard() {
       setDoctor(null);
     } finally {
       setLoadingDoctor(false);
+    }
+  };
+
+  const toggleAvailability = async () => {
+    const token = Cookies.get("token");
+    if (!token || !doctor || updatingAvailability) return;
+
+    const next = !doctor.isAvailableForConsultation;
+    setDoctor((prev) => (prev ? { ...prev, isAvailableForConsultation: next } : prev));
+
+    try {
+      setUpdatingAvailability(true);
+      const res = await fetch(`${API_URL}/doctors/me/availability`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ isAvailableForConsultation: next }),
+      });
+      if (!res.ok) throw new Error("Failed to update availability");
+    } catch (error) {
+      console.error("Failed to update consultation availability:", error);
+      setDoctor((prev) => (prev ? { ...prev, isAvailableForConsultation: !next } : prev));
+    } finally {
+      setUpdatingAvailability(false);
     }
   };
 
@@ -232,7 +259,7 @@ export default function DoctorDashboard() {
       { id: "appointments" as const, label: "Appointments", icon: FiCalendar },
       { id: "profile" as const, label: "Edit Profile", icon: FiUser },
       { id: "orders" as const, label: "Orders", icon: FiShoppingBag },
-      // { id: "chat" as const, label: "Chat", icon: FiMessageSquare },
+      { id: "chat" as const, label: "Chat", icon: FiMessageSquare },
       { id: "ratings" as const, label: "Ratings", icon: FiStar },
       { id: "help" as const, label: "Help Center", icon: FiHelpCircle },
       { id: "settings" as const, label: "Settings", icon: FiSettings },
@@ -318,7 +345,57 @@ export default function DoctorDashboard() {
           </p>
         </div>
 
-        <div>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 10 }}>
+          <button
+            type="button"
+            onClick={toggleAvailability}
+            disabled={!doctor || updatingAvailability}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 10,
+              padding: "10px 16px",
+              borderRadius: 999,
+              border: "1px solid",
+              borderColor: doctor?.isAvailableForConsultation ? "#16a34a" : "#e2e8f0",
+              background: doctor?.isAvailableForConsultation ? "rgba(22, 163, 74, 0.08)" : "#f8fafc",
+              color: doctor?.isAvailableForConsultation ? "#15803d" : "#64748b",
+              fontWeight: 800,
+              fontSize: 13,
+              cursor: !doctor || updatingAvailability ? "not-allowed" : "pointer",
+              opacity: updatingAvailability ? 0.7 : 1,
+            }}
+          >
+            <span
+              style={{
+                position: "relative",
+                width: 34,
+                height: 18,
+                borderRadius: 999,
+                background: doctor?.isAvailableForConsultation ? "#16a34a" : "#cbd5e1",
+                transition: "background 0.2s ease",
+                flexShrink: 0,
+              }}
+            >
+              <span
+                style={{
+                  position: "absolute",
+                  top: 2,
+                  left: doctor?.isAvailableForConsultation ? 18 : 2,
+                  width: 14,
+                  height: 14,
+                  borderRadius: "50%",
+                  background: "#fff",
+                  transition: "left 0.2s ease",
+                  boxShadow: "0 1px 2px rgba(0,0,0,0.3)",
+                }}
+              />
+            </span>
+            {doctor?.isAvailableForConsultation
+              ? "Available for Online Consultation"
+              : "Unavailable for Online Consultation"}
+          </button>
+
           <button
             type="button"
             className={styles.editProfileBtn}
@@ -433,8 +510,7 @@ export default function DoctorDashboard() {
     if (activeSection === "appointments") {
       return (
         <div className={styles.sectionShell}>
-                    <DoctorChat />
-
+          <ListOfAppointments />
         </div>
       );
     }
@@ -445,12 +521,13 @@ export default function DoctorDashboard() {
         </div>
       );
     }
-    // if (activeSection === "chat") {
-    //   return (
-    //     <div className={styles.sectionShell}>
-    //     </div>
-    //   );
-    // }
+    if (activeSection === "chat") {
+      return (
+        <div className={styles.sectionShell}>
+          <DoctorChat />
+        </div>
+      );
+    }
     if (activeSection === "ratings") {
       return (
         <div className={styles.sectionShell}>

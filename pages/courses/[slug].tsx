@@ -23,7 +23,7 @@ interface Course {
   _id: string;
   courseName: string;
   courseUniqueCode: string;
-  courseType?: string;
+  courseType?: string[];
   courseImage?: string;
   instituteName?: string;
   courseDuration?: string;
@@ -61,7 +61,9 @@ interface Review {
   rating:number;
   comment:string;
 }
-const COURSE_HERO_IMAGE = "/doctor-landing-page-3.jpg";
+// The header banner shows the course's own image — it must never fall back
+// to a person's headshot (that's what the Instructor card below is for).
+const COURSE_HERO_IMAGE = "/demo-clinic.jpg";
 const INSTRUCTOR_IMAGE = "/doctor1.jpg";
 
 const formatDate = (value?: string) => {
@@ -141,6 +143,7 @@ const CourseDetailPage = () => {
   const [course, setCourse] = useState<Course | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [courseTypeMap, setCourseTypeMap] = useState<Record<string, string>>({});
   const [showAllLearning, setShowAllLearning] = useState(false);
   const [isVideoOpen, setIsVideoOpen] = useState(false);
 const [reviews,setReviews] =
@@ -202,6 +205,24 @@ useState({
 
     fetchCourse();
   }, [resolvedSlug]);
+
+  useEffect(() => {
+    // courseType is stored as an array of Course Type _ids (checkbox
+    // selection in the admin form) — resolve them to display names here
+    // instead of leaking raw ObjectIds into the UI.
+    fetch(`${API_URL}/course-types`)
+      .then((res) => res.json())
+      .then((data) => {
+        const list = Array.isArray(data) ? data : [];
+        const map: Record<string, string> = {};
+        list.forEach((item: any) => {
+          const id = String(item._id || item.id || "");
+          if (id && item.name) map[id] = item.name;
+        });
+        setCourseTypeMap(map);
+      })
+      .catch(() => setCourseTypeMap({}));
+  }, []);
 const fetchReviews = async () => {
 
   if (!course?._id) return;
@@ -335,8 +356,14 @@ async (e: React.FormEvent) => {
     );
   }
 
+  const isObjectId = (value: string) => /^[a-f0-9]{24}$/i.test(value);
+  const skillLevel = (course.courseType || [])
+    .map((type) => courseTypeMap[type] || (isObjectId(type) ? "" : type))
+    .filter(Boolean)
+    .join(", ");
+
   const trainerName = course.trainerInstructorName || "Expert Faculty";
-  const trainerRole = course.instituteName || course.courseType || "Dermat Educator";
+  const trainerRole = course.instituteName || skillLevel || "Dermat Educator";
   const learnerCount = course.maximumSeatsBatchSize || 100;
   const ratingValue = course.certificationProvided === "Yes" ? 4.9 : 4.7;
   const reviewCount = 7525;
@@ -356,7 +383,7 @@ async (e: React.FormEvent) => {
       name: course.courseName,
       price: price.sale,
       mrp: price.mrp || price.sale,
-      company: course.instituteName || course.courseType || "Course",
+      company: course.instituteName || skillLevel || "Course",
       image: courseHeroImage,
     });
   };
@@ -368,7 +395,7 @@ async (e: React.FormEvent) => {
         name: course.courseName,
         price: price.sale,
         mrp: price.mrp || price.sale,
-        company: course.instituteName || course.courseType || "Course",
+        company: course.instituteName || skillLevel || "Course",
         image: courseHeroImage,
       });
     }
@@ -387,7 +414,7 @@ async (e: React.FormEvent) => {
             <span className={styles.heroBadge}>{course.courseUniqueCode}</span>
             <h1 className={styles.heroTitle}>{course.courseName}</h1>
             <p className={styles.heroText}>
-              {course.courseType || "Professional dermatology program"} with practical
+              {skillLevel || "Professional dermatology program"} with practical
               training, guided mentorship, and real-world clinical confidence for modern
               skin and aesthetic practice.
             </p>
@@ -526,22 +553,6 @@ async (e: React.FormEvent) => {
                 <div className={styles.instructorContent}>
                   <h3>{trainerName}</h3>
                   <p className={styles.instructorRole}>{trainerRole}</p>
-
-                  <div className={styles.instructorMeta}>
-                    <span>
-                      <FaStar />
-                      {reviewCount.toLocaleString("en-IN")} Reviews
-                    </span>
-                    <span className={styles.ratingChip}>{ratingValue.toFixed(1)} Rating</span>
-                    <span>
-                      <FaUserFriends />
-                      {learnerCount.toLocaleString("en-IN")} Students
-                    </span>
-                    <span>
-                      <FaCalendarAlt />
-                      20 Course modules
-                    </span>
-                  </div>
 
                   <p className={styles.instructorBio}>
                     {course.trainerExperience ||
@@ -731,7 +742,7 @@ styles.emptyStar
                 </div>
                 <div className={styles.sidebarRow}>
                   <span>Skill Level</span>
-                  <strong>{course.courseType || "Professional"}</strong>
+                  <strong>{skillLevel || "Professional"}</strong>
                 </div>
                 <div className={styles.sidebarRow}>
                   <span>Language</span>

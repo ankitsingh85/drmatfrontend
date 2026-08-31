@@ -225,6 +225,7 @@ function ListOfClinic({ canEdit = true, canDelete = true }: ListOfClinicProps) {
   });
 
   const [viewClinic, setViewClinic] = useState<Clinic | null>(null);
+  const [viewLoading, setViewLoading] = useState(false);
 
   useEffect(() => {
     fetchClinics();
@@ -314,6 +315,24 @@ function ListOfClinic({ canEdit = true, canDelete = true }: ListOfClinicProps) {
     if (!(await confirmDialog("Delete this clinic?", { danger: true }))) return;
     await fetch(`${API_URL}/clinics/${id}`, { method: "DELETE" });
     setClinics((prev) => prev.filter((c) => c._id !== id));
+  };
+
+  // The list is fetched with ?light=true, which only returns a subset of
+  // fields — fetch the full clinic record (same endpoint handleEdit uses)
+  // so the view modal can actually show everything.
+  const handleView = async (clinic: Clinic) => {
+    setViewClinic(clinic);
+    setViewLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/clinics/${clinic._id}`);
+      if (!res.ok) throw new Error("Failed to load clinic details");
+      const full: Clinic = await res.json();
+      setViewClinic(full);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to load clinic details");
+    } finally {
+      setViewLoading(false);
+    }
   };
 
   const resetEditMediaState = () => {
@@ -903,7 +922,7 @@ function ListOfClinic({ canEdit = true, canDelete = true }: ListOfClinicProps) {
                   </td>
                   <td>
                     <TableActions
-                      onView={() => setViewClinic(clinic)}
+                      onView={() => handleView(clinic)}
                       onEdit={() => handleEdit(clinic)}
                       onDelete={() => handleDelete(clinic._id)}
                       onApprove={
@@ -1606,80 +1625,408 @@ function ListOfClinic({ canEdit = true, canDelete = true }: ListOfClinicProps) {
         </div>
       )}
 
-      {/* ================= VIEW MODAL (FIXED) ================= */}
+      {/* ================= VIEW CLINIC MODAL ================= */}
       {viewClinic && (
-        <div className={styles.modalOverlay}>
-          <div className={styles.viewModal}>
-            <h2>{viewClinic.clinicName}</h2>
-
-            {viewClinic.bannerImage && (
-              <img
-                src={getImage(viewClinic.bannerImage)}
-                style={{
-                  width: "100%",
-                  height: 180,
-                  objectFit: "cover",
-                  borderRadius: 12,
-                  marginBottom: 16,
-                }}
-              />
-            )}
-
-            <div className={styles.viewGrid}>
-              <p><b>CUC:</b> {viewClinic.cuc}</p>
-              <p><b>Email:</b> {viewClinic.email}</p>
-              <p><b>Contact:</b> {viewClinic.contactNumber}</p>
-              <p><b>Website:</b> {viewClinic.website}</p>
-              <p><b>Category:</b> {viewClinic.dermaCategory?.name}</p>
-              <p><b>Status:</b> {viewClinic.clinicStatus}</p>
-              <p><b>Verified:</b> {viewClinic.verifiedBadge ? "Yes" : "No"}</p>
-              <p><b>Active:</b> {viewClinic.isActive === false ? "No" : "Yes"}</p>
-              <p><b>Registration:</b> {viewClinic.approvalStatus || "pending"}</p>
-              {viewClinic.approvalStatus === "rejected" && viewClinic.rejectionReason && (
-                <p><b>Rejection Reason:</b> {viewClinic.rejectionReason}</p>
-              )}
-              <p><b>Address:</b> {viewClinic.address}</p>
-            </div>
-
-            {viewClinic.doctors?.length > 0 && (
+        <div className={styles.modalOverlay} onClick={() => setViewClinic(null)}>
+          <div
+            className={styles.viewModal}
+            style={{ width: 960, maxWidth: "95%", maxHeight: "90vh", overflowY: "auto" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {viewLoading ? (
+              <FullPageLoader />
+            ) : (
               <>
-                <h3 style={{ marginTop: 20 }}>Doctors</h3>
-                <ul>
-                  {viewClinic.doctors.map((d, i) => (
-                    <li key={i}>
-                      {d.name} – {d.specialization}
-                    </li>
-                  ))}
-                </ul>
-              </>
-            )}
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "flex-start",
+                    gap: 12,
+                    marginBottom: 4,
+                  }}
+                >
+                  <div>
+                    <h2 style={{ margin: "0 0 4px" }}>{viewClinic.clinicName}</h2>
+                    <p style={{ margin: 0, color: "#64748b", fontSize: 13 }}>
+                      CUC: {viewClinic.cuc}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setViewClinic(null)}
+                    aria-label="Close"
+                    style={{
+                      border: "none",
+                      background: "#f1f5f9",
+                      borderRadius: 999,
+                      width: 32,
+                      height: 32,
+                      fontSize: 16,
+                      fontWeight: 800,
+                      cursor: "pointer",
+                      color: "#334155",
+                      flexShrink: 0,
+                    }}
+                  >
+                    ×
+                  </button>
+                </div>
 
-            {viewClinic.photos && viewClinic.photos.length > 0 && (
-              <>
-                <h3 style={{ marginTop: 20 }}>Clinic Photos</h3>
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                  {viewClinic.photos.map((img, i) => (
-                    <img
-                      key={i}
-                      src={getImage(img)}
-                      style={{
-                        width: 80,
-                        height: 80,
-                        objectFit: "cover",
-                        borderRadius: 8,
-                      }}
-                    />
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, margin: "12px 0 20px" }}>
+                  <span
+                    style={{
+                      padding: "5px 12px",
+                      borderRadius: 999,
+                      fontSize: 11,
+                      fontWeight: 800,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.04em",
+                      background: viewClinic.isActive === false ? "rgba(220, 38, 38, 0.1)" : "rgba(22, 163, 74, 0.12)",
+                      color: viewClinic.isActive === false ? "#dc2626" : "#15803d",
+                    }}
+                  >
+                    {viewClinic.isActive === false ? "Inactive" : "Active"}
+                  </span>
+                  <span
+                    style={{
+                      padding: "5px 12px",
+                      borderRadius: 999,
+                      fontSize: 11,
+                      fontWeight: 800,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.04em",
+                      background: viewClinic.verifiedBadge ? "rgba(13, 93, 143, 0.12)" : "rgba(100, 116, 139, 0.12)",
+                      color: viewClinic.verifiedBadge ? "#0d5d8f" : "#475569",
+                    }}
+                  >
+                    {viewClinic.verifiedBadge ? "Verified" : "Not Verified"}
+                  </span>
+                  <span
+                    style={{
+                      padding: "5px 12px",
+                      borderRadius: 999,
+                      fontSize: 11,
+                      fontWeight: 800,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.04em",
+                      background:
+                        (viewClinic.approvalStatus || "pending") === "approved"
+                          ? "rgba(22, 163, 74, 0.12)"
+                          : (viewClinic.approvalStatus || "pending") === "rejected"
+                          ? "rgba(220, 38, 38, 0.1)"
+                          : "rgba(245, 158, 11, 0.14)",
+                      color:
+                        (viewClinic.approvalStatus || "pending") === "approved"
+                          ? "#15803d"
+                          : (viewClinic.approvalStatus || "pending") === "rejected"
+                          ? "#dc2626"
+                          : "#b45309",
+                    }}
+                    title={
+                      viewClinic.approvalStatus === "rejected" && viewClinic.rejectionReason
+                        ? `Reason: ${viewClinic.rejectionReason}`
+                        : undefined
+                    }
+                  >
+                    {(viewClinic.approvalStatus || "pending") === "approved"
+                      ? "Approved"
+                      : (viewClinic.approvalStatus || "pending") === "rejected"
+                      ? "Rejected"
+                      : "Pending Approval"}
+                  </span>
+                  <span
+                    style={{
+                      padding: "5px 12px",
+                      borderRadius: 999,
+                      fontSize: 11,
+                      fontWeight: 800,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.04em",
+                      background: "rgba(99, 102, 241, 0.1)",
+                      color: "#4f46e5",
+                    }}
+                  >
+                    {viewClinic.clinicStatus || "Open"}
+                  </span>
+                </div>
+
+                {viewClinic.approvalStatus === "rejected" && viewClinic.rejectionReason && (
+                  <div
+                    style={{
+                      padding: "10px 14px",
+                      borderRadius: 12,
+                      background: "rgba(220, 38, 38, 0.06)",
+                      color: "#b91c1c",
+                      fontSize: 13,
+                      fontWeight: 600,
+                      marginBottom: 20,
+                    }}
+                  >
+                    Rejection reason: {viewClinic.rejectionReason}
+                  </div>
+                )}
+
+                {(viewClinic.bannerImage || viewClinic.clinicLogo) && (
+                  <div style={{ display: "flex", gap: 16, alignItems: "flex-end", marginBottom: 20 }}>
+                    {viewClinic.bannerImage && (
+                      <img
+                        src={getImage(viewClinic.bannerImage)}
+                        alt="Banner"
+                        style={{
+                          flex: 1,
+                          height: 180,
+                          objectFit: "cover",
+                          borderRadius: 14,
+                          border: "1px solid #e5e7eb",
+                        }}
+                      />
+                    )}
+                    {viewClinic.clinicLogo && (
+                      <img
+                        src={getImage(viewClinic.clinicLogo)}
+                        alt="Logo"
+                        style={{
+                          width: 96,
+                          height: 96,
+                          objectFit: "cover",
+                          borderRadius: 14,
+                          border: "1px solid #e5e7eb",
+                          flexShrink: 0,
+                        }}
+                      />
+                    )}
+                  </div>
+                )}
+
+                <h4 style={{ margin: "0 0 10px", fontSize: 15, fontWeight: 800, color: "#173252" }}>
+                  Clinic Identity
+                </h4>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12, marginBottom: 20 }}>
+                  {[
+                    ["Clinic Type", viewClinic.clinicType || "-"],
+                    ["Owner Name", viewClinic.ownerName || "-"],
+                    ["Category", viewClinic.dermaCategory?.name || "-"],
+                    ["Website", viewClinic.website || "-"],
+                    ["Contact Number", viewClinic.contactNumber || "-"],
+                    ["WhatsApp", viewClinic.whatsapp || "-"],
+                    ["Email", viewClinic.email || "-"],
+                  ].map(([label, value]) => (
+                    <div
+                      key={label}
+                      style={{ padding: "10px 14px", borderRadius: 12, background: "#f8fafc", border: "1px solid #e5e7eb" }}
+                    >
+                      <div style={{ fontSize: 11, fontWeight: 800, color: "#64748b", textTransform: "uppercase" }}>
+                        {label}
+                      </div>
+                      <div style={{ fontSize: 14, color: "#0f172a", marginTop: 2 }}>{value}</div>
+                    </div>
                   ))}
+                </div>
+
+                <h4 style={{ margin: "0 0 10px", fontSize: 15, fontWeight: 800, color: "#173252" }}>
+                  Location
+                </h4>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12, marginBottom: 20 }}>
+                  {[
+                    ["Address", viewClinic.address || "-"],
+                    ["City", viewClinic.city || "-"],
+                    ["Sector", viewClinic.sector || "-"],
+                    ["Pincode", viewClinic.pincode || "-"],
+                    ["Services", viewClinic.services || "-"],
+                  ].map(([label, value]) => (
+                    <div
+                      key={label}
+                      style={{ padding: "10px 14px", borderRadius: 12, background: "#f8fafc", border: "1px solid #e5e7eb" }}
+                    >
+                      <div style={{ fontSize: 11, fontWeight: 800, color: "#64748b", textTransform: "uppercase" }}>
+                        {label}
+                      </div>
+                      <div style={{ fontSize: 14, color: "#0f172a", marginTop: 2 }}>{value}</div>
+                    </div>
+                  ))}
+                  {viewClinic.mapLink && (
+                    <div style={{ padding: "10px 14px", borderRadius: 12, background: "#f8fafc", border: "1px solid #e5e7eb" }}>
+                      <div style={{ fontSize: 11, fontWeight: 800, color: "#64748b", textTransform: "uppercase" }}>
+                        Google Maps
+                      </div>
+                      <a href={viewClinic.mapLink} target="_blank" rel="noreferrer" style={{ fontSize: 14 }}>
+                        Open map link
+                      </a>
+                    </div>
+                  )}
+                </div>
+
+                {viewClinic.workingHours && (
+                  <>
+                    <h4 style={{ margin: "0 0 10px", fontSize: 15, fontWeight: 800, color: "#173252" }}>
+                      Working Hours
+                    </h4>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12, marginBottom: 20 }}>
+                      <div style={{ padding: "10px 14px", borderRadius: 12, background: "#f8fafc", border: "1px solid #e5e7eb" }}>
+                        <div style={{ fontSize: 11, fontWeight: 800, color: "#64748b", textTransform: "uppercase" }}>
+                          Timing
+                        </div>
+                        <div style={{ fontSize: 14, color: "#0f172a", marginTop: 2 }}>
+                          {viewClinic.workingHours.openTime || "-"} – {viewClinic.workingHours.closeTime || "-"}
+                        </div>
+                      </div>
+                      <div style={{ padding: "10px 14px", borderRadius: 12, background: "#f8fafc", border: "1px solid #e5e7eb" }}>
+                        <div style={{ fontSize: 11, fontWeight: 800, color: "#64748b", textTransform: "uppercase" }}>
+                          Working Days
+                        </div>
+                        <div style={{ fontSize: 14, color: "#0f172a", marginTop: 2 }}>
+                          {(viewClinic.workingHours.days || []).join(", ") || "-"}
+                        </div>
+                      </div>
+                      <div style={{ padding: "10px 14px", borderRadius: 12, background: "#f8fafc", border: "1px solid #e5e7eb" }}>
+                        <div style={{ fontSize: 11, fontWeight: 800, color: "#64748b", textTransform: "uppercase" }}>
+                          Off Days
+                        </div>
+                        <div style={{ fontSize: 14, color: "#0f172a", marginTop: 2 }}>
+                          {(viewClinic.workingHours.offDays || []).join(", ") || "-"}
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                <h4 style={{ margin: "0 0 10px", fontSize: 15, fontWeight: 800, color: "#173252" }}>
+                  Operations, Pricing &amp; Booking
+                </h4>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12, marginBottom: 20 }}>
+                  {[
+                    ["License No.", viewClinic.licenseNo || "-"],
+                    ["Experience", viewClinic.experience || "-"],
+                    ["Consultation Fee", viewClinic.consultationFee || "-"],
+                    ["Booking Mode", viewClinic.bookingMode || "-"],
+                  ].map(([label, value]) => (
+                    <div
+                      key={label}
+                      style={{ padding: "10px 14px", borderRadius: 12, background: "#f8fafc", border: "1px solid #e5e7eb" }}
+                    >
+                      <div style={{ fontSize: 11, fontWeight: 800, color: "#64748b", textTransform: "uppercase" }}>
+                        {label}
+                      </div>
+                      <div style={{ fontSize: 14, color: "#0f172a", marginTop: 2 }}>{value}</div>
+                    </div>
+                  ))}
+                  {viewClinic.standardPlanLink && (
+                    <div style={{ padding: "10px 14px", borderRadius: 12, background: "#f8fafc", border: "1px solid #e5e7eb" }}>
+                      <div style={{ fontSize: 11, fontWeight: 800, color: "#64748b", textTransform: "uppercase" }}>
+                        Standard Treatment Plan
+                      </div>
+                      <a href={viewClinic.standardPlanLink} target="_blank" rel="noreferrer" style={{ fontSize: 14 }}>
+                        Open plan link
+                      </a>
+                    </div>
+                  )}
+                </div>
+
+                {(viewClinic.instagram || viewClinic.linkedin || viewClinic.facebook) && (
+                  <>
+                    <h4 style={{ margin: "0 0 10px", fontSize: 15, fontWeight: 800, color: "#173252" }}>
+                      Social Presence
+                    </h4>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginBottom: 20 }}>
+                      {viewClinic.instagram && (
+                        <a href={viewClinic.instagram} target="_blank" rel="noreferrer" style={{ fontSize: 14 }}>
+                          Instagram
+                        </a>
+                      )}
+                      {viewClinic.linkedin && (
+                        <a href={viewClinic.linkedin} target="_blank" rel="noreferrer" style={{ fontSize: 14 }}>
+                          LinkedIn
+                        </a>
+                      )}
+                      {viewClinic.facebook && (
+                        <a href={viewClinic.facebook} target="_blank" rel="noreferrer" style={{ fontSize: 14 }}>
+                          Facebook
+                        </a>
+                      )}
+                    </div>
+                  </>
+                )}
+
+                {viewClinic.doctors && viewClinic.doctors.length > 0 && (
+                  <>
+                    <h4 style={{ margin: "0 0 10px", fontSize: 15, fontWeight: 800, color: "#173252" }}>
+                      Doctors
+                    </h4>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12, marginBottom: 20 }}>
+                      {viewClinic.doctors.map((d, i) => (
+                        <div
+                          key={i}
+                          style={{ padding: "10px 14px", borderRadius: 12, background: "#f8fafc", border: "1px solid #e5e7eb" }}
+                        >
+                          <div style={{ fontSize: 14, fontWeight: 800, color: "#0f172a" }}>{d.name}</div>
+                          <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>Reg No: {d.regNo}</div>
+                          <div style={{ fontSize: 12, color: "#64748b" }}>{d.specialization}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                {[
+                  ["Clinic Description", viewClinic.clinicDescription],
+                  ["Treatments Available", viewClinic.treatmentsAvailable],
+                  ["Available Services", viewClinic.availableServices],
+                ].map(([label, value]) =>
+                  value ? (
+                    <div key={label} style={{ marginBottom: 16 }}>
+                      <h4 style={{ margin: "0 0 6px", fontSize: 15, fontWeight: 800, color: "#173252" }}>
+                        {label}
+                      </h4>
+                      <div
+                        style={{ fontSize: 14, color: "#374151", lineHeight: 1.6 }}
+                        dangerouslySetInnerHTML={{ __html: value }}
+                      />
+                    </div>
+                  ) : null
+                )}
+
+                {viewClinic.video && (
+                  <p style={{ fontSize: 14 }}>
+                    <b>Video:</b>{" "}
+                    <a href={viewClinic.video} target="_blank" rel="noreferrer">
+                      {viewClinic.video}
+                    </a>
+                  </p>
+                )}
+
+                {[
+                  ["Rate Card / Catalogue", viewClinic.rateCard],
+                  ["Special Offers", viewClinic.specialOffers],
+                  ["Certifications / Awards", viewClinic.certifications],
+                  ["Clinic Photos", viewClinic.photos],
+                ].map(([label, images]) =>
+                  images && (images as string[]).length > 0 ? (
+                    <div key={label as string} style={{ marginBottom: 20 }}>
+                      <h4 style={{ margin: "0 0 10px", fontSize: 15, fontWeight: 800, color: "#173252" }}>
+                        {label}
+                      </h4>
+                      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                        {(images as string[]).map((img, i) => (
+                          <img
+                            key={i}
+                            src={getImage(img)}
+                            alt={label as string}
+                            style={{ width: 84, height: 84, objectFit: "cover", borderRadius: 10, border: "1px solid #e5e7eb" }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  ) : null
+                )}
+
+                <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}>
+                  <button className={styles.closeBtn} onClick={() => setViewClinic(null)}>
+                    Close
+                  </button>
                 </div>
               </>
             )}
-
-            <button
-              className={styles.closeBtn}
-              onClick={() => setViewClinic(null)}
-            >
-              Close
-            </button>
           </div>
         </div>
       )}

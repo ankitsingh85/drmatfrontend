@@ -93,6 +93,7 @@ const [forgotStep, setForgotStep] = useState<"email" | "reset">("email");
         {
           path: "/",
           sameSite: "lax",
+          expires: 30,
         },
       );
 
@@ -104,6 +105,7 @@ const [forgotStep, setForgotStep] = useState<"email" | "reset">("email");
         {
           path: "/",
           sameSite: "lax",
+          expires: 30,
         },
       );
 
@@ -115,6 +117,7 @@ const [forgotStep, setForgotStep] = useState<"email" | "reset">("email");
         {
           path: "/",
           sameSite: "lax",
+          expires: 30,
         },
       );
 

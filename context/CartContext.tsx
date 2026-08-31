@@ -229,6 +229,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     const role = Cookies.get("role")?.toLowerCase() || "guest";
     const storedScope =
       Cookies.get("cartScope") || localStorage.getItem("cartScope") || "";
+    const b2bUserId = Cookies.get("b2bUserId") || localStorage.getItem("b2bUserId") || "";
     const fallbackScope =
       role === "clinic"
         ? `clinic:${clinicId || email || "guest"}`
@@ -236,13 +237,16 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         ? `doctor:${email || "guest"}`
         : role === "user"
         ? `user:${userId || email || "guest"}`
+        : role === "b2buser"
+        ? `b2buser:${b2bUserId || email || "guest"}`
         : `guest:${userId || email || clinicId || "guest"}`;
     const scope = storedScope || fallbackScope;
     const key = `cart:${scope}`;
 
     if (scope !== scopeRef.current) {
       const wasGuest = prevRoleRef.current === "guest";
-      const isNowAuthenticated = role === "user" || role === "clinic" || role === "doctor";
+      const isNowAuthenticated =
+        role === "user" || role === "clinic" || role === "doctor" || role === "b2buser";
 
       if (wasGuest && isNowAuthenticated && cartStorageKeyRef.current) {
         const oldCartKey = cartStorageKeyRef.current;
@@ -485,6 +489,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       currentRole !== "clinic" &&
       currentRole !== "doctor" &&
       currentRole !== "user" &&
+      currentRole !== "b2buser" &&
       currentRole !== "guest"
     ) {
       return;

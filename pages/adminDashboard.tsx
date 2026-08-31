@@ -48,7 +48,7 @@ import ListOfCourse from "@/components/AdminPanel/ListOfCourse";
 import ListOfCourseType from "@/components/AdminPanel/ListOfCourseType";
 import ListOfTrainingType from "@/components/AdminPanel/ListOfTrainingType";
 import ListOfWorkshopTraning from "@/components/AdminPanel/ListOfWorkshopTraning";
-import ClinicHiringRequests from "@/components/AdminPanel/ClinicHiringRequests";
+import ListOfSupportTickets from "@/components/AdminPanel/ListOfSupportTickets";
 
 /* ✅ DOCTOR */
 import CreateDoctor from "@/components/AdminPanel/CreateDoctor";
@@ -459,7 +459,7 @@ export default function AdminDashboard() {
       "featuredSection",
       "latestshorts",
       "treatmentshorts",
-      "clinicHiringRequests",
+      "supportTickets",
     ];
     const isOthersSection = othersSectionIds.includes(activeSection);
     if (!stillVisible && !(isOthersSection && canView("others"))) {
@@ -814,8 +814,8 @@ export default function AdminDashboard() {
                   <li onClick={() => handleSectionChange("treatmentshorts")}>
                     Treatment Shorts
                   </li>
-                  <li onClick={() => handleSectionChange("clinicHiringRequests")}>
-                    Hiring Requests
+                  <li onClick={() => handleSectionChange("supportTickets")}>
+                    Hiring &amp; Support Tickets
                   </li>
                 </ul>
               )}
@@ -1056,11 +1056,8 @@ export default function AdminDashboard() {
               {canView("others") && activeSection === "treatmentshorts" && (
                 <TreatmentShorts canEdit={canCreate("others")} canDelete={canDelete("others")} />
               )}
-              {canView("others") && activeSection === "clinicHiringRequests" && (
-                <ClinicHiringRequests
-                  canEdit={canCreate("others")}
-                  canDelete={canDelete("others")}
-                />
+              {canView("others") && activeSection === "supportTickets" && (
+                <ListOfSupportTickets canEdit={canCreate("others")} />
               )}
               {/* {activeSection === "userorderhistory" && <UserOrderHistory />} */}
               {activeSection === "createPatient" && <CreatePatient />}

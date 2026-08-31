@@ -16,7 +16,6 @@ import {
   import { useCart } from "@/context/CartContext";
   import { useTopbarProfile } from "@/context/TopbarProfileContext";
   import { useToast } from "@/context/ToastContext";
-  import { useConfirm } from "@/context/ConfirmContext";
   import Cookies from "js-cookie";
   import { API_URL } from "@/config/api";
 
@@ -30,13 +29,13 @@ import {
   const { cartItems } = useCart();
   const profile = useTopbarProfile();
   const toast = useToast();
-  const confirmDialog = useConfirm();
   const cartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
 
   const [isHydrated, setIsHydrated] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [location, setLocation] = useState<string>("");
   const [profileOpen, setProfileOpen] = useState(false);
+  const [doctorAccountDetected, setDoctorAccountDetected] = useState(false);
   const userBtnRef = useRef<HTMLButtonElement | null>(null);
   const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAP_KEY || "";
 
@@ -51,6 +50,46 @@ import {
     useEffect(() => {
       setIsHydrated(true);
     }, []);
+
+    // If an admin creates a Doctor account using the same phone number as
+    // this logged-in B2B user, their session stays alive (we no longer
+    // auto-expire it) but they still need to log out and back in to pick
+    // up the Doctor role — poll for that and surface a banner so they
+    // find out without having to guess.
+    useEffect(() => {
+      if (!isHydrated || currentRole !== "b2buser") return;
+
+      const phone = contactNo || Cookies.get("contactNo") || "";
+      if (!phone) return;
+
+      let cancelled = false;
+      let interval: ReturnType<typeof setInterval> | undefined;
+
+      const checkDoctorAccount = async () => {
+        try {
+          const res = await fetch(`${API_URL}/doctors/check-mobile`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ contactNo: phone }),
+          });
+          const data = await res.json().catch(() => null);
+          if (!cancelled && data?.exists) {
+            setDoctorAccountDetected(true);
+            if (interval) clearInterval(interval);
+          }
+        } catch {
+          // Ignore network errors; the next interval tick will retry.
+        }
+      };
+
+      checkDoctorAccount();
+      interval = setInterval(checkDoctorAccount, 30000);
+
+      return () => {
+        cancelled = true;
+        if (interval) clearInterval(interval);
+      };
+    }, [isHydrated, currentRole, contactNo]);
 useEffect(() => {
   const storedLocation = Cookies.get("location");
 
@@ -278,34 +317,10 @@ return formatDetailedAddress(result);
       );
     };
 
-    const handleBecomeClinic = async () => {
-      const b2bUserId = Cookies.get("b2bUserId") || localStorage.getItem("b2bUserId");
-      if (!b2bUserId) return;
-
-      const confirmed = await confirmDialog(
-        "Your B2B account will be permanently replaced with a clinic registration pending admin approval.",
-        { title: "Convert your account to a Clinic?", confirmLabel: "Convert", danger: true }
-      );
-      if (!confirmed) {
-        return;
-      }
-
-      try {
-        const res = await fetch(
-          `${API_URL}/b2b-users/${b2bUserId}/convert-to-clinic`,
-          { method: "POST" }
-        );
-        const data = await res.json();
-        if (!res.ok) throw new Error(data?.message || "Failed to convert to clinic");
-
-        toast.success(
-          data.message ||
-            "Your account has been converted to a clinic and submitted for admin approval."
-        );
-        handleLogout();
-      } catch (err: any) {
-        toast.error(err.message || "Failed to convert to clinic");
-      }
+    const handleBecomeClinic = () => {
+      // The actual application form (business name/address/GST/email)
+      // lives on the B2B dashboard — the topbar just gets them there.
+      router.push("/B2BUserDashboard?openBecomeClinic=1");
     };
 
   const renderLoginOptions = () => (
@@ -576,7 +591,6 @@ return formatDetailedAddress(result);
       Online Consultation
     </Link>
   )}
-
   {currentRole === "clinic" && (
     <Link
       href="/home/ClinicHiringPortal"
@@ -584,7 +598,7 @@ return formatDetailedAddress(result);
     >
       Hiring
     </Link>
-  )}
+  )} 
   <Link href="/course-listing" className={styles.navLink}>
     Buy Courses
   </Link>
@@ -716,6 +730,45 @@ return formatDetailedAddress(result);
 
     return (
       <>
+        {doctorAccountDetected && currentRole === "b2buser" && (
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 12,
+              padding: "10px 16px",
+              background: "#fef3c7",
+              color: "#92400e",
+              fontSize: 13,
+              fontWeight: 700,
+              textAlign: "center",
+            }}
+          >
+            <span>
+              A doctor account has been created with your registered number. Please logout
+              and log in again to switch to your doctor account.
+            </span>
+            <button
+              type="button"
+              onClick={handleLogout}
+              style={{
+                border: "none",
+                borderRadius: 999,
+                padding: "6px 14px",
+                background: "#92400e",
+                color: "#fff",
+                fontSize: 12,
+                fontWeight: 800,
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+              }}
+            >
+              Logout Now
+            </button>
+          </div>
+        )}
         {isBusinessMode ? renderBusinessTopbar() : renderDefaultTopbar()}
       </>
     );

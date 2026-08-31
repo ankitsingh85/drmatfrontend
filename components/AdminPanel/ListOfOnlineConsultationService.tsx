@@ -17,8 +17,6 @@ type PopulatedDoctor = {
   specialist?: string;
 };
 
-type SlotEntry = { label: string; booked: boolean };
-
 interface OnlineConsultationService {
   _id: string;
   serviceCode: string;
@@ -28,11 +26,22 @@ interface OnlineConsultationService {
   consultationFee: number;
   offerPrice?: number;
   discountPercent?: number;
-  timingSlots: string[];
-  bookedSlots: string[];
-  nextAvailableSlot?: string;
   isActive?: boolean;
+  availabilityStartTime?: string;
+  availabilityEndTime?: string;
 }
+
+const formatTime12h = (value: string) => {
+  const [h, m] = value.split(":").map(Number);
+  const period = h >= 12 ? "PM" : "AM";
+  const hour12 = h % 12 === 0 ? 12 : h % 12;
+  return `${String(hour12).padStart(2, "0")}:${String(m).padStart(2, "0")} ${period}`;
+};
+
+const formatAvailabilityWindow = (service: OnlineConsultationService) =>
+  service.availabilityStartTime && service.availabilityEndTime
+    ? `${formatTime12h(service.availabilityStartTime)} - ${formatTime12h(service.availabilityEndTime)}`
+    : "All day";
 
 const getDoctorName = (doctor: PopulatedDoctor) =>
   [doctor.title || "Dr.", doctor.firstName, doctor.lastName].filter(Boolean).join(" ") ||
@@ -61,9 +70,9 @@ const ListOfOnlineConsultationService = ({
   const [editFee, setEditFee] = useState("");
   const [editOfferPrice, setEditOfferPrice] = useState("");
   const [editDiscountPercent, setEditDiscountPercent] = useState("");
+  const [editAvailabilityStartTime, setEditAvailabilityStartTime] = useState("");
+  const [editAvailabilityEndTime, setEditAvailabilityEndTime] = useState("");
   const [editDoctorIds, setEditDoctorIds] = useState<string[]>([]);
-  const [editSlots, setEditSlots] = useState<SlotEntry[]>([]);
-  const [editSlotInput, setEditSlotInput] = useState("");
   const [editImage, setEditImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [existingImageUrl, setExistingImageUrl] = useState("");
@@ -169,14 +178,9 @@ const ListOfOnlineConsultationService = ({
     setEditDiscountPercent(
       service.discountPercent !== undefined ? String(service.discountPercent) : ""
     );
+    setEditAvailabilityStartTime(service.availabilityStartTime || "");
+    setEditAvailabilityEndTime(service.availabilityEndTime || "");
     setEditDoctorIds((service.doctors || []).map((doctor) => doctor._id));
-    setEditSlots(
-      (service.timingSlots || []).map((label) => ({
-        label,
-        booked: (service.bookedSlots || []).includes(label),
-      }))
-    );
-    setEditSlotInput("");
     setPreviewUrl(resolveMediaUrl(service.imageUrl));
     setExistingImageUrl(service.imageUrl);
     setEditImage(null);
@@ -188,29 +192,6 @@ const ListOfOnlineConsultationService = ({
       prev.includes(doctorId) ? prev.filter((id) => id !== doctorId) : [...prev, doctorId]
     );
   };
-
-  const addEditSlot = () => {
-    const label = editSlotInput.trim();
-    if (!label) return;
-    if (editSlots.some((slot) => slot.label.toLowerCase() === label.toLowerCase())) {
-      setEditSlotInput("");
-      return;
-    }
-    setEditSlots((prev) => [...prev, { label, booked: false }]);
-    setEditSlotInput("");
-  };
-
-  const toggleEditSlotBooked = (label: string) => {
-    setEditSlots((prev) =>
-      prev.map((slot) => (slot.label === label ? { ...slot, booked: !slot.booked } : slot))
-    );
-  };
-
-  const removeEditSlot = (label: string) => {
-    setEditSlots((prev) => prev.filter((slot) => slot.label !== label));
-  };
-
-  const editNextAvailableSlotPreview = editSlots.find((slot) => !slot.booked)?.label || "";
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -244,6 +225,14 @@ const ListOfOnlineConsultationService = ({
       return;
     }
 
+    if (
+      (editAvailabilityStartTime && !editAvailabilityEndTime) ||
+      (!editAvailabilityStartTime && editAvailabilityEndTime)
+    ) {
+      setError("Set both a start and end time, or leave both blank for all-day availability");
+      return;
+    }
+
     try {
       const formData = new FormData();
       formData.append("serviceType", editServiceType.trim());
@@ -252,12 +241,9 @@ const ListOfOnlineConsultationService = ({
       if (editDiscountPercent.trim()) {
         formData.append("discountPercent", editDiscountPercent.trim());
       }
+      formData.append("availabilityStartTime", editAvailabilityStartTime);
+      formData.append("availabilityEndTime", editAvailabilityEndTime);
       formData.append("doctors", JSON.stringify(editDoctorIds));
-      formData.append("timingSlots", JSON.stringify(editSlots.map((slot) => slot.label)));
-      formData.append(
-        "bookedSlots",
-        JSON.stringify(editSlots.filter((slot) => slot.booked).map((slot) => slot.label))
-      );
       if (editImage) {
         formData.append("imageUrl", editImage);
       }
@@ -327,7 +313,7 @@ const ListOfOnlineConsultationService = ({
 
   const handleDownloadCSV = () => {
     const rows = [
-      ["Service Code", "Service Type", "Doctors", "Consultation Fee", "Offer Price", "Discount %", "Next Available Slot", "Active"],
+      ["Service Code", "Service Type", "Doctors", "Consultation Fee", "Offer Price", "Discount %", "Availability", "Active"],
       ...filteredServices.map((service) => [
         service.serviceCode,
         service.serviceType,
@@ -335,7 +321,7 @@ const ListOfOnlineConsultationService = ({
         String(service.consultationFee ?? ""),
         service.offerPrice !== undefined ? String(service.offerPrice) : "",
         service.discountPercent !== undefined ? String(service.discountPercent) : "",
-        service.nextAvailableSlot || "",
+        formatAvailabilityWindow(service),
         service.isActive === false ? "Inactive" : "Active",
       ]),
     ];
@@ -399,7 +385,7 @@ const ListOfOnlineConsultationService = ({
               <th>Image</th>
               <th>Fee</th>
               <th>Offer / Discount</th>
-              <th>Next Slot</th>
+              <th>Availability</th>
               <th>Active</th>
               <th>Actions</th>
             </tr>
@@ -426,7 +412,7 @@ const ListOfOnlineConsultationService = ({
                   {service.offerPrice !== undefined ? `₹${service.offerPrice}` : "—"}
                   {service.discountPercent ? ` (${service.discountPercent}% off)` : ""}
                 </td>
-                <td>{service.nextAvailableSlot || "—"}</td>
+                <td>{formatAvailabilityWindow(service)}</td>
                 <td>
                   <button
                     type="button"
@@ -565,64 +551,24 @@ const ListOfOnlineConsultationService = ({
                 }
               />
 
-              <label>Timing Slots</label>
-              <div className={createStyles.tagInputRow}>
-                <input
-                  type="text"
-                  value={editSlotInput}
-                  onChange={(e) => setEditSlotInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === ",") {
-                      e.preventDefault();
-                      addEditSlot();
-                    }
-                  }}
-                  placeholder="e.g. 10:00 AM - 10:30 AM"
-                />
-                <button
-                  type="button"
-                  className={createStyles.tagAddButton}
-                  onClick={addEditSlot}
-                >
-                  Add
-                </button>
-              </div>
+              <label>Available From</label>
+              <input
+                type="time"
+                value={editAvailabilityStartTime}
+                onChange={(e) => setEditAvailabilityStartTime(e.target.value)}
+              />
 
-              {editSlots.length > 0 && (
-                <div className={createStyles.tagChips}>
-                  {editSlots.map((slot) => (
-                    <div
-                      key={slot.label}
-                      className={`${createStyles.tagChip} ${
-                        slot.booked ? createStyles.tagChipBooked : ""
-                      }`}
-                    >
-                      <span className={createStyles.tagChipText}>{slot.label}</span>
-                      <button
-                        type="button"
-                        className={createStyles.tagChipBookedToggle}
-                        onClick={() => toggleEditSlotBooked(slot.label)}
-                      >
-                        {slot.booked ? "Booked" : "Mark booked"}
-                      </button>
-                      <button
-                        type="button"
-                        className={createStyles.tagChipRemove}
-                        onClick={() => removeEditSlot(slot.label)}
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {editSlots.length > 0 && (
-                <p className={createStyles.nextSlotBanner}>
-                  Next available slot:{" "}
-                  {editNextAvailableSlotPreview || "None — all slots are booked"}
-                </p>
-              )}
+              <label>Available Until</label>
+              <input
+                type="time"
+                value={editAvailabilityEndTime}
+                onChange={(e) => setEditAvailabilityEndTime(e.target.value)}
+              />
+              <p className={styles.noImage}>
+                Leave both blank for all-day availability (requires the doctor's own toggle).
+                Times are IST and repeat daily; within this window, doctors are matched
+                automatically without needing to toggle available.
+              </p>
 
               <label>Service Image</label>
               <input type="file" accept="image/*" onChange={handleImageChange} />

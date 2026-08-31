@@ -82,7 +82,8 @@ const PaymentPage: React.FC = () => {
   const currentRole = isHydrated ? Cookies.get("role")?.toLowerCase() : null;
   const isClinicCheckout = flowMode === "clinic" || currentRole === "clinic";
   const isDoctorCheckout = flowMode === "doctor" || currentRole === "doctor";
-  const isBusinessCheckout = isClinicCheckout || isDoctorCheckout;
+  const isB2BCheckout = flowMode === "b2b" || currentRole === "b2buser";
+  const isBusinessCheckout = isClinicCheckout || isDoctorCheckout || isB2BCheckout;
   const activeItems = checkoutItems.length > 0 ? checkoutItems : cartItems;
   const hasProductItems = activeItems.some((item) => item.itemType !== "treatment");
   const hasTreatmentItems = activeItems.some((item) => item.itemType === "treatment");
@@ -97,15 +98,16 @@ const PaymentPage: React.FC = () => {
     ? "/home/PaymentPage?flow=clinic"
     : isDoctorCheckout
     ? "/home/PaymentPage?flow=doctor"
+    : isB2BCheckout
+    ? "/home/PaymentPage?flow=b2b"
     : isConsultationCheckout
     ? "/home/PaymentPage?flow=consultation"
     : isTreatmentCheckout
     ? "/home/PaymentPage?flow=treatment"
     : "/home/Address";
-  const loginHref =
-    isClinicCheckout || isDoctorCheckout
-      ? `/businesslogin?next=${encodeURIComponent(loginNextPath)}`
-      : `/Login?next=${encodeURIComponent(loginNextPath)}`;
+  const loginHref = isBusinessCheckout
+    ? `/businesslogin?next=${encodeURIComponent(loginNextPath)}`
+    : `/Login?next=${encodeURIComponent(loginNextPath)}`;
 
   const treatmentClinicItem = isTreatmentCheckout
     ? activeItems.find((item) => item.itemType === "treatment" && item.clinicName)
@@ -423,12 +425,18 @@ const PaymentPage: React.FC = () => {
                       router.push(
                         isDoctorCheckout
                           ? "/DoctorDashboard?section=orders"
+                          : isB2BCheckout
+                          ? "/B2BUserDashboard?section=orders"
                           : "/ClinicDashboard?section=orders"
                       )
                     }
                     className={styles.primaryAction}
                   >
-                    {isDoctorCheckout ? "Open Doctor Orders" : "Open Clinic Orders"}
+                    {isDoctorCheckout
+                      ? "Open Doctor Orders"
+                      : isB2BCheckout
+                      ? "Open My Orders"
+                      : "Open Clinic Orders"}
                   </button>
                   <button
                     onClick={() => router.push("/home")}

@@ -6,10 +6,8 @@ import styles from "@/styles/Dashboard/createUser.module.css";
 
 type FormState = {
   name: string;
-  contactPerson: string;
   email: string;
   contactNo: string;
-  gstNumber: string;
   address: string;
   city: string;
   state: string;
@@ -17,20 +15,12 @@ type FormState = {
   status: "active" | "inactive";
 };
 
-type ValidatedField =
-  | "name"
-  | "contactPerson"
-  | "email"
-  | "contactNo"
-  | "gstNumber"
-  | "pincode";
+type ValidatedField = "name" | "email" | "contactNo" | "pincode";
 
 const initialForm: FormState = {
   name: "",
-  contactPerson: "",
   email: "",
   contactNo: "",
-  gstNumber: "",
   address: "",
   city: "",
   state: "",
@@ -39,24 +29,19 @@ const initialForm: FormState = {
 };
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/;
 
 export default function CreateB2BUser() {
   const [form, setForm] = useState<FormState>(initialForm);
   const [errors, setErrors] = useState<Record<ValidatedField, string>>({
     name: "",
-    contactPerson: "",
     email: "",
     contactNo: "",
-    gstNumber: "",
     pincode: "",
   });
   const [touched, setTouched] = useState<Record<ValidatedField, boolean>>({
     name: false,
-    contactPerson: false,
     email: false,
     contactNo: false,
-    gstNumber: false,
     pincode: false,
   });
   const [success, setSuccess] = useState("");
@@ -68,8 +53,6 @@ export default function CreateB2BUser() {
     switch (name) {
       case "name":
         return cleanValue ? "" : "Name is required";
-      case "contactPerson":
-        return cleanValue ? "" : "Contact person is required";
       case "email":
         if (!cleanValue) return "";
         return emailRegex.test(cleanValue) ? "" : "Enter a valid email address";
@@ -78,9 +61,6 @@ export default function CreateB2BUser() {
         return /^\d{10}$/.test(cleanValue)
           ? ""
           : "Contact number must contain exactly 10 digits";
-      case "gstNumber":
-        if (!cleanValue) return "";
-        return gstRegex.test(cleanValue.toUpperCase()) ? "" : "Enter a valid GST number";
       case "pincode":
         if (!cleanValue) return "";
         return /^\d{6}$/.test(cleanValue) ? "" : "Pincode must contain exactly 6 digits";
@@ -92,10 +72,8 @@ export default function CreateB2BUser() {
   const validateForm = (currentForm = form) => {
     const nextErrors = {
       name: validateField("name", currentForm.name),
-      contactPerson: validateField("contactPerson", currentForm.contactPerson),
       email: validateField("email", currentForm.email),
       contactNo: validateField("contactNo", currentForm.contactNo),
-      gstNumber: validateField("gstNumber", currentForm.gstNumber),
       pincode: validateField("pincode", currentForm.pincode),
     };
     setErrors(nextErrors);
@@ -111,8 +89,6 @@ export default function CreateB2BUser() {
         ? value.replace(/\D/g, "").slice(0, 10)
         : name === "pincode"
         ? value.replace(/\D/g, "").slice(0, 6)
-        : name === "gstNumber"
-        ? value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 15)
         : value;
 
     const nextForm = { ...form, [name]: nextValue } as FormState;
@@ -146,10 +122,8 @@ export default function CreateB2BUser() {
     const nextErrors = validateForm();
     setTouched({
       name: true,
-      contactPerson: true,
       email: true,
       contactNo: true,
-      gstNumber: true,
       pincode: true,
     });
     if (Object.values(nextErrors).some(Boolean)) return;
@@ -162,10 +136,8 @@ export default function CreateB2BUser() {
         body: JSON.stringify({
           ...form,
           name: form.name.trim(),
-          contactPerson: form.contactPerson.trim(),
           email: form.email.trim(),
           contactNo: form.contactNo.trim(),
-          gstNumber: form.gstNumber.trim(),
           address: form.address.trim(),
           city: form.city.trim(),
           state: form.state.trim(),
@@ -181,18 +153,14 @@ export default function CreateB2BUser() {
       setForm(initialForm);
       setErrors({
         name: "",
-        contactPerson: "",
         email: "",
         contactNo: "",
-        gstNumber: "",
         pincode: "",
       });
       setTouched({
         name: false,
-        contactPerson: false,
         email: false,
         contactNo: false,
-        gstNumber: false,
         pincode: false,
       });
       window.dispatchEvent(new Event("admin-dashboard:create-success"));
@@ -231,44 +199,6 @@ export default function CreateB2BUser() {
           </div>
 
           <div className={styles.field}>
-            <label className={styles.label}>
-              Contact Person<span className={styles.required}>*</span>
-            </label>
-            <input
-              className={styles.input}
-              name="contactPerson"
-              value={form.contactPerson}
-              onChange={handleChange}
-              onBlur={handleBlur}
-              placeholder="Enter contact person"
-              required
-            />
-            {showError("contactPerson") && (
-              <p className={styles.fieldError}>{errors.contactPerson}</p>
-            )}
-          </div>
-
-          <div className={styles.field}>
-            <label className={styles.label}>GST Number</label>
-            <input
-              className={styles.input}
-              name="gstNumber"
-              value={form.gstNumber}
-              onChange={handleChange}
-              onBlur={handleBlur}
-              placeholder="15 digit GSTIN"
-              maxLength={15}
-            />
-            {showError("gstNumber") && (
-              <p className={styles.fieldError}>{errors.gstNumber}</p>
-            )}
-          </div>
-        </div>
-
-        <div className={styles.section}>
-          <div className={styles.sectionTitle}>Contact Details</div>
-
-          <div className={styles.field}>
             <label className={styles.label}>Email</label>
             <input
               className={styles.input}
@@ -281,6 +211,10 @@ export default function CreateB2BUser() {
             />
             {showError("email") && <p className={styles.fieldError}>{errors.email}</p>}
           </div>
+        </div>
+
+        <div className={styles.section}>
+          <div className={styles.sectionTitle}>Contact Details</div>
 
           <div className={styles.field}>
             <label className={styles.label}>

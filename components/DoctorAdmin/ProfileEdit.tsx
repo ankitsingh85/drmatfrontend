@@ -20,6 +20,7 @@ export interface DoctorProfileRecord {
   description?: string;
   profileImage?: string;
   address?: string;
+  isAvailableForConsultation?: boolean;
   addresses?: DoctorAddress[];
 }
 

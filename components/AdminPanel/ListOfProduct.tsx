@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
+import "react-quill/dist/quill.snow.css";
 import styles from "@/styles/Dashboard/productlist.module.css";
 import createStyles from "@/styles/Dashboard/createproduct.module.css";
 import { API_URL } from "@/config/api";
@@ -8,6 +10,8 @@ import { resolveMediaUrl } from "@/lib/media";
 import { useToast } from "@/context/ToastContext";
 import { useConfirm } from "@/context/ConfirmContext";
 import TableActions from "@/components/AdminPanel/common/TableActions";
+
+const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
 
 interface Category {
   _id: string;
@@ -29,6 +33,8 @@ interface Product {
   targetConcerns: string;
   usageInstructions: string;
   netQuantity: string;
+  quantityUnit?: string;
+  discountPercent?: number;
   expiryDate: string;
   manufacturerName: string;
  licenseNumber:string;
@@ -256,32 +262,112 @@ const getCategoryName = (ids: string[]) => {
     setIsEditing(true);
   };
 
+  const numericEditFields = new Set([
+    "netQuantity",
+    "mrpPrice",
+    "discountedPrice",
+    "discountPercent",
+    "taxPercent",
+  ]);
+
   const handleEditChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
-    setEditForm({ ...editForm, [e.target.name]: e.target.value });
+    const { name, value, type } = e.target as HTMLInputElement;
+    const checked = (e.target as HTMLInputElement).checked;
+
+    let nextValue: string | boolean = value;
+    if (numericEditFields.has(name)) {
+      nextValue = value.replace(/\D/g, "");
+    }
+
+    setEditForm((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : nextValue,
+    }));
+  };
+
+  const handleEditNumberKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (["e", "E", "+", "-", "."].includes(e.key)) {
+      e.preventDefault();
+    }
+  };
+
+  const handleEditQuillChange = (field: keyof Product, value: string) => {
+    setEditForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleEditCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selected = Array.from(e.target.selectedOptions, (option) => option.value);
+    setEditForm((prev) => ({ ...prev, category: selected }));
+  };
+
+  const handleEditImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    Array.from(files).forEach((file) => {
+      if (!/^image\/(jpeg|jpg|png|webp)$/i.test(file.type)) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        setEditForm((prev) => ({
+          ...prev,
+          productImages: [...(prev.productImages || []), reader.result as string],
+        }));
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleRemoveEditImage = (index: number) => {
+    setEditForm((prev) => ({
+      ...prev,
+      productImages: (prev.productImages || []).filter((_, i) => i !== index),
+    }));
+  };
+
+  const editQuillModules = {
+    toolbar: [
+      ["bold", "italic", "underline"],
+      [{ list: "ordered" }, { list: "bullet" }],
+      ["link", "image"],
+      ["clean"],
+    ],
   };
 
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingProduct) return;
 
-    const res = await fetch(`${API_URL}/products/${editingProduct._id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(editForm),
-    });
+    const payload = {
+      ...editForm,
+      mrpPrice: Number(editForm.mrpPrice) || 0,
+      discountedPrice: Number(editForm.discountedPrice) || 0,
+      discountPercent: Number(editForm.discountPercent) || 0,
+      taxPercent: Number(editForm.taxPercent) || 0,
+    };
 
-    const updated = await res.json();
+    try {
+      const res = await fetch(`${API_URL}/products/${editingProduct._id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
 
-    setProducts((prev) =>
-      prev.map((p) => (p._id === updated._id ? updated : p))
-    );
+      const updated = await res.json();
+      if (!res.ok) throw new Error(updated?.message || "Failed to update product");
 
-    setIsEditing(false);
-    setEditingProduct(null);
-    setEditForm({});
-    toast.success("Product updated successfully");
+      setProducts((prev) =>
+        prev.map((p) => (p._id === updated._id ? updated : p))
+      );
+
+      setIsEditing(false);
+      setEditingProduct(null);
+      setEditForm({});
+      toast.success("Product updated successfully");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update product");
+    }
   };
 
   const handleCancelEdit = () => {
@@ -543,102 +629,722 @@ No products found.
         </div>
       </div>
 
-      {/* ================= INLINE EDIT FORM ================= */}
+      {/* ================= EDIT PRODUCT MODAL ================= */}
       {isEditing && editingProduct && (
-        <div className={createStyles.container} style={{ marginTop: 40 }}>
-          <h1 className={createStyles.heading}>Edit Product</h1>
+        <div className={styles.modalOverlay} onClick={handleCancelEdit}>
+          <div
+            className={createStyles.container}
+            style={{
+              margin: 0,
+              width: "100%",
+              maxWidth: 1100,
+              maxHeight: "92vh",
+              overflowY: "auto",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 12,
+              }}
+            >
+              <h1 className={createStyles.heading} style={{ margin: 0 }}>
+                Edit Product
+              </h1>
+              <button
+                type="button"
+                onClick={handleCancelEdit}
+                aria-label="Close"
+                style={{
+                  border: "none",
+                  background: "#f1f5f9",
+                  borderRadius: 999,
+                  width: 36,
+                  height: 36,
+                  fontSize: 18,
+                  fontWeight: 800,
+                  cursor: "pointer",
+                  color: "#334155",
+                }}
+              >
+                ×
+              </button>
+            </div>
 
-          <form className={createStyles.form} onSubmit={handleEditSubmit}>
-            <div className={createStyles.section}>
-              <label>Product Name</label>
-              <input name="productName" value={editForm.productName || ""} onChange={handleEditChange}  className={createStyles.input} />
+            <form className={createStyles.form} onSubmit={handleEditSubmit}>
+              {/* ===== BASIC INFO ===== */}
+              <div className={createStyles.section}>
+                <h3 className={createStyles.sectionTitle}>Basic Information</h3>
 
-              <label>Brand Name</label>
-              <input name="brandName" value={editForm.brandName || ""} onChange={handleEditChange} className={createStyles.input}/>
+                <div className={createStyles.field}>
+                  <label className={createStyles.label}>Product SKU</label>
+                  <input
+                    className={createStyles.readonlyInput}
+                    value={editForm.productSKU || ""}
+                    disabled
+                  />
+                </div>
 
-              <label>Category</label>
-              <select name="category" value={editForm.category || ""} onChange={handleEditChange}className={createStyles.input}>
-                {categories.map((c) => (
-                  <option key={c._id} value={c._id}>{c.name}</option>
+                <div className={createStyles.field}>
+                  <label className={createStyles.label}>
+                    Product Name<span className={createStyles.required}>*</span>
+                  </label>
+                  <input
+                    className={createStyles.input}
+                    name="productName"
+                    value={editForm.productName || ""}
+                    onChange={handleEditChange}
+                    required
+                  />
+                </div>
+
+                <div className={createStyles.field}>
+                  <label className={createStyles.label}>
+                    Product Categories<span className={createStyles.required}>*</span>
+                  </label>
+                  <select
+                    multiple
+                    className={createStyles.select}
+                    name="category"
+                    value={editForm.category || []}
+                    onChange={handleEditCategoryChange}
+                  >
+                    {categories.map((c) => (
+                      <option key={c._id} value={c.name}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className={createStyles.field}>
+                  <label className={createStyles.label}>Brand Name</label>
+                  <input
+                    className={createStyles.input}
+                    name="brandName"
+                    value={editForm.brandName || ""}
+                    onChange={handleEditChange}
+                  />
+                </div>
+              </div>
+
+              {/* ===== DESCRIPTION ===== */}
+              <div className={createStyles.section}>
+                <h3 className={createStyles.sectionTitle}>Description</h3>
+
+                <div className={createStyles.fullField}>
+                  <label className={createStyles.label}>Product Description</label>
+                  <ReactQuill
+                    className={createStyles.quillLarge}
+                    value={editForm.description || ""}
+                    onChange={(v) => handleEditQuillChange("description", v)}
+                    modules={editQuillModules}
+                  />
+                </div>
+
+                <div className={createStyles.field}>
+                  <label className={createStyles.label}>Ingredients</label>
+                  <ReactQuill
+                    className={createStyles.quillCompact}
+                    value={editForm.ingredients || ""}
+                    onChange={(v) => handleEditQuillChange("ingredients", v)}
+                    modules={editQuillModules}
+                  />
+                </div>
+
+                <div className={createStyles.field}>
+                  <label className={createStyles.label}>Target Concerns</label>
+                  <ReactQuill
+                    className={createStyles.quillCompact}
+                    value={editForm.targetConcerns || ""}
+                    onChange={(v) => handleEditQuillChange("targetConcerns", v)}
+                    modules={editQuillModules}
+                  />
+                </div>
+
+                <div className={createStyles.field}>
+                  <label className={createStyles.label}>Usage Instructions</label>
+                  <ReactQuill
+                    className={createStyles.quillCompact}
+                    value={editForm.usageInstructions || ""}
+                    onChange={(v) => handleEditQuillChange("usageInstructions", v)}
+                    modules={editQuillModules}
+                  />
+                </div>
+
+                <div className={createStyles.field}>
+                  <label className={createStyles.label}>Benefits</label>
+                  <ReactQuill
+                    className={createStyles.quillCompact}
+                    value={editForm.benefits || ""}
+                    onChange={(v) => handleEditQuillChange("benefits", v)}
+                    modules={editQuillModules}
+                  />
+                </div>
+
+                <div className={createStyles.field}>
+                  <label className={createStyles.label}>Certifications</label>
+                  <input
+                    className={createStyles.input}
+                    name="certifications"
+                    value={editForm.certifications || ""}
+                    onChange={handleEditChange}
+                  />
+                </div>
+              </div>
+
+              {/* ===== PRICING ===== */}
+              <div className={createStyles.section}>
+                <h3 className={createStyles.sectionTitle}>Pricing</h3>
+
+                <div className={createStyles.field}>
+                  <label className={createStyles.label}>Net Quantity</label>
+                  <div className={createStyles.quantityBox}>
+                    <input
+                      type="number"
+                      className={createStyles.input}
+                      name="netQuantity"
+                      value={editForm.netQuantity || ""}
+                      onChange={handleEditChange}
+                      onKeyDown={handleEditNumberKeyDown}
+                    />
+                    <select
+                      className={createStyles.select}
+                      name="quantityUnit"
+                      value={editForm.quantityUnit || "Nos"}
+                      onChange={handleEditChange}
+                    >
+                      <option value="Nos">Nos</option>
+                      <option value="Qty">Qty</option>
+                      <option value="ML">ML</option>
+                      <option value="Grams">Grams</option>
+                      <option value="KG">KG</option>
+                      <option value="Litre">Litre</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className={createStyles.field}>
+                  <label className={createStyles.label}>MRP Price</label>
+                  <input
+                    type="number"
+                    min="0"
+                    className={createStyles.input}
+                    name="mrpPrice"
+                    value={editForm.mrpPrice ?? ""}
+                    onKeyDown={handleEditNumberKeyDown}
+                    onChange={handleEditChange}
+                  />
+                </div>
+
+                <div className={createStyles.field}>
+                  <label className={createStyles.label}>
+                    Discounted Price<span className={createStyles.required}>*</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    className={createStyles.input}
+                    name="discountedPrice"
+                    value={editForm.discountedPrice ?? ""}
+                    onKeyDown={handleEditNumberKeyDown}
+                    onChange={handleEditChange}
+                    required
+                  />
+                </div>
+
+                <div className={createStyles.field}>
+                  <label className={createStyles.label}>Discount (%)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    className={createStyles.input}
+                    name="discountPercent"
+                    value={editForm.discountPercent ?? ""}
+                    onKeyDown={handleEditNumberKeyDown}
+                    onChange={handleEditChange}
+                  />
+                </div>
+
+                <div className={createStyles.field}>
+                  <label className={createStyles.label}>GST / Tax (%)</label>
+                  <select
+                    className={createStyles.select}
+                    name="taxPercent"
+                    value={editForm.taxPercent ?? ""}
+                    onChange={handleEditChange}
+                  >
+                    <option value="5">5%</option>
+                    <option value="12">12%</option>
+                    <option value="18">18%</option>
+                    <option value="28">28%</option>
+                  </select>
+                </div>
+
+                <div className={createStyles.field}>
+                  <label className={createStyles.label}>HSN Code</label>
+                  <input
+                    className={createStyles.input}
+                    name="hsnCode"
+                    value={editForm.hsnCode || ""}
+                    onChange={handleEditChange}
+                  />
+                </div>
+              </div>
+
+              {/* ===== COMPLIANCE ===== */}
+              <div className={createStyles.section}>
+                <h3 className={createStyles.sectionTitle}>Compliance &amp; Packaging</h3>
+
+                <div className={createStyles.field}>
+                  <label className={createStyles.label}>Expiry Date</label>
+                  <input
+                    type="date"
+                    className={createStyles.input}
+                    name="expiryDate"
+                    value={(editForm.expiryDate || "").slice(0, 10)}
+                    onChange={handleEditChange}
+                  />
+                </div>
+
+                <div className={createStyles.field}>
+                  <label className={createStyles.label}>Manufacturer Name</label>
+                  <input
+                    className={createStyles.input}
+                    name="manufacturerName"
+                    value={editForm.manufacturerName || ""}
+                    onChange={handleEditChange}
+                  />
+                </div>
+
+                <div className={createStyles.field}>
+                  <label className={createStyles.label}>License / FSSAI No.</label>
+                  <input
+                    className={createStyles.input}
+                    name="licenseNumber"
+                    value={editForm.licenseNumber || ""}
+                    onChange={handleEditChange}
+                  />
+                </div>
+
+                <div className={createStyles.field}>
+                  <label className={createStyles.label}>Packaging Type</label>
+                  <input
+                    className={createStyles.input}
+                    name="packagingType"
+                    value={editForm.packagingType || ""}
+                    onChange={handleEditChange}
+                  />
+                </div>
+              </div>
+
+              {/* ===== MEDIA ===== */}
+              <div className={createStyles.section}>
+                <h3 className={createStyles.sectionTitle}>Media</h3>
+
+                <div className={createStyles.fullField}>
+                  {editForm.productImages && editForm.productImages.length > 0 && (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginBottom: 12 }}>
+                      {editForm.productImages.map((img, index) => (
+                        <div key={index} style={{ position: "relative" }}>
+                          <img
+                            src={resolveMediaUrl(img) || img}
+                            alt={`Product ${index + 1}`}
+                            style={{
+                              width: 84,
+                              height: 84,
+                              objectFit: "cover",
+                              borderRadius: 12,
+                              border: "1px solid #cbd5f5",
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveEditImage(index)}
+                            aria-label="Remove image"
+                            style={{
+                              position: "absolute",
+                              top: -8,
+                              right: -8,
+                              width: 22,
+                              height: 22,
+                              borderRadius: "50%",
+                              border: "none",
+                              background: "#dc2626",
+                              color: "#fff",
+                              fontSize: 12,
+                              fontWeight: 800,
+                              cursor: "pointer",
+                            }}
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <input
+                    type="file"
+                    multiple
+                    accept=".jpg,.jpeg,.png,image/jpeg,image/png,image/webp"
+                    className={createStyles.fileInput}
+                    onChange={handleEditImageUpload}
+                  />
+                </div>
+
+                <div className={createStyles.field}>
+                  <label className={createStyles.label}>Product Short Video URL</label>
+                  <input
+                    className={createStyles.input}
+                    type="url"
+                    name="productShortVideo"
+                    value={editForm.productShortVideo || ""}
+                    onChange={handleEditChange}
+                  />
+                </div>
+              </div>
+
+              {/* ===== META ===== */}
+              <div className={createStyles.section}>
+                <h3 className={createStyles.sectionTitle}>Product Meta</h3>
+
+                <div className={createStyles.field}>
+                  <label className={createStyles.label}>Gender</label>
+                  <select
+                    className={createStyles.select}
+                    name="gender"
+                    value={editForm.gender || "Unisex"}
+                    onChange={handleEditChange}
+                  >
+                    <option>Unisex</option>
+                    <option>Male</option>
+                    <option>Female</option>
+                  </select>
+                </div>
+
+                <div className={createStyles.field}>
+                  <label className={createStyles.label}>Skin / Hair Type</label>
+                  <input
+                    className={createStyles.input}
+                    name="skinHairType"
+                    value={editForm.skinHairType || ""}
+                    onChange={handleEditChange}
+                  />
+                </div>
+
+                <div className={createStyles.field}>
+                  <label className={createStyles.label}>Barcode / SKU</label>
+                  <input
+                    className={createStyles.input}
+                    name="barcode"
+                    value={editForm.barcode || ""}
+                    onChange={handleEditChange}
+                  />
+                </div>
+              </div>
+
+              {/* ===== STATUS ===== */}
+              <div className={createStyles.section}>
+                <h3 className={createStyles.sectionTitle}>Product Status</h3>
+
+                <div className={createStyles.switchRow}>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={editForm.stockStatus === "In Stock"}
+                      onChange={(e) =>
+                        setEditForm((prev) => ({
+                          ...prev,
+                          stockStatus: e.target.checked ? "In Stock" : "Out of Stock",
+                        }))
+                      }
+                    />
+                    In Stock
+                  </label>
+                  <label>
+                    <input
+                      type="checkbox"
+                      name="activeStatus"
+                      checked={!!editForm.activeStatus}
+                      onChange={handleEditChange}
+                    />
+                    Active
+                  </label>
+                  <label>
+                    <input
+                      type="checkbox"
+                      name="dermatologistRecommended"
+                      checked={!!editForm.dermatologistRecommended}
+                      onChange={handleEditChange}
+                    />
+                    Dermatologist Recommended
+                  </label>
+                </div>
+              </div>
+
+              <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
+                <button type="submit" className={createStyles.submitBtn}>
+                  Update Product
+                </button>
+                <button
+                  type="button"
+                  className={createStyles.submitBtn}
+                  style={{ background: "#e2e8f0", color: "#334155" }}
+                  onClick={handleCancelEdit}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ================= VIEW PRODUCT MODAL ================= */}
+      {viewProduct && (
+        <div className={styles.modalOverlay} onClick={() => setViewProduct(null)}>
+          <div
+            className={styles.modal}
+            style={{ maxWidth: 960 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+                gap: 12,
+                marginBottom: 4,
+              }}
+            >
+              <div>
+                <h3 style={{ marginBottom: 4 }}>{viewProduct.productName}</h3>
+                <p style={{ margin: 0, color: "#64748b", fontSize: 13 }}>
+                  SKU: {viewProduct.productSKU || "-"}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setViewProduct(null)}
+                aria-label="Close"
+                style={{
+                  border: "none",
+                  background: "#f1f5f9",
+                  borderRadius: 999,
+                  width: 32,
+                  height: 32,
+                  fontSize: 16,
+                  fontWeight: 800,
+                  cursor: "pointer",
+                  color: "#334155",
+                  flexShrink: 0,
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, margin: "12px 0 20px" }}>
+              <span
+                style={{
+                  padding: "5px 12px",
+                  borderRadius: 999,
+                  fontSize: 11,
+                  fontWeight: 800,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.04em",
+                  background: viewProduct.activeStatus
+                    ? "rgba(22, 163, 74, 0.12)"
+                    : "rgba(220, 38, 38, 0.1)",
+                  color: viewProduct.activeStatus ? "#15803d" : "#dc2626",
+                }}
+              >
+                {viewProduct.activeStatus ? "Active" : "Inactive"}
+              </span>
+              <span
+                style={{
+                  padding: "5px 12px",
+                  borderRadius: 999,
+                  fontSize: 11,
+                  fontWeight: 800,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.04em",
+                  background:
+                    viewProduct.stockStatus === "In Stock"
+                      ? "rgba(22, 163, 74, 0.12)"
+                      : "rgba(245, 158, 11, 0.14)",
+                  color: viewProduct.stockStatus === "In Stock" ? "#15803d" : "#b45309",
+                }}
+              >
+                {viewProduct.stockStatus || "Unknown"}
+              </span>
+              {viewProduct.dermatologistRecommended && (
+                <span
+                  style={{
+                    padding: "5px 12px",
+                    borderRadius: 999,
+                    fontSize: 11,
+                    fontWeight: 800,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.04em",
+                    background: "rgba(13, 93, 143, 0.12)",
+                    color: "#0d5d8f",
+                  }}
+                >
+                  Dermatologist Recommended
+                </span>
+              )}
+            </div>
+
+            {viewProduct.productImages?.length > 0 && (
+              <div className={styles.modalImages} style={{ marginBottom: 20 }}>
+                {viewProduct.productImages.map((img, i) => (
+                  <img key={i} src={resolveMediaUrl(img) || img} alt="Product" />
                 ))}
-              </select>
+              </div>
+            )}
 
-              <label>MRP Price</label>
-              <input type="number" name="mrpPrice" value={editForm.mrpPrice || ""} onChange={handleEditChange} className={createStyles.input}/>
-
-              <label>Discounted Price</label>
-              <input type="number" name="discountedPrice" value={editForm.discountedPrice || ""} onChange={handleEditChange} className={createStyles.input}/>
-
-              <label>Net Quantity</label>
-              <input name="netQuantity" value={editForm.netQuantity || ""} onChange={handleEditChange} className={createStyles.input} />
-
-              <label>Expiry Date</label>
-              <input type="date" name="expiryDate" value={editForm.expiryDate || ""} onChange={handleEditChange} className={createStyles.input} />
-
-              <label>Manufacturer</label>
-              <input name="manufacturerName" value={editForm.manufacturerName || ""} onChange={handleEditChange} className={createStyles.input}/>
-
-              <label>License Number</label>
-              <input name="licenseNumber" value={editForm.licenseNumber || ""} onChange={handleEditChange} className={createStyles.input}/>
-
-              <label>Packaging Type</label>
-              <input name="packagingType" value={editForm.packagingType || ""} onChange={handleEditChange}className={createStyles.input} />
-
-              <label>Ingredients</label>
-              <textarea name="ingredients" value={editForm.ingredients || ""} onChange={handleEditChange} className={createStyles.input}/>
-
-              <label>Usage Instructions</label>
-              <textarea name="usageInstructions" value={editForm.usageInstructions || ""} onChange={handleEditChange} className={createStyles.input} />
-
-              {/* <label>Benefits</label>
-              <textarea name="benefits" value={editForm.benefits || ""} onChange={handleEditChange} className={createStyles.input}/> */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                gap: 12,
+                marginBottom: 20,
+              }}
+            >
+              {[
+                ["Brand", viewProduct.brandName || "-"],
+                ["Category", getCategoryName(viewProduct.category)],
+                ["Gender", viewProduct.gender || "-"],
+                ["Skin / Hair Type", viewProduct.skinHairType || "-"],
+                ["Barcode", viewProduct.barcode || "-"],
+                ["Certifications", viewProduct.certifications || "-"],
+              ].map(([label, value]) => (
+                <div
+                  key={label}
+                  style={{
+                    padding: "10px 14px",
+                    borderRadius: 12,
+                    background: "#f8fafc",
+                    border: "1px solid #e5e7eb",
+                  }}
+                >
+                  <div style={{ fontSize: 11, fontWeight: 800, color: "#64748b", textTransform: "uppercase" }}>
+                    {label}
+                  </div>
+                  <div style={{ fontSize: 14, color: "#0f172a", marginTop: 2 }}>{value}</div>
+                </div>
+              ))}
             </div>
 
-            <div style={{ display: "flex", gap: 12 }}>
-              <button type="submit" className={createStyles.submitBtn}>
-                Update Product
-              </button>
-              <button type="button" className={createStyles.submitBtn} onClick={handleCancelEdit}>
-                Cancel
-              </button>
+            <h4 style={{ margin: "0 0 10px", fontSize: 15, fontWeight: 800, color: "#173252" }}>
+              Pricing
+            </h4>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+                gap: 12,
+                marginBottom: 20,
+              }}
+            >
+              {[
+                ["Net Quantity", `${viewProduct.netQuantity || "-"} ${(viewProduct as any).quantityUnit || ""}`.trim()],
+                ["MRP", `₹${viewProduct.mrpPrice ?? "-"}`],
+                ["Discounted Price", `₹${viewProduct.discountedPrice ?? "-"}`],
+                ["Discount", (viewProduct as any).discountPercent ? `${(viewProduct as any).discountPercent}%` : "-"],
+                ["GST / Tax", viewProduct.taxPercent ? `${viewProduct.taxPercent}%` : "-"],
+                ["HSN Code", viewProduct.hsnCode || "-"],
+              ].map(([label, value]) => (
+                <div
+                  key={label}
+                  style={{
+                    padding: "10px 14px",
+                    borderRadius: 12,
+                    background: "#f8fafc",
+                    border: "1px solid #e5e7eb",
+                  }}
+                >
+                  <div style={{ fontSize: 11, fontWeight: 800, color: "#64748b", textTransform: "uppercase" }}>
+                    {label}
+                  </div>
+                  <div style={{ fontSize: 14, color: "#0f172a", marginTop: 2 }}>{value}</div>
+                </div>
+              ))}
             </div>
-          </form>
+
+            <h4 style={{ margin: "0 0 10px", fontSize: 15, fontWeight: 800, color: "#173252" }}>
+              Compliance &amp; Packaging
+            </h4>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                gap: 12,
+                marginBottom: 20,
+              }}
+            >
+              {[
+                ["Expiry Date", viewProduct.expiryDate ? String(viewProduct.expiryDate).slice(0, 10) : "-"],
+                ["Manufacturer", viewProduct.manufacturerName || "-"],
+                ["License / FSSAI No.", viewProduct.licenseNumber || "-"],
+                ["Packaging Type", viewProduct.packagingType || "-"],
+              ].map(([label, value]) => (
+                <div
+                  key={label}
+                  style={{
+                    padding: "10px 14px",
+                    borderRadius: 12,
+                    background: "#f8fafc",
+                    border: "1px solid #e5e7eb",
+                  }}
+                >
+                  <div style={{ fontSize: 11, fontWeight: 800, color: "#64748b", textTransform: "uppercase" }}>
+                    {label}
+                  </div>
+                  <div style={{ fontSize: 14, color: "#0f172a", marginTop: 2 }}>{value}</div>
+                </div>
+              ))}
+            </div>
+
+            {[
+              ["Description", viewProduct.description],
+              ["Ingredients", viewProduct.ingredients],
+              ["Target Concerns", viewProduct.targetConcerns],
+              ["Usage Instructions", viewProduct.usageInstructions],
+              ["Benefits", viewProduct.benefits],
+            ].map(([label, value]) =>
+              value ? (
+                <div key={label} style={{ marginBottom: 16 }}>
+                  <h4 style={{ margin: "0 0 6px", fontSize: 15, fontWeight: 800, color: "#173252" }}>
+                    {label}
+                  </h4>
+                  <div
+                    style={{ fontSize: 14, color: "#374151", lineHeight: 1.6 }}
+                    dangerouslySetInnerHTML={{ __html: value }}
+                  />
+                </div>
+              ) : null
+            )}
+
+            {viewProduct.productShortVideo && (
+              <p style={{ fontSize: 14 }}>
+                <b>Short Video:</b>{" "}
+                <a href={viewProduct.productShortVideo} target="_blank" rel="noreferrer">
+                  {viewProduct.productShortVideo}
+                </a>
+              </p>
+            )}
+
+            <div className={styles.modalActions}>
+              <button onClick={() => setViewProduct(null)}>Close</button>
+            </div>
+          </div>
         </div>
       )}
-
-      {/* ================= VIEW MODAL ================= */}
-     {viewProduct && (
-  <div className={styles.modalOverlay}>
-    <div className={styles.modal}>
-      <h3>{viewProduct.productName}</h3>
-
-      <div className={styles.modalGrid}>
-        <p><b>Brand:</b> {viewProduct.brandName}</p>
-        <p><b>Category:</b> {getCategoryName(viewProduct.category)}</p>
-        <p><b>MRP:</b> ₹{viewProduct.mrpPrice}</p>
-        <p><b>Discounted:</b> ₹{viewProduct.discountedPrice}</p>
-        <p><b>Net Quantity:</b> {viewProduct.netQuantity}</p>
-        <p><b>Expiry Date:</b> {viewProduct.expiryDate}</p>
-      </div>
-
-      <p><b>Description:</b> {viewProduct.description}</p>
-      <p><b>Ingredients:</b> {viewProduct.ingredients}</p>
-      <p><b>Usage:</b> {viewProduct.usageInstructions}</p>
-
-      {viewProduct.productImages?.length > 0 && (
-        <div className={styles.modalImages}>
-          {viewProduct.productImages.map((img, i) => (
-            <img key={i} src={resolveMediaUrl(img) || img} alt="Product" />
-          ))}
-        </div>
-      )}
-
-      <div className={styles.modalActions}>
-        <button onClick={() => setViewProduct(null)}>Close</button>
-      </div>
-    </div>
-  </div>
-)}
     </div>
   );
 };

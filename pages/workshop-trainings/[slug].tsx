@@ -26,6 +26,7 @@ interface WorkshopTraining {
   trainingUniqueCode: string;
   trainingType?: string;
   trainingImage?: string;
+  trainerImage?: string;
   instituteName?: string;
   trainingDuration?: string;
   modeOfTraining?: string;
@@ -183,8 +184,10 @@ const WorkshopTrainingDetailPage = () => {
     );
   }
 
-  const heroImage =
-    resolveFileUrl(training.trainingImage) || "/doctor-landing-page-3.jpg";
+  // The header banner shows the workshop's own image — it must never fall
+  // back to a person's headshot (that's what the Trainer card below is for).
+  const heroImage = resolveFileUrl(training.trainingImage) || "/demo-clinic.jpg";
+  const trainerPhoto = resolveFileUrl(training.trainerImage) || "/doctor1.jpg";
 
   const handleAddToCart = () => {
     if (inCart) {
@@ -321,7 +324,7 @@ const WorkshopTrainingDetailPage = () => {
               <h2 className={styles.panelTitle}>Trainer</h2>
               <div className={styles.instructorCard}>
                 <img
-                  src={heroImage}
+                  src={trainerPhoto}
                   alt={training.trainerInstructorName || "Trainer"}
                   className={styles.instructorImage}
                 />

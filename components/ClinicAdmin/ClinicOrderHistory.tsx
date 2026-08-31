@@ -3,11 +3,13 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Cookies from "js-cookie";
 import { useRouter } from "next/router";
-import { FiChevronRight, FiSearch, FiShoppingBag } from "react-icons/fi";
+import { FiChevronRight, FiSearch, FiShoppingBag, FiTrash2 } from "react-icons/fi";
 import styles from "@/styles/adminpanel/orderhistory.module.css";
 import { API_URL } from "@/config/api";
 import FullPageLoader from "@/components/common/FullPageLoader";
 import { resolveMediaUrl } from "@/lib/media";
+import { useConfirm } from "@/context/ConfirmContext";
+import { useToast } from "@/context/ToastContext";
 
 interface OrderProduct {
   id: string;
@@ -115,10 +117,13 @@ const getOrderLabel = (order: ClinicOrder) => {
 
 export default function ClinicOrderHistory({ clinicId }: ClinicOrderHistoryProps) {
   const router = useRouter();
+  const confirm = useConfirm();
+  const toast = useToast();
   const [orders, setOrders] = useState<ClinicOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
+  const [deletingId, setDeletingId] = useState("");
 
   const token = Cookies.get("token") || "";
 
@@ -201,6 +206,38 @@ export default function ClinicOrderHistory({ clinicId }: ClinicOrderHistoryProps
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
       handleOrderOpen(orderId);
+    }
+  };
+
+  const handleDeleteOrder = async (event: React.MouseEvent, orderId: string) => {
+    event.stopPropagation();
+
+    const ok = await confirm("Delete this order? This cannot be undone.", {
+      title: "Delete order",
+      confirmLabel: "Delete",
+      danger: true,
+    });
+    if (!ok) return;
+
+    try {
+      setDeletingId(orderId);
+      const res = await fetch(`${API_URL}/orders/${orderId}`, {
+        method: "DELETE",
+        headers: {
+          "x-clinic-id": clinicId,
+          "x-owner-type": "clinic",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.message || "Failed to delete order");
+
+      setOrders((prev) => prev.filter((order) => order._id !== orderId));
+      toast.success("Order deleted successfully");
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to delete order");
+    } finally {
+      setDeletingId("");
     }
   };
 
@@ -332,6 +369,30 @@ export default function ClinicOrderHistory({ clinicId }: ClinicOrderHistoryProps
                   <div className={styles.metaRight}>
                     <p>{getClinicName(order)}</p>
                     <span className={`${styles.badge} ${paymentClass}`}>{statusLabel}</span>
+                    <button
+                      type="button"
+                      onClick={(event) => handleDeleteOrder(event, order._id)}
+                      disabled={deletingId === order._id}
+                      title="Delete order"
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 6,
+                        marginTop: 8,
+                        padding: "6px 10px",
+                        borderRadius: 999,
+                        border: "1px solid rgba(220, 38, 38, 0.25)",
+                        background: "rgba(220, 38, 38, 0.08)",
+                        color: "#dc2626",
+                        fontSize: 11,
+                        fontWeight: 800,
+                        cursor: deletingId === order._id ? "not-allowed" : "pointer",
+                        opacity: deletingId === order._id ? 0.6 : 1,
+                      }}
+                    >
+                      <FiTrash2 size={12} />
+                      {deletingId === order._id ? "Deleting..." : "Delete"}
+                    </button>
                   </div>
                 </div>
 

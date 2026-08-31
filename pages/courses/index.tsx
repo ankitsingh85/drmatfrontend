@@ -20,7 +20,7 @@ const CoursesPage = () => {
     if (!isHydrated) return;
 
     const role = Cookies.get("role")?.toLowerCase();
-    const allowed = role === "clinic" || role === "doctor";
+    const allowed = role === "clinic" || role === "doctor" || role === "b2buser";
     setIsBusinessRole(allowed);
 
     if (!allowed) {

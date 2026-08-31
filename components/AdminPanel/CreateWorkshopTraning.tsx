@@ -44,6 +44,7 @@ type FormState = {
   postTrainingSupport: string;
   contactForQueries: string;
   trainingImage: File | null;
+  trainerImage: File | null;
   brochurePdfDownload: File[];
 };
 
@@ -83,6 +84,7 @@ const init = (code = ""): FormState => ({
   postTrainingSupport: "",
   contactForQueries: "",
   trainingImage: null,
+  trainerImage: null,
   brochurePdfDownload: [],
 });
 
@@ -122,7 +124,8 @@ const labelMap: Record<string, string> = {
   refundCancellationPolicy: "Refund/Cancellation Policy",
   postTrainingSupport: "Post-Training Support",
   contactForQueries: "Contact for Queries",
-  trainingImage: "Training Image",
+  trainingImage: "Workshop Main Image (shown on the workshop header/banner)",
+  trainerImage: "Trainer / Instructor Photo (shown on the Instructor card)",
   brochurePdfDownload: "Brochure / PDF Download",
   applyDiscountVoucher: "Apply Discount Voucher",
   installmentEmiOption: "Installment/EMI Option",
@@ -176,6 +179,7 @@ export default function CreateWorkshopTraning() {
   const [loadingCode, setLoadingCode] = useState(true);
   const [message, setMessage] = useState("");
   const [preview, setPreview] = useState("");
+  const [trainerPreview, setTrainerPreview] = useState("");
 
   const setValue = (key: keyof FormState, value: any) => {
     const next = { ...form, [key]: value };
@@ -266,8 +270,9 @@ export default function CreateWorkshopTraning() {
   useEffect(
     () => () => {
       if (preview) URL.revokeObjectURL(preview);
+      if (trainerPreview) URL.revokeObjectURL(trainerPreview);
     },
-    [preview]
+    [preview, trainerPreview]
   );
 
   const errorFor = (key: keyof FormState) => (submitted ? errors[key] : "");
@@ -294,6 +299,23 @@ export default function CreateWorkshopTraning() {
     if (preview) URL.revokeObjectURL(preview);
     setPreview(URL.createObjectURL(file));
     setValue("trainingImage", file);
+  };
+
+  const onTrainerImage = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] || null;
+    if (!file) return;
+
+    if (!/^image\/(jpeg|jpg|png|webp)$/i.test(file.type) || file.size > 1 * 1024 * 1024) {
+      setErrors((prev) => ({
+        ...prev,
+        trainerImage: "Trainer photo must be JPG, JPEG, PNG, or WEBP and <= 1MB",
+      }));
+      return;
+    }
+
+    if (trainerPreview) URL.revokeObjectURL(trainerPreview);
+    setTrainerPreview(URL.createObjectURL(file));
+    setValue("trainerImage", file);
   };
 
   const onBrochures = (event: ChangeEvent<HTMLInputElement>) => {
@@ -377,6 +399,7 @@ export default function CreateWorkshopTraning() {
       payload.append("postTrainingSupport", form.postTrainingSupport.trim());
       payload.append("contactForQueries", form.contactForQueries.trim());
       if (form.trainingImage) payload.append("trainingImage", form.trainingImage);
+      if (form.trainerImage) payload.append("trainerImage", form.trainerImage);
       form.brochurePdfDownload.forEach((file) => payload.append("brochurePdfDownload", file));
 
       const res = await fetch(`${API_URL}/workshop-trainings`, {
@@ -395,6 +418,7 @@ export default function CreateWorkshopTraning() {
       setErrors({});
       setSubmitted(false);
       setPreview("");
+      setTrainerPreview("");
       loadCode();
       window.dispatchEvent(new Event("admin-dashboard:create-success"));
     } catch (err: any) {
@@ -431,6 +455,13 @@ export default function CreateWorkshopTraning() {
                 readOnly
                 placeholder={loadingCode ? "Generating..." : ""}
               />
+            </Field>
+
+            <Field label={labelMap.trainingImage} error={errorFor("trainingImage")} full>
+              <div className={styles.uploadBox}>
+                <input className={styles.input} type="file" accept="image/jpeg,image/png,image/webp" onChange={onImage} />
+              </div>
+              {preview ? <img className={styles.preview} src={preview} alt="Workshop preview" /> : <p className={styles.noImage}>No workshop image selected</p>}
             </Field>
 
             <div className={styles.field}>
@@ -560,11 +591,11 @@ export default function CreateWorkshopTraning() {
                 {languages.map((item) => <option key={item} value={item}>{item}</option>)}
               </select>
             </Field>
-            <Field label={labelMap.trainingImage} error={errorFor("trainingImage")}>
+            <Field label={labelMap.trainerImage} error={errorFor("trainerImage")}>
               <div className={styles.uploadBox}>
-                <input className={styles.input} type="file" accept="image/jpeg,image/png,image/webp" onChange={onImage} />
+                <input className={styles.input} type="file" accept="image/jpeg,image/png,image/webp" onChange={onTrainerImage} />
               </div>
-              {preview ? <img className={styles.preview} src={preview} alt="Training preview" /> : <p className={styles.noImage}>No training image selected</p>}
+              {trainerPreview ? <img className={styles.preview} src={trainerPreview} alt="Trainer preview" /> : <p className={styles.noImage}>No trainer photo selected</p>}
             </Field>
             <Field label={labelMap.courseDemoVideo} error={errorFor("courseDemoVideo")} full>
               <input className={styles.input} value={form.courseDemoVideo} onChange={(e) => setValue("courseDemoVideo", e.target.value)} />

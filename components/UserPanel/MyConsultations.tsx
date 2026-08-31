@@ -39,12 +39,6 @@ type ConsultationService = {
   consultationFee: number;
   offerPrice?: number;
   doctors?: Doctor[];
-  nextAvailableSlot?: string;
-};
-
-type ChatRequest = {
-  _id: string;
-  status?: ChatStatus;
 };
 
 type ChatMessage = {
@@ -98,13 +92,14 @@ export default function MyConsultations() {
   const [error, setError] = useState("");
   const [onlineMap, setOnlineMap] = useState<Record<string, boolean>>({});
 
-  const [connectPickerService, setConnectPickerService] =
-    useState<ConsultationService | null>(null);
+  const [connectingServiceId, setConnectingServiceId] = useState("");
+  const [connectNotice, setConnectNotice] = useState("");
+  const [pickerService, setPickerService] = useState<ConsultationService | null>(null);
+  const [bookingService, setBookingService] = useState<ConsultationService | null>(null);
   const [bookingDoctor, setBookingDoctor] = useState<Doctor | null>(null);
   const [chatId, setChatId] = useState("");
   const [chatStatus, setChatStatus] = useState<ChatStatus | "">("");
   const [loadingBooking, setLoadingBooking] = useState(false);
-  const [requesting, setRequesting] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [bookingError, setBookingError] = useState("");
   const [pendingIncomingCall, setPendingIncomingCall] =
@@ -167,18 +162,26 @@ export default function MyConsultations() {
     fetchMyConsultations();
   }, []);
 
-  // Live presence: ask for the current state, then stay updated as doctors connect/disconnect.
+  // Live presence: ask for the current state, then stay updated as doctors
+  // connect/disconnect. Also re-asks on every socket (re)connect — otherwise
+  // if this socket ever drops and reconnects (server restart, network blip,
+  // laptop sleep), we'd miss whatever presence changed while disconnected
+  // and stay stuck showing stale online/offline state indefinitely.
   useEffect(() => {
     const doctorIds = Array.from(
       new Set(services.flatMap((service) => (service.doctors || []).map((d) => d._id)))
     );
     if (doctorIds.length === 0) return;
 
-    doctorIds.forEach((id) => {
-      socket.emit("check_online", id, (online: boolean) => {
-        setOnlineMap((prev) => ({ ...prev, [id]: online }));
+    const askOnlineStatus = () => {
+      doctorIds.forEach((id) => {
+        socket.emit("check_online", id, (online: boolean) => {
+          setOnlineMap((prev) => ({ ...prev, [id]: online }));
+        });
       });
-    });
+    };
+
+    askOnlineStatus();
 
     const handleOnline = (data: { id: string }) => {
       if (doctorIds.includes(data.id)) setOnlineMap((prev) => ({ ...prev, [data.id]: true }));
@@ -189,10 +192,12 @@ export default function MyConsultations() {
 
     socket.on("presence_online", handleOnline);
     socket.on("presence_offline", handleOffline);
+    socket.on("connect", askOnlineStatus);
 
     return () => {
       socket.off("presence_online", handleOnline);
       socket.off("presence_offline", handleOffline);
+      socket.off("connect", askOnlineStatus);
     };
   }, [services]);
 
@@ -258,36 +263,8 @@ export default function MyConsultations() {
     }
   };
 
-  const openBooking = async (doctor: Doctor) => {
-    setBookingDoctor(doctor);
-    setBookingError("");
-    setChatId("");
-    setChatStatus("");
-    setMessages([]);
-
-    if (!userId) return;
-
-    try {
-      setLoadingBooking(true);
-      const res = await axios.get<ChatRequest | null>(
-        `${API_URL}/chat/user/${userId}/doctor/${doctor._id}`
-      );
-      const nextChatId = res.data?._id || "";
-      const nextStatus = res.data?.status || "";
-      setChatId(nextChatId);
-      setChatStatus(nextStatus);
-
-      if (nextChatId && nextStatus === "accepted") {
-        await loadMessages(nextChatId);
-      }
-    } catch (err: any) {
-      setBookingError(err?.response?.data?.error || "Failed to load booking status.");
-    } finally {
-      setLoadingBooking(false);
-    }
-  };
-
   const closeBooking = () => {
+    setBookingService(null);
     setBookingDoctor(null);
     setChatId("");
     setChatStatus("");
@@ -385,45 +362,70 @@ export default function MyConsultations() {
     }
   };
 
-  const connectToService = (service: ConsultationService) => {
-    const assignedDoctors = service.doctors || [];
-    if (assignedDoctors.length === 0) return;
-    if (assignedDoctors.length === 1) {
-      openBooking(assignedDoctors[0]);
-      return;
-    }
-    setConnectPickerService(service);
+  const openDoctorPicker = (service: ConsultationService) => {
+    setConnectNotice("");
+    setPickerService(service);
   };
 
-  const closeConnectPicker = () => setConnectPickerService(null);
+  const closeDoctorPicker = () => setPickerService(null);
 
-  const sendBookingRequest = async () => {
-    if (!bookingDoctor || !userId) return;
+  // Connects to either a specific doctor (picked from the picker) or, if
+  // none is given, lets the server auto-match any available assigned
+  // doctor. Reuses an existing (non-declined) chat if one already exists —
+  // sticky match — so repeat visits reconnect to the same doctor.
+  const connectToService = async (service: ConsultationService, doctorId?: string) => {
+    if (!userId || connectingServiceId) return;
+
+    setConnectNotice("");
+    setConnectingServiceId(service._id);
 
     try {
-      setRequesting(true);
-      setBookingError("");
+      const token = Cookies.get("token");
+      const res = await axios.post(
+        `${API_URL}/online-consultation-services/${service._id}/connect`,
+        doctorId ? { doctorId } : {},
+        { headers: token ? { Authorization: `Bearer ${token}` } : {} }
+      );
 
-      const res = await axios.post<ChatRequest>(`${API_URL}/chat`, {
-        doctorId: bookingDoctor._id,
-        userId,
-      });
+      if (!res.data?.matched) {
+        setConnectNotice(
+          res.data?.message || "No doctors are available for this consultation right now. Please try again shortly."
+        );
+        return;
+      }
 
-      const nextChatId = res.data?._id || "";
-      const nextStatus = res.data?.status || "pending";
+      const matchedDoctor: Doctor = res.data.doctor;
+      const nextChatId: string = res.data.chatId;
+      const nextStatus: ChatStatus = res.data.chatStatus || "accepted";
+
+      setPickerService(null);
+      setBookingService(service);
+      setBookingDoctor(matchedDoctor);
       setChatId(nextChatId);
       setChatStatus(nextStatus);
+      setBookingError("");
+      setMessages([]);
 
+      if (nextStatus === "accepted") {
+        setLoadingBooking(true);
+        await loadMessages(nextChatId);
+        setLoadingBooking(false);
+      }
+
+      // Let the doctor's dashboard know a patient just connected, so their
+      // chat inbox picks this up live instead of waiting for a manual refresh.
       socket.emit("chat_request_created", {
         chatId: nextChatId,
-        doctorId: bookingDoctor._id,
+        doctorId: matchedDoctor._id,
         userId,
         status: nextStatus,
       });
     } catch (err: any) {
-      setBookingError(err?.response?.data?.error || "Could not send the request. Please try again.");
+      setConnectNotice(
+        err?.response?.data?.message || "Could not connect to a doctor. Please try again."
+      );
     } finally {
-      setRequesting(false);
+      setConnectingServiceId("");
     }
   };
 
@@ -443,8 +445,7 @@ export default function MyConsultations() {
         to: bookingDoctor._id,
       });
 
-      setChatId("");
-      setChatStatus("");
+      closeBooking();
     } catch (err: any) {
       setBookingError(err?.response?.data?.error || "Could not cancel the request.");
     } finally {
@@ -478,6 +479,7 @@ export default function MyConsultations() {
       </div>
 
       {error && <p className={styles.errorText}>{error}</p>}
+      {connectNotice && <p className={styles.errorText}>{connectNotice}</p>}
 
       {services.length === 0 ? (
         <div className={styles.emptyState}>
@@ -492,23 +494,21 @@ export default function MyConsultations() {
         <div className={styles.grid}>
           {services.map((service) => {
             const assignedDoctors = service.doctors || [];
-            const hasSlot = Boolean(service.nextAvailableSlot);
-            const canConnect = assignedDoctors.length > 0 && hasSlot;
+            const canConnect = assignedDoctors.length > 0;
+            const isConnecting = connectingServiceId === service._id;
             const effectivePrice =
               typeof service.offerPrice === "number" && service.offerPrice > 0
                 ? service.offerPrice
                 : service.consultationFee;
             const image = resolveMediaUrl(service.imageUrl);
-            const primaryDoctor = assignedDoctors[0];
-            const anyOnline = assignedDoctors.some((doctor) => onlineMap[doctor._id]);
 
             return (
               <button
                 key={service._id}
                 type="button"
                 className={styles.card}
-                onClick={() => canConnect && connectToService(service)}
-                disabled={!canConnect}
+                onClick={() => canConnect && openDoctorPicker(service)}
+                disabled={!canConnect || isConnecting}
               >
                 <div className={styles.cardTop}>
                   <span className={styles.serviceIcon}>
@@ -524,49 +524,20 @@ export default function MyConsultations() {
                   </div>
                 </div>
 
-                {primaryDoctor ? (
-                  <div className={styles.doctorRow}>
-                    <span className={styles.doctorAvatar}>
-                      {resolveMediaUrl(primaryDoctor.profileImage) ? (
-                        <img
-                          src={resolveMediaUrl(primaryDoctor.profileImage) as string}
-                          alt=""
-                        />
-                      ) : (
-                        getInitials(getDoctorName(primaryDoctor))
-                      )}
-                    </span>
-                    <span className={styles.doctorInfo}>
-                      <span className={styles.doctorName}>
-                        {getDoctorName(primaryDoctor)}
-                        {assignedDoctors.length > 1 ? ` +${assignedDoctors.length - 1}` : ""}
-                      </span>
-                      <span className={styles.doctorSpecialist}>
-                        {primaryDoctor.specialist || "General Physician"}
-                      </span>
-                    </span>
-                    <span
-                      className={`${styles.presenceBadge} ${
-                        anyOnline ? styles.presenceOnline : styles.presenceOffline
-                      }`}
-                    >
-                      <i />
-                      {anyOnline ? "Available now" : "Offline"}
-                    </span>
-                  </div>
-                ) : (
-                  <div className={styles.doctorRow}>
-                    <span className={styles.doctorSpecialist}>Doctor not assigned yet</span>
-                  </div>
-                )}
+                {/* Doctor identity is intentionally hidden until "Connect"
+                    actually matches this user to a specific doctor. */}
+                <div className={styles.doctorRow}>
+                  <span className={styles.doctorSpecialist}>
+                    {canConnect
+                      ? "Tap Connect to choose a doctor"
+                      : "Doctor not assigned yet"}
+                  </span>
+                </div>
 
                 <div className={styles.cardFooter}>
-                  <span className={styles.slotText}>
-                    <FiClock />
-                    {hasSlot ? `Next slot: ${service.nextAvailableSlot}` : "No slots available"}
-                  </span>
                   <span className={styles.connectCta}>
-                    <FiVideo /> {canConnect ? "Connect Now" : "Unavailable"}
+                    <FiVideo />{" "}
+                    {isConnecting ? "Connecting..." : canConnect ? "Connect with Doctor" : "Unavailable"}
                   </span>
                 </div>
               </button>
@@ -575,48 +546,65 @@ export default function MyConsultations() {
         </div>
       )}
 
-      {/* ================= DOCTOR PICKER MODAL (multiple doctors on one service) ================= */}
-      {connectPickerService && (
-        <div className={styles.modalOverlay} onClick={closeConnectPicker}>
+      {/* ================= DOCTOR PICKER ================= */}
+      {pickerService && (
+        <div className={styles.modalOverlay} onClick={closeDoctorPicker}>
           <div className={styles.modalPanel} onClick={(event) => event.stopPropagation()}>
-            <button type="button" className={styles.modalClose} onClick={closeConnectPicker}>
+            <button
+              type="button"
+              className={styles.modalClose}
+              onClick={closeDoctorPicker}
+              title="Close"
+            >
               <FiX />
             </button>
 
             <div className={styles.modalHeader}>
               <div>
-                <h3>{connectPickerService.serviceType}</h3>
-                <p>Choose a doctor to connect with</p>
+                <h3>Choose a doctor</h3>
+                <p>{pickerService.serviceType}</p>
               </div>
             </div>
 
             <div className={styles.doctorPickerList}>
-              {(connectPickerService.doctors || []).map((doctor) => {
-                const name = getDoctorName(doctor);
+              {(pickerService.doctors || []).map((doctor) => {
+                const doctorName = getDoctorName(doctor);
+                const isOnline = Boolean(onlineMap[doctor._id]);
                 const image = resolveMediaUrl(doctor.profileImage);
+                const isConnecting =
+                  connectingServiceId === pickerService._id;
+
                 return (
                   <button
                     key={doctor._id}
                     type="button"
                     className={styles.doctorPickerRow}
-                    onClick={() => {
-                      closeConnectPicker();
-                      openBooking(doctor);
-                    }}
+                    onClick={() => connectToService(pickerService, doctor._id)}
+                    disabled={isConnecting}
                   >
                     <span className={styles.doctorPickerAvatar}>
-                      {image ? <img src={image} alt={name} /> : getInitials(name)}
+                      {image ? <img src={image} alt={doctorName} /> : getInitials(doctorName)}
                     </span>
-                    <span>
-                      <span className={styles.doctorPickerName}>{name}</span>
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span className={styles.doctorPickerName}>{doctorName}</span>
                       <span className={styles.doctorPickerSpecialist}>
                         {doctor.specialist || "General Physician"}
                       </span>
+                    </span>
+                    <span
+                      className={`${styles.presenceBadge} ${
+                        isOnline ? styles.presenceOnline : styles.presenceOffline
+                      }`}
+                    >
+                      <i />
+                      {isOnline ? "Online" : "Offline"}
                     </span>
                   </button>
                 );
               })}
             </div>
+
+            {connectNotice && <p className={styles.modalError}>{connectNotice}</p>}
           </div>
         </div>
       )}
@@ -640,6 +628,7 @@ export default function MyConsultations() {
                 <div>
                   <h3>{bookingDoctorName}</h3>
                   <p>
+                    {bookingService ? `${bookingService.serviceType} · ` : ""}
                     {bookingDoctor.specialist || "General Physician"}
                     {" · "}
                     <span
@@ -690,24 +679,7 @@ export default function MyConsultations() {
 
             <div className={chatStyles.messages} ref={messagesRef}>
               {loadingBooking || loadingMessages ? (
-                <div className={chatStyles.messageState}>Loading conversation...</div>
-              ) : !chatStatus ? (
-                <div className={chatStyles.messageState}>
-                  <FiVideo />
-                  <h3>Start your consultation</h3>
-                  <p>
-                    Send a request to {bookingDoctorName}. Once accepted, you can chat and
-                    start an audio or video call right here.
-                  </p>
-                  <button
-                    type="button"
-                    className={chatStyles.appointmentBtn}
-                    onClick={sendBookingRequest}
-                    disabled={requesting}
-                  >
-                    {requesting ? "Sending request..." : "Request Video Consultation"}
-                  </button>
-                </div>
+                <div className={chatStyles.messageState}>Connecting you with {bookingDoctorName}...</div>
               ) : chatStatus === "pending" ? (
                 <div className={chatStyles.messageState}>
                   <FiClock />
@@ -729,15 +701,10 @@ export default function MyConsultations() {
                 <div className={chatStyles.messageState}>
                   <FiXCircle />
                   <h3>Request declined</h3>
-                  <p>{bookingDoctorName} is unavailable for this request right now.</p>
-                  <button
-                    type="button"
-                    className={chatStyles.appointmentBtn}
-                    onClick={sendBookingRequest}
-                    disabled={requesting}
-                  >
-                    {requesting ? "Sending request..." : "Send Request Again"}
-                  </button>
+                  <p>
+                    {bookingDoctorName} is unavailable right now. Close this window and tap
+                    "Connect with Doctor" again to choose another doctor.
+                  </p>
                 </div>
               ) : messages.length === 0 ? (
                 <div className={chatStyles.messageState}>

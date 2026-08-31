@@ -15,6 +15,7 @@ import FullPageLoader from "@/components/common/FullPageLoader";
 import TreatmentClinicModal, {
   TreatmentClinicOption,
 } from "@/components/modal/TreatmentClinicModal";
+import { API_URL } from "@/config/api";
 
 const TREATMENT_CHECKOUT_KEY = "treatmentCheckout";
 
@@ -35,8 +36,8 @@ const CartPage: React.FC = () => {
     hydrated: cartHydrated,
   } = useCart();
 
-  const email = Cookies.get("email");
   const token = Cookies.get("token");
+  const currentRole = (Cookies.get("role") || "").toLowerCase();
 
   const [clinicQueue, setClinicQueue] = useState<CartItem[]>([]);
   const [activeClinicItem, setActiveClinicItem] = useState<CartItem | null>(null);
@@ -60,7 +61,7 @@ const CartPage: React.FC = () => {
   );
   const discount = totalMRP - totalPrice;
 
-  const finalizeCheckout = (
+  const finalizeCheckout = async (
     selections: Record<
       string,
       { clinicId: string; clinicName: string; clinicAddress?: string }
@@ -83,12 +84,41 @@ const CartPage: React.FC = () => {
       return;
     }
 
+    if (currentRole === "b2buser") {
+      // B2BUser has a single flat address (no addresses[] array), so it
+      // skips the multi-address Address.tsx flow entirely and goes
+      // straight to PaymentPage with its profile address as query params.
+      const b2bUserId = Cookies.get("b2bUserId");
+      let address = "";
+      try {
+        if (b2bUserId) {
+          const res = await fetch(`${API_URL}/b2b-users/${b2bUserId}`);
+          if (res.ok) {
+            const data = await res.json();
+            address = [data.address, data.city, data.state, data.pincode]
+              .filter(Boolean)
+              .join(", ");
+          }
+        }
+      } catch {
+        // Ignore fetch failures; PaymentPage still works without a prefilled address.
+      }
+
+      const query = new URLSearchParams({ type: "Business", address }).toString();
+      router.push(`/home/PaymentPage?${query}`);
+      return;
+    }
+
     router.push("/home/Address");
   };
 
   const handleProceedToPay = () => {
-    if (!email || !token) {
-      router.push("/Login?next=/home/Cart");
+    if (!token) {
+      router.push(
+        currentRole === "clinic" || currentRole === "doctor" || currentRole === "b2buser"
+          ? "/businesslogin?next=/home/Cart"
+          : "/Login?next=/home/Cart"
+      );
       return;
     }
 

@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import Cookies from "js-cookie";
+import { useRouter } from "next/router";
 import {
   FiSearch,
   FiShoppingBag,
@@ -106,6 +107,7 @@ const getOrderLabel = (categories: OrderCategory[]) => {
 };
 
 export default function B2BOrderHistory({ b2bUserId }: B2BOrderHistoryProps) {
+  const router = useRouter();
   const [orders, setOrders] = useState<B2BOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -179,6 +181,17 @@ export default function B2BOrderHistory({ b2bUserId }: B2BOrderHistoryProps) {
     () => filteredOrders.reduce((sum, order) => sum + Number(order.totalAmount || 0), 0),
     [filteredOrders]
   );
+
+  const handleOrderOpen = (orderId: string) => {
+    router.push(`/b2b-order/${orderId}`);
+  };
+
+  const handleOrderKeyDown = (event: React.KeyboardEvent<HTMLElement>, orderId: string) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      handleOrderOpen(orderId);
+    }
+  };
 
   if (loading) return <FullPageLoader />;
 
@@ -256,7 +269,15 @@ export default function B2BOrderHistory({ b2bUserId }: B2BOrderHistoryProps) {
                 const firstItemName = order.products?.[0]?.name || "Item";
 
                 return (
-                  <tr key={order._id}>
+                  <tr
+                    key={order._id}
+                    className={styles.orderRowClickable}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => handleOrderOpen(order._id)}
+                    onKeyDown={(event) => handleOrderKeyDown(event, order._id)}
+                    aria-label={`Open order ${order._id} details`}
+                  >
                     <td>
                       <div className={styles.orderIdCell}>
                         <span className={styles.orderIdIcon}>

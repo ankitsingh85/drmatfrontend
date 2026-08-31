@@ -20,6 +20,11 @@ const nextConfig = {
         hostname: "**.vercel.app",
         pathname: "/uploads/**",
       },
+      {
+        protocol: "https",
+        hostname: "dermatbackend-2.onrender.com",
+        pathname: "/uploads/**",
+      },
     ],
   },
 };
