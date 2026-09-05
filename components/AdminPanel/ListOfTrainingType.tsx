@@ -7,6 +7,9 @@ import { resolveMediaUrl } from "@/lib/media";
 import { useToast } from "@/context/ToastContext";
 import { useConfirm } from "@/context/ConfirmContext";
 import TableActions from "@/components/AdminPanel/common/TableActions";
+import BulkSelectBar from "@/components/AdminPanel/common/BulkSelectBar";
+import { useBulkSelection } from "@/hooks/useBulkSelection";
+import bulkStyles from "@/styles/Dashboard/bulkSelect.module.css";
 
 interface TrainingType {
   _id: string;
@@ -167,6 +170,8 @@ const ListOfTrainingType = ({ canEdit = true, canDelete = true }: ListOfTraining
     return filteredTrainingTypes.slice(start, start + itemsPerPage);
   }, [filteredTrainingTypes, currentPage, itemsPerPage]);
 
+  const bulkSelection = useBulkSelection(paginatedTrainingTypes, (item) => item._id);
+
   const handleDownloadCSV = () => {
     const rows = [
       ["ID", "Name", "Image URL"],
@@ -289,10 +294,36 @@ const ListOfTrainingType = ({ canEdit = true, canDelete = true }: ListOfTraining
         </button>
       </div>
 
-      <div className={styles.tableWrap}>
+      <BulkSelectBar
+        endpointPath="training-types"
+        selectedIds={Array.from(bulkSelection.selectedIds)}
+        noun="training types"
+        canDelete={canDelete}
+        onClear={bulkSelection.clear}
+        onDeleted={(deletedIds) => {
+          setTrainingTypes((prev) => prev.filter((item) => !deletedIds.includes(item._id)));
+          bulkSelection.removeIds(deletedIds);
+          notifyTrainingTypeChange();
+        }}
+      />
+
+      <div className={`${styles.tableWrap} ${bulkStyles.tableScroll}`}>
         <table className={styles.table}>
           <thead>
   <tr>
+    {canDelete && (
+      <th className={bulkStyles.checkboxCell}>
+        <input
+          type="checkbox"
+          checked={bulkSelection.isAllSelected}
+          ref={(el) => {
+            if (el) el.indeterminate = bulkSelection.isSomeSelected;
+          }}
+          onChange={bulkSelection.toggleAll}
+          aria-label="Select all training types on this page"
+        />
+      </th>
+    )}
     <th>Training Type ID</th>
     <th>Name</th>
     <th>Image</th>
@@ -302,6 +333,17 @@ const ListOfTrainingType = ({ canEdit = true, canDelete = true }: ListOfTraining
           <tbody>
             {paginatedTrainingTypes.map((item) => (
               <tr key={item._id}>
+
+  {canDelete && (
+    <td className={bulkStyles.checkboxCell}>
+      <input
+        type="checkbox"
+        checked={bulkSelection.isSelected(item._id)}
+        onChange={() => bulkSelection.toggle(item._id)}
+        aria-label={`Select ${item.name}`}
+      />
+    </td>
+  )}
 
   <td>{item.id}</td>
 
@@ -327,7 +369,7 @@ const ListOfTrainingType = ({ canEdit = true, canDelete = true }: ListOfTraining
             ))}
             {paginatedTrainingTypes.length === 0 && (
               <tr>
-              <td colSpan={4}>No training types found.</td>
+              <td colSpan={canDelete ? 5 : 4}>No training types found.</td>
               </tr>
             )}
           </tbody>

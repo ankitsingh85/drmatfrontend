@@ -8,6 +8,9 @@ import FullPageLoader from "@/components/common/FullPageLoader";
 import { useToast } from "@/context/ToastContext";
 import { useConfirm } from "@/context/ConfirmContext";
 import TableActions from "@/components/AdminPanel/common/TableActions";
+import BulkSelectBar from "@/components/AdminPanel/common/BulkSelectBar";
+import { useBulkSelection } from "@/hooks/useBulkSelection";
+import bulkStyles from "@/styles/Dashboard/bulkSelect.module.css";
 
 interface B2BUser {
   _id: string;
@@ -97,6 +100,8 @@ export default function ListOfB2BUser({
     return filteredUsers.slice(start, start + itemsPerPage);
   }, [filteredUsers, currentPage, itemsPerPage]);
 
+  const bulkSelection = useBulkSelection(paginatedUsers, (user) => user._id);
+
   const handleDownloadCSV = () => {
     const rows = [
       [
@@ -106,6 +111,10 @@ export default function ListOfB2BUser({
         "Email",
         "Contact",
         "GST",
+        "Address",
+        "City",
+        "State",
+        "Pincode",
         "Status",
         "Created At",
       ],
@@ -116,6 +125,10 @@ export default function ListOfB2BUser({
         user.email || "",
         user.contactNo,
         user.gstNumber || "",
+        user.address || "-",
+        user.city || "-",
+        user.state || "-",
+        user.pincode || "-",
         user.status,
         new Date(user.createdAt).toLocaleString(),
       ]),
@@ -161,7 +174,13 @@ export default function ListOfB2BUser({
           <td>${escapeHtml(user.contactPerson || "-")}</td>
           <td>${escapeHtml(user.email || "-")}</td>
           <td>${escapeHtml(user.contactNo || "-")}</td>
+          <td>${escapeHtml(user.gstNumber || "-")}</td>
+          <td>${escapeHtml(user.address || "-")}</td>
+          <td>${escapeHtml(user.city || "-")}</td>
+          <td>${escapeHtml(user.state || "-")}</td>
+          <td>${escapeHtml(user.pincode || "-")}</td>
           <td>${escapeHtml(user.status || "-")}</td>
+          <td>${escapeHtml(user.createdAt ? String(user.createdAt).slice(0, 10) : "-")}</td>
         </tr>`
       )
       .join("");
@@ -187,7 +206,13 @@ export default function ListOfB2BUser({
                 <th>Contact Person</th>
                 <th>Email</th>
                 <th>Contact</th>
+                <th>GST Number</th>
+                <th>Address</th>
+                <th>City</th>
+                <th>State</th>
+                <th>Pincode</th>
                 <th>Status</th>
+                <th>Created</th>
               </tr>
             </thead>
             <tbody>${rows}</tbody>
@@ -297,16 +322,47 @@ export default function ListOfB2BUser({
         </button>
       </div>
 
-      <div className={styles.tableWrap}>
+      <BulkSelectBar
+        endpointPath="b2b-users"
+        selectedIds={Array.from(bulkSelection.selectedIds)}
+        noun="B2B users"
+        canDelete={canDelete}
+        onClear={bulkSelection.clear}
+        onDeleted={(deletedIds) => {
+          setUsers((prev) => prev.filter((user) => !deletedIds.includes(user._id)));
+          bulkSelection.removeIds(deletedIds);
+        }}
+      />
+
+      <div className={`${styles.tableWrap} ${bulkStyles.tableScroll}`}>
         <table className={styles.table}>
           <thead className={styles.tableHead}>
             <tr>
+              {canDelete && (
+                <th className={bulkStyles.checkboxCell}>
+                  <input
+                    type="checkbox"
+                    checked={bulkSelection.isAllSelected}
+                    ref={(el) => {
+                      if (el) el.indeterminate = bulkSelection.isSomeSelected;
+                    }}
+                    onChange={bulkSelection.toggleAll}
+                    aria-label="Select all B2B users on this page"
+                  />
+                </th>
+              )}
               <th>B2B User ID</th>
               <th>Name</th>
               <th>Contact Person</th>
               <th>Email</th>
               <th>Contact</th>
+              <th>GST Number</th>
+              <th>Address</th>
+              <th>City</th>
+              <th>State</th>
+              <th>Pincode</th>
               <th>Status</th>
+              <th>Created</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -314,12 +370,28 @@ export default function ListOfB2BUser({
           <tbody>
             {paginatedUsers.map((user) => (
               <tr key={user._id} className={styles.tableRow}>
+                {canDelete && (
+                  <td className={bulkStyles.checkboxCell}>
+                    <input
+                      type="checkbox"
+                      checked={bulkSelection.isSelected(user._id)}
+                      onChange={() => bulkSelection.toggle(user._id)}
+                      aria-label={`Select ${user.name}`}
+                    />
+                  </td>
+                )}
                 <td>{user.b2bUserId}</td>
                 <td>{user.name}</td>
                 <td>{user.contactPerson}</td>
                 <td>{user.email || "-"}</td>
                 <td>{user.contactNo}</td>
+                <td>{user.gstNumber || "-"}</td>
+                <td>{user.address || "-"}</td>
+                <td>{user.city || "-"}</td>
+                <td>{user.state || "-"}</td>
+                <td>{user.pincode || "-"}</td>
                 <td>{user.status}</td>
+                <td>{user.createdAt ? String(user.createdAt).slice(0, 10) : "-"}</td>
                 <td className={styles.actions}>
                   <TableActions
                     onView={() => setViewingUser(user)}
@@ -333,7 +405,7 @@ export default function ListOfB2BUser({
             ))}
             {paginatedUsers.length === 0 && (
               <tr className={styles.tableRow}>
-                <td colSpan={7}>No B2B users found.</td>
+                <td colSpan={canDelete ? 14 : 13}>No B2B users found.</td>
               </tr>
             )}
           </tbody>

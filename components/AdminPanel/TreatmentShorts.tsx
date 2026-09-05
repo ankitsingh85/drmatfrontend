@@ -4,6 +4,7 @@ import axios from "axios";
 import styles from "@/styles/LatestUpdateShorts.module.css";
 import { API_URL } from "@/config/api";
 import { useToast } from "@/context/ToastContext";
+import { getYouTubeEmbedUrl } from "@/lib/youtube";
 
 interface Short {
   _id: string;
@@ -43,6 +44,25 @@ const TreatmentShorts: React.FC<TreatmentShortsProps> = ({
   useEffect(() => {
     fetchShorts();
   }, []);
+
+  // ✅ Inject Instagram embed script when reels are present
+  useEffect(() => {
+    if (!shorts.some((s) => s.platform === "instagram")) return;
+
+    const existing = document.getElementById("instagram-embed-script");
+    if (!existing) {
+      const script = document.createElement("script");
+      script.id = "instagram-embed-script";
+      script.src = "https://www.instagram.com/embed.js";
+      script.async = true;
+      script.onload = () => {
+        (window as any).instgrm?.Embeds?.process?.();
+      };
+      document.body.appendChild(script);
+    } else {
+      (window as any).instgrm?.Embeds?.process?.();
+    }
+  }, [shorts]);
 
   // ✅ Add short
   const handleAddShort = async () => {
@@ -140,19 +160,22 @@ const TreatmentShorts: React.FC<TreatmentShortsProps> = ({
               <iframe
                 width="100%"
                 height="250"
-                src={short.videoUrl.replace("shorts/", "embed/")}
+                src={getYouTubeEmbedUrl(short.videoUrl)}
                 title="YouTube Shorts"
                 frameBorder="0"
                 allow="autoplay; encrypted-media"
                 allowFullScreen
               />
             ) : (
-              <iframe
-                src={`${short.videoUrl}embed`}
-                width="100%"
-                height="400"
-                frameBorder="0"
-                allowFullScreen
+              <blockquote
+                className="instagram-media"
+                data-instgrm-permalink={short.videoUrl}
+                data-instgrm-version="14"
+                style={{
+                  maxWidth: "320px",
+                  minWidth: "240px",
+                  margin: "auto",
+                }}
               />
             )}
 

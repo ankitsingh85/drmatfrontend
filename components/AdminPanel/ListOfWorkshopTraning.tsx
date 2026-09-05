@@ -2,10 +2,13 @@
 
 import React, { ChangeEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { API_URL } from "@/config/api";
-import { resolveMediaUrl } from "@/lib/media";
+import { resolveMediaUrl, getExportSafeMediaValue } from "@/lib/media";
 import { useToast } from "@/context/ToastContext";
 import { useConfirm } from "@/context/ConfirmContext";
 import TableActions from "@/components/AdminPanel/common/TableActions";
+import BulkSelectBar from "@/components/AdminPanel/common/BulkSelectBar";
+import { useBulkSelection } from "@/hooks/useBulkSelection";
+import bulkStyles from "@/styles/Dashboard/bulkSelect.module.css";
 import formStyles from "@/styles/Dashboard/createcategory.module.css";
 
 type WorkshopTraining = {
@@ -142,12 +145,14 @@ const toDateInputValue = (value?: string) => {
 
 const buttonStyle: React.CSSProperties = {
   border: "none",
-  borderRadius: 12,
-  padding: "12px 18px",
-  background: "#0f172a",
+  borderRadius: 10,
+  padding: "10px 16px",
+  background: "linear-gradient(180deg, #2981b7 0%, #10678c 100%)",
   color: "#fff",
-  fontWeight: 700,
+  fontSize: 13,
+  fontWeight: 600,
   cursor: "pointer",
+  boxShadow: "0 4px 10px rgba(15, 23, 42, 0.14)",
 };
 
 const inputStyle: React.CSSProperties = {
@@ -169,25 +174,29 @@ const errorStyle: React.CSSProperties = {
 const tableStyle: React.CSSProperties = {
   width: "100%",
   borderCollapse: "collapse",
-  minWidth: 760,
+  minWidth: 3400,
 };
 
 const thTdStyle: React.CSSProperties = {
   textAlign: "left",
-  padding: "12px 14px",
-  borderBottom: "1px solid #e5e7eb",
-  verticalAlign: "top",
+  padding: "8px 12px",
+  border: "1px solid #e5e7eb",
+  verticalAlign: "middle",
+  fontSize: 13,
+  whiteSpace: "normal",
+  overflowWrap: "break-word",
 };
 
 const theadStyle: React.CSSProperties = {
   ...thTdStyle,
   background: "linear-gradient(135deg, #0a4b83 0%, #1264a3 100%)",
   color: "#eaf3ff",
-  fontSize: 12,
-  fontWeight: 800,
+  fontSize: 11,
+  fontWeight: 700,
   textTransform: "uppercase",
   letterSpacing: "0.06em",
   whiteSpace: "nowrap",
+  borderRight: "1px solid rgba(255, 255, 255, 0.15)",
 };
 
 const infoCardStyle: React.CSSProperties = {
@@ -357,33 +366,95 @@ export default function ListOfWorkshopTraning({
       .replace(/\s+/g, " ")
       .trim();
 
+  const truncate = (value?: string, maxLength = 60) => {
+    const text = stripHtml(value);
+    if (!text) return "-";
+    return text.length > maxLength ? `${text.slice(0, maxLength)}…` : text;
+  };
+
+  const bulkSelection = useBulkSelection(filteredItems, (item) => item._id);
+
   const handleDownloadCSV = () => {
     const rows = [
       [
         "Training Name",
         "Training Code",
         "Training Type",
+        "HSN Code",
+        "Discount %",
         "Institute Name",
         "Training Duration",
         "Mode Of Training",
-        "Trainer Name",
         "Start Date",
         "End Date",
-        "Fees",
+        "Reg. Deadline",
+        "Curriculum",
+        "Target Audience",
+        "Certification",
+        "Affiliation",
+        "Fee",
+        "Discount Voucher",
+        "Net Fee",
+        "EMI Option",
+        "Location",
+        "Max Seats",
         "Availability",
+        "Training Image",
+        "Trainer Name",
+        "Trainer Image",
+        "Trainer Experience",
+        "Language",
+        "What's Included",
+        "What's Not Included",
+        "Learning Outcomes",
+        "Demo Video",
+        "Brochures",
+        "Refund Policy",
+        "Post-Training Support",
+        "Contact",
+        "Created",
       ],
       ...filteredItems.map((item) => [
         stripHtml(item.trainingName),
         stripHtml(item.trainingUniqueCode),
-        (item.trainingType || []).join(", "),
+        (item.trainingType || []).join(", ") || "-",
+        item.hsnCode || "-",
+        typeof item.discountPercent === "number" ? `${item.discountPercent}%` : "-",
         stripHtml(item.instituteName),
         stripHtml(item.trainingDuration),
         stripHtml(item.modeOfTraining),
-        stripHtml(item.trainerInstructorName),
         formatDate(item.startDate),
         formatDate(item.endDate),
-        typeof item.feesInr === "number" ? String(item.feesInr) : "",
+        formatDate(item.registrationDeadline),
+        truncate(item.curriculumTopicsCovered),
+        (item.targetAudience || []).join(", ") || "-",
+        item.certificationProvided || "-",
+        truncate(item.affiliationAccreditation),
+        typeof item.feesInr === "number" ? `INR ${item.feesInr}` : "-",
+        item.applyDiscountVoucher ? "Yes" : "No",
+        typeof item.netFeesInr === "number" ? `INR ${item.netFeesInr}` : "-",
+        item.installmentEmiOption ? "Yes" : "No",
+        item.location || "-",
+        item.maximumSeatsBatchSize ?? "-",
         stripHtml(item.currentAvailability),
+        getExportSafeMediaValue(item.trainingImage),
+        stripHtml(item.trainerInstructorName),
+        getExportSafeMediaValue(item.trainerImage),
+        truncate(item.trainerExperience),
+        item.languageOfDelivery || "-",
+        truncate(item.whatsIncluded),
+        truncate(item.whatsNotIncluded),
+        truncate(item.learningOutcomes),
+        item.courseDemoVideo || "-",
+        item.brochurePdfDownload?.length
+          ? item.brochurePdfDownload
+              .map((file) => getExportSafeMediaValue(file))
+              .join(", ")
+          : "-",
+        truncate(item.refundCancellationPolicy),
+        truncate(item.postTrainingSupport),
+        item.contactForQueries || "-",
+        formatDate(item.createdAt),
       ]),
     ];
 
@@ -423,14 +494,43 @@ export default function ListOfWorkshopTraning({
           <td>${escapeHtml(item.trainingName || "-")}</td>
           <td>${escapeHtml(item.trainingUniqueCode || "-")}</td>
           <td>${escapeHtml((item.trainingType || []).join(", ") || "-")}</td>
+          <td>${escapeHtml(item.hsnCode || "-")}</td>
+          <td>${escapeHtml(typeof item.discountPercent === "number" ? `${item.discountPercent}%` : "-")}</td>
           <td>${escapeHtml(item.instituteName || "-")}</td>
           <td>${escapeHtml(item.trainingDuration || "-")}</td>
           <td>${escapeHtml(item.modeOfTraining || "-")}</td>
-          <td>${escapeHtml(item.trainerInstructorName || "-")}</td>
           <td>${escapeHtml(formatDate(item.startDate))}</td>
           <td>${escapeHtml(formatDate(item.endDate))}</td>
-          <td>${escapeHtml(typeof item.feesInr === "number" ? String(item.feesInr) : "-")}</td>
+          <td>${escapeHtml(formatDate(item.registrationDeadline))}</td>
+          <td>${escapeHtml(truncate(item.curriculumTopicsCovered))}</td>
+          <td>${escapeHtml((item.targetAudience || []).join(", ") || "-")}</td>
+          <td>${escapeHtml(item.certificationProvided || "-")}</td>
+          <td>${escapeHtml(truncate(item.affiliationAccreditation))}</td>
+          <td>${escapeHtml(typeof item.feesInr === "number" ? `INR ${item.feesInr}` : "-")}</td>
+          <td>${escapeHtml(item.applyDiscountVoucher ? "Yes" : "No")}</td>
+          <td>${escapeHtml(typeof item.netFeesInr === "number" ? `INR ${item.netFeesInr}` : "-")}</td>
+          <td>${escapeHtml(item.installmentEmiOption ? "Yes" : "No")}</td>
+          <td>${escapeHtml(item.location || "-")}</td>
+          <td>${escapeHtml(String(item.maximumSeatsBatchSize ?? "-"))}</td>
           <td>${escapeHtml(item.currentAvailability || "-")}</td>
+          <td>${escapeHtml(getExportSafeMediaValue(item.trainingImage))}</td>
+          <td>${escapeHtml(item.trainerInstructorName || "-")}</td>
+          <td>${escapeHtml(getExportSafeMediaValue(item.trainerImage))}</td>
+          <td>${escapeHtml(truncate(item.trainerExperience))}</td>
+          <td>${escapeHtml(item.languageOfDelivery || "-")}</td>
+          <td>${escapeHtml(truncate(item.whatsIncluded))}</td>
+          <td>${escapeHtml(truncate(item.whatsNotIncluded))}</td>
+          <td>${escapeHtml(truncate(item.learningOutcomes))}</td>
+          <td>${escapeHtml(item.courseDemoVideo || "-")}</td>
+          <td>${escapeHtml(
+            item.brochurePdfDownload?.length
+              ? item.brochurePdfDownload.map((file) => getExportSafeMediaValue(file)).join(", ")
+              : "-"
+          )}</td>
+          <td>${escapeHtml(truncate(item.refundCancellationPolicy))}</td>
+          <td>${escapeHtml(truncate(item.postTrainingSupport))}</td>
+          <td>${escapeHtml(item.contactForQueries || "-")}</td>
+          <td>${escapeHtml(formatDate(item.createdAt))}</td>
         </tr>`
       )
       .join("");
@@ -455,14 +555,39 @@ export default function ListOfWorkshopTraning({
                 <th>Training</th>
                 <th>Code</th>
                 <th>Type</th>
+                <th>HSN Code</th>
+                <th>Discount %</th>
                 <th>Institute</th>
                 <th>Duration</th>
                 <th>Mode</th>
-                <th>Trainer</th>
                 <th>Start Date</th>
                 <th>End Date</th>
+                <th>Reg. Deadline</th>
+                <th>Curriculum</th>
+                <th>Target Audience</th>
+                <th>Certification</th>
+                <th>Affiliation</th>
                 <th>Fee</th>
+                <th>Discount Voucher</th>
+                <th>Net Fee</th>
+                <th>EMI Option</th>
+                <th>Location</th>
+                <th>Max Seats</th>
                 <th>Availability</th>
+                <th>Training Image</th>
+                <th>Trainer</th>
+                <th>Trainer Image</th>
+                <th>Trainer Experience</th>
+                <th>Language</th>
+                <th>What's Included</th>
+                <th>What's Not Included</th>
+                <th>Learning Outcomes</th>
+                <th>Demo Video</th>
+                <th>Brochures</th>
+                <th>Refund Policy</th>
+                <th>Post-Training Support</th>
+                <th>Contact</th>
+                <th>Created</th>
               </tr>
             </thead>
             <tbody>${rows}</tbody>
@@ -738,34 +863,170 @@ export default function ListOfWorkshopTraning({
       ) : null}
 
       {!loading && filteredItems.length > 0 ? (
-        <div style={{ overflowX: "auto" }}>
+        <>
+          <BulkSelectBar
+            endpointPath="workshop-trainings"
+            selectedIds={Array.from(bulkSelection.selectedIds)}
+            noun="workshop trainings"
+            canDelete={canDelete}
+            onClear={bulkSelection.clear}
+            onDeleted={(deletedIds) => {
+              setItems((prev) => prev.filter((item) => !deletedIds.includes(item._id)));
+              bulkSelection.removeIds(deletedIds);
+            }}
+          />
+          <div className={bulkStyles.tableScroll}>
           <table style={tableStyle}>
             <thead>
               <tr>
+                {canDelete && (
+                  <th style={theadStyle} className={bulkStyles.checkboxCell}>
+                    <input
+                      type="checkbox"
+                      checked={bulkSelection.isAllSelected}
+                      ref={(el) => {
+                        if (el) el.indeterminate = bulkSelection.isSomeSelected;
+                      }}
+                      onChange={bulkSelection.toggleAll}
+                      aria-label="Select all workshop trainings on this page"
+                    />
+                  </th>
+                )}
                 <th style={theadStyle}>Training</th>
                 <th style={theadStyle}>Code</th>
                 <th style={theadStyle}>Type</th>
+                <th style={theadStyle}>HSN Code</th>
+                <th style={theadStyle}>Discount %</th>
                 <th style={theadStyle}>Institute</th>
-                <th style={theadStyle}>Trainer</th>
+                <th style={theadStyle}>Duration</th>
+                <th style={theadStyle}>Mode</th>
                 <th style={theadStyle}>Start Date</th>
+                <th style={theadStyle}>End Date</th>
+                <th style={theadStyle}>Reg. Deadline</th>
+                <th style={theadStyle}>Curriculum</th>
+                <th style={theadStyle}>Target Audience</th>
+                <th style={theadStyle}>Certification</th>
+                <th style={theadStyle}>Affiliation</th>
                 <th style={theadStyle}>Fee</th>
+                <th style={theadStyle}>Discount Voucher</th>
+                <th style={theadStyle}>Net Fee</th>
+                <th style={theadStyle}>EMI Option</th>
+                <th style={theadStyle}>Location</th>
+                <th style={theadStyle}>Max Seats</th>
                 <th style={theadStyle}>Availability</th>
+                <th style={theadStyle}>Training Image</th>
+                <th style={theadStyle}>Trainer</th>
+                <th style={theadStyle}>Trainer Image</th>
+                <th style={theadStyle}>Trainer Experience</th>
+                <th style={theadStyle}>Language</th>
+                <th style={theadStyle}>What's Included</th>
+                <th style={theadStyle}>What's Not Included</th>
+                <th style={theadStyle}>Learning Outcomes</th>
+                <th style={theadStyle}>Demo Video</th>
+                <th style={theadStyle}>Brochures</th>
+                <th style={theadStyle}>Refund Policy</th>
+                <th style={theadStyle}>Post-Training Support</th>
+                <th style={theadStyle}>Contact</th>
+                <th style={theadStyle}>Created</th>
                 <th style={theadStyle}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {filteredItems.map((item) => (
                 <tr key={item._id}>
+                  {canDelete && (
+                    <td style={thTdStyle} className={bulkStyles.checkboxCell}>
+                      <input
+                        type="checkbox"
+                        checked={bulkSelection.isSelected(item._id)}
+                        onChange={() => bulkSelection.toggle(item._id)}
+                        aria-label={`Select ${item.trainingName}`}
+                      />
+                    </td>
+                  )}
                   <td style={thTdStyle}>{item.trainingName || "-"}</td>
                   <td style={thTdStyle}>{item.trainingUniqueCode || "-"}</td>
                   <td style={thTdStyle}>{(item.trainingType || []).join(", ") || "-"}</td>
+                  <td style={thTdStyle}>{item.hsnCode || "-"}</td>
+                  <td style={thTdStyle}>
+                    {typeof item.discountPercent === "number" ? `${item.discountPercent}%` : "-"}
+                  </td>
                   <td style={thTdStyle}>{item.instituteName || "-"}</td>
-                  <td style={thTdStyle}>{item.trainerInstructorName || "-"}</td>
+                  <td style={thTdStyle}>{item.trainingDuration || "-"}</td>
+                  <td style={thTdStyle}>{item.modeOfTraining || "-"}</td>
                   <td style={thTdStyle}>{formatDate(item.startDate)}</td>
+                  <td style={thTdStyle}>{formatDate(item.endDate)}</td>
+                  <td style={thTdStyle}>{formatDate(item.registrationDeadline)}</td>
+                  <td style={thTdStyle}>{truncate(item.curriculumTopicsCovered)}</td>
+                  <td style={thTdStyle}>{(item.targetAudience || []).join(", ") || "-"}</td>
+                  <td style={thTdStyle}>{item.certificationProvided || "-"}</td>
+                  <td style={thTdStyle}>{truncate(item.affiliationAccreditation)}</td>
                   <td style={thTdStyle}>
                     {typeof item.feesInr === "number" ? `INR ${item.feesInr}` : "-"}
                   </td>
+                  <td style={thTdStyle}>{item.applyDiscountVoucher ? "Yes" : "No"}</td>
+                  <td style={thTdStyle}>
+                    {typeof item.netFeesInr === "number" ? `INR ${item.netFeesInr}` : "-"}
+                  </td>
+                  <td style={thTdStyle}>{item.installmentEmiOption ? "Yes" : "No"}</td>
+                  <td style={thTdStyle}>{item.location || "-"}</td>
+                  <td style={thTdStyle}>{item.maximumSeatsBatchSize ?? "-"}</td>
                   <td style={thTdStyle}>{item.currentAvailability || "-"}</td>
+                  <td style={thTdStyle}>
+                    {item.trainingImage ? (
+                      <img
+                        src={resolveMediaUrl(item.trainingImage) || item.trainingImage}
+                        alt={item.trainingName || "Training"}
+                        style={{ width: 40, height: 40, objectFit: "cover", borderRadius: 8 }}
+                      />
+                    ) : (
+                      "-"
+                    )}
+                  </td>
+                  <td style={thTdStyle}>{item.trainerInstructorName || "-"}</td>
+                  <td style={thTdStyle}>
+                    {item.trainerImage ? (
+                      <img
+                        src={resolveMediaUrl(item.trainerImage) || item.trainerImage}
+                        alt={item.trainerInstructorName || "Trainer"}
+                        style={{ width: 40, height: 40, objectFit: "cover", borderRadius: "50%" }}
+                      />
+                    ) : (
+                      "-"
+                    )}
+                  </td>
+                  <td style={thTdStyle}>{truncate(item.trainerExperience)}</td>
+                  <td style={thTdStyle}>{item.languageOfDelivery || "-"}</td>
+                  <td style={thTdStyle}>{truncate(item.whatsIncluded)}</td>
+                  <td style={thTdStyle}>{truncate(item.whatsNotIncluded)}</td>
+                  <td style={thTdStyle}>{truncate(item.learningOutcomes)}</td>
+                  <td style={thTdStyle}>
+                    {item.courseDemoVideo ? (
+                      <a href={item.courseDemoVideo} target="_blank" rel="noreferrer">
+                        Link
+                      </a>
+                    ) : (
+                      "-"
+                    )}
+                  </td>
+                  <td style={thTdStyle}>
+                    {item.brochurePdfDownload?.length ? (
+                      <a
+                        href={resolveMediaUrl(item.brochurePdfDownload[0]) || item.brochurePdfDownload[0]}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        {item.brochurePdfDownload.length} file
+                        {item.brochurePdfDownload.length > 1 ? "s" : ""}
+                      </a>
+                    ) : (
+                      "-"
+                    )}
+                  </td>
+                  <td style={thTdStyle}>{truncate(item.refundCancellationPolicy)}</td>
+                  <td style={thTdStyle}>{truncate(item.postTrainingSupport)}</td>
+                  <td style={thTdStyle}>{item.contactForQueries || "-"}</td>
+                  <td style={thTdStyle}>{formatDate(item.createdAt)}</td>
                   <td style={thTdStyle}>
                     <TableActions
                       onView={() => setViewItem(item)}
@@ -779,7 +1040,8 @@ export default function ListOfWorkshopTraning({
               ))}
             </tbody>
           </table>
-        </div>
+          </div>
+        </>
       ) : null}
 
       {/* ================= VIEW MODAL ================= */}

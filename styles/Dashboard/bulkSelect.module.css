@@ -1,0 +1,68 @@
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  border-radius: 12px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  flex-wrap: wrap;
+}
+
+.count {
+  font-size: 13px;
+  font-weight: 800;
+  color: #1e3a8a;
+}
+
+.deleteBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 999px;
+  background: #dc2626;
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.deleteBtn:hover:not(:disabled) {
+  background: #b91c1c;
+}
+
+.deleteBtn:disabled,
+.clearBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.clearBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #334155;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.clearBtn:hover:not(:disabled) {
+  background: #f1f5f9;
+}
+
+.checkboxCell {
+  width: 36px;
+  text-align: center;
+}
+
+.tableScroll {
+  overflow-x: auto;
+}

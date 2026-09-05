@@ -7,6 +7,9 @@ import { resolveMediaUrl } from "@/lib/media";
 import { useToast } from "@/context/ToastContext";
 import { useConfirm } from "@/context/ConfirmContext";
 import TableActions from "@/components/AdminPanel/common/TableActions";
+import BulkSelectBar from "@/components/AdminPanel/common/BulkSelectBar";
+import { useBulkSelection } from "@/hooks/useBulkSelection";
+import bulkStyles from "@/styles/Dashboard/bulkSelect.module.css";
 
 interface CourseType {
   _id: string;
@@ -162,6 +165,8 @@ const ListOfCourseType = ({ canEdit = true, canDelete = true }: ListOfCourseType
     return filteredCourseTypes.slice(start, start + itemsPerPage);
   }, [filteredCourseTypes, currentPage, itemsPerPage]);
 
+  const bulkSelection = useBulkSelection(paginatedCourseTypes, (item) => item._id);
+
   const handleDownloadCSV = () => {
     const rows = [
       ["ID", "Name", "Image URL"],
@@ -284,10 +289,35 @@ const ListOfCourseType = ({ canEdit = true, canDelete = true }: ListOfCourseType
         </button>
       </div>
 
-      <div className={styles.tableWrap}>
+      <BulkSelectBar
+        endpointPath="course-types"
+        selectedIds={Array.from(bulkSelection.selectedIds)}
+        noun="course types"
+        canDelete={canDelete}
+        onClear={bulkSelection.clear}
+        onDeleted={(deletedIds) => {
+          setCourseTypes((prev) => prev.filter((item) => !deletedIds.includes(item._id)));
+          bulkSelection.removeIds(deletedIds);
+        }}
+      />
+
+      <div className={`${styles.tableWrap} ${bulkStyles.tableScroll}`}>
         <table className={styles.table}>
           <thead>
             <tr>
+              {canDelete && (
+                <th className={bulkStyles.checkboxCell}>
+                  <input
+                    type="checkbox"
+                    checked={bulkSelection.isAllSelected}
+                    ref={(el) => {
+                      if (el) el.indeterminate = bulkSelection.isSomeSelected;
+                    }}
+                    onChange={bulkSelection.toggleAll}
+                    aria-label="Select all course types on this page"
+                  />
+                </th>
+              )}
               <th>ID</th>
               <th>Name</th>
               <th>Image</th>
@@ -297,6 +327,16 @@ const ListOfCourseType = ({ canEdit = true, canDelete = true }: ListOfCourseType
           <tbody>
             {paginatedCourseTypes.map((item) => (
               <tr key={item._id}>
+                {canDelete && (
+                  <td className={bulkStyles.checkboxCell}>
+                    <input
+                      type="checkbox"
+                      checked={bulkSelection.isSelected(item._id)}
+                      onChange={() => bulkSelection.toggle(item._id)}
+                      aria-label={`Select ${item.name}`}
+                    />
+                  </td>
+                )}
                 <td>{item.id}</td>
                 <td>{item.name}</td>
                 <td>
@@ -318,7 +358,7 @@ const ListOfCourseType = ({ canEdit = true, canDelete = true }: ListOfCourseType
             ))}
             {paginatedCourseTypes.length === 0 && (
               <tr>
-                <td colSpan={4}>No course types found.</td>
+                <td colSpan={canDelete ? 5 : 4}>No course types found.</td>
               </tr>
             )}
           </tbody>

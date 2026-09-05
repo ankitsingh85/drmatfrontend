@@ -6,10 +6,13 @@ import "react-quill/dist/quill.snow.css";
 import styles from "@/styles/Dashboard/productlist.module.css";
 import createStyles from "@/styles/Dashboard/createproduct.module.css";
 import { API_URL } from "@/config/api";
-import { resolveMediaUrl } from "@/lib/media";
+import { resolveMediaUrl, getExportSafeMediaValue } from "@/lib/media";
 import { useToast } from "@/context/ToastContext";
 import { useConfirm } from "@/context/ConfirmContext";
 import TableActions from "@/components/AdminPanel/common/TableActions";
+import BulkSelectBar from "@/components/AdminPanel/common/BulkSelectBar";
+import { useBulkSelection } from "@/hooks/useBulkSelection";
+import bulkStyles from "@/styles/Dashboard/bulkSelect.module.css";
 
 const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
 
@@ -93,6 +96,13 @@ const ListOfProduct: React.FC<ListOfProductProps> = ({ canEdit = true, canDelete
     setCategories(await catRes.json());
   };
 
+const stripHtmlToText = (value: string | undefined, maxLength = 60) => {
+  if (!value) return "-";
+  const text = value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+  if (!text) return "-";
+  return text.length > maxLength ? `${text.slice(0, maxLength)}…` : text;
+};
+
 const getCategoryName = (ids: string[]) => {
 
   if (!Array.isArray(ids)) {
@@ -156,15 +166,73 @@ const getCategoryName = (ids: string[]) => {
     return filteredProducts.slice(start, start + itemsPerPage);
   }, [filteredProducts, currentPage, itemsPerPage]);
 
+  const bulkSelection = useBulkSelection(paginatedProducts, (p) => p._id);
+
   const handleDownloadCSV = () => {
     const rows = [
-      ["Name", "Category", "MRP", "Discounted", "Brand"],
+      [
+        "SKU Code",
+        "Image",
+        "Name",
+        "Category",
+        "Brand",
+        "MRP",
+        "Discounted",
+        "Discount %",
+        "Tax %",
+        "Net Qty",
+        "HSN Code",
+        "License/FSSAI",
+        "Manufacturer",
+        "Packaging",
+        "Expiry Date",
+        "Gender",
+        "Skin/Hair Type",
+        "Barcode",
+        "Description",
+        "Ingredients",
+        "Target Concerns",
+        "Usage Instructions",
+        "Benefits",
+        "Certifications",
+        "Short Video",
+        "Stock",
+        "Status",
+        "Dermat. Recommended",
+        "Created",
+      ],
       ...filteredProducts.map((p) => [
+        p.productSKU || "-",
+        p.productImages?.length
+          ? getExportSafeMediaValue(p.productImages[0])
+          : "-",
         p.productName,
         getCategoryName(p.category),
+        p.brandName || "",
         String(p.mrpPrice),
         String(p.discountedPrice),
-        p.brandName || "",
+        p.discountPercent ? `${p.discountPercent}%` : "-",
+        p.taxPercent ? `${p.taxPercent}%` : "-",
+        p.netQuantity ? `${p.netQuantity} ${p.quantityUnit || ""}`.trim() : "-",
+        p.hsnCode || "-",
+        p.licenseNumber || "-",
+        p.manufacturerName || "-",
+        p.packagingType || "-",
+        p.expiryDate ? String(p.expiryDate).slice(0, 10) : "-",
+        p.gender || "-",
+        p.skinHairType || "-",
+        p.barcode || "-",
+        stripHtmlToText(p.description),
+        stripHtmlToText(p.ingredients),
+        stripHtmlToText(p.targetConcerns),
+        stripHtmlToText(p.usageInstructions),
+        stripHtmlToText(p.benefits),
+        p.certifications || "-",
+        p.productShortVideo || "-",
+        p.stockStatus || "-",
+        p.activeStatus ? "Active" : "Inactive",
+        p.dermatologistRecommended ? "Yes" : "No",
+        p.createdAt ? String(p.createdAt).slice(0, 10) : "-",
       ]),
     ];
 
@@ -205,11 +273,41 @@ const getCategoryName = (ids: string[]) => {
     const rows = filteredProducts
       .map(
         (p) => `<tr>
+          <td>${escapeHtml(p.productSKU || "-")}</td>
+          <td>${escapeHtml(
+            p.productImages?.length
+              ? getExportSafeMediaValue(p.productImages[0])
+              : "-"
+          )}</td>
           <td>${escapeHtml(p.productName)}</td>
           <td>${escapeHtml(getCategoryName(p.category))}</td>
+          <td>${escapeHtml(p.brandName || "-")}</td>
           <td>Rs. ${escapeHtml(String(p.mrpPrice))}</td>
           <td>Rs. ${escapeHtml(String(p.discountedPrice))}</td>
-          <td>${escapeHtml(p.brandName || "-")}</td>
+          <td>${escapeHtml(p.discountPercent ? `${p.discountPercent}%` : "-")}</td>
+          <td>${escapeHtml(p.taxPercent ? `${p.taxPercent}%` : "-")}</td>
+          <td>${escapeHtml(
+            p.netQuantity ? `${p.netQuantity} ${p.quantityUnit || ""}`.trim() : "-"
+          )}</td>
+          <td>${escapeHtml(p.hsnCode || "-")}</td>
+          <td>${escapeHtml(p.licenseNumber || "-")}</td>
+          <td>${escapeHtml(p.manufacturerName || "-")}</td>
+          <td>${escapeHtml(p.packagingType || "-")}</td>
+          <td>${escapeHtml(p.expiryDate ? String(p.expiryDate).slice(0, 10) : "-")}</td>
+          <td>${escapeHtml(p.gender || "-")}</td>
+          <td>${escapeHtml(p.skinHairType || "-")}</td>
+          <td>${escapeHtml(p.barcode || "-")}</td>
+          <td>${escapeHtml(stripHtmlToText(p.description))}</td>
+          <td>${escapeHtml(stripHtmlToText(p.ingredients))}</td>
+          <td>${escapeHtml(stripHtmlToText(p.targetConcerns))}</td>
+          <td>${escapeHtml(stripHtmlToText(p.usageInstructions))}</td>
+          <td>${escapeHtml(stripHtmlToText(p.benefits))}</td>
+          <td>${escapeHtml(p.certifications || "-")}</td>
+          <td>${escapeHtml(p.productShortVideo || "-")}</td>
+          <td>${escapeHtml(p.stockStatus || "-")}</td>
+          <td>${escapeHtml(p.activeStatus ? "Active" : "Inactive")}</td>
+          <td>${escapeHtml(p.dermatologistRecommended ? "Yes" : "No")}</td>
+          <td>${escapeHtml(p.createdAt ? String(p.createdAt).slice(0, 10) : "-")}</td>
         </tr>`
       )
       .join("");
@@ -231,11 +329,35 @@ const getCategoryName = (ids: string[]) => {
           <table>
             <thead>
               <tr>
+                <th>SKU Code</th>
+                <th>Image</th>
                 <th>Name</th>
                 <th>Category</th>
+                <th>Brand</th>
                 <th>MRP</th>
                 <th>Discounted</th>
-                <th>Brand</th>
+                <th>Discount %</th>
+                <th>Tax %</th>
+                <th>Net Qty</th>
+                <th>HSN Code</th>
+                <th>License/FSSAI</th>
+                <th>Manufacturer</th>
+                <th>Packaging</th>
+                <th>Expiry Date</th>
+                <th>Gender</th>
+                <th>Skin/Hair Type</th>
+                <th>Barcode</th>
+                <th>Description</th>
+                <th>Ingredients</th>
+                <th>Target Concerns</th>
+                <th>Usage Instructions</th>
+                <th>Benefits</th>
+                <th>Certifications</th>
+                <th>Short Video</th>
+                <th>Stock</th>
+                <th>Status</th>
+                <th>Dermat. Recommended</th>
+                <th>Created</th>
               </tr>
             </thead>
             <tbody>${rows}</tbody>
@@ -438,9 +560,19 @@ const getCategoryName = (ids: string[]) => {
       </div>
 
       {/* TABLE */}
-      {/* TABLE */}
+      <BulkSelectBar
+        endpointPath="products"
+        selectedIds={Array.from(bulkSelection.selectedIds)}
+        noun="products"
+        canDelete={canDelete}
+        onClear={bulkSelection.clear}
+        onDeleted={(deletedIds) => {
+          setProducts((prev) => prev.filter((p) => !deletedIds.includes(p._id)));
+          bulkSelection.removeIds(deletedIds);
+        }}
+      />
 
-<div className={styles.tableWrapper}>
+<div className={`${styles.tableWrapper} ${bulkStyles.tableScroll}`}>
 
 <table className={styles.table}>
 
@@ -448,11 +580,27 @@ const getCategoryName = (ids: string[]) => {
 
 <tr>
 
+{canDelete && (
+  <th className={bulkStyles.checkboxCell}>
+    <input
+      type="checkbox"
+      checked={bulkSelection.isAllSelected}
+      ref={(el) => {
+        if (el) el.indeterminate = bulkSelection.isSomeSelected;
+      }}
+      onChange={bulkSelection.toggleAll}
+      aria-label="Select all products on this page"
+    />
+  </th>
+)}
+
 <th>SKU Code</th>
 
 <th>Image</th>
 
 <th>Product Name</th>
+
+<th>Category</th>
 
 <th>Brand</th>
 
@@ -460,13 +608,49 @@ const getCategoryName = (ids: string[]) => {
 
 <th>Selling Price</th>
 
-<th>Stock</th>
+<th>Discount %</th>
+
+<th>Tax %</th>
+
+<th>Net Qty</th>
 
 <th>HSN Code</th>
 
 <th>License/FSSAI</th>
 
+<th>Manufacturer</th>
+
+<th>Packaging</th>
+
+<th>Expiry Date</th>
+
+<th>Gender</th>
+
+<th>Skin/Hair Type</th>
+
+<th>Barcode</th>
+
+<th>Description</th>
+
+<th>Ingredients</th>
+
+<th>Target Concerns</th>
+
+<th>Usage Instructions</th>
+
+<th>Benefits</th>
+
+<th>Certifications</th>
+
+<th>Short Video</th>
+
+<th>Stock</th>
+
 <th>Status</th>
+
+<th>Dermat. Recommended</th>
+
+<th>Created</th>
 
 <th>Actions</th>
 
@@ -481,6 +665,16 @@ const getCategoryName = (ids: string[]) => {
 
 <tr key={p._id}>
 
+{canDelete && (
+  <td className={bulkStyles.checkboxCell}>
+    <input
+      type="checkbox"
+      checked={bulkSelection.isSelected(p._id)}
+      onChange={() => bulkSelection.toggle(p._id)}
+      aria-label={`Select ${p.productName}`}
+    />
+  </td>
+)}
 
 <td>
 {p.productSKU || "-"}
@@ -516,6 +710,10 @@ height={50}
 {p.productName}
 </td>
 
+<td>
+{getCategoryName(p.category)}
+</td>
+
 
 <td>
 {p.brandName || "-"}
@@ -531,9 +729,16 @@ height={50}
 ₹{p.discountedPrice}
 </td>
 
+<td>
+{p.discountPercent ? `${p.discountPercent}%` : "-"}
+</td>
 
 <td>
-{p.stockStatus || "-"}
+{p.taxPercent ? `${p.taxPercent}%` : "-"}
+</td>
+
+<td>
+{p.netQuantity ? `${p.netQuantity} ${p.quantityUnit || ""}`.trim() : "-"}
 </td>
 
 
@@ -546,11 +751,82 @@ height={50}
 {p.licenseNumber || "-"}
 </td>
 
+<td>
+{p.manufacturerName || "-"}
+</td>
+
+<td>
+{p.packagingType || "-"}
+</td>
+
+<td>
+{p.expiryDate ? String(p.expiryDate).slice(0, 10) : "-"}
+</td>
+
+<td>
+{p.gender || "-"}
+</td>
+
+<td>
+{p.skinHairType || "-"}
+</td>
+
+<td>
+{p.barcode || "-"}
+</td>
+
+<td>
+{stripHtmlToText(p.description)}
+</td>
+
+<td>
+{stripHtmlToText(p.ingredients)}
+</td>
+
+<td>
+{stripHtmlToText(p.targetConcerns)}
+</td>
+
+<td>
+{stripHtmlToText(p.usageInstructions)}
+</td>
+
+<td>
+{stripHtmlToText(p.benefits)}
+</td>
+
+<td>
+{p.certifications || "-"}
+</td>
+
+<td>
+{p.productShortVideo ? (
+  <a href={p.productShortVideo} target="_blank" rel="noreferrer">
+    Link
+  </a>
+) : (
+  "-"
+)}
+</td>
+
+
+<td>
+{p.stockStatus || "-"}
+</td>
+
 
 <td>
 
 {p.activeStatus ? "Active" : "Inactive"}
 
+</td>
+
+<td>
+{p.dermatologistRecommended ? "Yes" : "No"}
+</td>
+
+<td>
+{p.createdAt ? String(p.createdAt).slice(0, 10) : "-"}
 </td>
 
 
@@ -574,7 +850,7 @@ height={50}
 
 <tr>
 
-<td colSpan={11}>
+<td colSpan={canDelete ? 30 : 29}>
 No products found.
 </td>
 

@@ -5,9 +5,13 @@ import { API_URL } from "@/config/api";
 import { useToast } from "@/context/ToastContext";
 import { Ticket } from "@/components/tickets/TicketThread";
 import AdminTicketPanel from "./AdminTicketPanel";
+import BulkSelectBar from "@/components/AdminPanel/common/BulkSelectBar";
+import { useBulkSelection } from "@/hooks/useBulkSelection";
+import bulkStyles from "@/styles/Dashboard/bulkSelect.module.css";
 
 type ListOfSupportTicketsProps = {
   canEdit?: boolean;
+  canDelete?: boolean;
 };
 
 const REQUESTER_TYPE_LABEL: Record<Ticket["requesterType"], string> = {
@@ -50,7 +54,10 @@ const formatDate = (value?: string) => {
   });
 };
 
-export default function ListOfSupportTickets({ canEdit = true }: ListOfSupportTicketsProps) {
+export default function ListOfSupportTickets({
+  canEdit = true,
+  canDelete = true,
+}: ListOfSupportTicketsProps) {
   const toast = useToast();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
@@ -92,6 +99,8 @@ export default function ListOfSupportTickets({ canEdit = true }: ListOfSupportTi
   const handleTicketUpdate = (updated: Ticket) => {
     setTickets((prev) => prev.map((t) => (t._id === updated._id ? updated : t)));
   };
+
+  const bulkSelection = useBulkSelection(filteredTickets, (ticket) => ticket._id);
 
   if (selectedTicketId) {
     return (
@@ -148,35 +157,73 @@ export default function ListOfSupportTickets({ canEdit = true }: ListOfSupportTi
         </select>
       </div>
 
+      <BulkSelectBar
+        endpointPath="support-tickets"
+        selectedIds={Array.from(bulkSelection.selectedIds)}
+        noun="tickets"
+        canDelete={canDelete}
+        onClear={bulkSelection.clear}
+        onDeleted={(deletedIds) => {
+          setTickets((prev) => prev.filter((t) => !deletedIds.includes(t._id)));
+          bulkSelection.removeIds(deletedIds);
+        }}
+      />
+
       {loading ? (
         <p>Loading tickets...</p>
       ) : filteredTickets.length === 0 ? (
         <p style={{ color: "#64748b" }}>No support tickets found.</p>
       ) : (
-        <div style={{ overflowX: "auto" }}>
+        <div className={bulkStyles.tableScroll}>
           <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 760 }}>
             <thead>
               <tr>
-                {["Ticket #", "Requester", "Subject", "Priority", "Status", "Last Updated"].map(
-                  (label) => (
-                    <th
-                      key={label}
-                      style={{
-                        textAlign: "left",
-                        padding: "12px 14px",
-                        background: "linear-gradient(135deg, #0a4b83 0%, #1264a3 100%)",
-                        color: "#eaf3ff",
-                        fontSize: 12,
-                        fontWeight: 800,
-                        textTransform: "uppercase",
-                        letterSpacing: "0.06em",
-                        whiteSpace: "nowrap",
+                {canDelete && (
+                  <th
+                    className={bulkStyles.checkboxCell}
+                    style={{
+                      background: "linear-gradient(135deg, #0a4b83 0%, #1264a3 100%)",
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={bulkSelection.isAllSelected}
+                      ref={(el) => {
+                        if (el) el.indeterminate = bulkSelection.isSomeSelected;
                       }}
-                    >
-                      {label}
-                    </th>
-                  )
+                      onChange={bulkSelection.toggleAll}
+                      aria-label="Select all tickets on this page"
+                    />
+                  </th>
                 )}
+                {[
+                  "Ticket #",
+                  "Requester",
+                  "Email",
+                  "Phone",
+                  "Department",
+                  "Subject",
+                  "Priority",
+                  "Status",
+                  "Last Updated",
+                ].map((label) => (
+                  <th
+                    key={label}
+                    style={{
+                      textAlign: "left",
+                      padding: "12px 14px",
+                      background: "linear-gradient(135deg, #0a4b83 0%, #1264a3 100%)",
+                      color: "#eaf3ff",
+                      fontSize: 12,
+                      fontWeight: 800,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.06em",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {label}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
@@ -186,6 +233,20 @@ export default function ListOfSupportTickets({ canEdit = true }: ListOfSupportTi
                   onClick={() => setSelectedTicketId(ticket._id)}
                   style={{ cursor: "pointer" }}
                 >
+                  {canDelete && (
+                    <td
+                      className={bulkStyles.checkboxCell}
+                      style={{ borderBottom: "1px solid #e5e7eb" }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={bulkSelection.isSelected(ticket._id)}
+                        onChange={() => bulkSelection.toggle(ticket._id)}
+                        aria-label={`Select ${ticket.ticketNumber}`}
+                      />
+                    </td>
+                  )}
                   <td style={{ padding: "12px 14px", borderBottom: "1px solid #e5e7eb", fontWeight: 700 }}>
                     {ticket.ticketNumber}
                   </td>
@@ -194,6 +255,15 @@ export default function ListOfSupportTickets({ canEdit = true }: ListOfSupportTi
                     <div style={{ fontSize: 11, color: "#64748b", fontWeight: 700 }}>
                       {REQUESTER_TYPE_LABEL[ticket.requesterType]}
                     </div>
+                  </td>
+                  <td style={{ padding: "12px 14px", borderBottom: "1px solid #e5e7eb" }}>
+                    {ticket.requesterEmail || "-"}
+                  </td>
+                  <td style={{ padding: "12px 14px", borderBottom: "1px solid #e5e7eb" }}>
+                    {ticket.requesterPhone || "-"}
+                  </td>
+                  <td style={{ padding: "12px 14px", borderBottom: "1px solid #e5e7eb" }}>
+                    {ticket.department || "-"}
                   </td>
                   <td style={{ padding: "12px 14px", borderBottom: "1px solid #e5e7eb" }}>
                     {ticket.subject}

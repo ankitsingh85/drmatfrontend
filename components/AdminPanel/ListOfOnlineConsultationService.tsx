@@ -4,10 +4,13 @@ import React, { useEffect, useMemo, useState } from "react";
 import styles from "@/styles/Dashboard/listofcategory.module.css";
 import createStyles from "@/styles/Dashboard/createcategory.module.css";
 import { API_URL } from "@/config/api";
-import { resolveMediaUrl } from "@/lib/media";
+import { resolveMediaUrl, getExportSafeMediaValue } from "@/lib/media";
 import { useToast } from "@/context/ToastContext";
 import { useConfirm } from "@/context/ConfirmContext";
 import TableActions from "@/components/AdminPanel/common/TableActions";
+import BulkSelectBar from "@/components/AdminPanel/common/BulkSelectBar";
+import { useBulkSelection } from "@/hooks/useBulkSelection";
+import bulkStyles from "@/styles/Dashboard/bulkSelect.module.css";
 
 type PopulatedDoctor = {
   _id: string;
@@ -79,14 +82,15 @@ const ListOfOnlineConsultationService = ({
   const [error, setError] = useState("");
 
   const premiumButtonStyle: React.CSSProperties = {
-    border: "1px solid #d6d6d6",
+    border: "none",
     borderRadius: 10,
-    padding: "9px 14px",
-    background: "linear-gradient(180deg, #ffffff 0%, #f7f7f7 100%)",
-    fontSize: 14,
+    padding: "10px 16px",
+    background: "linear-gradient(180deg, #2981b7 0%, #10678c 100%)",
+    color: "#fff",
+    fontSize: 13,
     fontWeight: 600,
     letterSpacing: 0.2,
-    boxShadow: "0 1px 2px rgba(0, 0, 0, 0.08)",
+    boxShadow: "0 4px 10px rgba(15, 23, 42, 0.14)",
     cursor: "pointer",
   };
 
@@ -311,13 +315,26 @@ const ListOfOnlineConsultationService = ({
     return filteredServices.slice(start, start + itemsPerPage);
   }, [filteredServices, currentPage, itemsPerPage]);
 
+  const bulkSelection = useBulkSelection(paginatedServices, (service) => service._id);
+
   const handleDownloadCSV = () => {
     const rows = [
-      ["Service Code", "Service Type", "Doctors", "Consultation Fee", "Offer Price", "Discount %", "Availability", "Active"],
+      [
+        "Service Code",
+        "Service Type",
+        "Doctors",
+        "Image",
+        "Consultation Fee",
+        "Offer Price",
+        "Discount %",
+        "Availability",
+        "Active",
+      ],
       ...filteredServices.map((service) => [
         service.serviceCode,
         service.serviceType,
         (service.doctors || []).map(getDoctorName).join("; "),
+        getExportSafeMediaValue(service.imageUrl),
         String(service.consultationFee ?? ""),
         service.offerPrice !== undefined ? String(service.offerPrice) : "",
         service.discountPercent !== undefined ? String(service.discountPercent) : "",
@@ -341,6 +358,81 @@ const ListOfOnlineConsultationService = ({
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+  };
+
+  const handleDownloadPDF = () => {
+    const printable = window.open("", "_blank");
+    if (!printable) {
+      toast.error("Unable to open print window. Please allow popups.");
+      return;
+    }
+
+    const escapeHtml = (value: string) =>
+      value
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+
+    const rows = filteredServices
+      .map(
+        (service) => `<tr>
+          <td>${escapeHtml(service.serviceCode || "-")}</td>
+          <td>${escapeHtml(service.serviceType || "-")}</td>
+          <td>${escapeHtml((service.doctors || []).map(getDoctorName).join("; "))}</td>
+          <td>${escapeHtml(
+            getExportSafeMediaValue(service.imageUrl)
+          )}</td>
+          <td>${escapeHtml(String(service.consultationFee ?? "-"))}</td>
+          <td>${escapeHtml(
+            service.offerPrice !== undefined ? String(service.offerPrice) : "-"
+          )}</td>
+          <td>${escapeHtml(
+            service.discountPercent !== undefined ? String(service.discountPercent) : "-"
+          )}</td>
+          <td>${escapeHtml(formatAvailabilityWindow(service))}</td>
+          <td>${escapeHtml(service.isActive === false ? "Inactive" : "Active")}</td>
+        </tr>`
+      )
+      .join("");
+
+    printable.document.write(`
+      <html>
+        <head>
+          <title>Online Consultation Services List</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            h2 { margin-bottom: 16px; }
+            table { width: 100%; border-collapse: collapse; }
+            th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+            th { background: #f4f4f4; }
+          </style>
+        </head>
+        <body>
+          <h2>Online Consultation Services List</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Service Code</th>
+                <th>Service Type</th>
+                <th>Doctors</th>
+                <th>Image</th>
+                <th>Consultation Fee</th>
+                <th>Offer Price</th>
+                <th>Discount %</th>
+                <th>Availability</th>
+                <th>Active</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </body>
+      </html>
+    `);
+    printable.document.close();
+    printable.focus();
+    printable.print();
   };
 
   return (
@@ -374,11 +466,38 @@ const ListOfOnlineConsultationService = ({
         <button type="button" style={premiumButtonStyle} onClick={handleDownloadCSV}>
           Download CSV
         </button>
+        <button type="button" style={premiumButtonStyle} onClick={handleDownloadPDF}>
+          Download PDF
+        </button>
       </div>
-      <div style={{ overflowX: "auto" }}>
+      <BulkSelectBar
+        endpointPath="online-consultation-services"
+        selectedIds={Array.from(bulkSelection.selectedIds)}
+        noun="services"
+        canDelete={canDelete}
+        onClear={bulkSelection.clear}
+        onDeleted={(deletedIds) => {
+          setServices((prev) => prev.filter((service) => !deletedIds.includes(service._id)));
+          bulkSelection.removeIds(deletedIds);
+        }}
+      />
+      <div className={bulkStyles.tableScroll}>
         <table className={styles.table}>
           <thead>
             <tr>
+              {canDelete && (
+                <th className={bulkStyles.checkboxCell}>
+                  <input
+                    type="checkbox"
+                    checked={bulkSelection.isAllSelected}
+                    ref={(el) => {
+                      if (el) el.indeterminate = bulkSelection.isSomeSelected;
+                    }}
+                    onChange={bulkSelection.toggleAll}
+                    aria-label="Select all services on this page"
+                  />
+                </th>
+              )}
               <th>Service Code</th>
               <th>Service Type</th>
               <th>Doctors</th>
@@ -393,6 +512,16 @@ const ListOfOnlineConsultationService = ({
           <tbody>
             {paginatedServices.map((service) => (
               <tr key={service._id}>
+                {canDelete && (
+                  <td className={bulkStyles.checkboxCell}>
+                    <input
+                      type="checkbox"
+                      checked={bulkSelection.isSelected(service._id)}
+                      onChange={() => bulkSelection.toggle(service._id)}
+                      aria-label={`Select ${service.serviceType}`}
+                    />
+                  </td>
+                )}
                 <td>{service.serviceCode}</td>
                 <td>{service.serviceType}</td>
                 <td>
@@ -439,7 +568,7 @@ const ListOfOnlineConsultationService = ({
             ))}
             {paginatedServices.length === 0 && (
               <tr>
-                <td colSpan={9}>No online consultation services found.</td>
+                <td colSpan={canDelete ? 10 : 9}>No online consultation services found.</td>
               </tr>
             )}
           </tbody>

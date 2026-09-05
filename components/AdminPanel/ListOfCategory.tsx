@@ -7,6 +7,9 @@ import { resolveMediaUrl } from "@/lib/media";
 import { useToast } from "@/context/ToastContext";
 import { useConfirm } from "@/context/ConfirmContext";
 import TableActions from "@/components/AdminPanel/common/TableActions";
+import BulkSelectBar from "@/components/AdminPanel/common/BulkSelectBar";
+import { useBulkSelection } from "@/hooks/useBulkSelection";
+import bulkStyles from "@/styles/Dashboard/bulkSelect.module.css";
 
 interface Category {
   _id: string;
@@ -169,6 +172,8 @@ const ListOfCategory = ({ canEdit = true, canDelete = true }: ListOfCategoryProp
     return filteredCategories.slice(start, start + itemsPerPage);
   }, [filteredCategories, currentPage, itemsPerPage]);
 
+  const bulkSelection = useBulkSelection(paginatedCategories, (cat) => cat._id);
+
   const handleDownloadCSV = () => {
     const rows = [
       ["ID", "Name", "Image URL"],
@@ -287,10 +292,34 @@ const ListOfCategory = ({ canEdit = true, canDelete = true }: ListOfCategoryProp
           Download PDF
         </button>
       </div>
+      <BulkSelectBar
+        endpointPath="categories"
+        selectedIds={Array.from(bulkSelection.selectedIds)}
+        noun="categories"
+        canDelete={canDelete}
+        onClear={bulkSelection.clear}
+        onDeleted={(deletedIds) => {
+          setCategories((prev) => prev.filter((cat) => !deletedIds.includes(cat._id)));
+          bulkSelection.removeIds(deletedIds);
+        }}
+      />
       <div className={styles.tableWrap}>
         <table className={styles.table}>
         <thead>
           <tr>
+            {canDelete && (
+              <th className={bulkStyles.checkboxCell}>
+                <input
+                  type="checkbox"
+                  checked={bulkSelection.isAllSelected}
+                  ref={(el) => {
+                    if (el) el.indeterminate = bulkSelection.isSomeSelected;
+                  }}
+                  onChange={bulkSelection.toggleAll}
+                  aria-label="Select all categories on this page"
+                />
+              </th>
+            )}
             <th>ID</th>
             <th>Name</th>
             <th>Image</th>
@@ -300,6 +329,16 @@ const ListOfCategory = ({ canEdit = true, canDelete = true }: ListOfCategoryProp
         <tbody>
           {paginatedCategories.map((cat) => (
             <tr key={cat._id}>
+              {canDelete && (
+                <td className={bulkStyles.checkboxCell}>
+                  <input
+                    type="checkbox"
+                    checked={bulkSelection.isSelected(cat._id)}
+                    onChange={() => bulkSelection.toggle(cat._id)}
+                    aria-label={`Select ${cat.name}`}
+                  />
+                </td>
+              )}
               <td>{cat.id}</td>
               <td>{cat.name}</td>
               <td>
@@ -321,7 +360,7 @@ const ListOfCategory = ({ canEdit = true, canDelete = true }: ListOfCategoryProp
           ))}
           {paginatedCategories.length === 0 && (
             <tr>
-              <td colSpan={4}>No categories found.</td>
+              <td colSpan={canDelete ? 5 : 4}>No categories found.</td>
             </tr>
           )}
         </tbody>

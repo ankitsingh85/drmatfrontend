@@ -7,6 +7,9 @@ import { resolveMediaUrl } from "@/lib/media";
 import { useToast } from "@/context/ToastContext";
 import { useConfirm } from "@/context/ConfirmContext";
 import TableActions from "@/components/AdminPanel/common/TableActions";
+import BulkSelectBar from "@/components/AdminPanel/common/BulkSelectBar";
+import { useBulkSelection } from "@/hooks/useBulkSelection";
+import bulkStyles from "@/styles/Dashboard/bulkSelect.module.css";
 
 interface ServiceCategory {
   _id: string;
@@ -180,6 +183,8 @@ const ListOfServiceCategory = ({ canEdit = true, canDelete = true }: ListOfServi
     return filteredCategories.slice(start, start + itemsPerPage);
   }, [filteredCategories, currentPage, itemsPerPage]);
 
+  const bulkSelection = useBulkSelection(paginatedCategories, (cat) => cat._id);
+
   const handleDownloadCSV = () => {
     const rows = [
       ["#", "Name", "Image URL"],
@@ -300,9 +305,34 @@ const ListOfServiceCategory = ({ canEdit = true, canDelete = true }: ListOfServi
           Download PDF
         </button>
       </div>
+      <BulkSelectBar
+        endpointPath="service-categories"
+        selectedIds={Array.from(bulkSelection.selectedIds)}
+        noun="service categories"
+        canDelete={canDelete}
+        onClear={bulkSelection.clear}
+        onDeleted={(deletedIds) => {
+          setCategories((prev) => prev.filter((cat) => !deletedIds.includes(cat._id)));
+          bulkSelection.removeIds(deletedIds);
+        }}
+      />
+      <div className={bulkStyles.tableScroll}>
       <table className={styles.table}>
         <thead>
           <tr>
+            {canDelete && (
+              <th className={bulkStyles.checkboxCell}>
+                <input
+                  type="checkbox"
+                  checked={bulkSelection.isAllSelected}
+                  ref={(el) => {
+                    if (el) el.indeterminate = bulkSelection.isSomeSelected;
+                  }}
+                  onChange={bulkSelection.toggleAll}
+                  aria-label="Select all service categories on this page"
+                />
+              </th>
+            )}
             <th>#</th>
             <th>Name</th>
             <th>Image</th>
@@ -312,6 +342,16 @@ const ListOfServiceCategory = ({ canEdit = true, canDelete = true }: ListOfServi
         <tbody>
           {paginatedCategories.map((cat, index) => (
             <tr key={cat._id}>
+              {canDelete && (
+                <td className={bulkStyles.checkboxCell}>
+                  <input
+                    type="checkbox"
+                    checked={bulkSelection.isSelected(cat._id)}
+                    onChange={() => bulkSelection.toggle(cat._id)}
+                    aria-label={`Select ${cat.name}`}
+                  />
+                </td>
+              )}
               <td>{`ServiceCat-${(currentPage - 1) * itemsPerPage + index + 1}`}</td>
               <td>{cat.name}</td>
               <td>
@@ -333,11 +373,12 @@ const ListOfServiceCategory = ({ canEdit = true, canDelete = true }: ListOfServi
           ))}
           {paginatedCategories.length === 0 && (
             <tr>
-              <td colSpan={4}>No service categories found.</td>
+              <td colSpan={canDelete ? 5 : 4}>No service categories found.</td>
             </tr>
           )}
         </tbody>
       </table>
+      </div>
       <div
         style={{
           marginTop: 12,

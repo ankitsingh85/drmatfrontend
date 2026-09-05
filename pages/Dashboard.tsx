@@ -3,7 +3,8 @@ import Image from "next/image";
 import { API_URL } from "@/config/api";
 import FullPageLoader from "@/components/common/FullPageLoader";
 
-import { useCallback, useEffect, useState, type ComponentType } from "react";
+import { useCallback, useEffect, useRef, useState, type ComponentType } from "react";
+import { createPortal } from "react-dom";
 import { jwtDecode } from "jwt-decode";
 import Cookies from "js-cookie";
 import { useRouter } from "next/navigation";
@@ -81,7 +82,20 @@ import {
   FiActivity,
   FiVideo,
   FiUserPlus,
+  FiDownload,
+  FiUploadCloud,
+  FiFileText,
+  FiCheckCircle,
+  FiLoader,
+  FiAlertCircle,
 } from "react-icons/fi";
+import {
+  BULK_UPLOAD_CONFIG,
+  downloadBulkUploadTemplate,
+  formatFileSize,
+  type BulkUploadResult,
+  type BulkUploadTarget,
+} from "@/lib/bulkUpload";
 
 import CreateB2BCategory from "@/components/AdminPanel/CreateB2BCategory";
 import ListofB2BCategory from "@/components/AdminPanel/ListofB2BCategory";
@@ -91,6 +105,7 @@ import ListOfOnlineConsultationService from "@/components/AdminPanel/ListOfOnlin
 import Topbar from "@/components/Layout/Topbar";
 import Footer from "@/components/Layout/Footer";
 import MobileNavbar from "@/components/Layout/MobileNavbar";
+import { useToast } from "@/context/ToastContext";
 
 type JwtPayload = { id: string; role: string; exp: number };
 type BasicItem = { _id?: string; name?: string; createdAt?: string };
@@ -114,6 +129,7 @@ type ModuleSectionConfig = {
 
 export default function SuperAdminDashboard() {
   const router = useRouter();
+  const toast = useToast();
 
   const [activeSection, setActiveSection] = useState("dashBoard");
   const [sectionMode, setSectionMode] = useState<"list" | "create">("list");
@@ -125,6 +141,13 @@ export default function SuperAdminDashboard() {
   const [summaryError, setSummaryError] = useState("");
   const [lastUpdated, setLastUpdated] = useState("");
   const [adminName, setAdminName] = useState("");
+  const [bulkUploadTarget, setBulkUploadTarget] = useState<BulkUploadTarget | null>(null);
+  const [bulkFile, setBulkFile] = useState<File | null>(null);
+  const [bulkUploadError, setBulkUploadError] = useState("");
+  const [bulkUploadResult, setBulkUploadResult] = useState<BulkUploadResult | null>(null);
+  const [loadingBulkUpload, setLoadingBulkUpload] = useState(false);
+  const [bulkDragActive, setBulkDragActive] = useState(false);
+  const bulkFileInputRef = useRef<HTMLInputElement>(null);
 
   /* ================= PERMISSIONS STATE =================
      Super Admin always bypasses the permission checks below. Every
@@ -174,6 +197,91 @@ export default function SuperAdminDashboard() {
     (moduleId: string) => isSuperAdmin || permissionFor(moduleId).delete,
     [isSuperAdmin, permissionFor]
   );
+
+  const resetBulkUpload = () => {
+    setBulkFile(null);
+    setBulkUploadError("");
+    setBulkUploadResult(null);
+    setBulkDragActive(false);
+    if (bulkFileInputRef.current) bulkFileInputRef.current.value = "";
+  };
+
+  const acceptBulkFile = (file: File | undefined) => {
+    if (!file) return;
+
+    const lowerName = file.name.toLowerCase();
+    const isAllowedBulkFile =
+      lowerName.endsWith(".csv") || lowerName.endsWith(".xls") || lowerName.endsWith(".xlsx");
+
+    if (!isAllowedBulkFile) {
+      setBulkFile(null);
+      setBulkUploadResult(null);
+      setBulkUploadError("Bulk upload file must be CSV, XLS, or XLSX");
+      if (bulkFileInputRef.current) bulkFileInputRef.current.value = "";
+      return;
+    }
+
+    setBulkUploadError("");
+    setBulkUploadResult(null);
+    setBulkFile(file);
+  };
+
+  const handleBulkFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    acceptBulkFile(e.target.files?.[0]);
+  };
+
+  const handleBulkDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setBulkDragActive(false);
+    acceptBulkFile(e.dataTransfer.files?.[0]);
+  };
+
+  const handleBulkUpload = async () => {
+    setBulkUploadError("");
+    setBulkUploadResult(null);
+
+    if (!bulkUploadTarget) return;
+    const config = BULK_UPLOAD_CONFIG[bulkUploadTarget];
+
+    if (!bulkFile) {
+      setBulkUploadError("Please choose a CSV or Excel file to upload");
+      return;
+    }
+
+    try {
+      setLoadingBulkUpload(true);
+      const formData = new FormData();
+      formData.append("file", bulkFile);
+
+      const res = await fetch(`${API_URL}/${config.endpoint}`, {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+
+      const result: BulkUploadResult = {
+        createdCount: data.createdCount || 0,
+        skipped: Array.isArray(data.skipped) ? data.skipped : [],
+      };
+
+      if (!res.ok) {
+        setBulkUploadError(data.message || "Bulk upload failed");
+        if (result.skipped.length > 0) setBulkUploadResult(result);
+        return;
+      }
+
+      setBulkUploadResult(result);
+      toast.success(`${result.createdCount} ${config.noun} uploaded successfully.`);
+      window.dispatchEvent(new Event("admin-dashboard:create-success"));
+      setBulkFile(null);
+      if (bulkFileInputRef.current) bulkFileInputRef.current.value = "";
+    } catch (err: any) {
+      setBulkUploadError(err.message || "Bulk upload failed");
+    } finally {
+      setLoadingBulkUpload(false);
+    }
+  };
 
   /* ================= AUTH =================
      Any admin role can now log in here (not just Super Admin). What
@@ -437,6 +545,70 @@ export default function SuperAdminDashboard() {
   const ActiveCreateComponent = activeModule?.CreateComponent;
   const activeModuleCanCreate = activeModule ? canCreate(activeModule.id) : false;
   const activeModuleCanDelete = activeModule ? canDelete(activeModule.id) : false;
+  const isProductCategoryList =
+    activeModule?.id === "productCategory" ||
+    activeModule?.label === "PRODUCT CATEGORY" ||
+    activeModule?.listLabel === "List of Product Category";
+  const isProductList =
+    activeModule?.id === "product" ||
+    activeModule?.label === "PRODUCT" ||
+    activeModule?.listLabel === "List of Product";
+  const isCourseTypeList =
+    activeModule?.id === "courseType" ||
+    activeModule?.listLabel === "List of Course Type";
+  const isCourseList =
+    activeModule?.id === "course" || activeModule?.listLabel === "List of Course";
+  const isTrainingTypeList =
+    activeModule?.id === "trainingType" ||
+    activeModule?.listLabel === "List of Training Type";
+  const isWorkshopTrainingList =
+    activeModule?.id === "workshopTraining" ||
+    activeModule?.listLabel === "List of Workshop Training";
+  const isClinicCategoryList =
+    activeModule?.id === "clinicCategory" ||
+    activeModule?.listLabel === "List of Clinic Category";
+  const isClinicList =
+    activeModule?.id === "clinic" || activeModule?.listLabel === "List of Clinic";
+  const isB2BCategoryList =
+    activeModule?.id === "b2bProductCategory" ||
+    activeModule?.listLabel === "List of B2B Product Category";
+  const isB2BProductList =
+    activeModule?.id === "b2bProduct" || activeModule?.listLabel === "List of B2B Product";
+  const isServiceCategoryList =
+    activeModule?.id === "serviceCategory" ||
+    activeModule?.listLabel === "List of Service Category";
+  const isTreatmentPlanList =
+    activeModule?.id === "treatment" || activeModule?.listLabel === "List of Treatment";
+  const isOnlineConsultationServiceList =
+    activeModule?.id === "onlineConsultationService" ||
+    activeModule?.listLabel === "List of Online Consultation Services";
+  const activeBulkUploadTarget: BulkUploadTarget | null = isProductCategoryList
+    ? "category"
+    : isProductList
+    ? "product"
+    : isCourseTypeList
+    ? "courseType"
+    : isCourseList
+    ? "course"
+    : isTrainingTypeList
+    ? "trainingType"
+    : isWorkshopTrainingList
+    ? "workshopTraining"
+    : isClinicCategoryList
+    ? "clinicCategory"
+    : isClinicList
+    ? "clinic"
+    : isB2BCategoryList
+    ? "b2bCategory"
+    : isB2BProductList
+    ? "b2bProduct"
+    : isServiceCategoryList
+    ? "serviceCategory"
+    : isTreatmentPlanList
+    ? "treatmentPlan"
+    : isOnlineConsultationServiceList
+    ? "onlineConsultationService"
+    : null;
 
   // If permissions load (or change) and the admin is currently sitting
   // on a section they no longer have view access to, bounce them back
@@ -472,7 +644,9 @@ export default function SuperAdminDashboard() {
   const handleSectionChange = (section: string) => {
     setActiveSection(section);
     setSectionMode("list");
-    setOthersOpen(false);
+    // Deliberately NOT collapsing "Others" here — this handler is used by
+    // its own sub-items, and collapsing on every click made the group feel
+    // broken. It only collapses when the "OTHERS" header itself is clicked.
     setSidebarOpen(false);
   };
 
@@ -988,17 +1162,31 @@ export default function SuperAdminDashboard() {
 
                 <div className={styles.moduleActions}>
                   {sectionMode === "list" ? (
-                    // The "Create" button only shows if this admin has
-                    // create access for this specific module.
-                    activeModuleCanCreate && (
-                      <button
-                        type="button"
-                        className={styles.primaryAction}
-                        onClick={() => setSectionMode("create")}
-                      >
-                        {activeModule.createLabel}
-                      </button>
-                    )
+                    <>
+                      {activeBulkUploadTarget && (
+                        <button
+                          type="button"
+                          className={styles.bulkUploadAction}
+                          onClick={() => {
+                            resetBulkUpload();
+                            setBulkUploadTarget(activeBulkUploadTarget);
+                          }}
+                        >
+                          Bulk Upload
+                        </button>
+                      )}
+                      {/* The "Create" button only shows if this admin has
+                          create access for this specific module. */}
+                      {activeModuleCanCreate && (
+                        <button
+                          type="button"
+                          className={styles.primaryAction}
+                          onClick={() => setSectionMode("create")}
+                        >
+                          {activeModule.createLabel}
+                        </button>
+                      )}
+                    </>
                   ) : (
                     <button
                       type="button"
@@ -1023,6 +1211,161 @@ export default function SuperAdminDashboard() {
                   ActiveCreateComponent ? <ActiveCreateComponent /> : null
                 )}
               </div>
+
+              {bulkUploadTarget && createPortal(
+                <div className={styles.bulkModalOverlay}>
+                  <div className={styles.bulkModal}>
+                    <div className={styles.bulkModalHeader}>
+                      <div>
+                        <p className={styles.moduleKicker}>
+                          {BULK_UPLOAD_CONFIG[bulkUploadTarget].kicker}
+                        </p>
+                        <h3 className={styles.bulkModalTitle}>
+                          {BULK_UPLOAD_CONFIG[bulkUploadTarget].title}
+                        </h3>
+                      </div>
+                      <button
+                        type="button"
+                        className={styles.bulkCloseButton}
+                        onClick={() => {
+                          resetBulkUpload();
+                          setBulkUploadTarget(null);
+                        }}
+                        aria-label="Close bulk upload"
+                      >
+                        <FiX />
+                      </button>
+                    </div>
+
+                    <div className={styles.bulkTemplateRow}>
+                      <p className={styles.bulkHint}>{BULK_UPLOAD_CONFIG[bulkUploadTarget].hint}</p>
+                      <button
+                        type="button"
+                        className={styles.bulkTemplateBtn}
+                        onClick={() => downloadBulkUploadTemplate(bulkUploadTarget)}
+                      >
+                        <FiDownload /> Download template
+                      </button>
+                    </div>
+
+                    {bulkUploadError && (
+                      <p className={styles.bulkError}>
+                        <FiAlertCircle /> {bulkUploadError}
+                      </p>
+                    )}
+
+                    {bulkUploadResult && (
+                      <div className={styles.bulkResultBox}>
+                        {bulkUploadResult.createdCount > 0 && (
+                          <p className={styles.bulkSuccess}>
+                            <FiCheckCircle /> {bulkUploadResult.createdCount}{" "}
+                            {BULK_UPLOAD_CONFIG[bulkUploadTarget].noun} uploaded successfully.
+                          </p>
+                        )}
+                        {bulkUploadResult.skipped.length > 0 && (
+                          <div className={styles.bulkSkipped}>
+                            <p className={styles.bulkSkippedTitle}>
+                              {bulkUploadResult.skipped.length} row
+                              {bulkUploadResult.skipped.length > 1 ? "s" : ""} skipped
+                            </p>
+                            <ul className={styles.bulkSkippedList}>
+                              {bulkUploadResult.skipped.slice(0, 25).map((row, index) => (
+                                <li key={`${row.row}-${index}`}>
+                                  <span className={styles.bulkSkippedRowNum}>Row {row.row}</span>
+                                  {row.reason}
+                                </li>
+                              ))}
+                            </ul>
+                            {bulkUploadResult.skipped.length > 25 && (
+                              <p className={styles.bulkSkippedMore}>
+                                +{bulkUploadResult.skipped.length - 25} more
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    <div
+                      className={`${styles.bulkDropzone} ${
+                        bulkDragActive ? styles.bulkDropzoneActive : ""
+                      } ${bulkFile ? styles.bulkDropzoneHasFile : ""}`}
+                      onClick={() => !loadingBulkUpload && bulkFileInputRef.current?.click()}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        setBulkDragActive(true);
+                      }}
+                      onDragLeave={() => setBulkDragActive(false)}
+                      onDrop={handleBulkDrop}
+                    >
+                      {bulkFile ? (
+                        <>
+                          <FiFileText className={styles.bulkDropzoneIcon} />
+                          <p className={styles.bulkDropzoneFileName}>{bulkFile.name}</p>
+                          <span className={styles.bulkDropzoneFileSize}>
+                            {formatFileSize(bulkFile.size)}
+                          </span>
+                          <button
+                            type="button"
+                            className={styles.bulkRemoveButton}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              resetBulkUpload();
+                            }}
+                            disabled={loadingBulkUpload}
+                          >
+                            Remove
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <FiUploadCloud className={styles.bulkDropzoneIcon} />
+                          <p className={styles.bulkDropzoneText}>
+                            Drag &amp; drop your file here, or click to browse
+                          </p>
+                          <span className={styles.bulkDropzoneHint}>CSV, XLS, or XLSX</span>
+                        </>
+                      )}
+                    </div>
+
+                    <input
+                      ref={bulkFileInputRef}
+                      type="file"
+                      accept=".csv,.xls,.xlsx"
+                      hidden
+                      onChange={handleBulkFile}
+                    />
+
+                    <div className={styles.bulkModalActions}>
+                      <button
+                        type="button"
+                        className={styles.secondaryAction}
+                        onClick={() => {
+                          resetBulkUpload();
+                          setBulkUploadTarget(null);
+                        }}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.primaryAction}
+                        onClick={handleBulkUpload}
+                        disabled={loadingBulkUpload || !bulkFile}
+                      >
+                        {loadingBulkUpload ? (
+                          <>
+                            <FiLoader className={styles.bulkSpinner} /> Uploading...
+                          </>
+                        ) : (
+                          "Upload"
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>,
+                document.body
+              )}
             </div>
           ) : (
             <>

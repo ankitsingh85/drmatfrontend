@@ -6,10 +6,13 @@ import "react-quill/dist/quill.snow.css";
 import styles from "@/styles/Dashboard/productlist.module.css";
 import formStyles from "@/styles/Dashboard/createb2bproduct.module.css";
 import { API_URL } from "@/config/api";
-import { resolveMediaUrl } from "@/lib/media";
+import { resolveMediaUrl, getExportSafeMediaValue } from "@/lib/media";
 import { useToast } from "@/context/ToastContext";
 import { useConfirm } from "@/context/ConfirmContext";
 import TableActions from "@/components/AdminPanel/common/TableActions";
+import BulkSelectBar from "@/components/AdminPanel/common/BulkSelectBar";
+import { useBulkSelection } from "@/hooks/useBulkSelection";
+import bulkStyles from "@/styles/Dashboard/bulkSelect.module.css";
 
 const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
 
@@ -212,6 +215,13 @@ export default function ListOfB2BProduct({ canEdit = true, canDelete = true }: L
       .catch(console.error);
   }, []);
 
+  const stripHtmlToText = (value: string | undefined, maxLength = 60) => {
+    if (!value) return "-";
+    const text = value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+    if (!text) return "-";
+    return text.length > maxLength ? `${text.slice(0, maxLength)}…` : text;
+  };
+
   /* ================= DERIVED ================= */
   const categories = useMemo(() => {
     const set = new Set<string>();
@@ -261,18 +271,75 @@ export default function ListOfB2BProduct({ canEdit = true, canDelete = true }: L
     return filteredProducts.slice(start, start + itemsPerPage);
   }, [filteredProducts, currentPage, itemsPerPage]);
 
+  const bulkSelection = useBulkSelection(paginatedProducts, (p) => p._id);
+
   const handleDownloadCSV = () => {
     const rows = [
-      ["SKU", "Name", "Category", "Brand", "Price", "Stock", "MOQ", "GST"],
+      [
+        "SKU",
+        "Image",
+        "Name",
+        "Category",
+        "Sub Category",
+        "Brand",
+        "HSN Code",
+        "Pack Size",
+        "Price",
+        "Bulk Price Tier",
+        "MOQ",
+        "Stock",
+        "Expiry Date",
+        "Shelf Life",
+        "Description",
+        "Ingredients",
+        "Usage Instructions",
+        "Treatment Indications",
+        "Certifications",
+        "Manufacturer",
+        "License Number",
+        "MRP",
+        "GST",
+        "Tax Included",
+        "Video",
+        "MSDS",
+        "Reviews",
+        "Related Products",
+        "Tags",
+        "Created",
+      ],
       ...filteredProducts.map((p) => [
         p.sku,
+        p.productImages?.length
+          ? getExportSafeMediaValue(p.productImages[0])
+          : "-",
         p.productName,
-        (p.category || []).join(", "),
-        p.brandName || "",
+        (p.category || []).join(", ") || "-",
+        p.subCategory || "-",
+        p.brandName || "-",
+        p.hsnCode || "-",
+        p.packSize || "-",
         String(p.pricePerUnit || 0),
-        String(p.stockAvailable || 0),
+        p.bulkPriceTier || "-",
         String(p.moq || 0),
+        String(p.stockAvailable || 0),
+        p.expiryDate ? String(p.expiryDate).slice(0, 10) : "-",
+        p.shelfLife || "-",
+        stripHtmlToText(p.description),
+        stripHtmlToText(p.ingredients),
+        stripHtmlToText(p.usageInstructions),
+        stripHtmlToText(p.treatmentIndications),
+        p.certifications || "-",
+        p.manufacturerName || "-",
+        p.licenseNumber || "-",
+        p.mrp !== undefined ? `Rs ${p.mrp}` : "-",
         String(p.gst || 0),
+        p.taxIncluded === false ? "No" : "Yes",
+        p.productVideoUrl || "-",
+        getExportSafeMediaValue(p.msds),
+        stripHtmlToText(p.customerReviews),
+        p.relatedProducts || "-",
+        p.promotionalTags?.length ? p.promotionalTags.join(", ") : "-",
+        p.createdAt ? String(p.createdAt).slice(0, 10) : "-",
       ]),
     ];
 
@@ -310,13 +377,39 @@ export default function ListOfB2BProduct({ canEdit = true, canDelete = true }: L
       .map(
         (p) => `<tr>
           <td>${escapeHtml(p.sku)}</td>
+          <td>${escapeHtml(
+            p.productImages?.length
+              ? getExportSafeMediaValue(p.productImages[0])
+              : "-"
+          )}</td>
           <td>${escapeHtml(p.productName)}</td>
-          <td>${escapeHtml((p.category || []).join(", "))}</td>
+          <td>${escapeHtml((p.category || []).join(", ") || "-")}</td>
+          <td>${escapeHtml(p.subCategory || "-")}</td>
           <td>${escapeHtml(p.brandName || "-")}</td>
+          <td>${escapeHtml(p.hsnCode || "-")}</td>
+          <td>${escapeHtml(p.packSize || "-")}</td>
           <td>Rs ${escapeHtml(String(p.pricePerUnit || 0))}</td>
-          <td>${escapeHtml(String(p.stockAvailable || 0))}</td>
+          <td>${escapeHtml(p.bulkPriceTier || "-")}</td>
           <td>${escapeHtml(String(p.moq || 0))}</td>
+          <td>${escapeHtml(String(p.stockAvailable || 0))}</td>
+          <td>${escapeHtml(p.expiryDate ? String(p.expiryDate).slice(0, 10) : "-")}</td>
+          <td>${escapeHtml(p.shelfLife || "-")}</td>
+          <td>${escapeHtml(stripHtmlToText(p.description))}</td>
+          <td>${escapeHtml(stripHtmlToText(p.ingredients))}</td>
+          <td>${escapeHtml(stripHtmlToText(p.usageInstructions))}</td>
+          <td>${escapeHtml(stripHtmlToText(p.treatmentIndications))}</td>
+          <td>${escapeHtml(p.certifications || "-")}</td>
+          <td>${escapeHtml(p.manufacturerName || "-")}</td>
+          <td>${escapeHtml(p.licenseNumber || "-")}</td>
+          <td>${escapeHtml(p.mrp !== undefined ? `Rs ${p.mrp}` : "-")}</td>
           <td>${escapeHtml(String(p.gst || 0))}%</td>
+          <td>${escapeHtml(p.taxIncluded === false ? "No" : "Yes")}</td>
+          <td>${escapeHtml(p.productVideoUrl || "-")}</td>
+          <td>${escapeHtml(getExportSafeMediaValue(p.msds))}</td>
+          <td>${escapeHtml(stripHtmlToText(p.customerReviews))}</td>
+          <td>${escapeHtml(p.relatedProducts || "-")}</td>
+          <td>${escapeHtml(p.promotionalTags?.length ? p.promotionalTags.join(", ") : "-")}</td>
+          <td>${escapeHtml(p.createdAt ? String(p.createdAt).slice(0, 10) : "-")}</td>
         </tr>`
       )
       .join("");
@@ -339,13 +432,35 @@ export default function ListOfB2BProduct({ canEdit = true, canDelete = true }: L
             <thead>
               <tr>
                 <th>SKU</th>
+                <th>Image</th>
                 <th>Name</th>
                 <th>Category</th>
+                <th>Sub Category</th>
                 <th>Brand</th>
+                <th>HSN Code</th>
+                <th>Pack Size</th>
                 <th>Price</th>
-                <th>Stock</th>
+                <th>Bulk Price Tier</th>
                 <th>MOQ</th>
+                <th>Stock</th>
+                <th>Expiry Date</th>
+                <th>Shelf Life</th>
+                <th>Description</th>
+                <th>Ingredients</th>
+                <th>Usage Instructions</th>
+                <th>Treatment Indications</th>
+                <th>Certifications</th>
+                <th>Manufacturer</th>
+                <th>License Number</th>
+                <th>MRP</th>
                 <th>GST</th>
+                <th>Tax Included</th>
+                <th>Video</th>
+                <th>MSDS</th>
+                <th>Reviews</th>
+                <th>Related Products</th>
+                <th>Tags</th>
+                <th>Created</th>
               </tr>
             </thead>
             <tbody>${rows}</tbody>
@@ -637,19 +752,67 @@ export default function ListOfB2BProduct({ canEdit = true, canDelete = true }: L
         </button>
       </div>
 
+      <BulkSelectBar
+        endpointPath="b2b-products"
+        selectedIds={Array.from(bulkSelection.selectedIds)}
+        noun="B2B products"
+        canDelete={canDelete}
+        onClear={bulkSelection.clear}
+        onDeleted={(deletedIds) => {
+          setProducts((prev) => prev.filter((p) => !deletedIds.includes(p._id)));
+          bulkSelection.removeIds(deletedIds);
+        }}
+      />
+
       {/* TABLE — wrapped so the horizontal scrollbar stays scoped to the
           table itself instead of dragging the whole admin page/sidebar. */}
-      <div className={styles.tableWrapper}>
+      <div className={`${styles.tableWrapper} ${bulkStyles.tableScroll}`}>
         <table className={styles.table}>
           <thead>
             <tr>
+              {canDelete && (
+                <th className={bulkStyles.checkboxCell}>
+                  <input
+                    type="checkbox"
+                    checked={bulkSelection.isAllSelected}
+                    ref={(el) => {
+                      if (el) el.indeterminate = bulkSelection.isSomeSelected;
+                    }}
+                    onChange={bulkSelection.toggleAll}
+                    aria-label="Select all B2B products on this page"
+                  />
+                </th>
+              )}
               <th>SKU</th>
+              <th>Image</th>
               <th>Name</th>
               <th>Category</th>
+              <th>Sub Category</th>
               <th>Brand</th>
+              <th>HSN Code</th>
+              <th>Pack Size</th>
               <th>Price</th>
-              <th>Stock</th>
+              <th>Bulk Price Tier</th>
               <th>MOQ</th>
+              <th>Stock</th>
+              <th>Expiry Date</th>
+              <th>Shelf Life</th>
+              <th>Description</th>
+              <th>Ingredients</th>
+              <th>Usage Instructions</th>
+              <th>Treatment Indications</th>
+              <th>Certifications</th>
+              <th>Manufacturer</th>
+              <th>License Number</th>
+              <th>MRP</th>
+              <th>GST</th>
+              <th>Tax Included</th>
+              <th>Video</th>
+              <th>MSDS</th>
+              <th>Reviews</th>
+              <th>Related Products</th>
+              <th>Tags</th>
+              <th>Created</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -657,13 +820,74 @@ export default function ListOfB2BProduct({ canEdit = true, canDelete = true }: L
           <tbody>
             {paginatedProducts.map((p) => (
               <tr key={p._id}>
+                {canDelete && (
+                  <td className={bulkStyles.checkboxCell}>
+                    <input
+                      type="checkbox"
+                      checked={bulkSelection.isSelected(p._id)}
+                      onChange={() => bulkSelection.toggle(p._id)}
+                      aria-label={`Select ${p.productName}`}
+                    />
+                  </td>
+                )}
                 <td>{p.sku}</td>
+                <td>
+                  {p.productImages?.length ? (
+                    <img
+                      src={resolveMediaUrl(p.productImages[0]) || undefined}
+                      alt={p.productName}
+                      width={44}
+                      height={44}
+                      style={{ objectFit: "cover", borderRadius: 8 }}
+                    />
+                  ) : (
+                    "-"
+                  )}
+                </td>
                 <td>{p.productName}</td>
                 <td>{(p.category || []).join(", ") || "-"}</td>
+                <td>{p.subCategory || "-"}</td>
                 <td>{p.brandName || "-"}</td>
+                <td>{p.hsnCode || "-"}</td>
+                <td>{p.packSize || "-"}</td>
                 <td>Rs {p.pricePerUnit || 0}</td>
-                <td>{p.stockAvailable || 0}</td>
+                <td>{p.bulkPriceTier || "-"}</td>
                 <td>{p.moq || 0}</td>
+                <td>{p.stockAvailable || 0}</td>
+                <td>{p.expiryDate ? String(p.expiryDate).slice(0, 10) : "-"}</td>
+                <td>{p.shelfLife || "-"}</td>
+                <td>{stripHtmlToText(p.description)}</td>
+                <td>{stripHtmlToText(p.ingredients)}</td>
+                <td>{stripHtmlToText(p.usageInstructions)}</td>
+                <td>{stripHtmlToText(p.treatmentIndications)}</td>
+                <td>{p.certifications || "-"}</td>
+                <td>{p.manufacturerName || "-"}</td>
+                <td>{p.licenseNumber || "-"}</td>
+                <td>{p.mrp !== undefined ? `Rs ${p.mrp}` : "-"}</td>
+                <td>{p.gst ? `${p.gst}%` : "-"}</td>
+                <td>{p.taxIncluded === false ? "No" : "Yes"}</td>
+                <td>
+                  {p.productVideoUrl ? (
+                    <a href={p.productVideoUrl} target="_blank" rel="noreferrer">
+                      Link
+                    </a>
+                  ) : (
+                    "-"
+                  )}
+                </td>
+                <td>
+                  {p.msds ? (
+                    <a href={resolveMediaUrl(p.msds) || p.msds} target="_blank" rel="noreferrer">
+                      PDF
+                    </a>
+                  ) : (
+                    "-"
+                  )}
+                </td>
+                <td>{stripHtmlToText(p.customerReviews)}</td>
+                <td>{p.relatedProducts || "-"}</td>
+                <td>{p.promotionalTags?.length ? p.promotionalTags.join(", ") : "-"}</td>
+                <td>{p.createdAt ? String(p.createdAt).slice(0, 10) : "-"}</td>
                 <td className={styles.actions}>
                   <TableActions
                     onView={() => setViewProduct(p)}
@@ -677,7 +901,7 @@ export default function ListOfB2BProduct({ canEdit = true, canDelete = true }: L
             ))}
             {paginatedProducts.length === 0 && (
               <tr>
-                <td colSpan={8}>No products found.</td>
+                <td colSpan={canDelete ? 31 : 30}>No products found.</td>
               </tr>
             )}
           </tbody>

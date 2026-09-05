@@ -7,6 +7,10 @@ import editStyles from "@/styles/Dashboard/edittreatment.module.css";
 import { useToast } from "@/context/ToastContext";
 import { useConfirm } from "@/context/ConfirmContext";
 import TableActions from "@/components/AdminPanel/common/TableActions";
+import BulkSelectBar from "@/components/AdminPanel/common/BulkSelectBar";
+import { useBulkSelection } from "@/hooks/useBulkSelection";
+import bulkStyles from "@/styles/Dashboard/bulkSelect.module.css";
+import { resolveMediaUrl, getExportSafeMediaValue } from "@/lib/media";
 import "react-quill/dist/quill.snow.css";
 
 const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
@@ -18,6 +22,8 @@ interface ClinicRef {
 
 interface Treatment {
   _id: string;
+  tuc?: string;
+  slug?: string;
   treatmentName: string;
   description?: string;
   shortReelUrl?: string;
@@ -214,24 +220,57 @@ const ListOfTreatment = ({ canEdit = true, canDelete = true }: ListOfTreatmentPr
   const clinicNamesFor = (treatment: Treatment) =>
     (treatment.clinic || []).map((c) => c.clinicName).join(", ") || "-";
 
+  const stripHtmlToText = (value: string | undefined, maxLength = 60) => {
+    if (!value) return "-";
+    const text = value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+    if (!text) return "-";
+    return text.length > maxLength ? `${text.slice(0, maxLength)}…` : text;
+  };
+
   const handleDownloadCSV = () => {
     const rows = [
       [
+        "Code",
+        "Image",
         "Treatment Name",
         "Clinic",
         "Category",
         "Gender",
+        "Description",
+        "Short Reel",
         "MRP",
         "Offer",
+        "Price/Session",
+        "Discount %",
+        "Sessions",
+        "Duration",
+        "Validity",
+        "Technology",
+        "Promo Code",
+        "Add To Cart",
+        "Created",
         "Status",
       ],
       ...filteredTreatments.map((treatment) => [
+        treatment.tuc || "-",
+        getExportSafeMediaValue(treatment.treatmentImages?.[0]),
         treatment.treatmentName || "",
         clinicNamesFor(treatment),
         (treatment.serviceCategory || []).join(", "),
         treatment.gender || "",
+        stripHtmlToText(treatment.description),
+        treatment.shortReelUrl || "-",
         treatment.mrp ?? "",
         treatment.offerPrice ?? "",
+        treatment.pricePerSession ?? "-",
+        treatment.discountPercent ? `${treatment.discountPercent}%` : "-",
+        treatment.sessions || "-",
+        treatment.duration || "-",
+        treatment.validity || "-",
+        treatment.technologyUsed || "-",
+        treatment.promoCode || "-",
+        treatment.addToCart === false ? "No" : "Yes",
+        treatment.createdAt ? String(treatment.createdAt).slice(0, 10) : "-",
         treatment.isActive === false ? "Inactive" : "Active",
       ]),
     ];
@@ -273,14 +312,31 @@ const ListOfTreatment = ({ canEdit = true, canDelete = true }: ListOfTreatmentPr
     const rows = filteredTreatments
       .map(
         (treatment) => `<tr>
+          <td>${escapeHtml(treatment.tuc || "-")}</td>
+          <td>${escapeHtml(getExportSafeMediaValue(treatment.treatmentImages?.[0]))}</td>
           <td>${escapeHtml(treatment.treatmentName || "-")}</td>
           <td>${escapeHtml(clinicNamesFor(treatment))}</td>
           <td>${escapeHtml(
             (treatment.serviceCategory || []).join(", ") || "-"
           )}</td>
           <td>${escapeHtml(treatment.gender || "-")}</td>
+          <td>${escapeHtml(stripHtmlToText(treatment.description))}</td>
+          <td>${escapeHtml(treatment.shortReelUrl || "-")}</td>
           <td>${escapeHtml(String(treatment.mrp ?? "-"))}</td>
           <td>${escapeHtml(String(treatment.offerPrice ?? "-"))}</td>
+          <td>${escapeHtml(String(treatment.pricePerSession ?? "-"))}</td>
+          <td>${escapeHtml(
+            treatment.discountPercent ? `${treatment.discountPercent}%` : "-"
+          )}</td>
+          <td>${escapeHtml(treatment.sessions || "-")}</td>
+          <td>${escapeHtml(treatment.duration || "-")}</td>
+          <td>${escapeHtml(treatment.validity || "-")}</td>
+          <td>${escapeHtml(treatment.technologyUsed || "-")}</td>
+          <td>${escapeHtml(treatment.promoCode || "-")}</td>
+          <td>${treatment.addToCart === false ? "No" : "Yes"}</td>
+          <td>${escapeHtml(
+            treatment.createdAt ? String(treatment.createdAt).slice(0, 10) : "-"
+          )}</td>
           <td>${treatment.isActive === false ? "Inactive" : "Active"}</td>
         </tr>`
       )
@@ -303,12 +359,25 @@ const ListOfTreatment = ({ canEdit = true, canDelete = true }: ListOfTreatmentPr
           <table>
             <thead>
               <tr>
+                <th>Code</th>
+                <th>Image</th>
                 <th>Treatment</th>
                 <th>Clinic</th>
                 <th>Category</th>
                 <th>Gender</th>
+                <th>Description</th>
+                <th>Short Reel</th>
                 <th>MRP</th>
                 <th>Offer</th>
+                <th>Price/Session</th>
+                <th>Discount %</th>
+                <th>Sessions</th>
+                <th>Duration</th>
+                <th>Validity</th>
+                <th>Technology</th>
+                <th>Promo Code</th>
+                <th>Add To Cart</th>
+                <th>Created</th>
                 <th>Status</th>
               </tr>
             </thead>
@@ -325,6 +394,8 @@ const ListOfTreatment = ({ canEdit = true, canDelete = true }: ListOfTreatmentPr
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
+
+  const bulkSelection = useBulkSelection(paginatedTreatments, (t) => t._id);
 
   const handleDelete = async (id: string) => {
     if (!(await confirmDialog("Are you sure you want to delete this treatment?", { danger: true }))) return;
@@ -581,16 +652,54 @@ const ListOfTreatment = ({ canEdit = true, canDelete = true }: ListOfTreatmentPr
 
       {error && <p className={styles.error}>{error}</p>}
 
-      <div className={styles.tableWrap}>
+      <BulkSelectBar
+        endpointPath="treatment-plans"
+        selectedIds={Array.from(bulkSelection.selectedIds)}
+        noun="treatment plans"
+        canDelete={canDelete}
+        onClear={bulkSelection.clear}
+        onDeleted={(deletedIds) => {
+          setTreatments((prev) => prev.filter((t) => !deletedIds.includes(t._id)));
+          bulkSelection.removeIds(deletedIds);
+        }}
+      />
+
+      <div className={`${styles.tableWrap} ${bulkStyles.tableScroll}`}>
         <table className={styles.table}>
           <thead>
             <tr>
+              {canDelete && (
+                <th className={bulkStyles.checkboxCell}>
+                  <input
+                    type="checkbox"
+                    checked={bulkSelection.isAllSelected}
+                    ref={(el) => {
+                      if (el) el.indeterminate = bulkSelection.isSomeSelected;
+                    }}
+                    onChange={bulkSelection.toggleAll}
+                    aria-label="Select all treatment plans on this page"
+                  />
+                </th>
+              )}
+              <th>Code</th>
+              <th>Image</th>
               <th>Treatment Name</th>
               <th>Clinic</th>
               <th>Category</th>
               <th>Gender</th>
+              <th>Description</th>
+              <th>Short Reel</th>
               <th>MRP</th>
               <th>Offer</th>
+              <th>Price/Session</th>
+              <th>Discount %</th>
+              <th>Sessions</th>
+              <th>Duration</th>
+              <th>Validity</th>
+              <th>Technology</th>
+              <th>Promo Code</th>
+              <th>Add To Cart</th>
+              <th>Created</th>
               <th>Status</th>
               <th>Actions</th>
             </tr>
@@ -598,12 +707,55 @@ const ListOfTreatment = ({ canEdit = true, canDelete = true }: ListOfTreatmentPr
           <tbody>
             {paginatedTreatments.map((treatment) => (
               <tr key={treatment._id}>
+                {canDelete && (
+                  <td className={bulkStyles.checkboxCell}>
+                    <input
+                      type="checkbox"
+                      checked={bulkSelection.isSelected(treatment._id)}
+                      onChange={() => bulkSelection.toggle(treatment._id)}
+                      aria-label={`Select ${treatment.treatmentName}`}
+                    />
+                  </td>
+                )}
+                <td>{treatment.tuc || "-"}</td>
+                <td>
+                  {treatment.treatmentImages?.length ? (
+                    <img
+                      src={resolveMediaUrl(treatment.treatmentImages[0]) || undefined}
+                      alt={treatment.treatmentName}
+                      width={44}
+                      height={44}
+                      style={{ objectFit: "cover", borderRadius: 8 }}
+                    />
+                  ) : (
+                    "-"
+                  )}
+                </td>
                 <td>{treatment.treatmentName}</td>
                 <td>{clinicNamesFor(treatment)}</td>
                 <td>{(treatment.serviceCategory || []).join(", ") || "-"}</td>
                 <td>{treatment.gender || "-"}</td>
+                <td>{stripHtmlToText(treatment.description)}</td>
+                <td>
+                  {treatment.shortReelUrl ? (
+                    <a href={treatment.shortReelUrl} target="_blank" rel="noreferrer">
+                      Link
+                    </a>
+                  ) : (
+                    "-"
+                  )}
+                </td>
                 <td>{treatment.mrp ?? "-"}</td>
                 <td>{treatment.offerPrice ?? "-"}</td>
+                <td>{treatment.pricePerSession ?? "-"}</td>
+                <td>{treatment.discountPercent ? `${treatment.discountPercent}%` : "-"}</td>
+                <td>{treatment.sessions || "-"}</td>
+                <td>{treatment.duration || "-"}</td>
+                <td>{treatment.validity || "-"}</td>
+                <td>{treatment.technologyUsed || "-"}</td>
+                <td>{treatment.promoCode || "-"}</td>
+                <td>{treatment.addToCart === false ? "No" : "Yes"}</td>
+                <td>{treatment.createdAt ? String(treatment.createdAt).slice(0, 10) : "-"}</td>
                 <td>
                   <button
                     type="button"
@@ -637,7 +789,7 @@ const ListOfTreatment = ({ canEdit = true, canDelete = true }: ListOfTreatmentPr
             ))}
             {paginatedTreatments.length === 0 && (
             <tr>
-              <td colSpan={8}>No treatment plans found.</td>
+              <td colSpan={canDelete ? 22 : 21}>No treatment plans found.</td>
             </tr>
           )}
           </tbody>

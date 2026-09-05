@@ -5,6 +5,7 @@ import axios from "axios";
 import styles from "@/styles/LatestUpdateShorts.module.css";
 import { API_URL } from "@/config/api";
 import { useToast } from "@/context/ToastContext";
+import { getYouTubeEmbedUrl } from "@/lib/youtube";
 
 // ✅ Use environment variable for API base
 // const API_URL = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000/api";
@@ -148,7 +149,7 @@ const LatestShorts = ({ canEdit = true, canDelete = true }: LatestShortsProps) =
               <iframe
                 width="100%"
                 height="250"
-                src={short.videoUrl.replace("shorts/", "embed/")}
+                src={getYouTubeEmbedUrl(short.videoUrl)}
                 title="YouTube Shorts"
                 frameBorder="0"
                 allow="autoplay; encrypted-media"

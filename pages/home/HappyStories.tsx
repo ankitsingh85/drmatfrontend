@@ -4,6 +4,8 @@ import { API_URL } from "@/config/api";
 import React, { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import styles from "@/styles/HappyStories.module.css";
+import { extractYouTubeVideoId } from "@/lib/youtube";
+import { loadYouTubeIframeApi } from "@/lib/youtubeIframeApi";
 
 interface Short {
   _id: string;
@@ -61,19 +63,7 @@ const HappyStories = () => {
       });
     };
 
-    if ((window as any).YT && (window as any).YT.Player) {
-      initPlayers();
-    } else {
-      if (!document.getElementById("youtube-iframe-api")) {
-        const tag = document.createElement("script");
-        tag.src = "https://www.youtube.com/iframe_api";
-        tag.id = "youtube-iframe-api";
-        document.body.appendChild(tag);
-      }
-      (window as any).onYouTubeIframeAPIReady = () => {
-        initPlayers();
-      };
-    }
+    loadYouTubeIframeApi(initPlayers);
   }, [shorts, isMuted]);
 
   // ✅ Load Instagram embed script for reel blocks
@@ -179,12 +169,6 @@ const HappyStories = () => {
   );
 };
 
-// ✅ Extract YouTube video ID
-const extractVideoId = (url: string) => {
-  const regex =
-    /(?:youtube\.com\/shorts\/|youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
-  const match = url.match(regex);
-  return match ? match[1] : "";
-};
+const extractVideoId = extractYouTubeVideoId;
 
 export default HappyStories;

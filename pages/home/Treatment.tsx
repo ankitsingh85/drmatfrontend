@@ -4,6 +4,8 @@ import React, { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import styles from "@/styles/HappyStories.module.css";
 import { API_URL } from "@/config/api";
+import { extractYouTubeVideoId } from "@/lib/youtube";
+import { loadYouTubeIframeApi } from "@/lib/youtubeIframeApi";
 
 interface Short {
   _id: string;
@@ -28,26 +30,7 @@ const TreatmentStories = () => {
   const [isHovered, setIsHovered] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
   const playersRef = useRef<any[]>([]);
-  const ytReadyRef = useRef<boolean>(false);
-
-  /* ================= EXISTING CODE (UNCHANGED) ================= */
-
-  useEffect(() => {
-    if (!(window as any).YT) {
-      const tag = document.createElement("script");
-      tag.src = "https://www.youtube.com/iframe_api";
-      document.body.appendChild(tag);
-    } else {
-      ytReadyRef.current = true;
-    }
-
-    (window as any).onYouTubeIframeAPIReady = () => {
-      ytReadyRef.current = true;
-      initYouTubePlayers();
-    };
-  }, []);
 
   const fetchShorts = async () => {
     try {
@@ -63,9 +46,8 @@ const TreatmentStories = () => {
   }, []);
 
   useEffect(() => {
-    if (shorts.length && ytReadyRef.current) {
-      initYouTubePlayers();
-    }
+    if (!shorts.length) return;
+    loadYouTubeIframeApi(initYouTubePlayers);
   }, [shorts]);
 
   const initYouTubePlayers = () => {
@@ -114,43 +96,46 @@ const TreatmentStories = () => {
     return player;
   };
 
-  const extractVideoId = (url: string) => {
-    const regex =
-      /(?:youtube\.com\/shorts\/|youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
-    const match = url.match(regex);
-    return match ? match[1] : "";
-  };
+  const extractVideoId = extractYouTubeVideoId;
 
+  // Instagram reels embed via Instagram's own oEmbed widget (an iframe on
+  // Instagram's origin) — there's no direct play()/pause() access to that,
+  // so hover play/pause only applies to YouTube, same as HappyStories.tsx.
   const handleMouseEnter = (index: number) => {
     setIsHovered(true);
     const short = shorts[index];
-
-    if (short.platform === "instagram") {
-      videoRefs.current[index]?.play();
-    } else {
-      getPlayer(index)?.playVideo();
-    }
+    if (short.platform === "youtube") getPlayer(index)?.playVideo();
   };
 
   const handleMouseLeave = (index: number) => {
     setIsHovered(false);
     const short = shorts[index];
-
-    if (short.platform === "instagram") {
-      const v = videoRefs.current[index];
-      if (v) {
-        v.pause();
-        v.currentTime = 0;
-      }
-    } else {
-      getPlayer(index)?.pauseVideo();
-    }
+    if (short.platform === "youtube") getPlayer(index)?.pauseVideo();
   };
+
+  // Load Instagram's embed script whenever a reel is present, and re-run
+  // Embeds.process() so newly added blockquotes actually render.
+  useEffect(() => {
+    if (!shorts.some((short) => short.platform === "instagram")) return;
+
+    const existing = document.getElementById("instagram-embed-script");
+    if (!existing) {
+      const script = document.createElement("script");
+      script.id = "instagram-embed-script";
+      script.src = "https://www.instagram.com/embed.js";
+      script.async = true;
+      script.onload = () => {
+        (window as any).instgrm?.Embeds?.process?.();
+      };
+      document.body.appendChild(script);
+    } else {
+      (window as any).instgrm?.Embeds?.process?.();
+    }
+  }, [shorts]);
 
   const toggleMute = () => {
     setIsMuted((prev) => {
       const next = !prev;
-      videoRefs.current.forEach((v) => v && (v.muted = next));
       playersRef.current.forEach((p) => {
         if (!p || typeof p.mute !== "function" || typeof p.unMute !== "function") return;
         if (next) p.mute();
@@ -206,12 +191,10 @@ const TreatmentStories = () => {
                 </div>
               ) : (
                 <div className={styles.videoCrop}>
-                  <video
-                    ref={(el) => { videoRefs.current[index] = el; }}
-                    src={short.videoUrl}
-                    muted={isMuted}
-                    playsInline
-                    loop
+                  <blockquote
+                    className="instagram-media"
+                    data-instgrm-permalink={short.videoUrl}
+                    data-instgrm-version="14"
                   />
                 </div>
               )}

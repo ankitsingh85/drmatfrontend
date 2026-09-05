@@ -6,7 +6,7 @@ import { API_URL } from "@/config/api";
 import styles from "@/styles/Dashboard/listofuser.module.css";
 import editStyles from "@/styles/Dashboard/createUser.module.css";
 import FullPageLoader from "@/components/common/FullPageLoader";
-import { resolveMediaUrl } from "@/lib/media";
+import { resolveMediaUrl, getExportSafeMediaValue } from "@/lib/media";
 import { useToast } from "@/context/ToastContext";
 import { useConfirm } from "@/context/ConfirmContext";
 import {
@@ -19,6 +19,9 @@ import {
   FiUser,
 } from "react-icons/fi";
 import TableActions from "@/components/AdminPanel/common/TableActions";
+import BulkSelectBar from "@/components/AdminPanel/common/BulkSelectBar";
+import { useBulkSelection } from "@/hooks/useBulkSelection";
+import bulkStyles from "@/styles/Dashboard/bulkSelect.module.css";
 
 interface User {
   _id: string;
@@ -144,11 +147,14 @@ export default function ListOfUser({ canEdit = true, canDelete = true }: ListOfU
     return filteredUsers.slice(start, start + itemsPerPage);
   }, [filteredUsers, currentPage, itemsPerPage]);
 
+  const bulkSelection = useBulkSelection(paginatedUsers, (u) => u._id);
+
   const handleDownloadCSV = () => {
     const rows = [
-      ["Patient ID", "Name", "Email", "Contact", "Address", "Created At"],
+      ["Patient ID", "Profile", "Name", "Email", "Contact", "Address", "Created At"],
       ...filteredUsers.map((u) => [
         u.patientId,
+        getExportSafeMediaValue(u.profileImage),
         u.name,
         u.email,
         u.contactNo || "",
@@ -195,9 +201,13 @@ export default function ListOfUser({ canEdit = true, canDelete = true }: ListOfU
       .map(
         (u) => `<tr>
           <td>${escapeHtml(u.patientId)}</td>
+          <td>${escapeHtml(
+            getExportSafeMediaValue(u.profileImage)
+          )}</td>
           <td>${escapeHtml(u.name)}</td>
           <td>${escapeHtml(u.email)}</td>
           <td>${escapeHtml(u.contactNo || "-")}</td>
+          <td>${escapeHtml(u.address || "-")}</td>
           <td>${escapeHtml(new Date(u.createdAt).toLocaleString())}</td>
         </tr>`
       )
@@ -221,9 +231,11 @@ export default function ListOfUser({ canEdit = true, canDelete = true }: ListOfU
             <thead>
               <tr>
                 <th>Patient ID</th>
+                <th>Profile</th>
                 <th>Name</th>
                 <th>Email</th>
                 <th>Contact</th>
+                <th>Address</th>
                 <th>Created At</th>
               </tr>
             </thead>
@@ -647,14 +659,41 @@ export default function ListOfUser({ canEdit = true, canDelete = true }: ListOfU
         </button>
       </div>
 
-      <div className={styles.tableWrap}>
+      <BulkSelectBar
+        endpointPath="users"
+        selectedIds={Array.from(bulkSelection.selectedIds)}
+        noun="users"
+        canDelete={canDelete}
+        onClear={bulkSelection.clear}
+        onDeleted={(deletedIds) => {
+          setUsers((prev) => prev.filter((u) => !deletedIds.includes(u._id)));
+          bulkSelection.removeIds(deletedIds);
+        }}
+      />
+
+      <div className={`${styles.tableWrap} ${bulkStyles.tableScroll}`}>
         <table className={styles.table}>
           <thead className={styles.tableHead}>
             <tr>
+              {canDelete && (
+                <th className={bulkStyles.checkboxCell}>
+                  <input
+                    type="checkbox"
+                    checked={bulkSelection.isAllSelected}
+                    ref={(el) => {
+                      if (el) el.indeterminate = bulkSelection.isSomeSelected;
+                    }}
+                    onChange={bulkSelection.toggleAll}
+                    aria-label="Select all users on this page"
+                  />
+                </th>
+              )}
               <th>Patient ID</th>
+              <th>Profile</th>
               <th>Name</th>
               <th>Email</th>
               <th>Contact</th>
+              <th>Address</th>
               <th>Date</th>
               <th>Actions</th>
             </tr>
@@ -663,10 +702,32 @@ export default function ListOfUser({ canEdit = true, canDelete = true }: ListOfU
           <tbody>
             {paginatedUsers.map((u) => (
               <tr key={u._id} className={styles.tableRow}>
+                {canDelete && (
+                  <td className={bulkStyles.checkboxCell}>
+                    <input
+                      type="checkbox"
+                      checked={bulkSelection.isSelected(u._id)}
+                      onChange={() => bulkSelection.toggle(u._id)}
+                      aria-label={`Select ${u.name}`}
+                    />
+                  </td>
+                )}
                 <td>{u.patientId}</td>
+                <td>
+                  {u.profileImage ? (
+                    <img
+                      src={resolveMediaUrl(u.profileImage) || u.profileImage}
+                      alt={u.name}
+                      style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover" }}
+                    />
+                  ) : (
+                    "-"
+                  )}
+                </td>
                 <td>{u.name}</td>
                 <td>{u.email}</td>
                 <td>{u.contactNo || "-"}</td>
+                <td>{u.address || "-"}</td>
                 <td>{new Date(u.createdAt).toLocaleString()}</td>
                 <td className={styles.actions}>
                   <TableActions
@@ -681,7 +742,7 @@ export default function ListOfUser({ canEdit = true, canDelete = true }: ListOfU
             ))}
             {paginatedUsers.length === 0 && (
               <tr className={styles.tableRow}>
-                <td colSpan={6}>No users found.</td>
+                <td colSpan={canDelete ? 9 : 8}>No users found.</td>
               </tr>
             )}
           </tbody>

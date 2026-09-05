@@ -7,9 +7,12 @@ import dynamicImport from "next/dynamic";
 import styles from "@/styles/Dashboard/listofclinic.module.css";
 import editStyles from "@/styles/Dashboard/editclinic.module.css";
 import FullPageLoader from "@/components/common/FullPageLoader";
-import { resolveMediaUrl } from "@/lib/media";
+import { resolveMediaUrl, getExportSafeMediaValue } from "@/lib/media";
 import { useToast } from "@/context/ToastContext";
 import TableActions from "@/components/AdminPanel/common/TableActions";
+import BulkSelectBar from "@/components/AdminPanel/common/BulkSelectBar";
+import { useBulkSelection } from "@/hooks/useBulkSelection";
+import bulkStyles from "@/styles/Dashboard/bulkSelect.module.css";
 import { useConfirm } from "@/context/ConfirmContext";
 import "react-quill/dist/quill.snow.css";
 
@@ -104,6 +107,11 @@ type Clinic = {
   approvalStatus?: "pending" | "approved" | "rejected";
   rejectionReason?: string;
   approvedAt?: string;
+
+  latitude?: number;
+  longitude?: number;
+  gstNumber?: string;
+  addresses?: Array<{ city?: string; pincode?: string }>;
 };
 
 type EditForm = {
@@ -310,6 +318,15 @@ function ListOfClinic({ canEdit = true, canDelete = true }: ListOfClinicProps) {
     const start = (currentPage - 1) * itemsPerPage;
     return filteredClinics.slice(start, start + itemsPerPage);
   }, [filteredClinics, currentPage, itemsPerPage]);
+
+  const bulkSelection = useBulkSelection(paginatedClinics, (c) => c._id);
+
+  const stripHtmlToText = (value: string | undefined, maxLength = 60) => {
+    if (!value) return "-";
+    const text = value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+    if (!text) return "-";
+    return text.length > maxLength ? `${text.slice(0, maxLength)}…` : text;
+  };
 
   const handleDelete = async (id: string) => {
     if (!(await confirmDialog("Delete this clinic?", { danger: true }))) return;
@@ -686,18 +703,116 @@ function ListOfClinic({ canEdit = true, canDelete = true }: ListOfClinicProps) {
 
   const handleDownloadCSV = () => {
     const rows = [
-      ["CUC", "Clinic Name", "Email", "Contact", "Website", "Category", "Verified", "Active", "Status"],
-      ...filteredClinics.map((c) => [
-        c.cuc,
-        c.clinicName,
-        c.email || "",
-        c.contactNumber || "",
-        c.website || "",
-        c.dermaCategory?.name || "",
-        c.verifiedBadge ? "Yes" : "No",
-        c.isActive === false ? "Inactive" : "Active",
-        c.clinicStatus || "",
-      ]),
+      [
+        "CUC",
+        "Logo",
+        "Clinic Name",
+        "Slug",
+        "Type",
+        "Owner",
+        "Website",
+        "Contact",
+        "Whatsapp",
+        "Email",
+        "Category",
+        "Address",
+        "City",
+        "Services",
+        "Sector",
+        "Pincode",
+        "Map Link",
+        "Latitude",
+        "Longitude",
+        "GST Number",
+        "Addresses",
+        "Doctors",
+        "Working Hours",
+        "Banner",
+        "Rate Card",
+        "Special Offers",
+        "Photos",
+        "Certifications",
+        "Video",
+        "License No.",
+        "Experience",
+        "Treatments Available",
+        "Available Services",
+        "Consultation Fee",
+        "Booking Mode",
+        "Description",
+        "Instagram",
+        "LinkedIn",
+        "Facebook",
+        "Standard Plan Link",
+        "Verified",
+        "Active",
+        "Registration",
+        "Rejection Reason",
+        "Approved At",
+        "Created",
+        "Status",
+      ],
+      ...filteredClinics.map((c) => {
+        const registrationStatus = c.approvalStatus || "pending";
+        const registrationLabel =
+          registrationStatus === "approved"
+            ? "Approved"
+            : registrationStatus === "rejected"
+            ? "Rejected"
+            : "Pending";
+
+        return [
+          c.cuc,
+          getExportSafeMediaValue(c.clinicLogo),
+          c.clinicName,
+          c.slug || "-",
+          c.clinicType || "-",
+          c.ownerName || "-",
+          c.website || "",
+          c.contactNumber || "",
+          c.whatsapp || "-",
+          c.email || "",
+          c.dermaCategory?.name || "",
+          c.address || "-",
+          c.city || "-",
+          c.services || "-",
+          c.sector || "-",
+          c.pincode || "-",
+          c.mapLink || "-",
+          c.latitude ?? "-",
+          c.longitude ?? "-",
+          c.gstNumber || "-",
+          c.addresses?.length ? `${c.addresses.length} address(es)` : "-",
+          c.doctors?.length ? `${c.doctors.length} doctor(s)` : "-",
+          c.workingHours?.openTime && c.workingHours?.closeTime
+            ? `${c.workingHours.openTime}-${c.workingHours.closeTime}`
+            : "-",
+          getExportSafeMediaValue(c.bannerImage),
+          c.rateCard?.length ? `${c.rateCard.length} page(s)` : "-",
+          c.specialOffers?.length ? `${c.specialOffers.length} offer(s)` : "-",
+          c.photos?.length ? `${c.photos.length} photo(s)` : "-",
+          c.certifications?.length ? `${c.certifications.length} cert(s)` : "-",
+          c.video || "-",
+          c.licenseNo || "-",
+          c.experience || "-",
+          stripHtmlToText(c.treatmentsAvailable),
+          stripHtmlToText(c.availableServices),
+          c.consultationFee || "-",
+          c.bookingMode || "-",
+          stripHtmlToText(c.clinicDescription),
+          c.instagram || "-",
+          c.linkedin || "-",
+          c.facebook || "-",
+          c.standardPlanLink || "-",
+          c.verifiedBadge ? "Yes" : "No",
+          c.isActive === false ? "Inactive" : "Active",
+          registrationLabel,
+          c.rejectionReason || "-",
+          c.approvedAt ? String(c.approvedAt).slice(0, 10) : "-",
+          c.createdAt ? String(c.createdAt).slice(0, 10) : "-",
+          c.clinicStatus || "",
+        ];
+      }),
     ];
 
     const csv = rows
@@ -735,19 +850,69 @@ function ListOfClinic({ canEdit = true, canDelete = true }: ListOfClinicProps) {
         .replace(/'/g, "&#039;");
 
     const rows = filteredClinics
-      .map(
-        (c) => `<tr>
+      .map((c) => {
+        const registrationStatus = c.approvalStatus || "pending";
+        const registrationLabel =
+          registrationStatus === "approved"
+            ? "Approved"
+            : registrationStatus === "rejected"
+            ? "Rejected"
+            : "Pending";
+
+        return `<tr>
           <td>${escapeHtml(c.cuc)}</td>
+          <td>${escapeHtml(getExportSafeMediaValue(c.clinicLogo))}</td>
           <td>${escapeHtml(c.clinicName)}</td>
-          <td>${escapeHtml(c.email || "-")}</td>
-          <td>${escapeHtml(c.contactNumber || "-")}</td>
+          <td>${escapeHtml(c.slug || "-")}</td>
+          <td>${escapeHtml(c.clinicType || "-")}</td>
+          <td>${escapeHtml(c.ownerName || "-")}</td>
           <td>${escapeHtml(c.website || "-")}</td>
+          <td>${escapeHtml(c.contactNumber || "-")}</td>
+          <td>${escapeHtml(c.whatsapp || "-")}</td>
+          <td>${escapeHtml(c.email || "-")}</td>
           <td>${escapeHtml(c.dermaCategory?.name || "-")}</td>
+          <td>${escapeHtml(c.address || "-")}</td>
+          <td>${escapeHtml(c.city || "-")}</td>
+          <td>${escapeHtml(c.services || "-")}</td>
+          <td>${escapeHtml(c.sector || "-")}</td>
+          <td>${escapeHtml(c.pincode || "-")}</td>
+          <td>${escapeHtml(c.mapLink || "-")}</td>
+          <td>${escapeHtml(String(c.latitude ?? "-"))}</td>
+          <td>${escapeHtml(String(c.longitude ?? "-"))}</td>
+          <td>${escapeHtml(c.gstNumber || "-")}</td>
+          <td>${escapeHtml(c.addresses?.length ? `${c.addresses.length} address(es)` : "-")}</td>
+          <td>${escapeHtml(c.doctors?.length ? `${c.doctors.length} doctor(s)` : "-")}</td>
+          <td>${escapeHtml(
+            c.workingHours?.openTime && c.workingHours?.closeTime
+              ? `${c.workingHours.openTime}-${c.workingHours.closeTime}`
+              : "-"
+          )}</td>
+          <td>${escapeHtml(getExportSafeMediaValue(c.bannerImage))}</td>
+          <td>${escapeHtml(c.rateCard?.length ? `${c.rateCard.length} page(s)` : "-")}</td>
+          <td>${escapeHtml(c.specialOffers?.length ? `${c.specialOffers.length} offer(s)` : "-")}</td>
+          <td>${escapeHtml(c.photos?.length ? `${c.photos.length} photo(s)` : "-")}</td>
+          <td>${escapeHtml(c.certifications?.length ? `${c.certifications.length} cert(s)` : "-")}</td>
+          <td>${escapeHtml(c.video || "-")}</td>
+          <td>${escapeHtml(c.licenseNo || "-")}</td>
+          <td>${escapeHtml(c.experience || "-")}</td>
+          <td>${escapeHtml(stripHtmlToText(c.treatmentsAvailable))}</td>
+          <td>${escapeHtml(stripHtmlToText(c.availableServices))}</td>
+          <td>${escapeHtml(c.consultationFee || "-")}</td>
+          <td>${escapeHtml(c.bookingMode || "-")}</td>
+          <td>${escapeHtml(stripHtmlToText(c.clinicDescription))}</td>
+          <td>${escapeHtml(c.instagram || "-")}</td>
+          <td>${escapeHtml(c.linkedin || "-")}</td>
+          <td>${escapeHtml(c.facebook || "-")}</td>
+          <td>${escapeHtml(c.standardPlanLink || "-")}</td>
           <td>${escapeHtml(c.verifiedBadge ? "Yes" : "No")}</td>
           <td>${escapeHtml(c.isActive === false ? "Inactive" : "Active")}</td>
+          <td>${escapeHtml(registrationLabel)}</td>
+          <td>${escapeHtml(c.rejectionReason || "-")}</td>
+          <td>${escapeHtml(c.approvedAt ? String(c.approvedAt).slice(0, 10) : "-")}</td>
+          <td>${escapeHtml(c.createdAt ? String(c.createdAt).slice(0, 10) : "-")}</td>
           <td>${escapeHtml(c.clinicStatus || "-")}</td>
-        </tr>`
-      )
+        </tr>`;
+      })
       .join("");
 
     printable.document.write(`
@@ -768,13 +933,51 @@ function ListOfClinic({ canEdit = true, canDelete = true }: ListOfClinicProps) {
             <thead>
               <tr>
                 <th>CUC</th>
+                <th>Logo</th>
                 <th>Clinic Name</th>
-                <th>Email</th>
-                <th>Contact</th>
+                <th>Slug</th>
+                <th>Type</th>
+                <th>Owner</th>
                 <th>Website</th>
+                <th>Contact</th>
+                <th>Whatsapp</th>
+                <th>Email</th>
                 <th>Category</th>
+                <th>Address</th>
+                <th>City</th>
+                <th>Services</th>
+                <th>Sector</th>
+                <th>Pincode</th>
+                <th>Map Link</th>
+                <th>Latitude</th>
+                <th>Longitude</th>
+                <th>GST Number</th>
+                <th>Addresses</th>
+                <th>Doctors</th>
+                <th>Working Hours</th>
+                <th>Banner</th>
+                <th>Rate Card</th>
+                <th>Special Offers</th>
+                <th>Photos</th>
+                <th>Certifications</th>
+                <th>Video</th>
+                <th>License No.</th>
+                <th>Experience</th>
+                <th>Treatments Available</th>
+                <th>Available Services</th>
+                <th>Consultation Fee</th>
+                <th>Booking Mode</th>
+                <th>Description</th>
+                <th>Instagram</th>
+                <th>LinkedIn</th>
+                <th>Facebook</th>
+                <th>Standard Plan Link</th>
                 <th>Verified</th>
                 <th>Active</th>
+                <th>Registration</th>
+                <th>Rejection Reason</th>
+                <th>Approved At</th>
+                <th>Created</th>
                 <th>Status</th>
               </tr>
             </thead>
@@ -851,18 +1054,81 @@ function ListOfClinic({ canEdit = true, canDelete = true }: ListOfClinicProps) {
       {loading ? (
         <FullPageLoader />
       ) : (
-        <div className={styles.tableWrapper}>
+        <>
+          <BulkSelectBar
+            endpointPath="clinics"
+            selectedIds={Array.from(bulkSelection.selectedIds)}
+            noun="clinics"
+            canDelete={canDelete}
+            onClear={bulkSelection.clear}
+            onDeleted={(deletedIds) => {
+              setClinics((prev) => prev.filter((c) => !deletedIds.includes(c._id)));
+              bulkSelection.removeIds(deletedIds);
+            }}
+          />
+          <div className={`${styles.tableWrapper} ${bulkStyles.tableScroll}`}>
           <table className={styles.table}>
             <thead>
               <tr>
+                {canDelete && (
+                  <th className={bulkStyles.checkboxCell}>
+                    <input
+                      type="checkbox"
+                      checked={bulkSelection.isAllSelected}
+                      ref={(el) => {
+                        if (el) el.indeterminate = bulkSelection.isSomeSelected;
+                      }}
+                      onChange={bulkSelection.toggleAll}
+                      aria-label="Select all clinics on this page"
+                    />
+                  </th>
+                )}
                 <th>CUC</th>
+                <th>Logo</th>
                 <th>Name</th>
+                <th>Slug</th>
+                <th>Type</th>
+                <th>Owner</th>
                 <th>Website</th>
                 <th>Contact</th>
+                <th>Whatsapp</th>
+                <th>Email</th>
                 <th>Category</th>
+                <th>Address</th>
+                <th>City</th>
+                <th>Services</th>
+                <th>Sector</th>
+                <th>Pincode</th>
+                <th>Map Link</th>
+                <th>Latitude</th>
+                <th>Longitude</th>
+                <th>GST Number</th>
+                <th>Addresses</th>
+                <th>Doctors</th>
+                <th>Working Hours</th>
+                <th>Banner</th>
+                <th>Rate Card</th>
+                <th>Special Offers</th>
+                <th>Photos</th>
+                <th>Certifications</th>
+                <th>Video</th>
+                <th>License No.</th>
+                <th>Experience</th>
+                <th>Treatments Available</th>
+                <th>Available Services</th>
+                <th>Consultation Fee</th>
+                <th>Booking Mode</th>
+                <th>Description</th>
+                <th>Instagram</th>
+                <th>LinkedIn</th>
+                <th>Facebook</th>
+                <th>Standard Plan Link</th>
                 <th>Verified</th>
                 <th>Active</th>
                 <th>Registration</th>
+                <th>Rejection Reason</th>
+                <th>Approved At</th>
+                <th>Created</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -870,11 +1136,130 @@ function ListOfClinic({ canEdit = true, canDelete = true }: ListOfClinicProps) {
             <tbody>
               {paginatedClinics.map((clinic) => (
                 <tr key={clinic._id}>
+                  {canDelete && (
+                    <td className={bulkStyles.checkboxCell}>
+                      <input
+                        type="checkbox"
+                        checked={bulkSelection.isSelected(clinic._id)}
+                        onChange={() => bulkSelection.toggle(clinic._id)}
+                        aria-label={`Select ${clinic.clinicName}`}
+                      />
+                    </td>
+                  )}
                   <td>{clinic.cuc}</td>
+                  <td>
+                    {clinic.clinicLogo ? (
+                      <img
+                        src={resolveMediaUrl(clinic.clinicLogo) || clinic.clinicLogo}
+                        alt={clinic.clinicName}
+                        style={{ width: 36, height: 36, objectFit: "cover", borderRadius: 8 }}
+                      />
+                    ) : (
+                      "-"
+                    )}
+                  </td>
                   <td>{clinic.clinicName}</td>
+                  <td>{clinic.slug || "-"}</td>
+                  <td>{clinic.clinicType || "-"}</td>
+                  <td>{clinic.ownerName || "-"}</td>
                   <td>{clinic.website || "—"}</td>
                   <td>{clinic.contactNumber || "—"}</td>
+                  <td>{clinic.whatsapp || "-"}</td>
+                  <td>{clinic.email || "-"}</td>
                   <td>{clinic.dermaCategory?.name || "—"}</td>
+                  <td>{clinic.address || "-"}</td>
+                  <td>{clinic.city || "-"}</td>
+                  <td>{clinic.services || "-"}</td>
+                  <td>{clinic.sector || "-"}</td>
+                  <td>{clinic.pincode || "-"}</td>
+                  <td>
+                    {clinic.mapLink ? (
+                      <a href={clinic.mapLink} target="_blank" rel="noreferrer">
+                        Link
+                      </a>
+                    ) : (
+                      "-"
+                    )}
+                  </td>
+                  <td>{clinic.latitude ?? "-"}</td>
+                  <td>{clinic.longitude ?? "-"}</td>
+                  <td>{clinic.gstNumber || "-"}</td>
+                  <td>{clinic.addresses?.length ? `${clinic.addresses.length} address(es)` : "-"}</td>
+                  <td>{clinic.doctors?.length ? `${clinic.doctors.length} doctor(s)` : "-"}</td>
+                  <td>
+                    {clinic.workingHours?.openTime && clinic.workingHours?.closeTime
+                      ? `${clinic.workingHours.openTime}-${clinic.workingHours.closeTime}`
+                      : "-"}
+                  </td>
+                  <td>
+                    {clinic.bannerImage ? (
+                      <img
+                        src={resolveMediaUrl(clinic.bannerImage) || clinic.bannerImage}
+                        alt={clinic.clinicName}
+                        style={{ width: 44, height: 30, objectFit: "cover", borderRadius: 6 }}
+                      />
+                    ) : (
+                      "-"
+                    )}
+                  </td>
+                  <td>{clinic.rateCard?.length ? `${clinic.rateCard.length} page(s)` : "-"}</td>
+                  <td>{clinic.specialOffers?.length ? `${clinic.specialOffers.length} offer(s)` : "-"}</td>
+                  <td>{clinic.photos?.length ? `${clinic.photos.length} photo(s)` : "-"}</td>
+                  <td>
+                    {clinic.certifications?.length ? `${clinic.certifications.length} cert(s)` : "-"}
+                  </td>
+                  <td>
+                    {clinic.video ? (
+                      <a href={clinic.video} target="_blank" rel="noreferrer">
+                        Link
+                      </a>
+                    ) : (
+                      "-"
+                    )}
+                  </td>
+                  <td>{clinic.licenseNo || "-"}</td>
+                  <td>{clinic.experience || "-"}</td>
+                  <td>{stripHtmlToText(clinic.treatmentsAvailable)}</td>
+                  <td>{stripHtmlToText(clinic.availableServices)}</td>
+                  <td>{clinic.consultationFee || "-"}</td>
+                  <td>{clinic.bookingMode || "-"}</td>
+                  <td>{stripHtmlToText(clinic.clinicDescription)}</td>
+                  <td>
+                    {clinic.instagram ? (
+                      <a href={clinic.instagram} target="_blank" rel="noreferrer">
+                        Link
+                      </a>
+                    ) : (
+                      "-"
+                    )}
+                  </td>
+                  <td>
+                    {clinic.linkedin ? (
+                      <a href={clinic.linkedin} target="_blank" rel="noreferrer">
+                        Link
+                      </a>
+                    ) : (
+                      "-"
+                    )}
+                  </td>
+                  <td>
+                    {clinic.facebook ? (
+                      <a href={clinic.facebook} target="_blank" rel="noreferrer">
+                        Link
+                      </a>
+                    ) : (
+                      "-"
+                    )}
+                  </td>
+                  <td>
+                    {clinic.standardPlanLink ? (
+                      <a href={clinic.standardPlanLink} target="_blank" rel="noreferrer">
+                        Link
+                      </a>
+                    ) : (
+                      "-"
+                    )}
+                  </td>
                   <td>
                     <span className={clinic.verifiedBadge ? styles.verifiedBadge : styles.unverifiedBadge}>
                       {clinic.verifiedBadge ? "Verified" : "Not Verified"}
@@ -920,6 +1305,9 @@ function ListOfClinic({ canEdit = true, canDelete = true }: ListOfClinicProps) {
                       );
                     })()}
                   </td>
+                  <td>{clinic.rejectionReason || "-"}</td>
+                  <td>{clinic.approvedAt ? String(clinic.approvedAt).slice(0, 10) : "-"}</td>
+                  <td>{clinic.createdAt ? String(clinic.createdAt).slice(0, 10) : "-"}</td>
                   <td>
                     <TableActions
                       onView={() => handleView(clinic)}
@@ -943,12 +1331,13 @@ function ListOfClinic({ canEdit = true, canDelete = true }: ListOfClinicProps) {
               ))}
               {paginatedClinics.length === 0 && (
                 <tr>
-                  <td colSpan={9}>No clinics found.</td>
+                  <td colSpan={canDelete ? 47 : 46}>No clinics found.</td>
                 </tr>
               )}
             </tbody>
           </table>
-        </div>
+          </div>
+        </>
       )}
 
       {!loading && (

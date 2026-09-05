@@ -9,12 +9,15 @@ import FullPageLoader from "@/components/common/FullPageLoader";
 import { useToast } from "@/context/ToastContext";
 import { useConfirm } from "@/context/ConfirmContext";
 import TableActions from "@/components/AdminPanel/common/TableActions";
+import BulkSelectBar from "@/components/AdminPanel/common/BulkSelectBar";
+import { useBulkSelection } from "@/hooks/useBulkSelection";
+import bulkStyles from "@/styles/Dashboard/bulkSelect.module.css";
 
 interface Course {
   _id: string;
   courseName: string;
   courseUniqueCode: string;
-  courseType?: string;
+  courseType?: string | string[];
   courseImage?: string;
   instituteName?: string;
   courseDuration?: string;
@@ -46,6 +49,9 @@ interface Course {
   postCourseSupport?: string;
   contactForQueries?: string;
   createdAt?: string;
+  hsnCode?: string;
+  discountPercent?: number;
+  mobileNo?: string;
 }
 
 type EditFormData = {
@@ -88,7 +94,9 @@ const languageOptions = ["English", "Hindi", "Bilingual"];
 
 const createEditFormData = (course: Course): EditFormData => ({
   courseName: course.courseName || "",
-  courseType: course.courseType || "",
+  courseType: Array.isArray(course.courseType)
+    ? course.courseType.join(", ")
+    : course.courseType || "",
   instituteName: course.instituteName || "",
   courseDuration: course.courseDuration || "",
   modeOfTraining: course.modeOfTraining || "",
@@ -223,6 +231,17 @@ const ListOfCourse = ({ canEdit = true, canDelete = true }: ListOfCourseProps) =
     return filteredCourses.slice(start, start + itemsPerPage);
   }, [filteredCourses, currentPage, itemsPerPage]);
 
+  const bulkSelection = useBulkSelection(paginatedCourses, (c) => c._id);
+
+  const stripHtmlToText = (value: string | undefined, maxLength = 60) => {
+    if (!value) return "-";
+    const text = value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+    if (!text) return "-";
+    return text.length > maxLength ? `${text.slice(0, maxLength)}…` : text;
+  };
+
+  const joinArray = (value?: string[]) => (value && value.length ? value.join(", ") : "-");
+
   const openEditModal = (course: Course) => {
     setEditingCourse(course);
     setEditFormData(createEditFormData(course));
@@ -332,24 +351,88 @@ const ListOfCourse = ({ canEdit = true, canDelete = true }: ListOfCourseProps) =
   const handleDownloadExcel = () => {
     const rows = [
       [
+        "#",
+        "Image",
         "Course Code",
         "Course Name",
         "Course Type",
-        "Fees",
-        "Net Fees",
-        "Language",
-        "Availability",
+        "HSN Code",
         "Institute",
+        "Duration",
+        "Mode",
+        "Start Date",
+        "End Date",
+        "Reg. Deadline",
+        "Curriculum",
+        "Target Audience",
+        "Certification",
+        "Affiliation",
+        "Fees",
+        "Discount %",
+        "Discount Voucher",
+        "Net Fees",
+        "Discounts/Offers",
+        "Location",
+        "Max Seats",
+        "Availability",
+        "Trainer",
+        "Trainer Image",
+        "Trainer Experience",
+        "Language",
+        "What's Included",
+        "What's Not Included",
+        "Learning Outcomes",
+        "Demo Video",
+        "Brochures",
+        "Refund Policy",
+        "Post-Course Support",
+        "Contact",
+        "Mobile No",
+        "Created",
       ],
-      ...filteredCourses.map((course) => [
+      ...filteredCourses.map((course, index) => [
+        index + 1,
+        course.courseImage ? resolveAssetUrl(course.courseImage) : "-",
         course.courseUniqueCode || "",
-        course.courseName || "",
-        course.courseType || "",
-        course.feesInr ?? "",
-        course.netFeesInr ?? "",
-        course.languageOfDelivery || "",
-        course.currentAvailability || "",
-        course.instituteName || "",
+        course.courseName || "Untitled Course",
+        Array.isArray(course.courseType)
+          ? joinArray(course.courseType)
+          : course.courseType || "-",
+        course.hsnCode || "-",
+        course.instituteName || "-",
+        course.courseDuration || "-",
+        course.modeOfTraining || "-",
+        formatDate(course.startDate),
+        formatDate(course.endDate),
+        formatDate(course.registrationDeadline),
+        stripHtmlToText(course.curriculumTopicsCovered),
+        joinArray(course.targetAudience),
+        course.certificationProvided || "-",
+        stripHtmlToText(course.affiliationAccreditation),
+        course.feesInr ?? "-",
+        course.discountPercent ? `${course.discountPercent}%` : "-",
+        course.applyDiscountVoucher ? "Yes" : "No",
+        course.netFeesInr ?? "-",
+        stripHtmlToText(course.discountsOffers),
+        course.location || "-",
+        course.maximumSeatsBatchSize ?? "-",
+        course.currentAvailability || "-",
+        course.trainerInstructorName || "-",
+        course.trainerImage ? resolveAssetUrl(course.trainerImage) : "-",
+        stripHtmlToText(course.trainerExperience),
+        course.languageOfDelivery || "-",
+        stripHtmlToText(course.whatsIncluded),
+        stripHtmlToText(course.whatsNotIncluded),
+        stripHtmlToText(course.learningOutcomes),
+        course.courseDemoVideo || "-",
+        course.brochurePdfDownload?.length
+          ? course.brochurePdfDownload.join(", ")
+          : "-",
+        stripHtmlToText(course.refundCancellationPolicy),
+        stripHtmlToText(course.postCourseSupport),
+        course.contactForQueries || "-",
+        course.mobileNo || "-",
+        formatDate(course.createdAt),
       ]),
     ];
 
@@ -389,13 +472,45 @@ const ListOfCourse = ({ canEdit = true, canDelete = true }: ListOfCourseProps) =
 
     const rows = filteredCourses
       .map(
-        (course) => `<tr>
+        (course, index) => `<tr>
+          <td>${escapeHtml(String(index + 1))}</td>
+          <td>${escapeHtml(course.courseImage ? resolveAssetUrl(course.courseImage) : "-")}</td>
           <td>${escapeHtml(course.courseUniqueCode || "-")}</td>
-          <td>${escapeHtml(course.courseName || "-")}</td>
-          <td>${escapeHtml(course.courseType || "-")}</td>
+          <td>${escapeHtml(course.courseName || "Untitled Course")}</td>
+          <td>${escapeHtml(Array.isArray(course.courseType) ? joinArray(course.courseType) : course.courseType || "-")}</td>
+          <td>${escapeHtml(course.hsnCode || "-")}</td>
+          <td>${escapeHtml(course.instituteName || "-")}</td>
+          <td>${escapeHtml(course.courseDuration || "-")}</td>
+          <td>${escapeHtml(course.modeOfTraining || "-")}</td>
+          <td>${escapeHtml(formatDate(course.startDate))}</td>
+          <td>${escapeHtml(formatDate(course.endDate))}</td>
+          <td>${escapeHtml(formatDate(course.registrationDeadline))}</td>
+          <td>${escapeHtml(stripHtmlToText(course.curriculumTopicsCovered))}</td>
+          <td>${escapeHtml(joinArray(course.targetAudience))}</td>
+          <td>${escapeHtml(course.certificationProvided || "-")}</td>
+          <td>${escapeHtml(stripHtmlToText(course.affiliationAccreditation))}</td>
           <td>${escapeHtml(String(course.feesInr ?? "-"))}</td>
-          <td>${escapeHtml(course.languageOfDelivery || "-")}</td>
+          <td>${escapeHtml(course.discountPercent ? `${course.discountPercent}%` : "-")}</td>
+          <td>${escapeHtml(course.applyDiscountVoucher ? "Yes" : "No")}</td>
+          <td>${escapeHtml(String(course.netFeesInr ?? "-"))}</td>
+          <td>${escapeHtml(stripHtmlToText(course.discountsOffers))}</td>
+          <td>${escapeHtml(course.location || "-")}</td>
+          <td>${escapeHtml(String(course.maximumSeatsBatchSize ?? "-"))}</td>
           <td>${escapeHtml(course.currentAvailability || "-")}</td>
+          <td>${escapeHtml(course.trainerInstructorName || "-")}</td>
+          <td>${escapeHtml(course.trainerImage ? resolveAssetUrl(course.trainerImage) : "-")}</td>
+          <td>${escapeHtml(stripHtmlToText(course.trainerExperience))}</td>
+          <td>${escapeHtml(course.languageOfDelivery || "-")}</td>
+          <td>${escapeHtml(stripHtmlToText(course.whatsIncluded))}</td>
+          <td>${escapeHtml(stripHtmlToText(course.whatsNotIncluded))}</td>
+          <td>${escapeHtml(stripHtmlToText(course.learningOutcomes))}</td>
+          <td>${escapeHtml(course.courseDemoVideo || "-")}</td>
+          <td>${escapeHtml(course.brochurePdfDownload?.length ? course.brochurePdfDownload.join(", ") : "-")}</td>
+          <td>${escapeHtml(stripHtmlToText(course.refundCancellationPolicy))}</td>
+          <td>${escapeHtml(stripHtmlToText(course.postCourseSupport))}</td>
+          <td>${escapeHtml(course.contactForQueries || "-")}</td>
+          <td>${escapeHtml(course.mobileNo || "-")}</td>
+          <td>${escapeHtml(formatDate(course.createdAt))}</td>
         </tr>`
       )
       .join("");
@@ -417,12 +532,44 @@ const ListOfCourse = ({ canEdit = true, canDelete = true }: ListOfCourseProps) =
           <table>
             <thead>
               <tr>
+                <th>#</th>
+                <th>Image</th>
                 <th>Course Code</th>
                 <th>Course Name</th>
                 <th>Course Type</th>
+                <th>HSN Code</th>
+                <th>Institute</th>
+                <th>Duration</th>
+                <th>Mode</th>
+                <th>Start Date</th>
+                <th>End Date</th>
+                <th>Reg. Deadline</th>
+                <th>Curriculum</th>
+                <th>Target Audience</th>
+                <th>Certification</th>
+                <th>Affiliation</th>
                 <th>Fees</th>
-                <th>Language</th>
+                <th>Discount %</th>
+                <th>Discount Voucher</th>
+                <th>Net Fees</th>
+                <th>Discounts/Offers</th>
+                <th>Location</th>
+                <th>Max Seats</th>
                 <th>Availability</th>
+                <th>Trainer</th>
+                <th>Trainer Image</th>
+                <th>Trainer Experience</th>
+                <th>Language</th>
+                <th>What's Included</th>
+                <th>What's Not Included</th>
+                <th>Learning Outcomes</th>
+                <th>Demo Video</th>
+                <th>Brochures</th>
+                <th>Refund Policy</th>
+                <th>Post-Course Support</th>
+                <th>Contact</th>
+                <th>Mobile No</th>
+                <th>Created</th>
               </tr>
             </thead>
             <tbody>${rows}</tbody>
@@ -481,17 +628,72 @@ const ListOfCourse = ({ canEdit = true, canDelete = true }: ListOfCourseProps) =
 
       {!loading && !error && (
         <>
-          <div className={styles.tableWrap}>
-            <table className={styles.table}>
+          <BulkSelectBar
+            endpointPath="courses"
+            selectedIds={Array.from(bulkSelection.selectedIds)}
+            noun="courses"
+            canDelete={canDelete}
+            onClear={bulkSelection.clear}
+            onDeleted={(deletedIds) => {
+              setCourses((prev) => prev.filter((c) => !deletedIds.includes(c._id)));
+              bulkSelection.removeIds(deletedIds);
+            }}
+          />
+
+          <div className={`${styles.tableWrap} ${bulkStyles.tableScroll}`}>
+            <table className={styles.table} style={{ minWidth: 3600 }}>
               <thead>
                 <tr>
+                  {canDelete && (
+                    <th className={bulkStyles.checkboxCell}>
+                      <input
+                        type="checkbox"
+                        checked={bulkSelection.isAllSelected}
+                        ref={(el) => {
+                          if (el) el.indeterminate = bulkSelection.isSomeSelected;
+                        }}
+                        onChange={bulkSelection.toggleAll}
+                        aria-label="Select all courses on this page"
+                      />
+                    </th>
+                  )}
                   <th>#</th>
                   <th>Image</th>
                   <th>Course Code</th>
                   <th>Course Name</th>
+                  <th>Course Type</th>
+                  <th>HSN Code</th>
+                  <th>Institute</th>
+                  <th>Duration</th>
+                  <th>Mode</th>
+                  <th>Start Date</th>
+                  <th>End Date</th>
+                  <th>Reg. Deadline</th>
+                  <th>Curriculum</th>
+                  <th>Target Audience</th>
+                  <th>Certification</th>
+                  <th>Affiliation</th>
                   <th>Fees</th>
-                  <th>Language</th>
+                  <th>Discount %</th>
+                  <th>Discount Voucher</th>
+                  <th>Net Fees</th>
+                  <th>Discounts/Offers</th>
+                  <th>Location</th>
+                  <th>Max Seats</th>
                   <th>Availability</th>
+                  <th>Trainer</th>
+                  <th>Trainer Image</th>
+                  <th>Trainer Experience</th>
+                  <th>Language</th>
+                  <th>What's Included</th>
+                  <th>What's Not Included</th>
+                  <th>Learning Outcomes</th>
+                  <th>Demo Video</th>
+                  <th>Brochures</th>
+                  <th>Refund Policy</th>
+                  <th>Post-Course Support</th>
+                  <th>Contact</th>
+                  <th>Mobile No</th>
                   <th>Created</th>
                   <th>Actions</th>
                 </tr>
@@ -499,6 +701,16 @@ const ListOfCourse = ({ canEdit = true, canDelete = true }: ListOfCourseProps) =
               <tbody>
                 {paginatedCourses.map((course, index) => (
                   <tr key={course._id}>
+                    {canDelete && (
+                      <td className={bulkStyles.checkboxCell}>
+                        <input
+                          type="checkbox"
+                          checked={bulkSelection.isSelected(course._id)}
+                          onChange={() => bulkSelection.toggle(course._id)}
+                          aria-label={`Select ${course.courseName}`}
+                        />
+                      </td>
+                    )}
                     <td>{(currentPage - 1) * itemsPerPage + index + 1}</td>
                     <td>
                       {course.courseImage ? (
@@ -515,13 +727,76 @@ const ListOfCourse = ({ canEdit = true, canDelete = true }: ListOfCourseProps) =
                     <td style={{ wordBreak: "break-word" }}>
                       {course.courseName || "Untitled Course"}
                     </td>
-                    <td>{course.feesInr ?? 0}</td>
-                    <td style={{ wordBreak: "break-word" }}>
-                      {course.languageOfDelivery || "-"}
+                    <td>
+                      {Array.isArray(course.courseType)
+                        ? joinArray(course.courseType)
+                        : course.courseType || "-"}
                     </td>
+                    <td>{course.hsnCode || "-"}</td>
+                    <td>{course.instituteName || "-"}</td>
+                    <td>{course.courseDuration || "-"}</td>
+                    <td>{course.modeOfTraining || "-"}</td>
+                    <td>{formatDate(course.startDate)}</td>
+                    <td>{formatDate(course.endDate)}</td>
+                    <td>{formatDate(course.registrationDeadline)}</td>
+                    <td>{stripHtmlToText(course.curriculumTopicsCovered)}</td>
+                    <td>{joinArray(course.targetAudience)}</td>
+                    <td>{course.certificationProvided || "-"}</td>
+                    <td>{stripHtmlToText(course.affiliationAccreditation)}</td>
+                    <td>{course.feesInr ?? "-"}</td>
+                    <td>{course.discountPercent ? `${course.discountPercent}%` : "-"}</td>
+                    <td>{course.applyDiscountVoucher ? "Yes" : "No"}</td>
+                    <td>{course.netFeesInr ?? "-"}</td>
+                    <td>{stripHtmlToText(course.discountsOffers)}</td>
+                    <td>{course.location || "-"}</td>
+                    <td>{course.maximumSeatsBatchSize ?? "-"}</td>
                     <td style={{ wordBreak: "break-word" }}>
                       {course.currentAvailability || "-"}
                     </td>
+                    <td>{course.trainerInstructorName || "-"}</td>
+                    <td>
+                      {course.trainerImage ? (
+                        <img
+                          src={resolveAssetUrl(course.trainerImage)}
+                          alt={course.trainerInstructorName || "Trainer"}
+                          className={styles.image}
+                        />
+                      ) : (
+                        "-"
+                      )}
+                    </td>
+                    <td>{stripHtmlToText(course.trainerExperience)}</td>
+                    <td>{course.languageOfDelivery || "-"}</td>
+                    <td>{stripHtmlToText(course.whatsIncluded)}</td>
+                    <td>{stripHtmlToText(course.whatsNotIncluded)}</td>
+                    <td>{stripHtmlToText(course.learningOutcomes)}</td>
+                    <td>
+                      {course.courseDemoVideo ? (
+                        <a href={course.courseDemoVideo} target="_blank" rel="noreferrer">
+                          Link
+                        </a>
+                      ) : (
+                        "-"
+                      )}
+                    </td>
+                    <td>
+                      {course.brochurePdfDownload?.length ? (
+                        <a
+                          href={course.brochurePdfDownload[0]}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          {course.brochurePdfDownload.length} file
+                          {course.brochurePdfDownload.length > 1 ? "s" : ""}
+                        </a>
+                      ) : (
+                        "-"
+                      )}
+                    </td>
+                    <td>{stripHtmlToText(course.refundCancellationPolicy)}</td>
+                    <td>{stripHtmlToText(course.postCourseSupport)}</td>
+                    <td>{course.contactForQueries || "-"}</td>
+                    <td>{course.mobileNo || "-"}</td>
                     <td>{formatDate(course.createdAt)}</td>
                     <td>
                       <TableActions
@@ -536,7 +811,7 @@ const ListOfCourse = ({ canEdit = true, canDelete = true }: ListOfCourseProps) =
                 ))}
                 {paginatedCourses.length === 0 && (
                   <tr>
-                    <td colSpan={9}>No courses found.</td>
+                    <td colSpan={canDelete ? 39 : 38}>No courses found.</td>
                   </tr>
                 )}
               </tbody>

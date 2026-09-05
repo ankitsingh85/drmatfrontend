@@ -7,6 +7,9 @@ import styles from "@/styles/Dashboard/listofcliniccategory.module.css";
 import { useToast } from "@/context/ToastContext";
 import { useConfirm } from "@/context/ConfirmContext";
 import TableActions from "@/components/AdminPanel/common/TableActions";
+import BulkSelectBar from "@/components/AdminPanel/common/BulkSelectBar";
+import { useBulkSelection } from "@/hooks/useBulkSelection";
+import bulkStyles from "@/styles/Dashboard/bulkSelect.module.css";
 
 interface ClinicCategory {
   _id: string;
@@ -173,6 +176,8 @@ const ListOfClinicCategory = ({ canEdit = true, canDelete = true }: ListOfClinic
     return filteredCategories.slice(start, start + itemsPerPage);
   }, [filteredCategories, currentPage, itemsPerPage]);
 
+  const bulkSelection = useBulkSelection(paginatedCategories, (cat) => cat._id);
+
   const handleDownloadCSV = () => {
  const rows = [
   ["Category ID", "Name", "Image URL"],
@@ -295,10 +300,35 @@ const ListOfClinicCategory = ({ canEdit = true, canDelete = true }: ListOfClinic
         </button>
       </div>
 
-      <div className={styles.tableWrapper}>
+      <BulkSelectBar
+        endpointPath="clinic-categories"
+        selectedIds={Array.from(bulkSelection.selectedIds)}
+        noun="clinic categories"
+        canDelete={canDelete}
+        onClear={bulkSelection.clear}
+        onDeleted={(deletedIds) => {
+          setCategories((prev) => prev.filter((cat) => !deletedIds.includes(cat._id)));
+          bulkSelection.removeIds(deletedIds);
+        }}
+      />
+
+      <div className={`${styles.tableWrapper} ${bulkStyles.tableScroll}`}>
         <table className={styles.table}>
           <thead>
   <tr>
+    {canDelete && (
+      <th className={bulkStyles.checkboxCell}>
+        <input
+          type="checkbox"
+          checked={bulkSelection.isAllSelected}
+          ref={(el) => {
+            if (el) el.indeterminate = bulkSelection.isSomeSelected;
+          }}
+          onChange={bulkSelection.toggleAll}
+          aria-label="Select all clinic categories on this page"
+        />
+      </th>
+    )}
     <th>Category ID</th>
     <th>Name</th>
     <th>Image</th>
@@ -308,6 +338,17 @@ const ListOfClinicCategory = ({ canEdit = true, canDelete = true }: ListOfClinic
           <tbody>
             {paginatedCategories.map((cat) => (
               <tr key={cat._id}>
+
+  {canDelete && (
+    <td className={bulkStyles.checkboxCell}>
+      <input
+        type="checkbox"
+        checked={bulkSelection.isSelected(cat._id)}
+        onChange={() => bulkSelection.toggle(cat._id)}
+        aria-label={`Select ${cat.name}`}
+      />
+    </td>
+  )}
 
   <td>{cat.categoryId}</td>
 
@@ -333,7 +374,7 @@ const ListOfClinicCategory = ({ canEdit = true, canDelete = true }: ListOfClinic
             ))}
             {paginatedCategories.length === 0 && (
               <tr>
-                <td colSpan={4}>No clinic categories found.</td>
+                <td colSpan={canDelete ? 5 : 4}>No clinic categories found.</td>
               </tr>
             )}
           </tbody>

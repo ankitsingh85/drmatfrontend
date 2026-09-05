@@ -7,6 +7,9 @@ import { resolveMediaUrl } from "@/lib/media";
 import { useToast } from "@/context/ToastContext";
 import { useConfirm } from "@/context/ConfirmContext";
 import TableActions from "@/components/AdminPanel/common/TableActions";
+import BulkSelectBar from "@/components/AdminPanel/common/BulkSelectBar";
+import { useBulkSelection } from "@/hooks/useBulkSelection";
+import bulkStyles from "@/styles/Dashboard/bulkSelect.module.css";
 
 interface Category {
   _id: string;
@@ -145,10 +148,12 @@ export default function ListofB2BCategory({
     return filtered.slice(start, start + itemsPerPage);
   }, [filtered, currentPage, itemsPerPage]);
 
+  const bulkSelection = useBulkSelection(paginatedCategories, (cat) => cat._id);
+
   const handleDownloadCSV = () => {
     const rows = [
-      ["Name", "Image URL"],
-      ...filtered.map((cat) => [cat.name, cat.imageUrl || ""]),
+      ["S.No", "Name", "Image URL"],
+      ...filtered.map((cat, index) => [index + 1, cat.name, cat.imageUrl || ""]),
     ];
 
     const csv = rows
@@ -187,7 +192,8 @@ export default function ListofB2BCategory({
 
     const rows = filtered
       .map(
-        (cat) => `<tr>
+        (cat, index) => `<tr>
+          <td>${escapeHtml(String(index + 1))}</td>
           <td>${escapeHtml(cat.name)}</td>
           <td>${escapeHtml(cat.imageUrl || "-")}</td>
         </tr>`
@@ -211,6 +217,7 @@ export default function ListofB2BCategory({
           <table>
             <thead>
               <tr>
+                <th>S.No</th>
                 <th>Name</th>
                 <th>Image URL</th>
               </tr>
@@ -261,10 +268,35 @@ export default function ListofB2BCategory({
         </button>
       </div>
 
-      <div className={styles.tableWrapper}>
+      <BulkSelectBar
+        endpointPath="b2b-categories"
+        selectedIds={Array.from(bulkSelection.selectedIds)}
+        noun="B2B categories"
+        canDelete={canDelete}
+        onClear={bulkSelection.clear}
+        onDeleted={(deletedIds) => {
+          setCategories((prev) => prev.filter((c) => !deletedIds.includes(c._id)));
+          bulkSelection.removeIds(deletedIds);
+        }}
+      />
+
+      <div className={`${styles.tableWrapper} ${bulkStyles.tableScroll}`}>
         <table className={styles.table}>
           <thead>
             <tr>
+              {canDelete && (
+                <th className={bulkStyles.checkboxCell}>
+                  <input
+                    type="checkbox"
+                    checked={bulkSelection.isAllSelected}
+                    ref={(el) => {
+                      if (el) el.indeterminate = bulkSelection.isSomeSelected;
+                    }}
+                    onChange={bulkSelection.toggleAll}
+                    aria-label="Select all B2B categories on this page"
+                  />
+                </th>
+              )}
               <th>S.No</th>
               <th>Name</th>
               <th>Image</th>
@@ -275,6 +307,16 @@ export default function ListofB2BCategory({
           <tbody>
             {paginatedCategories.map((cat, index) => (
               <tr key={cat._id}>
+                {canDelete && (
+                  <td className={bulkStyles.checkboxCell}>
+                    <input
+                      type="checkbox"
+                      checked={bulkSelection.isSelected(cat._id)}
+                      onChange={() => bulkSelection.toggle(cat._id)}
+                      aria-label={`Select ${cat.name}`}
+                    />
+                  </td>
+                )}
                 <td>{(currentPage - 1) * itemsPerPage + index + 1}</td>
                 <td>{cat.name}</td>
                 <td>
@@ -297,7 +339,7 @@ export default function ListofB2BCategory({
 
             {paginatedCategories.length === 0 && (
               <tr>
-                <td colSpan={4} className={styles.noData}>
+                <td colSpan={canDelete ? 5 : 4} className={styles.noData}>
                   No categories found
                 </td>
               </tr>

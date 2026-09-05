@@ -1,16 +1,16 @@
 .container {
   max-width: 1400px;
-  margin: 40px auto;
-  padding: 40px;
+  margin: 20px auto;
+  padding: 24px;
   background: #ffffff;
   border-radius: 28px;
   box-shadow: 0 30px 80px rgba(15, 23, 42, 0.12);
 }
 
 .heading {
-  font-size: 34px;
-  font-weight: 900;
-  margin-bottom: 30px;
+  font-size: 22px;
+  font-weight: 800;
+  margin-bottom: 18px;
   color: #020617;
 }
 
@@ -44,15 +44,21 @@
 }
 
 .premiumButton {
-  border: 1px solid #d6d6d6;
+  border: none;
   border-radius: 10px;
-  padding: 15px 14px;
-  background: linear-gradient(180deg, #ffffff 0%, #f7f7f7 100%);
-  font-size: 14px;
+  padding: 10px 16px;
+  background: linear-gradient(180deg, #2981b7 0%, #10678c 100%);
+  color: #fff;
+  font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.2px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.14);
   cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.premiumButton:hover {
+  transform: translateY(-1px);
 }
 
 .premiumButtonDisabled {
@@ -70,7 +76,7 @@
 .table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 720px;
+  min-width: 1300px;
 }
 
 .tableHead {
@@ -78,21 +84,26 @@
 }
 
 .tableHead th {
-  font-weight: 800;
+  font-weight: 700;
   text-align: left;
-  padding: 16px 20px;
-  font-size: 12px;
+  padding: 9px 12px;
+  font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: #eaf3ff;
   white-space: nowrap;
+  border-right: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .tableRow td {
-  padding: 16px;
-  border-top: 1px solid #e5e7eb;
-  font-size: 14px;
+  padding: 8px 12px;
+  border: 1px solid #e5e7eb;
+  font-size: 13px;
   color: #334155;
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: normal;
+  vertical-align: middle;
 }
 
 .tableRow:hover {

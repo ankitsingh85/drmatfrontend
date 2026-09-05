@@ -8,6 +8,9 @@ import FullPageLoader from "@/components/common/FullPageLoader";
 import { useToast } from "@/context/ToastContext";
 import { useConfirm } from "@/context/ConfirmContext";
 import TableActions from "@/components/AdminPanel/common/TableActions";
+import BulkSelectBar from "@/components/AdminPanel/common/BulkSelectBar";
+import { useBulkSelection } from "@/hooks/useBulkSelection";
+import bulkStyles from "@/styles/Dashboard/bulkSelect.module.css";
 
 type PermissionRow = {
   module: string;
@@ -127,14 +130,15 @@ export default function ListOfAdmin({ canEdit = true, canDelete = true }: ListOf
   );
 
   const premiumButtonStyle: React.CSSProperties = {
-    border: "1px solid #d6d6d6",
+    border: "none",
     borderRadius: 10,
-    padding: "9px 14px",
-    background: "linear-gradient(180deg, #ffffff 0%, #f7f7f7 100%)",
-    fontSize: 14,
+    padding: "10px 16px",
+    background: "linear-gradient(180deg, #2981b7 0%, #10678c 100%)",
+    color: "#fff",
+    fontSize: 13,
     fontWeight: 600,
     letterSpacing: 0.2,
-    boxShadow: "0 1px 2px rgba(0, 0, 0, 0.08)",
+    boxShadow: "0 4px 10px rgba(15, 23, 42, 0.14)",
     cursor: "pointer",
   };
 
@@ -236,6 +240,14 @@ const fetchAdmins = async () => {
     return filteredAdmins.slice(start, start + itemsPerPage);
   }, [filteredAdmins, currentPage, itemsPerPage]);
 
+  const bulkSelection = useBulkSelection(paginatedAdmins, (admin) => admin._id);
+
+  const summarizePermissions = (admin: Admin) => {
+    if (admin.role === "superadmin") return "Full Access";
+    const count = (admin.permissions || []).filter((p) => p.view).length;
+    return `${count} module${count === 1 ? "" : "s"}`;
+  };
+
   const handleDownloadCSV = () => {
     const rows = [
 
@@ -245,7 +257,11 @@ const fetchAdmins = async () => {
 "Email",
 "Phone",
 "Role",
-"Last Modified"
+"Custom Role",
+"Permissions",
+"Created",
+"Last Modified",
+"Last Modified Field"
 ],
 
 
@@ -261,13 +277,20 @@ a.phone,
 
 a.role,
 
+a.customRoleLabel || "-",
+
+summarizePermissions(a),
+
+a.createdAt ? String(a.createdAt).slice(0, 10) : "-",
 
 a.lastModifiedAt
 ?
 new Date(a.lastModifiedAt)
 .toLocaleString("en-IN")
 :
-"-"
+"-",
+
+a.lastModifiedField || "-"
 
 ])
 
@@ -315,6 +338,11 @@ new Date(a.lastModifiedAt)
           <td>${escapeHtml(a.email)}</td>
           <td>${escapeHtml(a.phone || "-")}</td>
           <td>${escapeHtml(a.role)}</td>
+          <td>${escapeHtml(a.customRoleLabel || "-")}</td>
+          <td>${escapeHtml(summarizePermissions(a))}</td>
+          <td>${escapeHtml(a.createdAt ? String(a.createdAt).slice(0, 10) : "-")}</td>
+          <td>${escapeHtml(a.lastModifiedAt ? String(a.lastModifiedAt).slice(0, 10) : "-")}</td>
+          <td>${escapeHtml(a.lastModifiedField || "-")}</td>
         </tr>`
       )
       .join("");
@@ -341,6 +369,11 @@ new Date(a.lastModifiedAt)
                 <th>Email</th>
                 <th>Phone</th>
                 <th>Role</th>
+                <th>Custom Role</th>
+                <th>Permissions</th>
+                <th>Created</th>
+                <th>Last Modified</th>
+                <th>Last Modified Field</th>
               </tr>
             </thead>
             <tbody>${rows}</tbody>
@@ -511,13 +544,38 @@ new Date(a.lastModifiedAt)
       </div>
 
       {/* ================= TABLE ================= */}
+      <BulkSelectBar
+        endpointPath="admins"
+        selectedIds={Array.from(bulkSelection.selectedIds)}
+        noun="admins"
+        canDelete={canDelete}
+        onClear={bulkSelection.clear}
+        onDeleted={(deletedIds) => {
+          setAdmins((prev) => prev.filter((admin) => !deletedIds.includes(admin._id)));
+          bulkSelection.removeIds(deletedIds);
+        }}
+      />
       {filteredAdmins.length === 0 ? (
         <div className={styles.noData}>No admins found.</div>
       ) : (
-        <div className={styles.tableWrapper}>
+        <div className={`${styles.tableWrapper} ${bulkStyles.tableScroll}`}>
           <table className={styles.table}>
            <thead>
 <tr>
+
+  {canDelete && (
+    <th className={bulkStyles.checkboxCell}>
+      <input
+        type="checkbox"
+        checked={bulkSelection.isAllSelected}
+        ref={(el) => {
+          if (el) el.indeterminate = bulkSelection.isSomeSelected;
+        }}
+        onChange={bulkSelection.toggleAll}
+        aria-label="Select all admins on this page"
+      />
+    </th>
+  )}
 
   <th>Admin ID</th>
 
@@ -529,6 +587,16 @@ new Date(a.lastModifiedAt)
 
   <th>Role</th>
 
+  <th>Custom Role</th>
+
+  <th>Permissions</th>
+
+  <th>Created</th>
+
+  <th>Last Modified</th>
+
+  <th>Last Modified Field</th>
+
   <th>Actions</th>
 
 </tr>
@@ -538,6 +606,16 @@ new Date(a.lastModifiedAt)
               {paginatedAdmins.map((admin) => (
                <tr key={admin._id}>
 
+{canDelete && (
+  <td className={bulkStyles.checkboxCell}>
+    <input
+      type="checkbox"
+      checked={bulkSelection.isSelected(admin._id)}
+      onChange={() => bulkSelection.toggle(admin._id)}
+      aria-label={`Select ${admin.name}`}
+    />
+  </td>
+)}
 
 {/* ADMIN ID */}
 
@@ -576,7 +654,7 @@ new Date(a.lastModifiedAt)
 
 <td>
 
- <span 
+ <span
  className={`${styles.badge} ${styles[admin.role]}`}
  >
 
@@ -584,6 +662,26 @@ new Date(a.lastModifiedAt)
 
  </span>
 
+</td>
+
+<td>
+ {admin.customRoleLabel || "-"}
+</td>
+
+<td>
+ {summarizePermissions(admin)}
+</td>
+
+<td>
+ {admin.createdAt ? String(admin.createdAt).slice(0, 10) : "-"}
+</td>
+
+<td>
+ {admin.lastModifiedAt ? String(admin.lastModifiedAt).slice(0, 10) : "-"}
+</td>
+
+<td>
+ {admin.lastModifiedField || "-"}
 </td>
 
 

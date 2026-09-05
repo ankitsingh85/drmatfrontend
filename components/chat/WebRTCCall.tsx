@@ -43,6 +43,15 @@ const formatDuration = (totalSeconds: number) => {
   return `${minutes}:${seconds}`;
 };
 
+// Without STUN servers, ICE gathering only produces local "host" candidates,
+// which only connect when both peers happen to be on the same network. This
+// mirrors the mobile app's ICE server config so calls can traverse NAT
+// between a browser and the app (or two browsers on different networks).
+const ICE_SERVERS: RTCIceServer[] = [
+  { urls: "stun:stun.l.google.com:19302" },
+  { urls: "stun:stun1.l.google.com:19302" },
+];
+
 const createCallId = () =>
   typeof crypto !== "undefined" && "randomUUID" in crypto
     ? crypto.randomUUID()
@@ -154,7 +163,7 @@ const WebRTCCall = ({
 
   const createPeerConnection = useCallback(
     (nextCallId: string, nextPeerId: string) => {
-      const connection = new RTCPeerConnection();
+      const connection = new RTCPeerConnection({ iceServers: ICE_SERVERS });
       const remoteStream = new MediaStream();
 
       remoteStreamRef.current = remoteStream;
