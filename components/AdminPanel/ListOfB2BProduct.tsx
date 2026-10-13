@@ -45,6 +45,7 @@ interface B2BProduct {
   licenseNumber?: string;
   mrp?: number;
   discountedPrice: number;
+  discountPercent?: number;
   gst: number;
   taxIncluded?: boolean;
   productImages?: string[];
@@ -81,6 +82,7 @@ type B2BProductEditForm = {
   licenseNumber: string;
   mrp: string;
   discountedPrice: string;
+  discountPercent: string;
   gstOption: GstOption;
   customGst: string;
   taxIncluded: boolean;
@@ -112,6 +114,7 @@ const emptyEditForm: B2BProductEditForm = {
   licenseNumber: "",
   mrp: "",
   discountedPrice: "",
+  discountPercent: "",
   gstOption: "5",
   customGst: "",
   taxIncluded: true,
@@ -298,6 +301,8 @@ export default function ListOfB2BProduct({ canEdit = true, canDelete = true }: L
         "Manufacturer",
         "License Number",
         "MRP",
+        "Discounted Price",
+        "Discount %",
         "GST",
         "Tax Included",
         "Video",
@@ -332,6 +337,8 @@ export default function ListOfB2BProduct({ canEdit = true, canDelete = true }: L
         p.manufacturerName || "-",
         p.licenseNumber || "-",
         p.mrp !== undefined ? `Rs ${p.mrp}` : "-",
+        `Rs ${p.discountedPrice}`,
+        p.discountPercent !== undefined ? `${p.discountPercent}%` : "-",
         String(p.gst || 0),
         p.taxIncluded === false ? "No" : "Yes",
         p.productVideoUrl || "-",
@@ -402,6 +409,8 @@ export default function ListOfB2BProduct({ canEdit = true, canDelete = true }: L
           <td>${escapeHtml(p.manufacturerName || "-")}</td>
           <td>${escapeHtml(p.licenseNumber || "-")}</td>
           <td>${escapeHtml(p.mrp !== undefined ? `Rs ${p.mrp}` : "-")}</td>
+          <td>${escapeHtml(`Rs ${p.discountedPrice}`)}</td>
+          <td>${escapeHtml(p.discountPercent !== undefined ? `${p.discountPercent}%` : "-")}</td>
           <td>${escapeHtml(String(p.gst || 0))}%</td>
           <td>${escapeHtml(p.taxIncluded === false ? "No" : "Yes")}</td>
           <td>${escapeHtml(p.productVideoUrl || "-")}</td>
@@ -453,6 +462,8 @@ export default function ListOfB2BProduct({ canEdit = true, canDelete = true }: L
                 <th>Manufacturer</th>
                 <th>License Number</th>
                 <th>MRP</th>
+                <th>Discounted Price</th>
+                <th>Discount %</th>
                 <th>GST</th>
                 <th>Tax Included</th>
                 <th>Video</th>
@@ -510,6 +521,7 @@ export default function ListOfB2BProduct({ canEdit = true, canDelete = true }: L
       licenseNumber: product.licenseNumber || "",
       mrp: product.mrp !== undefined ? String(product.mrp) : "",
       discountedPrice: String(product.discountedPrice ?? ""),
+      discountPercent: product.discountPercent !== undefined ? String(product.discountPercent) : "",
       gstOption: presetMatch,
       customGst: presetMatch === "custom" ? String(product.gst ?? "") : "",
       taxIncluded: product.taxIncluded !== false,
@@ -644,6 +656,7 @@ export default function ListOfB2BProduct({ canEdit = true, canDelete = true }: L
       payload.append("licenseNumber", editForm.licenseNumber.trim());
       payload.append("mrp", editForm.mrp.trim());
       payload.append("discountedPrice", editForm.discountedPrice.trim());
+      payload.append("discountPercent", editForm.discountPercent.trim());
       payload.append("gst", finalGst);
       payload.append("taxIncluded", String(editForm.taxIncluded));
       payload.append("productVideoUrl", editForm.productVideoUrl.trim());
@@ -805,6 +818,8 @@ export default function ListOfB2BProduct({ canEdit = true, canDelete = true }: L
               <th>Manufacturer</th>
               <th>License Number</th>
               <th>MRP</th>
+              <th>Discounted Price</th>
+              <th>Discount %</th>
               <th>GST</th>
               <th>Tax Included</th>
               <th>Video</th>
@@ -864,6 +879,8 @@ export default function ListOfB2BProduct({ canEdit = true, canDelete = true }: L
                 <td>{p.manufacturerName || "-"}</td>
                 <td>{p.licenseNumber || "-"}</td>
                 <td>{p.mrp !== undefined ? `Rs ${p.mrp}` : "-"}</td>
+                <td>{`Rs ${p.discountedPrice}`}</td>
+                <td>{p.discountPercent !== undefined ? `${p.discountPercent}%` : "-"}</td>
                 <td>{p.gst ? `${p.gst}%` : "-"}</td>
                 <td>{p.taxIncluded === false ? "No" : "Yes"}</td>
                 <td>
@@ -1203,6 +1220,20 @@ export default function ListOfB2BProduct({ canEdit = true, canDelete = true }: L
                 </div>
 
                 <div className={formStyles.field}>
+                  <label className={formStyles.label}>Discount %</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    className={formStyles.input}
+                    name="discountPercent"
+                    value={editForm.discountPercent}
+                    onKeyDown={handleEditNumberKeyDown}
+                    onChange={handleEditChange}
+                  />
+                </div>
+
+                <div className={formStyles.field}>
                   <label className={formStyles.label}>GST %</label>
                   <select
                     className={formStyles.select}
@@ -1529,6 +1560,7 @@ export default function ListOfB2BProduct({ canEdit = true, canDelete = true }: L
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12, marginBottom: 20 }}>
               <InfoCard label="MRP" value={viewProduct.mrp !== undefined ? `₹${viewProduct.mrp}` : "-"} />
               <InfoCard label="Discounted Price" value={`₹${viewProduct.discountedPrice ?? 0}`} />
+              <InfoCard label="Discount %" value={viewProduct.discountPercent !== undefined ? `${viewProduct.discountPercent}%` : "-"} />
               <InfoCard label="Price Per Unit" value={viewProduct.pricePerUnit !== undefined ? `₹${viewProduct.pricePerUnit}` : "-"} />
               <InfoCard label="Bulk Price Tier" value={viewProduct.bulkPriceTier || "-"} />
               <InfoCard label="GST" value={`${viewProduct.gst ?? 0}%`} />

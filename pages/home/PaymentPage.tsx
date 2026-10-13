@@ -7,6 +7,7 @@ import Cookies from "js-cookie";
 import styles from "@/styles/user/paymentpage.module.css";
 import { CartItem, useCart } from "@/context/CartContext";
 import { useOrder } from "@/context/OrderContext";
+import { API_URL } from "@/config/api";
 import Topbar from "@/components/Layout/Topbar";
 import {
   FaArrowRight,
@@ -39,6 +40,23 @@ const PaymentPage: React.FC = () => {
   const [doctorName, setDoctorName] = useState("");
   const [doctorAddress, setDoctorAddress] = useState("");
   const [doctorId, setDoctorId] = useState("");
+  const [couponInput, setCouponInput] = useState("");
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [couponError, setCouponError] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<{
+    code: string;
+    discount: number;
+  } | null>(null);
+  const [publicCoupons, setPublicCoupons] = useState<
+    {
+      couponCode: string;
+      couponName: string;
+      discountType: "percent" | "amount";
+      discountValue: number;
+      cartValue?: number;
+      maxDiscount?: number;
+    }[]
+  >([]);
   const [paymentSnapshot, setPaymentSnapshot] = useState<{
     items: CartItem[];
     total: number;
@@ -118,7 +136,98 @@ const PaymentPage: React.FC = () => {
     [activeItems]
   );
 
-  const grandTotal = subtotal;
+  const couponServiceSection = isConsultationCheckout
+    ? "Online Consultation"
+    : isTreatmentCheckout
+    ? "Treatment"
+    : isB2BCheckout
+    ? "B2B Product"
+    : "Product";
+
+  const discountAmount = appliedCoupon?.discount || 0;
+  const grandTotal = Math.max(0, subtotal - discountAmount);
+
+  // The applied coupon stops making sense once the cart or checkout type
+  // it was validated against changes (e.g. the user goes back and edits
+  // the cart) — clear it rather than silently keep charging a stale
+  // discount.
+  useEffect(() => {
+    setAppliedCoupon(null);
+    setCouponError("");
+  }, [subtotal, couponServiceSection]);
+
+  // Coupons the admin has flagged "isPublic" are advertised directly in the
+  // cart for this checkout's service section (or site-wide "All" coupons)
+  // instead of only working for someone who already knows the code.
+  useEffect(() => {
+    if (!couponServiceSection) return;
+    let cancelled = false;
+
+    const fetchPublicCoupons = async () => {
+      try {
+        const res = await fetch(
+          `${API_URL}/coupons/public?serviceSection=${encodeURIComponent(couponServiceSection)}`
+        );
+        const data = await res.json().catch(() => []);
+        if (!cancelled) setPublicCoupons(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error("Failed to fetch public coupons:", err);
+        if (!cancelled) setPublicCoupons([]);
+      }
+    };
+
+    fetchPublicCoupons();
+    return () => {
+      cancelled = true;
+    };
+  }, [couponServiceSection]);
+
+  const handleApplyCoupon = async (codeOverride?: string) => {
+    const code = (codeOverride ?? couponInput).trim();
+    if (!code) {
+      setCouponError("Enter a coupon code");
+      return;
+    }
+
+    setCouponLoading(true);
+    setCouponError("");
+    try {
+      const res = await fetch(`${API_URL}/coupons/apply`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          couponCode: code,
+          serviceSection: couponServiceSection,
+          cartValue: subtotal,
+          userId: Cookies.get("userId") || localStorage.getItem("userId") || undefined,
+          itemIds: activeItems.map((item) => item.id),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.valid) {
+        setCouponError(data.message || "Unable to apply this coupon");
+        setAppliedCoupon(null);
+        return;
+      }
+      setAppliedCoupon({ code: data.couponCode, discount: data.discount });
+    } catch (err) {
+      console.error("Failed to apply coupon:", err);
+      setCouponError("Something went wrong while applying the coupon");
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponInput("");
+    setCouponError("");
+  };
+
+  const handleApplyPublicCoupon = (code: string) => {
+    setCouponInput(code);
+    handleApplyCoupon(code);
+  };
 
   const deliveryType = Array.isArray(type) ? type[0] : type;
   const deliveryAddress = Array.isArray(address) ? address[0] : address;
@@ -234,6 +343,10 @@ const PaymentPage: React.FC = () => {
         clinicName: clinicName || Cookies.get("clinicName") || "",
         doctorName: doctorName || Cookies.get("username") || "",
       });
+      const couponOptions = appliedCoupon
+        ? { couponCode: appliedCoupon.code, discountAmount: appliedCoupon.discount }
+        : {};
+
       await createOrder(
         activeItems,
         grandTotal,
@@ -243,12 +356,12 @@ const PaymentPage: React.FC = () => {
         },
         isConsultationCheckout ? "consultation" : isTreatmentCheckout ? "treatment" : "product",
         isClinicCheckout
-          ? { ownerType: "clinic", clinicId: clinicId || Cookies.get("clinicId") || "" }
+          ? { ownerType: "clinic", clinicId: clinicId || Cookies.get("clinicId") || "", ...couponOptions }
           : isDoctorCheckout
-          ? { ownerType: "doctor", doctorId: doctorId || Cookies.get("doctorId") || "" }
+          ? { ownerType: "doctor", doctorId: doctorId || Cookies.get("doctorId") || "", ...couponOptions }
           : currentRole === "b2buser"
-          ? { ownerType: "b2buser", b2bUserId: Cookies.get("b2bUserId") || "" }
-          : { ownerType: "user" }
+          ? { ownerType: "b2buser", b2bUserId: Cookies.get("b2bUserId") || "", ...couponOptions }
+          : { ownerType: "user", ...couponOptions }
       );
 
       if (isConsultationCheckout) {
@@ -689,11 +802,136 @@ const PaymentPage: React.FC = () => {
             ))}
           </div>
 
+          {!appliedCoupon && publicCoupons.length > 0 && (
+            <div style={{ margin: "16px 0", display: "flex", flexDirection: "column", gap: 8 }}>
+              {publicCoupons.map((coupon) => (
+                <div
+                  key={coupon.couponCode}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 10,
+                    padding: "10px 14px",
+                    borderRadius: 10,
+                    background: "#eff6ff",
+                    border: "1px dashed #93c5fd",
+                  }}
+                >
+                  <div>
+                    <div style={{ fontWeight: 700, color: "#1d4ed8" }}>
+                      {coupon.couponCode} — {coupon.couponName}
+                    </div>
+                    <div style={{ fontSize: 13, color: "#1e40af" }}>
+                      {coupon.discountType === "percent"
+                        ? `${coupon.discountValue}% off`
+                        : `₹${coupon.discountValue} off`}
+                      {coupon.maxDiscount ? ` (up to ₹${coupon.maxDiscount})` : ""}
+                      {coupon.cartValue ? ` on orders above ₹${coupon.cartValue}` : ""}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleApplyPublicCoupon(coupon.couponCode)}
+                    disabled={couponLoading}
+                    style={{
+                      border: "none",
+                      borderRadius: 8,
+                      padding: "8px 14px",
+                      background: "#1d4ed8",
+                      color: "#fff",
+                      fontWeight: 700,
+                      cursor: couponLoading ? "default" : "pointer",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    Apply
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div style={{ margin: "16px 0" }}>
+            {appliedCoupon ? (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "10px 14px",
+                  borderRadius: 10,
+                  background: "#dcfce7",
+                  border: "1px solid #86efac",
+                }}
+              >
+                <span style={{ fontWeight: 700, color: "#166534" }}>
+                  "{appliedCoupon.code}" applied — you saved ₹{appliedCoupon.discount}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleRemoveCoupon}
+                  style={{
+                    border: "none",
+                    background: "transparent",
+                    color: "#166534",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    textDecoration: "underline",
+                  }}
+                >
+                  Remove
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: "flex", gap: 8 }}>
+                <input
+                  type="text"
+                  value={couponInput}
+                  onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                  placeholder="Have a coupon code?"
+                  style={{
+                    flex: 1,
+                    padding: "10px 14px",
+                    borderRadius: 10,
+                    border: "1px solid #d1d5db",
+                    fontSize: 14,
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => handleApplyCoupon()}
+                  disabled={couponLoading}
+                  style={{
+                    border: "none",
+                    borderRadius: 10,
+                    padding: "10px 18px",
+                    background: "linear-gradient(180deg, #2981b7 0%, #10678c 100%)",
+                    color: "#fff",
+                    fontWeight: 700,
+                    cursor: couponLoading ? "default" : "pointer",
+                  }}
+                >
+                  {couponLoading ? "Checking..." : "Apply"}
+                </button>
+              </div>
+            )}
+            {couponError && (
+              <p style={{ color: "#991b1b", fontWeight: 600, marginTop: 8 }}>{couponError}</p>
+            )}
+          </div>
+
           <div className={styles.breakdown}>
             <div className={styles.totalRow}>
               <span>Subtotal</span>
               <strong>₹{subtotal}</strong>
             </div>
+            {discountAmount > 0 && (
+              <div className={styles.totalRow}>
+                <span>Coupon discount</span>
+                <strong style={{ color: "#166534" }}>−₹{discountAmount}</strong>
+              </div>
+            )}
             <div className={styles.grandTotal}>
               <span>Payable amount</span>
               <strong>₹{grandTotal}</strong>

@@ -167,6 +167,7 @@ const ListOfCourse = ({ canEdit = true, canDelete = true }: ListOfCourseProps) =
   const [editFormData, setEditFormData] = useState<EditFormData | null>(null);
   const [saving, setSaving] = useState(false);
   const editSectionRef = useRef<HTMLDivElement | null>(null);
+  const [editCustomLanguageMode, setEditCustomLanguageMode] = useState(false);
 
   const fetchCourses = async () => {
     try {
@@ -245,6 +246,9 @@ const ListOfCourse = ({ canEdit = true, canDelete = true }: ListOfCourseProps) =
   const openEditModal = (course: Course) => {
     setEditingCourse(course);
     setEditFormData(createEditFormData(course));
+    setEditCustomLanguageMode(
+      Boolean(course.languageOfDelivery) && !languageOptions.includes(course.languageOfDelivery || "")
+    );
     setError("");
     setTimeout(() => {
       editSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -1120,10 +1124,16 @@ const ListOfCourse = ({ canEdit = true, canDelete = true }: ListOfCourseProps) =
                   <label className={createStyles.label}>Language Of Delivery</label>
                   <select
                     className={createStyles.input}
-                    value={editFormData.languageOfDelivery}
-                    onChange={(e) =>
-                      handleEditChange("languageOfDelivery", e.target.value)
-                    }
+                    value={editCustomLanguageMode ? "Custom" : editFormData.languageOfDelivery}
+                    onChange={(e) => {
+                      if (e.target.value === "Custom") {
+                        setEditCustomLanguageMode(true);
+                        handleEditChange("languageOfDelivery", "");
+                      } else {
+                        setEditCustomLanguageMode(false);
+                        handleEditChange("languageOfDelivery", e.target.value);
+                      }
+                    }}
                   >
                     <option value="">Select language</option>
                     {languageOptions.map((option) => (
@@ -1131,7 +1141,17 @@ const ListOfCourse = ({ canEdit = true, canDelete = true }: ListOfCourseProps) =
                         {option}
                       </option>
                     ))}
+                    <option value="Custom">Custom</option>
                   </select>
+                  {editCustomLanguageMode && (
+                    <input
+                      type="text"
+                      className={createStyles.input}
+                      value={editFormData.languageOfDelivery}
+                      onChange={(e) => handleEditChange("languageOfDelivery", e.target.value)}
+                      placeholder="Enter custom language of delivery"
+                    />
+                  )}
                 </div>
 
                 <div className={createStyles.field}>

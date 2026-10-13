@@ -27,6 +27,8 @@ export interface IOrder {
     clinicAddress?: string;
   }[];
   totalAmount: number;
+  couponCode?: string;
+  discountAmount?: number;
   address: { type: string; address: string };
   createdAt?: string;
 }
@@ -43,6 +45,8 @@ interface OrderContextType {
       clinicId?: string;
       doctorId?: string;
       b2bUserId?: string;
+      couponCode?: string;
+      discountAmount?: number;
     }
   ) => Promise<void>;
   setOrders: React.Dispatch<React.SetStateAction<IOrder[]>>;
@@ -65,6 +69,8 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({
       clinicId?: string;
       doctorId?: string;
       b2bUserId?: string;
+      couponCode?: string;
+      discountAmount?: number;
     }
   ) => {
     const role = Cookies.get("role")?.toLowerCase();
@@ -143,6 +149,8 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({
               ownerType: "doctor",
               products: formattedProducts,
               totalAmount: total,
+              couponCode: options?.couponCode,
+              discountAmount: options?.discountAmount,
               address,
               orderType: derivedOrderType,
             }
@@ -153,6 +161,8 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({
               ownerType,
               products: formattedProducts,
               totalAmount: total,
+              couponCode: options?.couponCode,
+              discountAmount: options?.discountAmount,
               address,
               orderType: derivedOrderType,
             };

@@ -4,8 +4,10 @@ import { API_URL } from "@/config/api";
 import React, { useEffect, useState } from "react";
 import styles from "@/styles/Dashboard/createdoctor.module.css";
 import { resolveMediaUrl } from "@/lib/media";
+import { useToast } from "@/context/ToastContext";
 
 const CreateDoctor = () => {
+  const toast = useToast();
   const [nextDoctorCode, setNextDoctorCode] = useState("Dr-000000-1");
   const [formData, setFormData] = useState({
     title: "",
@@ -29,6 +31,7 @@ const CreateDoctor = () => {
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [messageIsError, setMessageIsError] = useState(false);
 
   const titles = ["Dr.", "Prof.", "Mr.", "Ms."];
 
@@ -78,11 +81,12 @@ const CreateDoctor = () => {
       const data = await res.json();
 
       if (res.ok) {
-        setMessage(
-          data?.doctor?.doctorCode
-            ? `Doctor created successfully. Code: ${data.doctor.doctorCode}`
-            : "Doctor created successfully"
-        );
+        const successMessage = data?.doctor?.doctorCode
+          ? `Doctor created successfully. Code: ${data.doctor.doctorCode}`
+          : "Doctor created successfully";
+        setMessage(successMessage);
+        setMessageIsError(false);
+        toast.success(successMessage);
         window.dispatchEvent(new Event("admin-dashboard:create-success"));
 
         await fetchNextDoctorCode();
@@ -99,11 +103,16 @@ const CreateDoctor = () => {
         setProfileImage(null);
         setProfilePreview("");
       } else {
-        setMessage(data.message || "❌ Failed to create doctor");
+        const errorMessage = data.message || "Failed to create doctor";
+        setMessage(errorMessage);
+        setMessageIsError(true);
+        toast.error(errorMessage);
       }
     } catch (err) {
       console.error(err);
-      setMessage("❌ Server error");
+      setMessage("Server error");
+      setMessageIsError(true);
+      toast.error("Server error");
     } finally {
       setLoading(false);
     }
@@ -147,7 +156,20 @@ const CreateDoctor = () => {
 
   return (
     <div className={styles.container}>
-      {message && <p>{message}</p>}
+      {message && (
+        <p
+          style={{
+            padding: "10px 14px",
+            borderRadius: 10,
+            fontWeight: 700,
+            color: messageIsError ? "#991b1b" : "#166534",
+            background: messageIsError ? "#fee2e2" : "#dcfce7",
+            border: `1px solid ${messageIsError ? "#fca5a5" : "#86efac"}`,
+          }}
+        >
+          {message}
+        </p>
+      )}
 
       <form className={styles.form} onSubmit={handleSubmit}>
         {/* ===== BASIC INFO ===== */}

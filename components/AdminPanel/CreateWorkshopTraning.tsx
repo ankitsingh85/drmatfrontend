@@ -180,6 +180,7 @@ export default function CreateWorkshopTraning() {
   const [message, setMessage] = useState("");
   const [preview, setPreview] = useState("");
   const [trainerPreview, setTrainerPreview] = useState("");
+  const [customLanguageMode, setCustomLanguageMode] = useState(false);
 
   const setValue = (key: keyof FormState, value: any) => {
     const next = { ...form, [key]: value };
@@ -208,7 +209,6 @@ export default function CreateWorkshopTraning() {
       next.discountPercent = "Discount % must be between 0 and 100";
     }
     if (data.certificationProvided && !yesNo.includes(data.certificationProvided)) next.certificationProvided = "Select Yes or No";
-    if (data.languageOfDelivery && !languages.includes(data.languageOfDelivery)) next.languageOfDelivery = "Select a valid language";
     if (data.endDate && data.startDate && new Date(data.endDate) < new Date(data.startDate)) next.endDate = "End date must be on or after start date";
     if (data.registrationDeadline && data.startDate && new Date(data.registrationDeadline) > new Date(data.startDate)) next.registrationDeadline = "Registration deadline should be on or before start date";
 
@@ -586,10 +586,32 @@ export default function CreateWorkshopTraning() {
               <textarea className={styles.textarea} value={form.trainerExperience} onChange={(e) => setValue("trainerExperience", e.target.value)} />
             </Field>
             <Field label={labelMap.languageOfDelivery} error={errorFor("languageOfDelivery")}>
-              <select className={styles.select} value={form.languageOfDelivery} onChange={(e) => setValue("languageOfDelivery", e.target.value)}>
+              <select
+                className={styles.select}
+                value={customLanguageMode ? "Custom" : form.languageOfDelivery}
+                onChange={(e) => {
+                  if (e.target.value === "Custom") {
+                    setCustomLanguageMode(true);
+                    setValue("languageOfDelivery", "");
+                  } else {
+                    setCustomLanguageMode(false);
+                    setValue("languageOfDelivery", e.target.value);
+                  }
+                }}
+              >
                 <option value="">Select</option>
                 {languages.map((item) => <option key={item} value={item}>{item}</option>)}
+                <option value="Custom">Custom</option>
               </select>
+              {customLanguageMode && (
+                <input
+                  type="text"
+                  className={styles.input}
+                  value={form.languageOfDelivery}
+                  onChange={(e) => setValue("languageOfDelivery", e.target.value)}
+                  placeholder="Enter custom language of delivery"
+                />
+              )}
             </Field>
             <Field label={labelMap.trainerImage} error={errorFor("trainerImage")}>
               <div className={styles.uploadBox}>

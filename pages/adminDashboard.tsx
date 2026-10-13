@@ -88,6 +88,8 @@ import {
   FiCheckCircle,
   FiLoader,
   FiAlertCircle,
+  FiPercent,
+  FiCreditCard,
 } from "react-icons/fi";
 import {
   BULK_UPLOAD_CONFIG,
@@ -102,6 +104,10 @@ import ListofB2BCategory from "@/components/AdminPanel/ListofB2BCategory";
 import ListOfTreatment from "@/components/AdminPanel/ListOfTreatment";
 import CreateOnlineConsultationService from "@/components/AdminPanel/CreateOnlineConsultationService";
 import ListOfOnlineConsultationService from "@/components/AdminPanel/ListOfOnlineConsultationService";
+import CreateCoupon from "@/components/AdminPanel/CreateCoupon";
+import ListOfCoupon from "@/components/AdminPanel/ListOfCoupon";
+import ClinicPlanSettings from "@/components/AdminPanel/ClinicPlanSettings";
+import ListOfClinicSubscriptions from "@/components/AdminPanel/ListOfClinicSubscriptions";
 import Topbar from "@/components/Layout/Topbar";
 import Footer from "@/components/Layout/Footer";
 import MobileNavbar from "@/components/Layout/MobileNavbar";
@@ -539,6 +545,24 @@ export default function AdminDashboard() {
       icon: <FiVideo />,
       ListComponent: ListOfOnlineConsultationService,
       CreateComponent: CreateOnlineConsultationService,
+    },
+    {
+      id: "coupon",
+      label: "COUPON",
+      listLabel: "List of Coupons",
+      createLabel: "Create Coupon",
+      icon: <FiPercent />,
+      ListComponent: ListOfCoupon,
+      CreateComponent: CreateCoupon,
+    },
+    {
+      id: "clinicSubscription",
+      label: "CLINIC PLAN",
+      listLabel: "Clinic Subscriptions",
+      createLabel: "Plan Settings",
+      icon: <FiCreditCard />,
+      ListComponent: ListOfClinicSubscriptions,
+      CreateComponent: ClinicPlanSettings,
     },
   ];
 

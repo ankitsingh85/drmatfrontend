@@ -80,6 +80,13 @@ const ListOfProduct: React.FC<ListOfProductProps> = ({ canEdit = true, canDelete
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [editForm, setEditForm] = useState<Partial<Product>>({});
   const [isEditing, setIsEditing] = useState(false);
+  const [editCustomUnitMode, setEditCustomUnitMode] = useState(false);
+  const [editCustomTaxMode, setEditCustomTaxMode] = useState(false);
+  const [editCustomGenderMode, setEditCustomGenderMode] = useState(false);
+
+  const QUANTITY_UNIT_PRESETS = ["Nos", "Qty", "ML", "Grams", "KG", "Litre"];
+  const TAX_PERCENT_PRESETS = ["5", "12", "18", "28"];
+  const GENDER_PRESETS = ["Unisex", "Male", "Female"];
 
   /* ================= FETCH ================= */
   useEffect(() => {
@@ -382,6 +389,17 @@ const getCategoryName = (ids: string[]) => {
     setEditingProduct(product);
     setEditForm({ ...product });
     setIsEditing(true);
+    setEditCustomUnitMode(
+      Boolean(product.quantityUnit) && !QUANTITY_UNIT_PRESETS.includes(product.quantityUnit || "")
+    );
+    setEditCustomTaxMode(
+      product.taxPercent !== undefined &&
+        product.taxPercent !== null &&
+        !TAX_PERCENT_PRESETS.includes(String(product.taxPercent))
+    );
+    setEditCustomGenderMode(
+      Boolean(product.gender) && !GENDER_PRESETS.includes(product.gender || "")
+    );
   };
 
   const numericEditFields = new Set([
@@ -1090,8 +1108,16 @@ No products found.
                     <select
                       className={createStyles.select}
                       name="quantityUnit"
-                      value={editForm.quantityUnit || "Nos"}
-                      onChange={handleEditChange}
+                      value={editCustomUnitMode ? "Custom" : editForm.quantityUnit || "Nos"}
+                      onChange={(e) => {
+                        if (e.target.value === "Custom") {
+                          setEditCustomUnitMode(true);
+                          setEditForm((prev) => ({ ...prev, quantityUnit: "" }));
+                        } else {
+                          setEditCustomUnitMode(false);
+                          handleEditChange(e);
+                        }
+                      }}
                     >
                       <option value="Nos">Nos</option>
                       <option value="Qty">Qty</option>
@@ -1099,7 +1125,18 @@ No products found.
                       <option value="Grams">Grams</option>
                       <option value="KG">KG</option>
                       <option value="Litre">Litre</option>
+                      <option value="Custom">Custom</option>
                     </select>
+                    {editCustomUnitMode && (
+                      <input
+                        type="text"
+                        className={createStyles.input}
+                        name="quantityUnit"
+                        value={editForm.quantityUnit || ""}
+                        onChange={handleEditChange}
+                        placeholder="Enter custom unit"
+                      />
+                    )}
                   </div>
                 </div>
 
@@ -1150,14 +1187,34 @@ No products found.
                   <select
                     className={createStyles.select}
                     name="taxPercent"
-                    value={editForm.taxPercent ?? ""}
-                    onChange={handleEditChange}
+                    value={editCustomTaxMode ? "Custom" : editForm.taxPercent ?? ""}
+                    onChange={(e) => {
+                      if (e.target.value === "Custom") {
+                        setEditCustomTaxMode(true);
+                        setEditForm((prev) => ({ ...prev, taxPercent: undefined }));
+                      } else {
+                        setEditCustomTaxMode(false);
+                        handleEditChange(e);
+                      }
+                    }}
                   >
                     <option value="5">5%</option>
                     <option value="12">12%</option>
                     <option value="18">18%</option>
                     <option value="28">28%</option>
+                    <option value="Custom">Custom</option>
                   </select>
+                  {editCustomTaxMode && (
+                    <input
+                      type="text"
+                      className={createStyles.input}
+                      name="taxPercent"
+                      value={editForm.taxPercent ?? ""}
+                      onChange={handleEditChange}
+                      inputMode="numeric"
+                      placeholder="Enter custom GST / Tax %"
+                    />
+                  )}
                 </div>
 
                 <div className={createStyles.field}>
@@ -1292,13 +1349,32 @@ No products found.
                   <select
                     className={createStyles.select}
                     name="gender"
-                    value={editForm.gender || "Unisex"}
-                    onChange={handleEditChange}
+                    value={editCustomGenderMode ? "Custom" : editForm.gender || "Unisex"}
+                    onChange={(e) => {
+                      if (e.target.value === "Custom") {
+                        setEditCustomGenderMode(true);
+                        setEditForm((prev) => ({ ...prev, gender: "" }));
+                      } else {
+                        setEditCustomGenderMode(false);
+                        handleEditChange(e);
+                      }
+                    }}
                   >
                     <option>Unisex</option>
                     <option>Male</option>
                     <option>Female</option>
+                    <option value="Custom">Custom</option>
                   </select>
+                  {editCustomGenderMode && (
+                    <input
+                      type="text"
+                      className={createStyles.input}
+                      name="gender"
+                      value={editForm.gender || ""}
+                      onChange={handleEditChange}
+                      placeholder="Enter custom gender / audience"
+                    />
+                  )}
                 </div>
 
                 <div className={createStyles.field}>

@@ -102,6 +102,120 @@ export default function ListOfSupportTickets({
 
   const bulkSelection = useBulkSelection(filteredTickets, (ticket) => ticket._id);
 
+  const handleDownloadCSV = () => {
+    const rows = [
+      [
+        "Ticket #",
+        "Requester",
+        "Requester Type",
+        "Email",
+        "Phone",
+        "Department",
+        "Subject",
+        "Priority",
+        "Status",
+        "Last Updated",
+      ],
+      ...filteredTickets.map((ticket) => [
+        ticket.ticketNumber,
+        ticket.requesterName,
+        REQUESTER_TYPE_LABEL[ticket.requesterType],
+        ticket.requesterEmail || "-",
+        ticket.requesterPhone || "-",
+        ticket.department || "-",
+        ticket.subject,
+        ticket.priority,
+        ticket.status,
+        formatDate(ticket.updatedAt),
+      ]),
+    ];
+
+    const csv = rows
+      .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "support-tickets.csv";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleDownloadPDF = () => {
+    const printable = window.open("", "_blank");
+    if (!printable) {
+      toast.error("Unable to open print window. Please allow popups.");
+      return;
+    }
+
+    const escapeHtml = (value: string) =>
+      value
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+
+    const rows = filteredTickets
+      .map(
+        (ticket) => `<tr>
+          <td>${escapeHtml(ticket.ticketNumber)}</td>
+          <td>${escapeHtml(ticket.requesterName)}</td>
+          <td>${escapeHtml(REQUESTER_TYPE_LABEL[ticket.requesterType])}</td>
+          <td>${escapeHtml(ticket.requesterEmail || "-")}</td>
+          <td>${escapeHtml(ticket.requesterPhone || "-")}</td>
+          <td>${escapeHtml(ticket.department || "-")}</td>
+          <td>${escapeHtml(ticket.subject)}</td>
+          <td>${escapeHtml(ticket.priority)}</td>
+          <td>${escapeHtml(ticket.status)}</td>
+          <td>${escapeHtml(formatDate(ticket.updatedAt))}</td>
+        </tr>`
+      )
+      .join("");
+
+    printable.document.write(`
+      <html>
+        <head>
+          <title>Support Tickets</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            h2 { margin-bottom: 16px; }
+            table { width: 100%; border-collapse: collapse; }
+            th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+            th { background: #f4f4f4; }
+          </style>
+        </head>
+        <body>
+          <h2>Support Tickets</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Ticket #</th>
+                <th>Requester</th>
+                <th>Requester Type</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Department</th>
+                <th>Subject</th>
+                <th>Priority</th>
+                <th>Status</th>
+                <th>Last Updated</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </body>
+      </html>
+    `);
+    printable.document.close();
+    printable.focus();
+    printable.print();
+  };
+
   if (selectedTicketId) {
     return (
       <div style={{ padding: 4 }}>
@@ -155,6 +269,40 @@ export default function ListOfSupportTickets({
           <option value="answered">Answered</option>
           <option value="closed">Closed</option>
         </select>
+        <button
+          type="button"
+          onClick={handleDownloadCSV}
+          style={{
+            border: "none",
+            borderRadius: 10,
+            padding: "10px 16px",
+            background: "linear-gradient(180deg, #2981b7 0%, #10678c 100%)",
+            color: "#fff",
+            fontSize: 13,
+            fontWeight: 600,
+            cursor: "pointer",
+            boxShadow: "0 4px 10px rgba(15, 23, 42, 0.14)",
+          }}
+        >
+          Download CSV
+        </button>
+        <button
+          type="button"
+          onClick={handleDownloadPDF}
+          style={{
+            border: "none",
+            borderRadius: 10,
+            padding: "10px 16px",
+            background: "linear-gradient(180deg, #2981b7 0%, #10678c 100%)",
+            color: "#fff",
+            fontSize: 13,
+            fontWeight: 600,
+            cursor: "pointer",
+            boxShadow: "0 4px 10px rgba(15, 23, 42, 0.14)",
+          }}
+        >
+          Download PDF
+        </button>
       </div>
 
       <BulkSelectBar

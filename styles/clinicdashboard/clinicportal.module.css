@@ -142,8 +142,13 @@
 }
 
 .menuItemActive {
-  background: linear-gradient(180deg, #eaf3ff 0%, #dfeeff 100%);
-  color: #173252;
+  background: linear-gradient(135deg, #1f49be 0%, #2981b7 100%);
+  color: #fff;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.menuItemActive .menuArrow {
+  opacity: 1;
 }
 
 .menuLabel {
@@ -229,21 +234,43 @@
 }
 
 .heroStats {
+  position: relative;
+  z-index: 1;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 12px;
-  margin-top: 18px;
+  margin-top: 22px;
 }
 
 .statCard {
   border-radius: 18px;
-  padding: 14px 16px;
-  border: 1px solid rgba(153, 169, 192, 0.2);
-  background: rgba(255, 255, 255, 0.95);
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 10px 24px rgba(16, 48, 107, 0.1);
+  border-top: 3px solid var(--stat-accent, #2981b7);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.statCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px rgba(16, 48, 107, 0.16);
+}
+
+.statIconChip {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+  background: var(--stat-accent-soft, #eaf3ff);
+  color: var(--stat-accent, #2981b7);
+  font-size: 1rem;
 }
 
 .statLabel {
-  margin: 0 0 8px;
+  margin: 0 0 6px;
   font-size: 0.82rem;
   color: #6d7f98;
   font-weight: 700;
@@ -251,7 +278,7 @@
 
 .statValue {
   margin: 0;
-  font-size: 1.2rem;
+  font-size: 1.25rem;
   font-weight: 800;
   color: #163252;
 }
@@ -262,6 +289,90 @@
   background: rgba(255, 255, 255, 0.92);
   border: 1px solid rgba(153, 169, 192, 0.2);
   box-shadow: 0 16px 40px rgba(23, 43, 73, 0.06);
+}
+
+/* ---------- Hero banner (brand gradient) ---------- */
+.heroBanner {
+  position: relative;
+  overflow: hidden;
+  border-radius: 28px;
+  padding: 28px 30px;
+  background: linear-gradient(135deg, #10306b 0%, #1f49be 55%, #2981b7 100%);
+  box-shadow: 0 22px 50px rgba(20, 44, 94, 0.28);
+}
+
+.heroBanner::before,
+.heroBanner::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.heroBanner::before {
+  width: 320px;
+  height: 320px;
+  top: -140px;
+  right: -80px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.16) 0%, transparent 70%);
+}
+
+.heroBanner::after {
+  width: 220px;
+  height: 220px;
+  bottom: -120px;
+  left: 10%;
+  background: radial-gradient(circle, rgba(74, 222, 128, 0.18) 0%, transparent 70%);
+}
+
+.heroKicker {
+  position: relative;
+  z-index: 1;
+  margin: 0 0 8px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: rgba(255, 255, 255, 0.78);
+  text-transform: uppercase;
+}
+
+.heroTitle {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  font-size: clamp(1.5rem, 2.4vw, 2.2rem);
+  line-height: 1.1;
+  font-weight: 800;
+  color: #fff;
+}
+
+.heroSubtitle {
+  position: relative;
+  z-index: 1;
+  margin: 10px 0 0;
+  max-width: 68ch;
+  color: rgba(255, 255, 255, 0.82);
+  line-height: 1.6;
+}
+
+.heroEditBtn {
+  position: relative;
+  z-index: 1;
+  border: none;
+  border-radius: 999px;
+  background: #fff;
+  color: #10306b;
+  font-size: 1rem;
+  font-weight: 800;
+  padding: 14px 20px;
+  cursor: pointer;
+  box-shadow: 0 10px 22px rgba(10, 20, 50, 0.25);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.heroEditBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 28px rgba(10, 20, 50, 0.3);
 }
 
 .dashboardLayout {
@@ -405,11 +516,19 @@
 .quickActionBtn {
   width: 100%;
   border: 1px solid rgba(153, 169, 192, 0.22);
+  border-left: 3px solid #2981b7;
   border-radius: 16px;
   background: linear-gradient(180deg, #fff 0%, #f7faff 100%);
   padding: 14px 16px;
   text-align: left;
   cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.quickActionBtn:hover {
+  transform: translateX(2px);
+  box-shadow: 0 10px 22px rgba(23, 43, 73, 0.08);
+  border-left-color: #0f9d58;
 }
 
 .quickActionRow {
@@ -434,6 +553,66 @@
   display: grid;
   gap: 12px;
   margin-top: 16px;
+}
+
+/* ---------- Add-on promo card (dashboard overview) ---------- */
+.addonPromo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+  padding: 20px 24px;
+  border-radius: 22px;
+  background: linear-gradient(135deg, #0f766e 0%, #0f9d58 100%);
+  color: #fff;
+  box-shadow: 0 16px 34px rgba(15, 118, 110, 0.22);
+}
+
+.addonPromoLeft {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.addonPromoIcon {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.18);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  flex-shrink: 0;
+}
+
+.addonPromoTitle {
+  margin: 0;
+  font-weight: 800;
+  font-size: 1.05rem;
+}
+
+.addonPromoText {
+  margin: 4px 0 0;
+  font-size: 0.88rem;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.addonPromoBtn {
+  border: none;
+  border-radius: 999px;
+  padding: 12px 22px;
+  background: #fff;
+  color: #0f766e;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: transform 0.15s ease;
+}
+
+.addonPromoBtn:hover {
+  transform: translateY(-2px);
 }
 
 .leadEmptyState {
@@ -568,6 +747,10 @@
     position: relative;
     top: auto;
   }
+
+  .heroStats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 900px) {
@@ -577,6 +760,14 @@
 
   .heroTop {
     flex-direction: column;
+  }
+
+  .heroBanner {
+    padding: 22px 18px;
+  }
+
+  .addonPromo {
+    padding: 18px;
   }
 
   .heroStats {

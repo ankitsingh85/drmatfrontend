@@ -33,6 +33,11 @@ type Clinic = {
   verifiedBadge?: boolean;
   trusted?: boolean;
   mapLink?: string;
+  // Computed server-side: only true when the clinic has an active
+  // subscription (or admin forced it on) — gates the WhatsApp button and
+  // the verified badge respectively.
+  whatsappVisible?: boolean;
+  verifiedBadgeVisible?: boolean;
 };
 
 interface ClinicCardProps {
@@ -53,7 +58,7 @@ const ClinicCard: React.FC<ClinicCardProps> = ({ clinic }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [loginModalAction, setLoginModalAction] = useState<string | null>(null);
   const callNumber = clinic.mobile || clinic.contactNumber;
-  const isVerified = clinic.verifiedBadge === true || clinic.verified === true;
+  const isVerified = clinic.verifiedBadgeVisible === true;
 
   const redirectToLogin = () => {
     if (typeof window === "undefined") return;
@@ -238,7 +243,7 @@ const ClinicCard: React.FC<ClinicCardProps> = ({ clinic }) => {
       <div className={styles.rightSection}>
         <div className={styles.nameRow}>
           <span className={styles.name}>{clinic.name}</span>
-          {clinic.verified && (
+          {isVerified && (
             <span className={styles.verified}>✔ Verified</span>
           )}
         </div>
@@ -270,31 +275,33 @@ const ClinicCard: React.FC<ClinicCardProps> = ({ clinic }) => {
             <IoCall className={styles.icons} /> Call
           </a>
 
-          <a
-            href={
-              clinic.whatsapp
-                ? `https://wa.me/${clinic.whatsapp.replace(/\D/g, "")}`
-                : undefined
-            }
-            onClick={(e) =>
-              (() => {
-                const allowed = requireUserLogin(e, "chat on WhatsApp");
-                if (!allowed || !clinic.whatsapp) return;
-                e.preventDefault();
-                void recordLead("whatsapp");
-                window.open(
-                  `https://wa.me/${clinic.whatsapp.replace(/\D/g, "")}`,
-                  "_blank",
-                  "noopener,noreferrer"
-                );
-              })()
-            }
-            className={styles.whatsapp}
-            target="_blank"
-            rel="noreferrer"
-          >
-            <FaWhatsapp className={styles.icons} /> WhatsApp
-          </a>
+          {clinic.whatsappVisible && (
+            <a
+              href={
+                clinic.whatsapp
+                  ? `https://wa.me/${clinic.whatsapp.replace(/\D/g, "")}`
+                  : undefined
+              }
+              onClick={(e) =>
+                (() => {
+                  const allowed = requireUserLogin(e, "chat on WhatsApp");
+                  if (!allowed || !clinic.whatsapp) return;
+                  e.preventDefault();
+                  void recordLead("whatsapp");
+                  window.open(
+                    `https://wa.me/${clinic.whatsapp.replace(/\D/g, "")}`,
+                    "_blank",
+                    "noopener,noreferrer"
+                  );
+                })()
+              }
+              className={styles.whatsapp}
+              target="_blank"
+              rel="noreferrer"
+            >
+              <FaWhatsapp className={styles.icons} /> WhatsApp
+            </a>
+          )}
 
           {clinic.mapLink && (
             <a

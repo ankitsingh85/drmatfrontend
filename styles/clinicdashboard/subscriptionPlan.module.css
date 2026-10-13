@@ -1,0 +1,357 @@
+.page {
+  display: grid;
+  gap: 24px;
+  max-width: 980px;
+}
+
+/* ---------- Status hero ---------- */
+.statusHero {
+  display: grid;
+  gap: 14px;
+  padding: 22px 26px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #0f766e 0%, #0f9d58 100%);
+  color: #fff;
+  box-shadow: 0 14px 30px rgba(15, 118, 110, 0.25);
+}
+
+.statusHero.inactive {
+  background: linear-gradient(135deg, #64748b 0%, #41556f 100%);
+  box-shadow: 0 14px 30px rgba(65, 85, 111, 0.2);
+}
+
+.statusHeroTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.statusExpiry {
+  font-size: 0.9rem;
+  opacity: 0.9;
+}
+
+.perkRow {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.perkChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.15);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.perkChip.on {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.perkDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.45);
+}
+
+.perkChip.on .perkDot {
+  background: #d1fae5;
+  box-shadow: 0 0 0 3px rgba(209, 250, 229, 0.3);
+}
+
+/* ---------- Plan card ---------- */
+.planCard {
+  padding: 28px;
+  border-radius: 22px;
+  background: #fff;
+  border: 1px solid rgba(153, 169, 192, 0.2);
+  box-shadow: 0 14px 34px rgba(23, 43, 73, 0.06);
+}
+
+.planHeaderRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.kicker {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #0f9d58;
+  background: #ecfdf5;
+  padding: 4px 10px;
+  border-radius: 999px;
+  margin-bottom: 10px;
+}
+
+.planName {
+  margin: 0;
+  font-size: 1.6rem;
+  color: #163252;
+  font-weight: 800;
+}
+
+.planDescription {
+  margin: 6px 0 0;
+  color: #5f718a;
+  max-width: 520px;
+}
+
+.featureGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin-top: 22px;
+}
+
+.featureItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: #f8fafc;
+  color: #314461;
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+
+.featureCheck {
+  color: #16a34a;
+  flex-shrink: 0;
+}
+
+.cycleLabel {
+  margin: 26px 0 10px;
+  font-weight: 700;
+  color: #163252;
+  font-size: 0.95rem;
+}
+
+.cycleRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.cycleButton {
+  padding: 16px 18px;
+  border-radius: 16px;
+  border: 2px solid rgba(153, 169, 192, 0.25);
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.1s ease;
+}
+
+.cycleButton:hover {
+  transform: translateY(-1px);
+}
+
+.cycleButton.active {
+  border-color: #0f9d58;
+  background: #f0fdf4;
+}
+
+.cycleTitle {
+  font-weight: 700;
+  color: #163252;
+  font-size: 0.9rem;
+}
+
+.cyclePrice {
+  margin-top: 6px;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #0f9d58;
+}
+
+.cycleSub {
+  margin-top: 2px;
+  font-size: 0.78rem;
+  color: #8291a8;
+}
+
+.disabledNotice {
+  margin-top: 20px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: #fff5f5;
+  border: 1px solid rgba(220, 38, 38, 0.18);
+  color: #b42318;
+  font-weight: 600;
+}
+
+/* ---------- Add-ons ---------- */
+.addonsSection {
+  padding: 26px 28px;
+  border-radius: 22px;
+  background: #fff;
+  border: 1px solid rgba(153, 169, 192, 0.2);
+  box-shadow: 0 14px 34px rgba(23, 43, 73, 0.06);
+}
+
+.addonsHeading {
+  margin: 0 0 4px;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #163252;
+}
+
+.addonsSubtext {
+  margin: 0 0 18px;
+  color: #5f718a;
+  font-size: 0.9rem;
+}
+
+.addonsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.addonCard {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 16px;
+  border: 2px solid rgba(153, 169, 192, 0.25);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+  background: #fff;
+}
+
+.addonCard.selected {
+  border-color: #2981b7;
+  background: #f0f8ff;
+}
+
+.addonCheckbox {
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  accent-color: #2981b7;
+  flex-shrink: 0;
+}
+
+.addonBody {
+  flex: 1;
+}
+
+.addonName {
+  font-weight: 700;
+  color: #163252;
+  font-size: 0.95rem;
+}
+
+.addonDescription {
+  margin: 4px 0 0;
+  font-size: 0.82rem;
+  color: #6d7f98;
+}
+
+.addonPrice {
+  margin-top: 8px;
+  font-weight: 800;
+  color: #2981b7;
+}
+
+/* ---------- Summary bar ---------- */
+.summaryBar {
+  padding: 22px 26px;
+  border-radius: 20px;
+  background: #163252;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  box-shadow: 0 14px 30px rgba(22, 50, 82, 0.25);
+}
+
+.summaryLines {
+  display: grid;
+  gap: 4px;
+}
+
+.summaryLine {
+  display: flex;
+  gap: 10px;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.summaryTotalLine {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  margin-top: 6px;
+}
+
+.summaryTotalLabel {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.summaryTotalValue {
+  font-size: 1.7rem;
+  font-weight: 800;
+  color: #4ade80;
+}
+
+.subscribeBtn {
+  padding: 15px 28px;
+  border-radius: 14px;
+  border: none;
+  background: linear-gradient(180deg, #2981b7 0%, #10678c 100%);
+  color: #fff;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: transform 0.1s ease, box-shadow 0.15s ease;
+  box-shadow: 0 10px 22px rgba(16, 103, 140, 0.35);
+}
+
+.subscribeBtn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.subscribeBtn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+@media (max-width: 640px) {
+  .summaryBar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .subscribeBtn {
+    width: 100%;
+  }
+}

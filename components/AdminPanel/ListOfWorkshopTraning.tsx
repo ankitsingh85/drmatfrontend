@@ -274,6 +274,7 @@ export default function ListOfWorkshopTraning({
   const [editTrainerPreview, setEditTrainerPreview] = useState("");
   const [editError, setEditError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [editCustomLanguageMode, setEditCustomLanguageMode] = useState(false);
 
   const fetchWorkshopTrainings = async () => {
     try {
@@ -618,6 +619,9 @@ export default function ListOfWorkshopTraning({
     setEditingItem(item);
     setEditImagePreview("");
     setEditTrainerPreview("");
+    setEditCustomLanguageMode(
+      Boolean(item.languageOfDelivery) && !languages.includes(item.languageOfDelivery || "")
+    );
     setEditForm({
       trainingName: item.trainingName || "",
       trainingType: item.trainingType || [],
@@ -1609,8 +1613,16 @@ export default function ListOfWorkshopTraning({
                   <Field label="Language of Delivery">
                     <select
                       className={formStyles.select}
-                      value={editForm.languageOfDelivery}
-                      onChange={(e) => setEditValue("languageOfDelivery", e.target.value)}
+                      value={editCustomLanguageMode ? "Custom" : editForm.languageOfDelivery}
+                      onChange={(e) => {
+                        if (e.target.value === "Custom") {
+                          setEditCustomLanguageMode(true);
+                          setEditValue("languageOfDelivery", "");
+                        } else {
+                          setEditCustomLanguageMode(false);
+                          setEditValue("languageOfDelivery", e.target.value);
+                        }
+                      }}
                     >
                       <option value="">Select</option>
                       {languages.map((item) => (
@@ -1618,7 +1630,17 @@ export default function ListOfWorkshopTraning({
                           {item}
                         </option>
                       ))}
+                      <option value="Custom">Custom</option>
                     </select>
+                    {editCustomLanguageMode && (
+                      <input
+                        type="text"
+                        className={formStyles.input}
+                        value={editForm.languageOfDelivery}
+                        onChange={(e) => setEditValue("languageOfDelivery", e.target.value)}
+                        placeholder="Enter custom language of delivery"
+                      />
+                    )}
                   </Field>
                   <Field label="Trainer / Instructor Photo">
                     <div className={formStyles.uploadBox}>

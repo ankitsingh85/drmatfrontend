@@ -152,7 +152,7 @@ export const BULK_UPLOAD_CONFIG: Record<BulkUploadTarget, BulkUploadTargetConfig
     noun: "B2B products",
     title: "Bulk Upload B2B Products",
     kicker: "B2B Product",
-    hint: "Required: productName, category, discountedPrice. Every other column matches the manual \"Create B2B Product\" form and is optional. category/productImages/promotionalTags accept comma-separated values. msds/productVideoUrl take URLs, not file uploads.",
+    hint: "Required: productName, category, discountedPrice. Every other column matches the manual \"Create B2B Product\" form and is optional. category/productImages/promotionalTags accept comma-separated values. msds/productVideoUrl take URLs, not file uploads. gst isn't limited to the manual form's dropdown presets — any percentage value is accepted.",
     templateFilename: "b2b-product-bulk-upload-template.csv",
     // Same fields as the manual "Create B2B Product" form
     // (CreateB2BProduct.tsx), in the same order. sku is the only form
@@ -179,6 +179,7 @@ export const BULK_UPLOAD_CONFIG: Record<BulkUploadTarget, BulkUploadTargetConfig
       "licenseNumber",
       "mrp",
       "discountedPrice",
+      "discountPercent",
       "gst",
       "taxIncluded",
       "productImages",
@@ -210,6 +211,7 @@ export const BULK_UPLOAD_CONFIG: Record<BulkUploadTarget, BulkUploadTargetConfig
       "999888777",
       "599",
       "450",
+      "25",
       "18",
       "true",
       "https://example.com/images/vitc-1.jpg,https://example.com/images/vitc-2.jpg",
@@ -434,7 +436,7 @@ export const BULK_UPLOAD_CONFIG: Record<BulkUploadTarget, BulkUploadTargetConfig
     noun: "products",
     title: "Bulk Upload Products",
     kicker: "Product",
-    hint: "Required: productName, category, discountedPrice. Every other column matches the manual \"Create Product\" form and is optional.",
+    hint: "Required: productName, category, discountedPrice. Every other column matches the manual \"Create Product\" form and is optional. productName and skinHairType accept any text (letters, numbers, symbols). quantityUnit, taxPercent, and gender aren't limited to the manual form's dropdown presets — any value you type is accepted.",
     templateFilename: "product-bulk-upload-template.csv",
     // Same fields as the manual "Create Product" form (CreateProduct.tsx),
     // in the same order, so admins never have to guess what a bulk row

@@ -37,6 +37,7 @@ type FormState = {
   licenseNumber: string;
   mrp: string;
   discountedPrice: string;
+  discountPercent: string;
   gstOption: "5" | "12" | "18" | "28" | "custom";
   customGst: string;
   taxIncluded: boolean;
@@ -133,13 +134,20 @@ const validateField = (
   }
 
   if (
-    ["pricePerUnit", "moq", "stockAvailable", "mrp", "discountedPrice"].includes(
+    ["pricePerUnit", "moq", "stockAvailable", "mrp", "discountedPrice", "discountPercent"].includes(
       String(name)
     ) &&
     String(value) &&
     Number.isNaN(Number(value))
   ) {
     return `${String(name)} must be a valid number`;
+  }
+
+  if (name === "discountPercent" && stringValue) {
+    const numValue = Number(stringValue);
+    if (numValue < 0 || numValue > 100) {
+      return "Discount % must be between 0 and 100";
+    }
   }
 
   if (name === "productVideoUrl" && stringValue && !isValidUrl(stringValue)) {
@@ -181,6 +189,7 @@ export default function CreateB2BProduct() {
     licenseNumber: "",
     mrp: "",
     discountedPrice: "",
+    discountPercent: "",
     gstOption: "5",
     customGst: "",
     taxIncluded: true,
@@ -503,6 +512,7 @@ export default function CreateB2BProduct() {
     payload.append("licenseNumber", form.licenseNumber.trim());
     payload.append("mrp", form.mrp.trim());
     payload.append("discountedPrice", form.discountedPrice.trim());
+    payload.append("discountPercent", form.discountPercent.trim());
     payload.append("gst", finalGst);
     payload.append("taxIncluded", String(form.taxIncluded));
     payload.append("productVideoUrl", form.productVideoUrl.trim());
@@ -553,6 +563,7 @@ export default function CreateB2BProduct() {
         licenseNumber: "",
         mrp: "",
         discountedPrice: "",
+        discountPercent: "",
         gstOption: "5",
         customGst: "",
         taxIncluded: true,
@@ -865,6 +876,27 @@ export default function CreateB2BProduct() {
             />
             {showError("discountedPrice") && (
               <p className={styles.fieldError}>{showError("discountedPrice")}</p>
+            )}
+          </div>
+
+          <div className={styles.field}>
+            <label className={styles.label}>Discount %</label>
+            <input
+              type="number"
+              min="0"
+              max="100"
+              step="1"
+              className={styles.input}
+              name="discountPercent"
+              value={form.discountPercent}
+              inputMode="numeric"
+              pattern="[0-9]*"
+              onKeyDown={handleNumberKeyDown}
+              onChange={handleChange}
+              onBlur={handleBlur}
+            />
+            {showError("discountPercent") && (
+              <p className={styles.fieldError}>{showError("discountPercent")}</p>
             )}
           </div>
 

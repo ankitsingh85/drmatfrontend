@@ -29,6 +29,13 @@ export default function CreateProduct() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(false);
 
+  /* ================= CUSTOM QUANTITY UNIT ================= */
+  const [customUnitMode, setCustomUnitMode] = useState(false);
+
+  /* ================= CUSTOM TAX % / GENDER ================= */
+  const [customTaxMode, setCustomTaxMode] = useState(false);
+  const [customGenderMode, setCustomGenderMode] = useState(false);
+
   /* ================= FORM STATE ================= */
   const [form, setForm] = useState({
     productName: "",
@@ -258,8 +265,6 @@ packagingType: form.packagingType,
               name="productName"
               onChange={handleChange}
               required
-              pattern="[A-Za-z ]+"
-              title="Use letters and spaces only"
             />
           </div>
 
@@ -450,9 +455,17 @@ className={styles.select}
 
 name="quantityUnit"
 
-value={form.quantityUnit}
+value={customUnitMode ? "Custom" : form.quantityUnit}
 
-onChange={handleChange}
+onChange={(e) => {
+  if (e.target.value === "Custom") {
+    setCustomUnitMode(true);
+    setForm((prev) => ({ ...prev, quantityUnit: "" }));
+  } else {
+    setCustomUnitMode(false);
+    handleChange(e);
+  }
+}}
 
 >
 
@@ -468,9 +481,21 @@ onChange={handleChange}
 
 <option value="Litre">Litre</option>
 
+<option value="Custom">Custom</option>
+
 
 </select>
 
+{customUnitMode && (
+  <input
+    type="text"
+    className={styles.input}
+    name="quantityUnit"
+    value={form.quantityUnit}
+    onChange={handleChange}
+    placeholder="Enter custom unit"
+  />
+)}
 
 </div>
 
@@ -565,8 +590,16 @@ onChange={handleChange}
     <select
       className={styles.select}
       name="taxPercent"
-      value={form.taxPercent}
-      onChange={handleChange}
+      value={customTaxMode ? "Custom" : form.taxPercent}
+      onChange={(e) => {
+        if (e.target.value === "Custom") {
+          setCustomTaxMode(true);
+          setForm((prev) => ({ ...prev, taxPercent: "" }));
+        } else {
+          setCustomTaxMode(false);
+          handleChange(e);
+        }
+      }}
     >
 
       <option value="5">
@@ -585,7 +618,23 @@ onChange={handleChange}
         28%
       </option>
 
+      <option value="Custom">
+        Custom
+      </option>
+
     </select>
+
+    {customTaxMode && (
+      <input
+        type="text"
+        className={styles.input}
+        name="taxPercent"
+        value={form.taxPercent}
+        onChange={handleChange}
+        inputMode="numeric"
+        placeholder="Enter custom GST / Tax %"
+      />
+    )}
 
   </div>
 
@@ -762,19 +811,41 @@ title="Use letters and spaces only"
         <div className={styles.section}>
           <h3 className={styles.sectionTitle}>Product Meta</h3>
 
-          <select className={styles.select} name="gender" value={form.gender} onChange={handleChange}>
+          <select
+            className={styles.select}
+            name="gender"
+            value={customGenderMode ? "Custom" : form.gender}
+            onChange={(e) => {
+              if (e.target.value === "Custom") {
+                setCustomGenderMode(true);
+                setForm((prev) => ({ ...prev, gender: "" }));
+              } else {
+                setCustomGenderMode(false);
+                handleChange(e);
+              }
+            }}
+          >
             <option>Unisex</option>
             <option>Male</option>
             <option>Female</option>
+            <option value="Custom">Custom</option>
           </select>
+          {customGenderMode && (
+            <input
+              type="text"
+              className={styles.input}
+              name="gender"
+              value={form.gender}
+              onChange={handleChange}
+              placeholder="Enter custom gender / audience"
+            />
+          )}
 
           <input
             className={styles.input}
             name="skinHairType"
             placeholder="Skin / Hair Type"
             onChange={handleChange}
-            pattern="[A-Za-z ]+"
-            title="Use letters and spaces only"
           />
           <input
             className={styles.input}

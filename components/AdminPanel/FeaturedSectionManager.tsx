@@ -8,6 +8,7 @@ import React, { useEffect, useRef, useState } from "react";
 
 const REQUIRED_WIDTH = 473;
 const REQUIRED_HEIGHT = 300;
+const MAX_FEATURED_ITEMS = 3;
 
 type FeaturedItem = {
   _id: string;
@@ -148,10 +149,17 @@ const FeaturedSectionManager = ({
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  const isFull = items.length >= MAX_FEATURED_ITEMS;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setMessage("");
+
+    if (!editingId && isFull) {
+      setError(`Only ${MAX_FEATURED_ITEMS} featured images are allowed. Delete one to add another.`);
+      return;
+    }
 
     if (!form.heading.trim()) {
       setError("Heading is required.");
@@ -213,13 +221,20 @@ const FeaturedSectionManager = ({
           </li>
           <li>Any other image size will be rejected.</li>
           <li>The homepage keeps the same banner display size.</li>
+          <li>
+            Maximum <strong>{MAX_FEATURED_ITEMS} images</strong> — currently{" "}
+            <strong>
+              {items.length}/{MAX_FEATURED_ITEMS}
+            </strong>{" "}
+            used.
+          </li>
         </ul>
       </div>
 
       {error && <p className={styles.error}>{error}</p>}
       {message && <p style={{ color: "#15803d", fontWeight: 600 }}>{message}</p>}
 
-      {canEdit && (
+      {canEdit && (!isFull || editingId) && (
       <form onSubmit={handleSubmit} className={styles.offerCard}>
         <label className={styles.fieldLabel}>Heading</label>
         <input

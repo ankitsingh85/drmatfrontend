@@ -60,6 +60,8 @@ const ListOfDoctor: React.FC<ListOfDoctorProps> = ({ canEdit = true, canDelete =
     Partial<Doctor & { password?: string }>
   >({});
   const [isEditing, setIsEditing] = useState(false);
+  const [editProfileImage, setEditProfileImage] = useState<File | null>(null);
+  const [editProfilePreview, setEditProfilePreview] = useState("");
 
   const [modalOpen, setModalOpen] = useState(false); // kept
   const [error, setError] = useState("");
@@ -100,8 +102,11 @@ const ListOfDoctor: React.FC<ListOfDoctorProps> = ({ canEdit = true, canDelete =
       email: doctor.email, // ✅ PREFILL EMAIL
       phone: doctor.phone || "",
       description: doctor.description || "",
+      address: doctor.address || "",
       password: "",
     });
+    setEditProfileImage(null);
+    setEditProfilePreview(doctor.profileImage ? resolveMediaUrl(doctor.profileImage) || "" : "");
     setIsEditing(true);
   };
 
@@ -113,23 +118,38 @@ const ListOfDoctor: React.FC<ListOfDoctorProps> = ({ canEdit = true, canDelete =
     setEditForm({ ...editForm, [e.target.name]: e.target.value });
   };
 
+  const handleEditProfileImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please upload an image file.");
+      return;
+    }
+    setEditProfileImage(file);
+    setEditProfilePreview(URL.createObjectURL(file));
+  };
+
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingDoctor) return;
 
     try {
-      const payload: any = {
-        title: editForm.title,
-        firstName: editForm.firstName,
-        lastName: editForm.lastName,
-        specialist: editForm.specialist,
-        email: editForm.email, // ✅ EMAIL INCLUDED
-        phone: editForm.phone,
-        description: editForm.description,
-      };
+      const payload = new FormData();
+      payload.append("title", editForm.title || "");
+      payload.append("firstName", editForm.firstName || "");
+      payload.append("lastName", editForm.lastName || "");
+      payload.append("specialist", editForm.specialist || "");
+      payload.append("email", editForm.email || ""); // ✅ EMAIL INCLUDED
+      payload.append("phone", editForm.phone || "");
+      payload.append("description", editForm.description || "");
+      payload.append("address", editForm.address || "");
 
       if (editForm.password && editForm.password.trim()) {
-        payload.password = editForm.password.trim();
+        payload.append("password", editForm.password.trim());
+      }
+
+      if (editProfileImage) {
+        payload.append("profileImage", editProfileImage);
       }
 
       await axios.put(
@@ -141,6 +161,8 @@ const ListOfDoctor: React.FC<ListOfDoctorProps> = ({ canEdit = true, canDelete =
       setIsEditing(false);
       setEditingDoctor(null);
       setEditForm({});
+      setEditProfileImage(null);
+      setEditProfilePreview("");
       fetchDoctors();
     } catch (err: any) {
       console.error(err);
@@ -152,6 +174,8 @@ const ListOfDoctor: React.FC<ListOfDoctorProps> = ({ canEdit = true, canDelete =
     setIsEditing(false);
     setEditingDoctor(null);
     setEditForm({});
+    setEditProfileImage(null);
+    setEditProfilePreview("");
   };
 
   const filteredDoctors = useMemo(() => {
@@ -584,6 +608,35 @@ const ListOfDoctor: React.FC<ListOfDoctorProps> = ({ canEdit = true, canDelete =
                     <option key={s} value={s}>{s}</option>
                   ))}
                 </select>
+              </div>
+
+              <div className={createStyles.profileImageField}>
+                <label className={createStyles.label}>Profile Picture</label>
+                <div className={createStyles.profileImageRow}>
+                  <div className={createStyles.profilePreview}>
+                    {editProfilePreview ? (
+                      <img src={editProfilePreview} alt="Doctor profile preview" />
+                    ) : (
+                      <span>Photo</span>
+                    )}
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleEditProfileImageChange}
+                    className={createStyles.input}
+                  />
+                </div>
+              </div>
+
+              <div className={createStyles.field}>
+                <label className={createStyles.label}>Address</label>
+                <input
+                  name="address"
+                  value={editForm.address || ""}
+                  onChange={handleEditChange}
+                  className={createStyles.input}
+                />
               </div>
             </div>
 

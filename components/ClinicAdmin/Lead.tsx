@@ -41,6 +41,7 @@ type JwtPayload = {
 
 type LeadProps = {
   clinicId: string;
+  hasLeadAccess?: boolean;
 };
 
 const formatDateTime = (value?: string) => {
@@ -188,7 +189,7 @@ const buildPdfBlob = (leads: LeadItem[], clinicId: string) => {
   return new Blob([pdf + xref], { type: "application/pdf" });
 };
 
-export default function Lead({ clinicId }: LeadProps) {
+export default function Lead({ clinicId, hasLeadAccess = false }: LeadProps) {
   const toast = useToast();
   const confirmDialog = useConfirm();
   const [leads, setLeads] = useState<LeadItem[]>([]);
@@ -324,7 +325,8 @@ export default function Lead({ clinicId }: LeadProps) {
           <button
             type="button"
             onClick={handleDownloadCsv}
-            disabled={leads.length === 0}
+            disabled={leads.length === 0 || !hasLeadAccess}
+            title={!hasLeadAccess ? "Subscribe to the Clinic Plan to export leads" : undefined}
             style={{
               padding: "10px 14px",
               borderRadius: 999,
@@ -332,7 +334,8 @@ export default function Lead({ clinicId }: LeadProps) {
               background: "#fff",
               color: "#173252",
               fontWeight: 700,
-              cursor: leads.length === 0 ? "not-allowed" : "pointer",
+              cursor: leads.length === 0 || !hasLeadAccess ? "not-allowed" : "pointer",
+              opacity: !hasLeadAccess ? 0.5 : 1,
               display: "inline-flex",
               alignItems: "center",
               gap: 8,
@@ -345,7 +348,8 @@ export default function Lead({ clinicId }: LeadProps) {
           <button
             type="button"
             onClick={handleDownloadPdf}
-            disabled={leads.length === 0}
+            disabled={leads.length === 0 || !hasLeadAccess}
+            title={!hasLeadAccess ? "Subscribe to the Clinic Plan to export leads" : undefined}
             style={{
               padding: "10px 14px",
               borderRadius: 999,
@@ -353,7 +357,8 @@ export default function Lead({ clinicId }: LeadProps) {
               background: "#fff",
               color: "#173252",
               fontWeight: 700,
-              cursor: leads.length === 0 ? "not-allowed" : "pointer",
+              cursor: leads.length === 0 || !hasLeadAccess ? "not-allowed" : "pointer",
+              opacity: !hasLeadAccess ? 0.5 : 1,
               display: "inline-flex",
               alignItems: "center",
               gap: 8,
@@ -377,7 +382,24 @@ export default function Lead({ clinicId }: LeadProps) {
         </div>
       </div>
 
-      {loading ? (
+      {!loading && !hasLeadAccess ? (
+        <div
+          style={{
+            padding: 24,
+            borderRadius: 20,
+            background: "#eff6ff",
+            border: "1px dashed #93c5fd",
+            color: "#1e40af",
+          }}
+        >
+          <strong>Subscribe to the Clinic Plan to unlock the full Lead Dashboard.</strong>
+          <p style={{ margin: "8px 0 0" }}>
+            You have {leadCount} lead{leadCount === 1 ? "" : "s"} waiting. Activate your
+            subscription from the "Subscription Plan" tab to view contact details and export
+            them as CSV/PDF.
+          </p>
+        </div>
+      ) : loading ? (
         <div
           style={{
             padding: 24,

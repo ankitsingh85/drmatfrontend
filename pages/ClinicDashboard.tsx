@@ -17,6 +17,12 @@ import {
   FiMenu,
   FiX,
   FiLogOut,
+  FiCreditCard,
+  FiTrendingUp,
+  FiUserCheck,
+  FiMessageCircle,
+  FiPhone,
+  FiGift,
 } from "react-icons/fi";
 
 import styles from "@/styles/clinicdashboard/clinicportal.module.css";
@@ -30,6 +36,7 @@ import Lead from "@/components/ClinicAdmin/Lead";
 import ClinicReviews from "@/components/ClinicAdmin/ClinicReviews";
 import EditClinic from "@/components/ClinicAdmin/EditClinic";
 import ClinicOrderHistory from "@/components/ClinicAdmin/ClinicOrderHistory";
+import SubscriptionPlan from "@/components/ClinicAdmin/SubscriptionPlan";
 
 
 type JwtPayload = {
@@ -63,7 +70,8 @@ type SectionId =
   | "purchased"
   | "help"
   | "settings"
-  | "rating";
+  | "rating"
+  | "plan";
 
 const resolveMediaUrl = (value?: string) => {
   if (!value) return "";
@@ -120,6 +128,8 @@ export default function ClinicDashboard() {
   const [loadingClinic, setLoadingClinic] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [leadAccessVisible, setLeadAccessVisible] = useState(false);
+  const [addonCount, setAddonCount] = useState(0);
 
   useEffect(() => {
     const token = Cookies.get("token");
@@ -170,11 +180,26 @@ export default function ClinicDashboard() {
       "help",
       "settings",
       "rating",
+      "plan",
     ];
 
     if (section && allowedSections.includes(section as SectionId)) {
       setActiveSection(section as SectionId);
     }
+  }, []);
+
+  useEffect(() => {
+    const fetchAddonCount = async () => {
+      try {
+        const res = await fetch(`${API_URL}/clinic-subscriptions/addons`);
+        if (!res.ok) return;
+        const data = await res.json();
+        setAddonCount(Array.isArray(data) ? data.length : 0);
+      } catch {
+        setAddonCount(0);
+      }
+    };
+    void fetchAddonCount();
   }, []);
 
   useEffect(() => {
@@ -253,11 +278,28 @@ export default function ClinicDashboard() {
     }
   };
 
+  const fetchSubscriptionStatus = async (id: string) => {
+    const authToken = Cookies.get("token");
+    if (!id || !authToken) return;
+
+    try {
+      const res = await fetch(`${API_URL}/clinic-subscriptions/clinic/${id}`, {
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      setLeadAccessVisible(Boolean(data.leadAccessVisible));
+    } catch {
+      setLeadAccessVisible(false);
+    }
+  };
+
   useEffect(() => {
     if (clinicId) {
       fetchClinic(clinicId);
       void fetchLeadSummary(clinicId);
       void fetchOrderSummary(clinicId);
+      void fetchSubscriptionStatus(clinicId);
     }
   }, [clinicId]);
 
@@ -287,19 +329,23 @@ export default function ClinicDashboard() {
   };
 
   const menuItems = useMemo(
-    () => [
-      { id: "dashboard" as const, label: "Dashboard", icon: FiHome },
-      { id: "appointments" as const, label: "Appointments", icon: FiCalendar },
-      { id: "lead" as const, label: "Lead", icon: FiUsers },
-      { id: "orders" as const, label: "Orders", icon: FiShoppingBag },
-      // { id: "doctors" as const, label: "Doctors", icon: FiUsers },
-      // { id: "services" as const, label: "Services", icon: FiClipboard },
-      // { id: "purchased" as const, label: "Purchased Services", icon: FiClipboard },
-      { id: "help" as const, label: "Help Center", icon: FiHelpCircle },
-      { id: "settings" as const, label: "Settings", icon: FiSettings },
-      { id: "rating" as const, label: "Like Us? Give us 5 Stars", icon: FiStar },
-    ],
-    []
+    () =>
+      [
+        { id: "dashboard" as const, label: "Dashboard", icon: FiHome },
+        { id: "appointments" as const, label: "Appointments", icon: FiCalendar },
+        // Hidden entirely (not just gated) until admin/plan grants lead
+        // access — the clinic shouldn't even know there's a tab to unlock.
+        leadAccessVisible ? { id: "lead" as const, label: "Lead", icon: FiUsers } : null,
+        { id: "orders" as const, label: "Orders", icon: FiShoppingBag },
+        { id: "plan" as const, label: "Subscription Plan", icon: FiCreditCard },
+        // { id: "doctors" as const, label: "Doctors", icon: FiUsers },
+        // { id: "services" as const, label: "Services", icon: FiClipboard },
+        // { id: "purchased" as const, label: "Purchased Services", icon: FiClipboard },
+        { id: "help" as const, label: "Help Center", icon: FiHelpCircle },
+        { id: "settings" as const, label: "Settings", icon: FiSettings },
+        { id: "rating" as const, label: "Like Us? Give us 5 Stars", icon: FiStar },
+      ].filter((item): item is NonNullable<typeof item> => item !== null),
+    [leadAccessVisible]
   );
 
   const profileCompletion = Math.round(
@@ -314,26 +360,41 @@ export default function ClinicDashboard() {
         profileCompletion >= 80
           ? "Your listing looks strong."
           : "Fill a few more details to improve visibility.",
+      icon: FiTrendingUp,
+      accent: "#2981b7",
+      accentSoft: "#eaf3ff",
     },
     {
       label: "Doctors added",
       value: String(clinic?.doctors?.length || 0),
       detail: "Team members listed in your clinic profile.",
+      icon: FiUserCheck,
+      accent: "#7c3aed",
+      accentSoft: "#f3e8ff",
     },
     {
       label: "Lead count",
       value: String(leadCount),
       detail: "Users who tapped Call or WhatsApp.",
+      icon: FiMessageCircle,
+      accent: "#0f9d58",
+      accentSoft: "#ecfdf5",
     },
     {
       label: "Orders placed",
       value: String(orderCount),
       detail: "Clinic purchases across products, courses, and workshops.",
+      icon: FiShoppingBag,
+      accent: "#1f49be",
+      accentSoft: "#eef2ff",
     },
     {
       label: "Contact status",
       value: clinic?.contactNumber || clinic?.email || "Pending",
       detail: "Primary contact shown to patients.",
+      icon: FiPhone,
+      accent: "#e11d48",
+      accentSoft: "#fff1f2",
     },
   ];
 
@@ -355,11 +416,15 @@ export default function ClinicDashboard() {
       description: "Update clinic info",
       action: () => setActiveSection("profile"),
     },
-    {
-      label: "View Leads",
-      description: "Open lead inbox",
-      action: () => setActiveSection("lead"),
-    },
+    ...(leadAccessVisible
+      ? [
+          {
+            label: "View Leads",
+            description: "Open lead inbox",
+            action: () => setActiveSection("lead"),
+          },
+        ]
+      : []),
     {
       label: "View Orders",
       description: "Open clinic purchases",
@@ -368,40 +433,83 @@ export default function ClinicDashboard() {
   ];
 
   const renderDashboardOverview = () => (
-    <div className={styles.sectionShell}>
-      <div className={styles.heroTop}>
-        <div>
-          <p className={styles.kicker}>Business Workspace</p>
-          <h2 className={styles.title}>{activeTitle}</h2>
-          <p className={styles.subtitle}>
-            Manage your clinic details, track user interest, and keep the
-            profile complete from one place. Your dashboard now highlights the
-            most useful signals first.
-          </p>
+    <div className={styles.sectionStack}>
+      <div className={styles.heroBanner}>
+        <div className={styles.heroTop}>
+          <div>
+            <p className={styles.heroKicker}>Business Workspace</p>
+            <h2 className={styles.heroTitle}>{activeTitle}</h2>
+            <p className={styles.heroSubtitle}>
+              Manage your clinic details, track user interest, and keep the
+              profile complete from one place. Your dashboard now highlights the
+              most useful signals first.
+            </p>
+          </div>
+
+          <div>
+            <button
+              type="button"
+              className={styles.heroEditBtn}
+              onClick={() => setActiveSection("profile")}
+            >
+              <span className={styles.inlineCenter}>
+                <FiEdit3 />
+                Edit Profile
+              </span>
+            </button>
+          </div>
         </div>
 
-        <div>
-          <button
-            type="button"
-            className={styles.editProfileBtn}
-            onClick={() => setActiveSection("profile")}
-          >
-            <span className={styles.inlineCenter}>
-              <FiEdit3 />
-              Edit Profile
-            </span>
-          </button>
+        <div className={styles.heroStats}>
+          {dashboardCards.map((card) => {
+            const Icon = card.icon;
+            return (
+              <div
+                key={card.label}
+                className={styles.statCard}
+                style={
+                  {
+                    "--stat-accent": card.accent,
+                    "--stat-accent-soft": card.accentSoft,
+                  } as React.CSSProperties
+                }
+              >
+                <span className={styles.statIconChip}>
+                  <Icon />
+                </span>
+                <p className={styles.statLabel}>{card.label}</p>
+                <p className={styles.statValue}>{card.value}</p>
+                <p className={styles.sectionSubtext}>{card.detail}</p>
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      <div className={styles.heroStats}>
-        {dashboardCards.map((card) => (
-          <div key={card.label} className={styles.statCard}>
-            <p className={styles.statLabel}>{card.label}</p>
-            <p className={styles.statValue}>{card.value}</p>
-            <p className={styles.sectionSubtext}>{card.detail}</p>
+      <div className={styles.addonPromo}>
+        <div className={styles.addonPromoLeft}>
+          <span className={styles.addonPromoIcon}>
+            <FiGift />
+          </span>
+          <div>
+            <p className={styles.addonPromoTitle}>
+              {addonCount > 0
+                ? `${addonCount} add-on service${addonCount === 1 ? "" : "s"} available`
+                : "Grow your plan with add-on services"}
+            </p>
+            <p className={styles.addonPromoText}>
+              Attach extras like priority placement or extra WhatsApp numbers to your
+              subscription — billed together, one total.
+            </p>
           </div>
-        ))}
+        </div>
+        <button
+          type="button"
+          className={styles.addonPromoBtn}
+          onClick={() => setActiveSection("plan")}
+        >
+          View Add-ons
+        </button>
       </div>
 
       <div className={styles.dashboardLayout}>
@@ -524,6 +632,7 @@ export default function ClinicDashboard() {
     help: "Help Center",
     settings: "Settings",
     rating: "Rating",
+    plan: "Subscription Plan",
   }[activeSection];
 
   const renderContent = () => {
@@ -543,6 +652,14 @@ export default function ClinicDashboard() {
       return (
         <div className={styles.sectionShell}>
           <ClinicOrderHistory clinicId={clinicId} />
+        </div>
+      );
+    }
+
+    if (activeSection === "plan") {
+      return (
+        <div className={styles.sectionShell}>
+          <SubscriptionPlan clinicId={clinicId} />
         </div>
       );
     }
@@ -573,7 +690,7 @@ if (activeSection === "rating") {
 
         {activeSection === "lead" && (
           <div className={styles.sectionSpacer}>
-            <Lead clinicId={clinicId} />
+            <Lead clinicId={clinicId} hasLeadAccess={leadAccessVisible} />
           </div>
         )}
       </div>

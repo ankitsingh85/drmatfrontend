@@ -298,6 +298,7 @@ const CreateCourse = () => {
   const [success, setSuccess] = useState("");
   const [fieldErrors, setFieldErrors] = useState<CourseErrors>({});
   const [touched, setTouched] = useState<CourseTouched>({});
+  const [customLanguageMode, setCustomLanguageMode] = useState(false);
 
   const quillModules = useMemo(
     () => ({
@@ -928,10 +929,16 @@ const CreateCourse = () => {
               </label>
               <select
                 className={styles.input}
-                value={formData.languageOfDelivery}
-                onChange={(e) =>
-                  handleChange("languageOfDelivery", e.target.value)
-                }
+                value={customLanguageMode ? "Custom" : formData.languageOfDelivery}
+                onChange={(e) => {
+                  if (e.target.value === "Custom") {
+                    setCustomLanguageMode(true);
+                    handleChange("languageOfDelivery", "");
+                  } else {
+                    setCustomLanguageMode(false);
+                    handleChange("languageOfDelivery", e.target.value);
+                  }
+                }}
                 onBlur={() => {
                   setTouched((prev) => ({ ...prev, languageOfDelivery: true }));
                   setFieldErrors((prev) => ({
@@ -950,7 +957,28 @@ const CreateCourse = () => {
                     {option}
                   </option>
                 ))}
+                <option value="Custom">Custom</option>
               </select>
+              {customLanguageMode && (
+                <input
+                  type="text"
+                  className={styles.input}
+                  value={formData.languageOfDelivery}
+                  onChange={(e) => handleChange("languageOfDelivery", e.target.value)}
+                  onBlur={() => {
+                    setTouched((prev) => ({ ...prev, languageOfDelivery: true }));
+                    setFieldErrors((prev) => ({
+                      ...prev,
+                      languageOfDelivery: validateCourseField(
+                        "languageOfDelivery",
+                        formData.languageOfDelivery,
+                        formData
+                      ),
+                    }));
+                  }}
+                  placeholder="Enter custom language of delivery"
+                />
+              )}
               {touched.languageOfDelivery && fieldErrors.languageOfDelivery && (
                 <p className={styles.fieldError}>
                   {fieldErrors.languageOfDelivery}

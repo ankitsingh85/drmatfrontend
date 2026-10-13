@@ -1,0 +1,196 @@
+.page {
+  display: grid;
+  gap: 24px;
+  max-width: 920px;
+}
+
+.card {
+  padding: 26px 28px;
+  border-radius: 20px;
+  background: #fff;
+  border: 1px solid rgba(153, 169, 192, 0.2);
+  box-shadow: 0 10px 26px rgba(23, 43, 73, 0.05);
+}
+
+.cardHeading {
+  margin: 0 0 4px;
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #163252;
+}
+
+.cardSubtext {
+  margin: 0 0 20px;
+  color: #5f718a;
+  font-size: 0.88rem;
+}
+
+.fieldGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+}
+
+.fieldFull {
+  grid-column: 1 / -1;
+}
+
+.label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #41556f;
+}
+
+.input,
+.textarea {
+  padding: 11px 14px;
+  border-radius: 12px;
+  border: 1px solid #d1d5db;
+  font-size: 0.92rem;
+  font-family: inherit;
+}
+
+.textarea {
+  resize: vertical;
+}
+
+.checkboxRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #314461;
+}
+
+.saveBtn {
+  margin-top: 22px;
+  padding: 13px 24px;
+  border-radius: 12px;
+  border: none;
+  background: linear-gradient(180deg, #2981b7 0%, #10678c 100%);
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.saveBtn:disabled {
+  opacity: 0.65;
+  cursor: default;
+}
+
+/* ---------- Add-on manager ---------- */
+.addonForm {
+  display: grid;
+  grid-template-columns: 2fr 3fr 1fr auto;
+  gap: 10px;
+  align-items: end;
+  margin-bottom: 22px;
+}
+
+@media (max-width: 760px) {
+  .addonForm {
+    grid-template-columns: 1fr;
+  }
+}
+
+.addonFormField {
+  display: grid;
+  gap: 6px;
+}
+
+.addBtn {
+  padding: 11px 18px;
+  border-radius: 12px;
+  border: none;
+  background: #0f9d58;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  height: fit-content;
+}
+
+.addBtn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.addonGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 14px;
+}
+
+.addonCard {
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(153, 169, 192, 0.25);
+  display: grid;
+  gap: 8px;
+  position: relative;
+}
+
+.addonCard.inactive {
+  opacity: 0.55;
+}
+
+.addonCardTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.addonCardName {
+  font-weight: 700;
+  color: #163252;
+}
+
+.addonCardDescription {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #6d7f98;
+}
+
+.addonCardPrice {
+  font-weight: 800;
+  color: #2981b7;
+  font-size: 1.05rem;
+}
+
+.addonCardActions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.smallBtn {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(153, 169, 192, 0.3);
+  background: #fff;
+  color: #314461;
+  font-weight: 600;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.smallBtnDanger {
+  color: #be123c;
+  border-color: rgba(190, 18, 60, 0.25);
+}
+
+.emptyState {
+  padding: 20px;
+  border-radius: 14px;
+  background: #f9fbff;
+  border: 1px dashed rgba(114, 130, 154, 0.35);
+  color: #5f718a;
+  text-align: center;
+}

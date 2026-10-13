@@ -55,6 +55,14 @@ import ListOfSupportTickets from "@/components/AdminPanel/ListOfSupportTickets";
 import CreateDoctor from "@/components/AdminPanel/CreateDoctor";
 import ListOfDoctor from "@/components/AdminPanel/ListOfDoctor";
 
+/* ✅ COUPON */
+import CreateCoupon from "@/components/AdminPanel/CreateCoupon";
+import ListOfCoupon from "@/components/AdminPanel/ListOfCoupon";
+
+/* ✅ CLINIC SUBSCRIPTION PLAN */
+import ClinicPlanSettings from "@/components/AdminPanel/ClinicPlanSettings";
+import ListOfClinicSubscriptions from "@/components/AdminPanel/ListOfClinicSubscriptions";
+
 import styles from "@/styles/dashboard.module.css";
 import {
   FiUsers,
@@ -88,6 +96,8 @@ import {
   FiCheckCircle,
   FiLoader,
   FiAlertCircle,
+  FiPercent,
+  FiCreditCard,
 } from "react-icons/fi";
 import {
   BULK_UPLOAD_CONFIG,
@@ -533,6 +543,24 @@ export default function SuperAdminDashboard() {
       icon: <FiVideo />,
       ListComponent: ListOfOnlineConsultationService,
       CreateComponent: CreateOnlineConsultationService,
+    },
+    {
+      id: "coupon",
+      label: "COUPON",
+      listLabel: "List of Coupons",
+      createLabel: "Create Coupon",
+      icon: <FiPercent />,
+      ListComponent: ListOfCoupon,
+      CreateComponent: CreateCoupon,
+    },
+    {
+      id: "clinicSubscription",
+      label: "CLINIC PLAN",
+      listLabel: "Clinic Subscriptions",
+      createLabel: "Plan Settings",
+      icon: <FiCreditCard />,
+      ListComponent: ListOfClinicSubscriptions,
+      CreateComponent: ClinicPlanSettings,
     },
   ];
 
