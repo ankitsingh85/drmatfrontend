@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import Link from "next/link";
 import Topbar from "@/components/Layout/Topbar";
 import Footer from "@/components/Layout/Footer";
 import { API_URL } from "@/config/api";
 import { resolveMediaUrl } from "@/lib/media";
+import { generateQuizReportPdf } from "@/lib/quizReportPdf";
 import styles from "@/styles/quiz/ques1.module.css";
 import {
   QUIZ_TESTS,
@@ -20,6 +21,9 @@ import {
   FiCheckCircle,
   FiShoppingBag,
   FiRefreshCw,
+  FiUserCheck,
+  FiClipboard,
+  FiDownload,
 } from "react-icons/fi";
 
 interface RawProduct {
@@ -87,10 +91,13 @@ const rankProductsForProfile = (
   profile: QuizProfile
 ) => {
   const active = products.filter((product) => product.activeStatus !== false);
+  // Strictly scoped to the test taken — a hair test only ever recommends
+  // hair products, a skin test only ever recommends skin products, even if
+  // that means showing fewer than 4 (or none) rather than falling back to
+  // unrelated items.
   const inCategory = active.filter((product) => matchesCategory(product, key));
-  const pool = inCategory.length > 0 ? inCategory : active;
 
-  return [...pool]
+  return [...inCategory]
     .map((product) => ({ product, score: concernScore(product, profile.concerns) }))
     .sort((a, b) => b.score - a.score)
     .slice(0, 4)
@@ -106,6 +113,8 @@ export default function UserQuiz() {
   const [products, setProducts] = useState<RawProduct[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [barsAnimated, setBarsAnimated] = useState(false);
+  const [generatingReport, setGeneratingReport] = useState(false);
+  const recommendedRef = useRef<HTMLDivElement | null>(null);
 
   const activeTest = activeKey ? QUIZ_TESTS[activeKey] : null;
   const currentQuestion = activeTest?.questions[currentIndex];
@@ -214,6 +223,20 @@ export default function UserQuiz() {
     setAnswers([]);
     setPhotoPreview(null);
     setProducts([]);
+  };
+
+  const handleDownloadReport = async () => {
+    if (!activeTest || !profile || generatingReport) return;
+    setGeneratingReport(true);
+    try {
+      await generateQuizReportPdf(activeTest, answers, profile);
+    } finally {
+      setGeneratingReport(false);
+    }
+  };
+
+  const scrollToRecommended = () => {
+    recommendedRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   // Keyboard support: Enter advances the quiz, matching the original tool.
@@ -367,6 +390,14 @@ export default function UserQuiz() {
               </p>
               <p className={styles.resultType}>{profile.type}</p>
               <p className={styles.resultDesc}>{profile.desc}</p>
+              <button
+                type="button"
+                className={styles.downloadReportBtn}
+                onClick={handleDownloadReport}
+                disabled={generatingReport}
+              >
+                <FiDownload /> {generatingReport ? "Preparing PDF..." : "Download PDF Report"}
+              </button>
             </div>
 
             <p className={styles.sectionTitle}>Your Main Concerns</p>
@@ -407,6 +438,27 @@ export default function UserQuiz() {
               ))}
             </div>
 
+            <p className={styles.sectionTitle}>What Would You Like To Do Next?</p>
+            <div className={styles.actionGrid}>
+              <Link href="/video-consultation" className={styles.actionCard}>
+                <FiUserCheck className={styles.actionIcon} />
+                <span className={styles.actionLabel}>Book Dermatologist Consultation</span>
+              </Link>
+              <Link href="/TreatmentCategoryList" className={styles.actionCard}>
+                <FiClipboard className={styles.actionIcon} />
+                <span className={styles.actionLabel}>Explore Treatment Plan</span>
+              </Link>
+              <button
+                type="button"
+                className={styles.actionCard}
+                onClick={scrollToRecommended}
+              >
+                <FiShoppingBag className={styles.actionIcon} />
+                <span className={styles.actionLabel}>Explore Recommended Products</span>
+              </button>
+            </div>
+
+            <div ref={recommendedRef}>
             <p className={styles.sectionTitle}>
               <FiShoppingBag /> Recommended For You
             </p>
@@ -446,9 +498,10 @@ export default function UserQuiz() {
               </div>
             ) : (
               <p className={styles.productsHint}>
-                No matching products right now — check back soon.
+                No matching products right now for this test — check back soon as we add more.
               </p>
             )}
+            </div>
 
             <div className={styles.ctaRow}>
               <Link href="/product-listing" className={styles.ctaPrimary}>

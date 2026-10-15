@@ -5,7 +5,7 @@ export const GOOGLE_MAPS_LOADER_ID = "script-loader";
 export const GOOGLE_MAPS_LOADER_OPTIONS = {
   id: GOOGLE_MAPS_LOADER_ID,
   version: "weekly",
-  libraries: ["maps"] as Library[],
+  libraries: ["maps", "places"] as Library[],
   language: "en",
   region: "US",
   mapIds: [] as string[],

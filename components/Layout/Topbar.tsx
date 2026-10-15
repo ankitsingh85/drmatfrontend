@@ -18,6 +18,8 @@ import {
   import { useToast } from "@/context/ToastContext";
   import Cookies from "js-cookie";
   import { API_URL } from "@/config/api";
+  import { reverseGeocodeWithGoogle } from "@/lib/geocode";
+  import LocationPickerModal from "@/components/modal/LocationPickerModal";
 
   interface TopbarProps {
     hideHamburgerOnMobile?: boolean;
@@ -34,6 +36,7 @@ import {
   const [isHydrated, setIsHydrated] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [location, setLocation] = useState<string>("");
+  const [locationModalOpen, setLocationModalOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [doctorAccountDetected, setDoctorAccountDetected] = useState(false);
   const userBtnRef = useRef<HTMLButtonElement | null>(null);
@@ -121,145 +124,46 @@ useEffect(() => {
     router.push("/businesslogin");
   };
 
-  const getComponent = (components: any[] | undefined, type: string) =>
-    components?.find((part) => part.types?.includes(type));
-
-const formatDetailedAddress = (
-  result: google.maps.GeocoderResult | undefined
-) => {
-  const components = result?.address_components || [];
-
-  const get = (type: string) =>
-    components.find((c) => c.types.includes(type))?.long_name;
-
- const sector =
-  get("sublocality_level_1") ||
-  get("sublocality_level_2") ||
-  get("neighborhood") ||
-  get("route");
-
-  const city =
-    get("locality") ||
-    get("postal_town") ||
-    get("administrative_area_level_2");
-
-  return [sector, city].filter(Boolean).join(", ");
-};
-  const summarizeAddressComponents = (result: google.maps.GeocoderResult | undefined) => {
-    const components = result?.address_components || [];
-    const preferredTypes = [
-      "floor",
-      "subpremise",
-      "premise",
-      "block",
-      "sector",
-      "street_number",
-      "route",
-      "neighborhood",
-      "sublocality_level_4",
-      "sublocality_level_3",
-      "sublocality_level_2",
-      "sublocality_level_1",
-      "locality",
-      "postal_town",
-      "administrative_area_level_3",
-      "administrative_area_level_2",
-      "administrative_area_level_1",
-      "postal_code",
-    ];
-
-    return components
-      .map((component) => {
-        const key = component.types.find((type) => preferredTypes.includes(type));
-        return key ? `${key}: ${component.long_name}` : "";
-      })
-      .filter(Boolean)
-      .join(" | ");
+  const applyLocation = (summary: string, latitude: number, longitude: number) => {
+    setLocation(summary);
+    Cookies.set("location", summary, { expires: 7 });
+    Cookies.set("latitude", latitude.toString(), { expires: 7 });
+    Cookies.set("longitude", longitude.toString(), { expires: 7 });
   };
 
-  const reverseGeocodeWithGoogle = async (latitude: number, longitude: number) => {
-    if (!googleMapsApiKey) return "Location unavailable";
-
-    const res = await fetch(
-      `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${encodeURIComponent(
-        googleMapsApiKey
-      )}`
-    );
-    const data = await res.json();
-    const result = data?.results?.[0];
-    const debugPayload = {
-      origin: window.location.origin,
-      keySuffix: googleMapsApiKey.slice(-4),
-      status: data?.status,
-      error_message: data?.error_message || "",
-      result_count: data?.results?.length || 0,
-      formatted_address: result?.formatted_address || "",
-    };
-
-
-console.log("Google Response", data);
-
-if (data.status !== "OK") {
-  console.log(data.error_message);
-  return "Location unavailable";
-}
-
-
-
-return formatDetailedAddress(result);
-  };
-
-    const fetchLocation = (silent = false) => {
-      if (!navigator.geolocation) {
-        if (!silent) toast.error("Geolocation not supported");
-        return;
+  const fetchLocation = (silent = false) => {
+    if (!navigator.geolocation) {
+      if (!silent) toast.error("Geolocation not supported");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        try {
+          const { summary } = await reverseGeocodeWithGoogle(latitude, longitude, googleMapsApiKey);
+          applyLocation(summary, latitude, longitude);
+        } catch (err) {
+          console.error(err);
+          setLocation("Location unavailable");
+        }
+      },
+      () => {
+        if (!silent) {
+          toast.error("Location access denied");
+        }
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 20000,
+        maximumAge: 0,
       }
-     navigator.geolocation.getCurrentPosition(
-  async (position) => {
-    const { latitude, longitude, accuracy } = position.coords;
+    );
+  };
 
-    console.log("Latitude:", latitude);
-    console.log("Longitude:", longitude);
-    console.log("Accuracy:", accuracy);
-
-    try {
-      const finalLocation = await reverseGeocodeWithGoogle(
-        latitude,
-        longitude
-      );
-
-      setLocation(finalLocation);
-
-      Cookies.set("location", finalLocation, {
-        expires: 7,
-      });
-
-      Cookies.set("latitude", latitude.toString(), {
-        expires: 7,
-      });
-
-      Cookies.set("longitude", longitude.toString(), {
-        expires: 7,
-      });
-
-    } catch (err) {
-      console.error(err);
-      setLocation("Location unavailable");
-    }
-  },
-  () => {
-    if (!silent) {
-      toast.error("Location access denied");
-    }
-  },
-  {
-    enableHighAccuracy: true,
-    timeout: 20000,
-    maximumAge: 0,
-  }
-);
-
-    };
+  const handleLocationConfirmed = (result: { address: string; lat: number; lng: number }) => {
+    applyLocation(result.address, result.lat, result.lng);
+    setLocationModalOpen(false);
+  };
     useEffect(() => {
       const handleClickOutside = (event: MouseEvent) => {
         const target = event.target as Node;
@@ -458,7 +362,7 @@ return formatDetailedAddress(result);
             )
           ) : (
             <>
-              <div className={styles.location} onClick={() => fetchLocation(false)}>
+              <div className={styles.location} onClick={() => setLocationModalOpen(true)}>
                 <MapPin size={18} />
                 {location && <span className={styles.locationText}>{location}</span>}
               </div>
@@ -632,7 +536,7 @@ return formatDetailedAddress(result);
         </div>
 
         <div className={styles.rightSection}>
-          <div className={styles.location} onClick={() => fetchLocation(false)}>
+          <div className={styles.location} onClick={() => setLocationModalOpen(true)}>
             <MapPin size={18} />
             {location && <span className={styles.locationText}>{location}</span>}
           </div>
@@ -770,6 +674,15 @@ return formatDetailedAddress(result);
           </div>
         )}
         {isBusinessMode ? renderBusinessTopbar() : renderDefaultTopbar()}
+
+        {locationModalOpen && (
+          <LocationPickerModal
+            initialLat={Number(Cookies.get("latitude")) || undefined}
+            initialLng={Number(Cookies.get("longitude")) || undefined}
+            onConfirm={handleLocationConfirmed}
+            onClose={() => setLocationModalOpen(false)}
+          />
+        )}
       </>
     );
   };

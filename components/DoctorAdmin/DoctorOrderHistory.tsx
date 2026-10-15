@@ -8,6 +8,8 @@ import styles from "@/styles/adminpanel/orderhistory.module.css";
 import { API_URL } from "@/config/api";
 import FullPageLoader from "@/components/common/FullPageLoader";
 import { resolveMediaUrl } from "@/lib/media";
+import { useConfirm } from "@/context/ConfirmContext";
+import { useToast } from "@/context/ToastContext";
 interface OrderProduct {
   id: string;
   name: string;
@@ -64,10 +66,13 @@ const getOrderLabel = (order: DoctorOrder) => {
 
 export default function DoctorOrderHistory({ doctorId }: DoctorOrderHistoryProps) {
   const router = useRouter();
+  const confirm = useConfirm();
+  const toast = useToast();
   const [orders, setOrders] = useState<DoctorOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
+  const [cancellingId, setCancellingId] = useState("");
   const token = Cookies.get("token") || "";
 
   useEffect(() => {
@@ -130,6 +135,42 @@ export default function DoctorOrderHistory({ doctorId }: DoctorOrderHistoryProps
     }
   };
 
+  const canCancelOrder = (order: DoctorOrder) =>
+    order.status !== "Cancelled" && order.status !== "Delivered";
+
+  const handleCancelOrder = async (event: React.MouseEvent, orderId: string) => {
+    event.stopPropagation();
+
+    const ok = await confirm("Cancel this order? This cannot be undone.", {
+      title: "Cancel order",
+      confirmLabel: "Cancel Order",
+      danger: true,
+    });
+    if (!ok) return;
+
+    try {
+      setCancellingId(orderId);
+      const res = await fetch(`${API_URL}/doctor-orders/${orderId}/cancel`, {
+        method: "PUT",
+        headers: {
+          "x-doctor-id": doctorId,
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.message || "Failed to cancel order");
+
+      setOrders((prev) =>
+        prev.map((order) => (order._id === orderId ? { ...order, status: "Cancelled" } : order))
+      );
+      toast.success("Order cancelled successfully");
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to cancel order");
+    } finally {
+      setCancellingId("");
+    }
+  };
+
   if (loading) return <FullPageLoader />;
 
   return (
@@ -188,6 +229,12 @@ export default function DoctorOrderHistory({ doctorId }: DoctorOrderHistoryProps
                 ? "Paid"
                 : order.paymentStatus || "Pending");
             const isPaid = String(order.paymentStatus || "").toLowerCase() === "success";
+            const statusClass =
+              order.status === "Cancelled"
+                ? styles.badgeCancelled
+                : isPaid
+                ? styles.badgePaid
+                : styles.badgePending;
 
             return (
               <article
@@ -214,9 +261,17 @@ export default function DoctorOrderHistory({ doctorId }: DoctorOrderHistoryProps
                   </div>
                   <div className={styles.metaRight}>
                     <p>Doctor purchase</p>
-                    <span className={`${styles.badge} ${isPaid ? styles.badgePaid : styles.badgePending}`}>
-                      {statusLabel}
-                    </span>
+                    <span className={`${styles.badge} ${statusClass}`}>{statusLabel}</span>
+                    {canCancelOrder(order) && (
+                      <button
+                        type="button"
+                        className={styles.cancelBtn}
+                        onClick={(event) => handleCancelOrder(event, order._id)}
+                        disabled={cancellingId === order._id}
+                      >
+                        {cancellingId === order._id ? "Cancelling..." : "Cancel Order"}
+                      </button>
+                    )}
                   </div>
                 </div>
 

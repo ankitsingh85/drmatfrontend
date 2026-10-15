@@ -1423,10 +1423,11 @@ export default function SuperAdminDashboard() {
 
             </>
           )}
+
+          <Footer />
         </div>
       </div>
 
-      <Footer />
       <MobileNavbar />
     </>
   );

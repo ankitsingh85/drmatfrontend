@@ -1,3 +1,13 @@
+/* Google Places Autocomplete appends its suggestion dropdown directly to
+   <body>, outside any component's own markup, so it can't be targeted by a
+   CSS module. Its default z-index sits below our modal overlays (e.g. the
+   location picker's z-index: 1200), which hides the suggestion list behind
+   the modal even though it's rendering correctly. Force it above anything
+   else in the app. */
+.pac-container {
+  z-index: 99999 !important;
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;

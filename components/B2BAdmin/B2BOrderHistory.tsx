@@ -15,6 +15,8 @@ import {
 import styles from "@/styles/components/common/b2bOrderTable.module.css";
 import { API_URL } from "@/config/api";
 import FullPageLoader from "@/components/common/FullPageLoader";
+import { useConfirm } from "@/context/ConfirmContext";
+import { useToast } from "@/context/ToastContext";
 
 interface OrderProduct {
   id: string;
@@ -108,10 +110,13 @@ const getOrderLabel = (categories: OrderCategory[]) => {
 
 export default function B2BOrderHistory({ b2bUserId }: B2BOrderHistoryProps) {
   const router = useRouter();
+  const confirm = useConfirm();
+  const toast = useToast();
   const [orders, setOrders] = useState<B2BOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
+  const [cancellingId, setCancellingId] = useState("");
 
   const token = Cookies.get("token") || "";
 
@@ -193,6 +198,43 @@ export default function B2BOrderHistory({ b2bUserId }: B2BOrderHistoryProps) {
     }
   };
 
+  const canCancelOrder = (order: B2BOrder) =>
+    order.status !== "Cancelled" && order.status !== "Delivered";
+
+  const handleCancelOrder = async (event: React.MouseEvent, orderId: string) => {
+    event.stopPropagation();
+
+    const ok = await confirm("Cancel this order? This cannot be undone.", {
+      title: "Cancel order",
+      confirmLabel: "Cancel Order",
+      danger: true,
+    });
+    if (!ok) return;
+
+    try {
+      setCancellingId(orderId);
+      const res = await fetch(`${API_URL}/orders/${orderId}/cancel`, {
+        method: "PUT",
+        headers: {
+          "x-b2buser-id": b2bUserId,
+          "x-owner-type": "b2buser",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.message || "Failed to cancel order");
+
+      setOrders((prev) =>
+        prev.map((order) => (order._id === orderId ? { ...order, status: "Cancelled" } : order))
+      );
+      toast.success("Order cancelled successfully");
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to cancel order");
+    } finally {
+      setCancellingId("");
+    }
+  };
+
   if (loading) return <FullPageLoader />;
 
   return (
@@ -253,6 +295,7 @@ export default function B2BOrderHistory({ b2bUserId }: B2BOrderHistoryProps) {
                 <th>Items</th>
                 <th style={{ textAlign: "right" }}>Amount</th>
                 <th>Status</th>
+                <th>Action</th>
               </tr>
             </thead>
             <tbody>
@@ -312,12 +355,32 @@ export default function B2BOrderHistory({ b2bUserId }: B2BOrderHistoryProps) {
                     <td>
                       <span
                         className={`${styles.statusBadge} ${
-                          isPaid ? styles.statusPaid : styles.statusPending
+                          order.status === "Cancelled"
+                            ? styles.statusCancelled
+                            : isPaid
+                            ? styles.statusPaid
+                            : styles.statusPending
                         }`}
                       >
-                        {isPaid ? <FiCheckCircle size={13} /> : <FiClock size={13} />}
+                        {order.status === "Cancelled" ? null : isPaid ? (
+                          <FiCheckCircle size={13} />
+                        ) : (
+                          <FiClock size={13} />
+                        )}
                         {statusLabel}
                       </span>
+                    </td>
+                    <td onClick={(event) => event.stopPropagation()}>
+                      {canCancelOrder(order) && (
+                        <button
+                          type="button"
+                          className={styles.cancelBtn}
+                          onClick={(event) => handleCancelOrder(event, order._id)}
+                          disabled={cancellingId === order._id}
+                        >
+                          {cancellingId === order._id ? "Cancelling..." : "Cancel Order"}
+                        </button>
+                      )}
                     </td>
                   </tr>
                 );

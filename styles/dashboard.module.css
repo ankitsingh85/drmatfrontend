@@ -4,7 +4,8 @@
 .wrapper {
   display: flex;
   flex-direction: row;
-  min-height: 100vh;
+  height: calc(100vh - 84px);
+  overflow: hidden;
   font-family: "Plus Jakarta Sans", "Segoe UI", "Helvetica Neue", sans-serif;
 }
 

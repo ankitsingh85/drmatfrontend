@@ -33,6 +33,7 @@
     "joi": "^18.0.1",
     "js-cookie": "^3.0.5",
     "jsonwebtoken": "^9.0.2",
+    "jspdf": "^4.2.1",
     "jwt-decode": "^4.0.0",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.468.0",

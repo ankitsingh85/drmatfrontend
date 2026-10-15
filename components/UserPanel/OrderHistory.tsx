@@ -5,6 +5,8 @@ import axios from "axios";
 import Cookies from "js-cookie";
 import { useRouter } from "next/router";
 import { useUser } from "@/context/UserContext";
+import { useConfirm } from "@/context/ConfirmContext";
+import { useToast } from "@/context/ToastContext";
 import styles from "@/styles/adminpanel/orderhistory.module.css";
 import { API_URL } from "@/config/api";
 import FullPageLoader from "@/components/common/FullPageLoader";
@@ -53,10 +55,13 @@ interface OrderHistoryProps {
 const UserOrderHistory: React.FC<OrderHistoryProps> = ({ mode = "all" }) => {
   const router = useRouter();
   const { user, loading } = useUser();
+  const confirm = useConfirm();
+  const toast = useToast();
   const [orders, setOrders] = useState<Order[]>([]);
   const [fetching, setFetching] = useState(false);
   const [error, setError] = useState<string>("");
   const [resolvedUser, setResolvedUser] = useState<ResolvedUser | null>(null);
+  const [cancellingId, setCancellingId] = useState("");
 
   const token = Cookies.get("token") || "";
   const storedUserId =
@@ -257,6 +262,43 @@ const UserOrderHistory: React.FC<OrderHistoryProps> = ({ mode = "all" }) => {
     }
   };
 
+  const canCancelOrder = (order: Order) =>
+    order.status !== "Cancelled" && order.status !== "Delivered";
+
+  const handleCancelOrder = async (event: React.MouseEvent, order: Order) => {
+    event.stopPropagation();
+    if (!resolvedUser?.id) return;
+
+    const ok = await confirm("Cancel this order? This cannot be undone.", {
+      title: "Cancel order",
+      confirmLabel: "Cancel Order",
+      danger: true,
+    });
+    if (!ok) return;
+
+    try {
+      setCancellingId(order._id);
+      await axios.put(
+        `${API_URL}/orders/${order._id}/cancel`,
+        {},
+        {
+          headers: {
+            "x-user-id": resolvedUser.id,
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        }
+      );
+      setOrders((prev) =>
+        prev.map((o) => (o._id === order._id ? { ...o, status: "Cancelled" } : o))
+      );
+      toast.success("Order cancelled successfully");
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to cancel order");
+    } finally {
+      setCancellingId("");
+    }
+  };
+
   return (
     <div className={styles.container}>
       <div className={styles.header}>
@@ -312,13 +354,25 @@ const UserOrderHistory: React.FC<OrderHistoryProps> = ({ mode = "all" }) => {
                   <p>{getOrderTitle(order)}</p>
                   <span
                     className={`${styles.badge} ${
-                      String(order.paymentStatus || "").toLowerCase() === "paid"
+                      order.status === "Cancelled"
+                        ? styles.badgeCancelled
+                        : String(order.paymentStatus || "").toLowerCase() === "paid"
                         ? styles.badgePaid
                         : styles.badgePending
                     }`}
                   >
-                    {order.paymentStatus || "Pending"}
+                    {order.status === "Cancelled" ? "Cancelled" : order.paymentStatus || "Pending"}
                   </span>
+                  {canCancelOrder(order) && (
+                    <button
+                      type="button"
+                      className={styles.cancelBtn}
+                      onClick={(event) => handleCancelOrder(event, order)}
+                      disabled={cancellingId === order._id}
+                    >
+                      {cancellingId === order._id ? "Cancelling..." : "Cancel Order"}
+                    </button>
+                  )}
                 </div>
               </div>
 

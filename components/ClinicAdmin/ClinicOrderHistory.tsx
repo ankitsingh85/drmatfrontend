@@ -124,6 +124,7 @@ export default function ClinicOrderHistory({ clinicId }: ClinicOrderHistoryProps
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [deletingId, setDeletingId] = useState("");
+  const [cancellingId, setCancellingId] = useState("");
 
   const token = Cookies.get("token") || "";
 
@@ -206,6 +207,43 @@ export default function ClinicOrderHistory({ clinicId }: ClinicOrderHistoryProps
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
       handleOrderOpen(orderId);
+    }
+  };
+
+  const canCancelOrder = (order: ClinicOrder) =>
+    order.status !== "Cancelled" && order.status !== "Delivered";
+
+  const handleCancelOrder = async (event: React.MouseEvent, orderId: string) => {
+    event.stopPropagation();
+
+    const ok = await confirm("Cancel this order? This cannot be undone.", {
+      title: "Cancel order",
+      confirmLabel: "Cancel Order",
+      danger: true,
+    });
+    if (!ok) return;
+
+    try {
+      setCancellingId(orderId);
+      const res = await fetch(`${API_URL}/orders/${orderId}/cancel`, {
+        method: "PUT",
+        headers: {
+          "x-clinic-id": clinicId,
+          "x-owner-type": "clinic",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.message || "Failed to cancel order");
+
+      setOrders((prev) =>
+        prev.map((order) => (order._id === orderId ? { ...order, status: "Cancelled" } : order))
+      );
+      toast.success("Order cancelled successfully");
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to cancel order");
+    } finally {
+      setCancellingId("");
     }
   };
 
@@ -341,7 +379,12 @@ export default function ClinicOrderHistory({ clinicId }: ClinicOrderHistoryProps
                 ? "Paid"
                 : order.paymentStatus || "Pending");
             const isPaid = String(order.paymentStatus || "").toLowerCase() === "success";
-            const paymentClass = isPaid ? styles.badgePaid : styles.badgePending;
+            const paymentClass =
+              order.status === "Cancelled"
+                ? styles.badgeCancelled
+                : isPaid
+                ? styles.badgePaid
+                : styles.badgePending;
 
             return (
               <article
@@ -369,6 +412,16 @@ export default function ClinicOrderHistory({ clinicId }: ClinicOrderHistoryProps
                   <div className={styles.metaRight}>
                     <p>{getClinicName(order)}</p>
                     <span className={`${styles.badge} ${paymentClass}`}>{statusLabel}</span>
+                    {canCancelOrder(order) && (
+                      <button
+                        type="button"
+                        className={styles.cancelBtn}
+                        onClick={(event) => handleCancelOrder(event, order._id)}
+                        disabled={cancellingId === order._id}
+                      >
+                        {cancellingId === order._id ? "Cancelling..." : "Cancel Order"}
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={(event) => handleDeleteOrder(event, order._id)}
