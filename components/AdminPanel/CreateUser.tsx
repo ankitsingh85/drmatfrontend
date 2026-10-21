@@ -42,8 +42,7 @@ export default function CreateUser() {
 
 
 
-  // Only Patient Name and Contact No. are mandatory — email and address
-  // are optional (but still format-checked when filled in).
+  // Patient Name, Email and Contact No. are mandatory — address is optional.
   const validateField = (name: string, value: string) => {
     switch (name) {
       case "patientName":
@@ -53,7 +52,7 @@ export default function CreateUser() {
         }
         return "";
       case "email":
-        if (!value.trim()) return "";
+        if (!value.trim()) return "Email is required";
         if (!emailRegex.test(value.trim())) return "Enter a valid email address";
         return "";
       case "contactNo":
@@ -254,7 +253,9 @@ export default function CreateUser() {
           </div>
 
           <div className={styles.field}>
-            <label className={styles.label}>Email ID</label>
+            <label className={styles.label}>
+              Email ID<span className={styles.required}>*</span>
+            </label>
             <input
               className={styles.input}
               type="email"
@@ -263,6 +264,7 @@ export default function CreateUser() {
               value={formData.email}
               onChange={handleChange}
               onBlur={handleBlur}
+              required
             />
             {touched.email && errors.email && (
               <p className={styles.fieldError}>{errors.email}</p>

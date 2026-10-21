@@ -631,6 +631,101 @@
   border-color: #5eead4;
 }
 
+.treatmentOrderGrid {
+  display: grid;
+  gap: 14px;
+}
+
+.orderMetaGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin: 14px 0;
+}
+
+.treatmentItemList {
+  display: grid;
+  gap: 8px;
+  margin: 6px 0 14px;
+}
+
+.treatmentItemRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+}
+
+.treatmentItemName {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.treatmentItemClinic {
+  margin: 3px 0 0;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.treatmentItemPrice {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+  white-space: nowrap;
+}
+
+.cancelOrderBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(220, 38, 38, 0.25);
+  background: rgba(220, 38, 38, 0.08);
+  color: #dc2626;
+  font-size: 12.5px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.cancelOrderBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.treatmentStartedNote {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(15, 157, 88, 0.1);
+  color: #0f9d58;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.treatmentPendingNote {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .orderMetaGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(180px, 1fr));

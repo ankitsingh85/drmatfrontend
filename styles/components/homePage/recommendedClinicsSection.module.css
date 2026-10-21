@@ -1,0 +1,172 @@
+.section {
+  padding: 8px 0 4px;
+}
+
+.heading {
+  text-align: center;
+  margin: 20px 0 4px;
+  font-weight: 700;
+  font-size: 26px;
+  text-decoration: underline;
+}
+
+.subheading {
+  text-align: center;
+  margin: 0 0 20px;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.carousel {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 1.25rem;
+}
+
+.navBtn {
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #10306b;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.navBtn:hover {
+  background: #eaf3ff;
+  transform: scale(1.05);
+}
+
+.cardsRow {
+  flex: 1;
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+}
+
+.miniCard {
+  flex: 1 1 0;
+  max-width: 360px;
+  min-width: 0;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  overflow: hidden;
+  cursor: pointer;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
+}
+
+.miniCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 18px 36px rgba(15, 23, 42, 0.12);
+}
+
+.miniCardImage {
+  position: relative;
+  width: 100%;
+  height: 190px;
+  background: #f1f5f9;
+}
+
+.miniCardImage img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.verifiedTag {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(15, 157, 88, 0.92);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.miniCardBody {
+  padding: 14px 16px 18px;
+}
+
+.miniCardName {
+  margin: 0 0 6px;
+  font-size: 17px;
+  font-weight: 800;
+  color: #10306b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.miniCardAddress {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.miniCardAddress svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: #1f49be;
+}
+
+.dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: none;
+  background: #cbd5e1;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.dotActive {
+  background: #1f49be;
+  transform: scale(1.3);
+}
+
+@media (max-width: 768px) {
+  .carousel {
+    padding: 0 0.75rem;
+    gap: 8px;
+  }
+
+  .navBtn {
+    width: 36px;
+    height: 36px;
+  }
+
+  .heading {
+    font-size: 21px;
+  }
+
+  .miniCardImage {
+    height: 170px;
+  }
+}

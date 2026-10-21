@@ -29,6 +29,7 @@ import ProductCategory from "@/components/homePage/productCategories";
 import FullPageLoader from "@/components/common/FullPageLoader";
 import CourseListing from "@/components/Layout/CourseListing";
 import ClinicOffer from "./ClinicOffer";
+import RecommendedClinicsSection from "@/components/homePage/RecommendedClinicsSection";
 import B2BProductCategories from "@/components/homePage/B2BProductCategories";
 import TraningWorkshop from "./TraningWorkshop";
 import ClinicHiringPortal from "./ClinicHiringPortal";
@@ -214,6 +215,8 @@ const Index = () => {
           textBg="#D9EBFD"
           border="2px solid #D9EBFD"
         />
+
+        <RecommendedClinicsSection />
 
 <h2
           style={{

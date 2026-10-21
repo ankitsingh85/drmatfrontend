@@ -294,8 +294,13 @@ export default function BusinessLogin() {
     const normalizedMobile = validateMobile();
     if (!normalizedMobile) return;
 
-    if (!name.trim() || !address.trim()) {
-      toast.error("Name and address are required");
+    if (!name.trim() || !address.trim() || !email.trim()) {
+      toast.error("Name, email and address are required");
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      toast.error("Enter a valid email address");
       return;
     }
 
@@ -477,6 +482,7 @@ export default function BusinessLogin() {
                       placeholder="Email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
+                      required
                     />
                     <input
                       className={styles.textInput}

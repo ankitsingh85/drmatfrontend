@@ -256,11 +256,17 @@ export default function CreateClinic() {
       !form.clinicName.trim() ||
       !form.dermaCategory ||
       !form.contactNumber.trim() ||
-      !form.whatsapp.trim()
+      !form.whatsapp.trim() ||
+      !form.email.trim()
     ) {
       toast.error(
-        "Please fill Clinic Name, Category, Contact Number and Whatsapp Contact Number before creating the clinic."
+        "Please fill Clinic Name, Category, Contact Number, Whatsapp Contact Number and Email before creating the clinic."
       );
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+      toast.error("Enter a valid email address");
       return;
     }
 
@@ -573,8 +579,16 @@ export default function CreateClinic() {
             </div>
 
             <div className={styles.field}>
-              <label>Email Address</label>
-              <input className={styles.input} name="email" onChange={handleChange} />
+              <label>
+                Email Address<span className={styles.required}>*</span>
+              </label>
+              <input
+                className={styles.input}
+                type="email"
+                name="email"
+                onChange={handleChange}
+                required
+              />
             </div>
 
             <div className={styles.field}>

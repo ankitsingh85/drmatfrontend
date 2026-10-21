@@ -23,6 +23,7 @@ import {
   FiMessageCircle,
   FiPhone,
   FiGift,
+  FiActivity,
 } from "react-icons/fi";
 
 import styles from "@/styles/clinicdashboard/clinicportal.module.css";
@@ -36,6 +37,7 @@ import Lead from "@/components/ClinicAdmin/Lead";
 import ClinicReviews from "@/components/ClinicAdmin/ClinicReviews";
 import EditClinic from "@/components/ClinicAdmin/EditClinic";
 import ClinicOrderHistory from "@/components/ClinicAdmin/ClinicOrderHistory";
+import ClinicTreatmentBookings from "@/components/ClinicAdmin/ClinicTreatmentBookings";
 import SubscriptionPlan from "@/components/ClinicAdmin/SubscriptionPlan";
 
 
@@ -66,6 +68,7 @@ type SectionId =
   | "appointments"
   | "lead"
   | "orders"
+  | "treatmentBookings"
   | "services"
   | "purchased"
   | "help"
@@ -337,6 +340,11 @@ export default function ClinicDashboard() {
         // access — the clinic shouldn't even know there's a tab to unlock.
         leadAccessVisible ? { id: "lead" as const, label: "Lead", icon: FiUsers } : null,
         { id: "orders" as const, label: "Orders", icon: FiShoppingBag },
+        {
+          id: "treatmentBookings" as const,
+          label: "Treatment Booking",
+          icon: FiActivity,
+        },
         { id: "plan" as const, label: "Subscription Plan", icon: FiCreditCard },
         // { id: "doctors" as const, label: "Doctors", icon: FiUsers },
         // { id: "services" as const, label: "Services", icon: FiClipboard },
@@ -627,6 +635,7 @@ export default function ClinicDashboard() {
     appointments: "Appointments",
     lead: "Lead",
     orders: "Orders",
+    treatmentBookings: "Treatment Booking",
     services: "Services",
     purchased: "Purchased Services",
     help: "Help Center",
@@ -652,6 +661,14 @@ export default function ClinicDashboard() {
       return (
         <div className={styles.sectionShell}>
           <ClinicOrderHistory clinicId={clinicId} />
+        </div>
+      );
+    }
+
+    if (activeSection === "treatmentBookings") {
+      return (
+        <div className={styles.sectionShell}>
+          <ClinicTreatmentBookings clinicId={clinicId} />
         </div>
       );
     }

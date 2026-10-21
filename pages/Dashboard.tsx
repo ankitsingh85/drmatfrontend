@@ -63,6 +63,9 @@ import ListOfCoupon from "@/components/AdminPanel/ListOfCoupon";
 import ClinicPlanSettings from "@/components/AdminPanel/ClinicPlanSettings";
 import ListOfClinicSubscriptions from "@/components/AdminPanel/ListOfClinicSubscriptions";
 
+/* ✅ RECOMMENDED CLINICS */
+import RecommendedClinics from "@/components/AdminPanel/RecommendedClinics";
+
 import styles from "@/styles/dashboard.module.css";
 import {
   FiUsers,
@@ -98,6 +101,7 @@ import {
   FiAlertCircle,
   FiPercent,
   FiCreditCard,
+  FiStar,
 } from "react-icons/fi";
 import {
   BULK_UPLOAD_CONFIG,
@@ -489,6 +493,18 @@ export default function SuperAdminDashboard() {
       icon: <FiHome />,
       ListComponent: ListOfClinic,
       CreateComponent: CreateClinic,
+    },
+    {
+      id: "recommendedClinic",
+      label: "RECOMMENDED CLINIC",
+      listLabel: "Recommended Clinics",
+      createLabel: "Recommended Clinics",
+      icon: <FiStar />,
+      // Self-contained: the same component lists every clinic and lets the
+      // admin toggle which ones are recommended, so there's no separate
+      // "create" form for this module — both list and create point here.
+      ListComponent: RecommendedClinics,
+      CreateComponent: RecommendedClinics,
     },
     {
       id: "b2bUser",

@@ -54,7 +54,7 @@ export default function CreateB2BUser() {
       case "name":
         return cleanValue ? "" : "Name is required";
       case "email":
-        if (!cleanValue) return "";
+        if (!cleanValue) return "Email is required";
         return emailRegex.test(cleanValue) ? "" : "Enter a valid email address";
       case "contactNo":
         if (!cleanValue) return "Contact number is required";
@@ -199,7 +199,9 @@ export default function CreateB2BUser() {
           </div>
 
           <div className={styles.field}>
-            <label className={styles.label}>Email</label>
+            <label className={styles.label}>
+              Email<span className={styles.required}>*</span>
+            </label>
             <input
               className={styles.input}
               type="email"
@@ -208,6 +210,7 @@ export default function CreateB2BUser() {
               onChange={handleChange}
               onBlur={handleBlur}
               placeholder="Enter email"
+              required
             />
             {showError("email") && <p className={styles.fieldError}>{errors.email}</p>}
           </div>

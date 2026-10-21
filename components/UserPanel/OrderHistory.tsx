@@ -363,7 +363,7 @@ const UserOrderHistory: React.FC<OrderHistoryProps> = ({ mode = "all" }) => {
                   >
                     {order.status === "Cancelled" ? "Cancelled" : order.paymentStatus || "Pending"}
                   </span>
-                  {canCancelOrder(order) && (
+                  {mode !== "treatment" && canCancelOrder(order) && (
                     <button
                       type="button"
                       className={styles.cancelBtn}
@@ -405,6 +405,12 @@ const UserOrderHistory: React.FC<OrderHistoryProps> = ({ mode = "all" }) => {
                     </div>
                   ))}
                 </div>
+                {mode === "treatment" && (
+                  <p className={styles.supportNote}>
+                    Treatment bookings can't be cancelled here — please contact our support
+                    team for cancellation or any other query.
+                  </p>
+                )}
               </div>
             </div>
           ))}

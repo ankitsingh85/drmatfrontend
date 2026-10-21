@@ -29,7 +29,7 @@ type Props = {
   onClose: () => void;
 };
 
-const RADIUS_KM = 15;
+const RADIUS_KM = 30;
 
 const addressLineFor = (clinic: TreatmentClinicOption) =>
   [clinic.sector, clinic.city].filter(Boolean).join(", ") || clinic.address || "";

@@ -39,6 +39,9 @@ interface OrderItem {
   name: string;
   price: number;
   quantity: number;
+  itemType?: "product" | "treatment" | "consultation";
+  clinicName?: string;
+  clinicAddress?: string;
 }
 
 interface OrderUser {
@@ -49,6 +52,7 @@ interface OrderUser {
 interface Order {
   _id: string;
   userId: string | OrderUser;
+  orderType?: "product" | "treatment" | "consultation";
   totalAmount: number;
   paymentStatus?: string;
   status?: string;
@@ -56,16 +60,28 @@ interface Order {
   address?: { type?: string; address?: string };
   products: OrderItem[];
   createdAt: string;
+  razorpayPaymentId?: string;
+  treatmentStartedAt?: string;
 }
 
 type UserDetailTab =
   | "my_orders"
-  | "my_lab_test"
+  | "treatment_orders"
   | "test_booking"
   | "orders"
   | "my_consultation"
   | "medical_records"
   | "payment_methods";
+
+const isTreatmentOrder = (order: Order) => {
+  const orderType = String(order.orderType || "").toLowerCase();
+  if (orderType === "treatment") return true;
+  if (order.products?.some((item) => item.itemType === "treatment")) return true;
+
+  const addressType = String(order.address?.type || "").toLowerCase();
+  const addressText = String(order.address?.address || "").toLowerCase();
+  return addressType === "other" || addressText.includes("treatment");
+};
 
 type ListOfUserProps = {
   canEdit?: boolean;
@@ -94,6 +110,7 @@ export default function ListOfUser({ canEdit = true, canDelete = true }: ListOfU
   const [viewLoading, setViewLoading] = useState(false);
   const [viewError, setViewError] = useState("");
   const [activeDetailTab, setActiveDetailTab] = useState<UserDetailTab>("orders");
+  const [cancellingOrderId, setCancellingOrderId] = useState("");
 
   useEffect(() => {
     fetchUsers();
@@ -360,6 +377,40 @@ export default function ListOfUser({ canEdit = true, canDelete = true }: ListOfU
     setActiveDetailTab("orders");
   };
 
+  // Admin-side cancellation — unlike the customer's own cancel action, this
+  // is allowed for treatment bookings too (a patient can't self-cancel a
+  // treatment, but support/admin can on their behalf). Reuses the existing
+  // unrestricted admin status route rather than the owner-scoped /cancel
+  // endpoint, since the admin isn't the order's owner.
+  const handleAdminCancelOrder = async (order: Order) => {
+    const ok = await confirmDialog("Cancel this order? This cannot be undone.", {
+      title: "Cancel order",
+      confirmLabel: "Cancel Order",
+      danger: true,
+    });
+    if (!ok) return;
+
+    try {
+      setCancellingOrderId(order._id);
+      const res = await fetch(`${API_URL}/orders/${order._id}/status`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "Cancelled" }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.message || "Failed to cancel order");
+
+      setViewOrders((prev) =>
+        prev.map((o) => (o._id === order._id ? { ...o, status: "Cancelled" } : o))
+      );
+      toast.success("Order cancelled successfully");
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to cancel order");
+    } finally {
+      setCancellingOrderId("");
+    }
+  };
+
   if (loading) return <FullPageLoader />;
 
   if (viewingUser) {
@@ -367,6 +418,7 @@ export default function ListOfUser({ canEdit = true, canDelete = true }: ListOfU
       (sum, order) => sum + Number(order.totalAmount || 0),
       0
     );
+    const treatmentOrders = viewOrders.filter(isTreatmentOrder);
 
     return (
       <div className={styles.container}>
@@ -443,14 +495,14 @@ export default function ListOfUser({ canEdit = true, canDelete = true }: ListOfU
            
             <button
               className={`${styles.tabBtn} ${
-                activeDetailTab === "my_lab_test" ? styles.tabBtnActive : ""
+                activeDetailTab === "treatment_orders" ? styles.tabBtnActive : ""
               }`}
-              onClick={() => setActiveDetailTab("my_lab_test")}
+              onClick={() => setActiveDetailTab("treatment_orders")}
               type="button"
             >
               <span className={styles.tabLeft}>
                 <FiCalendar />
-                Lab Test
+                Treatment Order
               </span>
             </button>
             <button
@@ -591,6 +643,137 @@ export default function ListOfUser({ canEdit = true, canDelete = true }: ListOfU
                         })}
                       </tbody>
                     </table>
+                  </div>
+                )}
+              </div>
+            ) : activeDetailTab === "treatment_orders" ? (
+              <div className={styles.ordersSection}>
+                <div className={styles.ordersHeader}>
+                  <h3>Treatment Orders</h3>
+                  <p>
+                    {viewLoading
+                      ? "Loading..."
+                      : `${treatmentOrders.length} treatment order(s) found`}
+                  </p>
+                </div>
+
+                {viewLoading && <FullPageLoader />}
+                {!viewLoading && viewError && (
+                  <p className={styles.emptyState}>{viewError}</p>
+                )}
+                {!viewLoading && !viewError && treatmentOrders.length === 0 && (
+                  <p className={styles.emptyState}>
+                    No treatment orders found for this user.
+                  </p>
+                )}
+
+                {!viewLoading && !viewError && treatmentOrders.length > 0 && (
+                  <div className={styles.treatmentOrderGrid}>
+                    {treatmentOrders.map((order) => {
+                      const statusText =
+                        order.status || order.paymentStatus || "Pending";
+                      const statusClass =
+                        styles[statusText.toLowerCase()] || styles.pending;
+                      const canCancel =
+                        order.status !== "Cancelled" && order.status !== "Delivered";
+
+                      return (
+                        <div key={order._id} className={styles.orderCard}>
+                          <div className={styles.orderCardTop}>
+                            <div>
+                              <p className={styles.orderLabel}>Order ID</p>
+                              <p className={styles.orderValue}>{order._id}</p>
+                            </div>
+                            <span className={`${styles.statusPill} ${statusClass}`}>
+                              {statusText}
+                            </span>
+                          </div>
+
+                          <div className={styles.orderMetaGrid}>
+                            <div>
+                              <p className={styles.orderLabel}>Booked On</p>
+                              <p className={styles.orderValue}>
+                                {new Date(order.createdAt).toLocaleString("en-IN")}
+                              </p>
+                            </div>
+                            <div>
+                              <p className={styles.orderLabel}>Total Amount</p>
+                              <p className={styles.orderValue}>
+                                Rs. {Number(order.totalAmount || 0).toLocaleString("en-IN")}
+                              </p>
+                            </div>
+                            <div>
+                              <p className={styles.orderLabel}>Payment Method</p>
+                              <p className={styles.orderValue}>
+                                {order.paymentMethod || "N/A"}
+                              </p>
+                            </div>
+                            {order.razorpayPaymentId && (
+                              <div>
+                                <p className={styles.orderLabel}>Payment ID</p>
+                                <p className={styles.orderValue}>
+                                  {order.razorpayPaymentId}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+
+                          <p className={styles.orderLabel}>Treatment(s)</p>
+                          <div className={styles.treatmentItemList}>
+                            {order.products.map((item) => (
+                              <div
+                                key={`${order._id}-${item.id}`}
+                                className={styles.treatmentItemRow}
+                              >
+                                <div>
+                                  <p className={styles.treatmentItemName}>
+                                    {item.name} x{item.quantity}
+                                  </p>
+                                  {item.clinicName && (
+                                    <p className={styles.treatmentItemClinic}>
+                                      Clinic: {item.clinicName}
+                                      {item.clinicAddress ? ` — ${item.clinicAddress}` : ""}
+                                    </p>
+                                  )}
+                                </div>
+                                <p className={styles.treatmentItemPrice}>
+                                  Rs. {(item.price * item.quantity).toLocaleString("en-IN")}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+
+                          {order.status !== "Cancelled" && (
+                            <div
+                              className={
+                                order.treatmentStartedAt
+                                  ? styles.treatmentStartedNote
+                                  : styles.treatmentPendingNote
+                              }
+                            >
+                              {order.treatmentStartedAt
+                                ? `Treatment Started — ${new Date(
+                                    order.treatmentStartedAt
+                                  ).toLocaleString("en-IN")}`
+                                : "Not started yet — clinic hasn't OTP-verified the patient"}
+                            </div>
+                          )}
+
+                          {canCancel && (
+                            <button
+                              type="button"
+                              className={styles.cancelOrderBtn}
+                              onClick={() => handleAdminCancelOrder(order)}
+                              disabled={cancellingOrderId === order._id}
+                            >
+                              {cancellingOrderId === order._id
+                                ? "Cancelling..."
+                                : "Cancel Order"}
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
