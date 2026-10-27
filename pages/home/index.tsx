@@ -227,7 +227,7 @@ const Index = () => {
             textDecoration:"underline",
           }}
         >
-         Top Derma Clinics Near You
+         Latest Coupon Offer
         </h2>
         <div
           style={{

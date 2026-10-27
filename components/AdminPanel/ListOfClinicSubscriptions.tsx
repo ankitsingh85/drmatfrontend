@@ -153,6 +153,127 @@ const ListOfClinicSubscriptions: React.FC<ListOfClinicSubscriptionsProps> = ({ c
     );
   }, [rows, search]);
 
+  const planStatusLabel = (row: ClinicSubscriptionRow) =>
+    row.isActive ? "Active" : row.subscription ? "Expired" : "No Plan";
+
+  const handleDownloadCSV = () => {
+    const rows2 = [
+      [
+        "Clinic Name",
+        "Contact Number",
+        "Plan Status",
+        "Billing Cycle",
+        "Amount",
+        "Add-ons",
+        "Start Date",
+        "Expiry Date",
+        "Verified Badge",
+        "Lead Access",
+        "WhatsApp Button",
+      ],
+      ...filteredRows.map((row) => [
+        row.clinicName,
+        row.contactNumber || "-",
+        planStatusLabel(row),
+        row.subscription?.billingCycle || "-",
+        row.subscription ? `₹${row.subscription.amount}` : "-",
+        row.subscription?.addons?.length
+          ? row.subscription.addons.map((a) => `${a.name} (₹${a.price})`).join("; ")
+          : "-",
+        formatDate(row.subscription?.startDate),
+        formatDate(row.subscription?.endDate),
+        row.verifiedBadgeOverride,
+        row.leadAccessOverride,
+        row.whatsappOverride,
+      ]),
+    ];
+
+    const csv = rows2
+      .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "clinic-subscriptions.csv";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleDownloadPDF = () => {
+    const printable = window.open("", "_blank");
+    if (!printable) {
+      toast.error("Unable to open print window. Please allow popups.");
+      return;
+    }
+
+    const escapeHtml = (value: string) =>
+      value
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+
+    const rowsHtml = filteredRows
+      .map(
+        (row) => `<tr>
+          <td>${escapeHtml(row.clinicName)}</td>
+          <td>${escapeHtml(row.contactNumber || "-")}</td>
+          <td>${escapeHtml(planStatusLabel(row))}</td>
+          <td>${escapeHtml(row.subscription?.billingCycle || "-")}</td>
+          <td>${escapeHtml(row.subscription ? `₹${row.subscription.amount}` : "-")}</td>
+          <td>${escapeHtml(formatDate(row.subscription?.startDate))}</td>
+          <td>${escapeHtml(formatDate(row.subscription?.endDate))}</td>
+          <td>${escapeHtml(row.verifiedBadgeOverride)}</td>
+          <td>${escapeHtml(row.leadAccessOverride)}</td>
+          <td>${escapeHtml(row.whatsappOverride)}</td>
+        </tr>`
+      )
+      .join("");
+
+    printable.document.write(`
+      <html>
+        <head>
+          <title>Clinic Subscriptions</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            h2 { margin-bottom: 16px; }
+            table { width: 100%; border-collapse: collapse; }
+            th, td { border: 1px solid #ccc; padding: 8px; text-align: left; font-size: 12px; }
+            th { background: #f4f4f4; }
+          </style>
+        </head>
+        <body>
+          <h2>Clinic Subscriptions</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Clinic Name</th>
+                <th>Contact Number</th>
+                <th>Plan Status</th>
+                <th>Billing Cycle</th>
+                <th>Amount</th>
+                <th>Start Date</th>
+                <th>Expiry Date</th>
+                <th>Verified Badge</th>
+                <th>Lead Access</th>
+                <th>WhatsApp Button</th>
+              </tr>
+            </thead>
+            <tbody>${rowsHtml}</tbody>
+          </table>
+        </body>
+      </html>
+    `);
+    printable.document.close();
+    printable.focus();
+    printable.print();
+  };
+
   if (loading) return <p className={styles.loading}>Loading clinic subscriptions...</p>;
 
   return (
@@ -164,6 +285,12 @@ const ListOfClinicSubscriptions: React.FC<ListOfClinicSubscriptionsProps> = ({ c
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
+        <button type="button" className={styles.premiumButton} onClick={handleDownloadCSV}>
+          Download CSV
+        </button>
+        <button type="button" className={styles.premiumButton} onClick={handleDownloadPDF}>
+          Download PDF
+        </button>
       </div>
 
       {filteredRows.length === 0 ? (

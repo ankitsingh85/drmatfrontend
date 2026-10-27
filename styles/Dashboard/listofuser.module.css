@@ -1,16 +1,17 @@
 .container {
-  max-width: 1400px;
-  margin: 20px auto;
-  padding: 24px;
+  width: 100%;
+  margin: 0;
+  padding: 16px;
   background: #ffffff;
-  border-radius: 28px;
-  box-shadow: 0 30px 80px rgba(15, 23, 42, 0.12);
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
 }
 
 .heading {
-  font-size: 22px;
+  font-size: 18px;
   font-weight: 800;
-  margin-bottom: 18px;
+  margin-bottom: 12px;
   color: #020617;
 }
 

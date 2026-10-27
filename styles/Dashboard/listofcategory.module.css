@@ -1,8 +1,7 @@
 /* ===== ROOT ===== */
 .container {
-  padding: 28px;
-  max-width: 1400px;
-  margin: auto;
+  padding: 0;
+  width: 100%;
 }
 
 .title {

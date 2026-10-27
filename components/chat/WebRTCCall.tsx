@@ -1,10 +1,12 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import {
+  FiClipboard,
+  FiMaximize2,
   FiMic,
   FiMicOff,
+  FiMinimize2,
   FiPhone,
   FiPhoneOff,
   FiVideo,
@@ -35,6 +37,11 @@ type WebRTCCallProps = {
   canCall: boolean;
   externalIncomingCall?: WebRTCCallSignalPayload | null;
   onExternalIncomingHandled?: (callId: string) => void;
+  // Doctor-only: shows a clipboard button next to the mute control so a
+  // prescription can be written without hanging up. Minimizes the call
+  // automatically so the prescription modal (lower z-index) is reachable.
+  showPrescriptionButton?: boolean;
+  onPrescriptionClick?: () => void;
 };
 
 const formatDuration = (totalSeconds: number) => {
@@ -65,6 +72,8 @@ const WebRTCCall = ({
   canCall,
   externalIncomingCall,
   onExternalIncomingHandled,
+  showPrescriptionButton,
+  onPrescriptionClick,
 }: WebRTCCallProps) => {
   const [mode, setMode] = useState<CallMode>("idle");
   const [callType, setCallType] = useState<CallType>("video");
@@ -74,6 +83,7 @@ const WebRTCCall = ({
   const [cameraEnabled, setCameraEnabled] = useState(true);
   const [callError, setCallError] = useState("");
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [minimized, setMinimized] = useState(false);
 
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
@@ -142,6 +152,7 @@ const WebRTCCall = ({
       setCallError("");
       setMicEnabled(true);
       setCameraEnabled(true);
+      setMinimized(false);
     },
     [chatId, currentUserId, peerId, stopLocalMedia]
   );
@@ -292,6 +303,11 @@ const WebRTCCall = ({
     });
   };
 
+  const handlePrescriptionButtonClick = () => {
+    setMinimized(true);
+    onPrescriptionClick?.();
+  };
+
   const receiveInvite = useCallback(
     (data: WebRTCCallSignalPayload) => {
       if (
@@ -434,13 +450,15 @@ const WebRTCCall = ({
 
   const callOverlay =
     mode !== "idle" ? (
-      <div className={styles.callOverlay}>
+      <div
+        className={`${styles.callOverlay} ${minimized ? styles.callOverlayMinimized : ""}`}
+      >
         <div className={styles.callScreen}>
           <video ref={remoteVideoRef} autoPlay playsInline className={styles.remoteVideo}>
             <track kind="captions" />
           </video>
 
-          {(callType === "audio" || mode !== "active") && (
+          {!minimized && (callType === "audio" || mode !== "active") && (
             <div className={styles.callPlaceholder}>
               <span className={styles.callAvatar}>{peerName.slice(0, 1).toUpperCase()}</span>
               <h3 className={styles.callPeerName}>{peerName}</h3>
@@ -458,14 +476,20 @@ const WebRTCCall = ({
             </div>
           )}
 
-          {mode === "active" && callType === "video" ? (
+          {!minimized && mode === "active" && callType === "video" ? (
             <div className={styles.callTopBar}>
               <span className={styles.callTopBarName}>{peerName}</span>
               <span className={styles.callTopBarTimer}>{formatDuration(elapsedSeconds)}</span>
             </div>
           ) : null}
 
-          <video ref={localVideoRef} autoPlay muted playsInline className={styles.localVideo}>
+          <video
+            ref={localVideoRef}
+            autoPlay
+            muted
+            playsInline
+            className={`${styles.localVideo} ${minimized ? styles.hiddenVideo : ""}`}
+          >
             <track kind="captions" />
           </video>
 
@@ -480,17 +504,56 @@ const WebRTCCall = ({
                 <span>Accept</span>
               </button>
             </div>
-          ) : (
-            <div className={styles.activeControls}>
-              <button type="button" onClick={toggleMic}>
+          ) : minimized ? (
+            <div className={styles.minimizedBar}>
+              <span className={styles.minimizedName}>{peerName}</span>
+              <span className={styles.minimizedTimer}>{formatDuration(elapsedSeconds)}</span>
+              <button type="button" onClick={toggleMic} title={micEnabled ? "Mute" : "Unmute"}>
                 {micEnabled ? <FiMic /> : <FiMicOff />}
               </button>
+              <button
+                type="button"
+                onClick={() => setMinimized(false)}
+                title="Expand call"
+              >
+                <FiMaximize2 />
+              </button>
+              <button
+                type="button"
+                className={styles.endCallBtn}
+                onClick={() => resetCall(true)}
+                title="End call"
+              >
+                <FiPhoneOff />
+              </button>
+            </div>
+          ) : (
+            <div className={styles.activeControls}>
+              <button type="button" onClick={toggleMic} title={micEnabled ? "Mute" : "Unmute"}>
+                {micEnabled ? <FiMic /> : <FiMicOff />}
+              </button>
+              {showPrescriptionButton && onPrescriptionClick ? (
+                <button
+                  type="button"
+                  onClick={handlePrescriptionButtonClick}
+                  title="Write prescription"
+                >
+                  <FiClipboard />
+                </button>
+              ) : null}
               {callType === "video" ? (
-                <button type="button" onClick={toggleCamera}>
+                <button type="button" onClick={toggleCamera} title={cameraEnabled ? "Turn off camera" : "Turn on camera"}>
                   {cameraEnabled ? <FiVideo /> : <FiVideoOff />}
                 </button>
               ) : null}
-              <button type="button" className={styles.endCallBtn} onClick={() => resetCall(true)}>
+              <button
+                type="button"
+                onClick={() => setMinimized(true)}
+                title="Minimize call"
+              >
+                <FiMinimize2 />
+              </button>
+              <button type="button" className={styles.endCallBtn} onClick={() => resetCall(true)} title="End call">
                 <FiPhoneOff />
               </button>
             </div>
@@ -522,9 +585,7 @@ const WebRTCCall = ({
 
       {callError ? <div className={styles.callError}>{callError}</div> : null}
 
-      {callOverlay && typeof document !== "undefined"
-        ? createPortal(callOverlay, document.body)
-        : null}
+      {callOverlay}
     </>
   );
 };

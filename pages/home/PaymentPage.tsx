@@ -111,6 +111,14 @@ const PaymentPage: React.FC = () => {
       (checkoutLoaded && checkoutItems.length > 0 && cartItems.length === 0) ||
       (activeItems.length > 0 && hasTreatmentItems && !hasProductItems));
 
+  // A cart can mix treatments with products — the review screen shows the
+  // per-treatment clinic list whenever any treatment items are present
+  // (not just when the whole cart is treatment-only), and still shows the
+  // normal delivery-address box too unless it's a *pure* treatment cart.
+  const showTreatmentBookingList =
+    hasTreatmentItems && !isClinicCheckout && !isDoctorCheckout && !isConsultationCheckout;
+  const showAddressBox = !(showTreatmentBookingList && !hasProductItems);
+
   const needsLogin = isHydrated && !Cookies.get("token");
   const loginNextPath = isClinicCheckout
     ? "/home/PaymentPage?flow=clinic"
@@ -717,49 +725,74 @@ const PaymentPage: React.FC = () => {
             </div>
           </div>
 
-          <div className={styles.addressBox}>
-            <div className={styles.addressPin}>
-              <GoLocation />
+          {showTreatmentBookingList && (
+            <div className={styles.treatmentBookingList}>
+              {activeItems
+                .filter((item) => item.itemType === "treatment")
+                .map((item) => (
+                  <div key={item.id} className={styles.addressBox}>
+                    <div className={styles.addressPin}>
+                      <GoLocation />
+                    </div>
+                    <div>
+                      <p className={styles.addressLabel}>
+                        {item.clinicName ? "Visiting clinic" : "Treatment booking"}
+                      </p>
+                      <p className={styles.addressType}>{item.name}</p>
+                      <p className={styles.addressText}>
+                        {item.clinicName
+                          ? `${item.clinicName}${
+                              item.clinicAddress ? ` — ${item.clinicAddress}` : ""
+                            }`
+                          : "You are paying directly for the treatment plan. No address selection is needed."}
+                      </p>
+                    </div>
+                  </div>
+                ))}
             </div>
-            <div>
-              <p className={styles.addressLabel}>
-                {isClinicCheckout
-                  ? "Clinic billing"
-                  : isDoctorCheckout
-                  ? "Doctor billing"
-                  : isConsultationCheckout
-                  ? "Consultation booking"
-                  : isTreatmentCheckout
-                  ? treatmentClinicItem
-                    ? "Visiting clinic"
-                    : "Treatment booking"
-                  : "Deliver to"}
-              </p>
-              <p className={styles.addressType}>
-                {isClinicCheckout
-                  ? clinicName || Cookies.get("clinicName") || "Clinic"
-                  : isDoctorCheckout
-                  ? doctorName || Cookies.get("username") || "Doctor"
-                  : isConsultationCheckout
-                  ? "No address required"
-                  : isTreatmentCheckout
-                  ? treatmentClinicItem?.clinicName || "No address required"
-                  : deliveryType}
-              </p>
-              <p className={styles.addressText}>
-                {isClinicCheckout
-                  ? clinicAddress || deliveryAddress
-                  : isDoctorCheckout
-                  ? doctorAddress || deliveryAddress
-                  : isConsultationCheckout
-                  ? "You are paying directly for the video consultation. No address selection is needed."
-                  : isTreatmentCheckout
-                  ? treatmentClinicItem?.clinicAddress ||
-                    "You are paying directly for the treatment plan. No address selection is needed."
-                  : deliveryAddress}
-              </p>
+          )}
+
+          {showAddressBox && (
+            <div
+              className={styles.addressBox}
+              style={showTreatmentBookingList ? { marginTop: 14 } : undefined}
+            >
+              <div className={styles.addressPin}>
+                <GoLocation />
+              </div>
+              <div>
+                <p className={styles.addressLabel}>
+                  {isClinicCheckout
+                    ? "Clinic billing"
+                    : isDoctorCheckout
+                    ? "Doctor billing"
+                    : isConsultationCheckout
+                    ? "Consultation booking"
+                    : showTreatmentBookingList
+                    ? "Product delivery"
+                    : "Deliver to"}
+                </p>
+                <p className={styles.addressType}>
+                  {isClinicCheckout
+                    ? clinicName || Cookies.get("clinicName") || "Clinic"
+                    : isDoctorCheckout
+                    ? doctorName || Cookies.get("username") || "Doctor"
+                    : isConsultationCheckout
+                    ? "No address required"
+                    : deliveryType}
+                </p>
+                <p className={styles.addressText}>
+                  {isClinicCheckout
+                    ? clinicAddress || deliveryAddress
+                    : isDoctorCheckout
+                    ? doctorAddress || deliveryAddress
+                    : isConsultationCheckout
+                    ? "You are paying directly for the video consultation. No address selection is needed."
+                    : deliveryAddress}
+                </p>
+              </div>
             </div>
-          </div>
+          )}
 
 
         </section>

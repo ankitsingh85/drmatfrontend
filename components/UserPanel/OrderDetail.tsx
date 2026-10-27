@@ -3,7 +3,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import Cookies from "js-cookie";
+import Link from "next/link";
 import { useRouter } from "next/router";
+import { FiArrowUpRight, FiMapPin } from "react-icons/fi";
 import { useUser } from "@/context/UserContext";
 import styles from "@/styles/userpanel/orderdetail.module.css";
 import { API_URL } from "@/config/api";
@@ -224,6 +226,10 @@ const UserOrderDetail: React.FC<OrderDetailProps> = ({ orderKey }) => {
   const treatmentClinicItem = isTreatment
     ? order?.products.find((item) => item.itemType === "treatment" && item.clinicName)
     : undefined;
+  // Clinic details are only ever linked for treatment orders — product
+  // orders have no associated clinic to visit.
+  const clinicHref = (clinicId?: string) =>
+    isTreatment && clinicId ? `/clinics/${clinicId}?tab=Services` : undefined;
   const headerTitle = isTreatment ? "Treatment Order Details" : "Order Details";
   const orderTitle = order
     ? isTreatment
@@ -252,6 +258,20 @@ const UserOrderDetail: React.FC<OrderDetailProps> = ({ orderKey }) => {
   const steps = isTreatment
     ? ["Booking Placed", "Confirmed", "In Progress", "Completed"]
     : ["Order Placed", "Confirmed", "Shipped", "Delivered"];
+
+  const statusCardClass = useMemo(() => {
+    const paymentStatus = String(order?.paymentStatus || "").toLowerCase();
+    if (["success", "paid", "completed"].includes(paymentStatus)) {
+      return styles.statusCardSuccess;
+    }
+    if (["failed", "cancelled", "declined"].includes(paymentStatus)) {
+      return styles.statusCardFailed;
+    }
+    if (["pending", "processing"].includes(paymentStatus)) {
+      return styles.statusCardPending;
+    }
+    return "";
+  }, [order?.paymentStatus]);
 
   const formatMoney = (value: number) => `Rs. ${value.toLocaleString("en-IN")}`;
   const formatInvoiceDate = (value: string) =>
@@ -676,7 +696,7 @@ const UserOrderDetail: React.FC<OrderDetailProps> = ({ orderKey }) => {
               {new Date(order.createdAt).toLocaleTimeString("en-IN")}
             </p>
           </div>
-          <div className={styles.statusCard}>
+          <div className={`${styles.statusCard} ${statusCardClass}`}>
             <span>Payment Status</span>
             <strong>{order.paymentStatus || "Pending"}</strong>
             <p>{isTreatment ? "Treatment booking invoice" : "Product order invoice"}</p>
@@ -731,10 +751,21 @@ const UserOrderDetail: React.FC<OrderDetailProps> = ({ orderKey }) => {
                       <p className={styles.itemName}>{item.name}</p>
                       <span className={styles.itemMeta}>Qty: {item.quantity}</span>
                       {item.itemType === "treatment" && item.clinicName && (
-                        <p className={styles.clinicInfo}>
-                          Clinic: {item.clinicName}
-                          {item.clinicAddress ? ` — ${item.clinicAddress}` : ""}
-                        </p>
+                        clinicHref(item.clinicId) ? (
+                          <Link href={clinicHref(item.clinicId)!} className={styles.clinicLink}>
+                            <FiMapPin />
+                            <span>
+                              {item.clinicName}
+                              {item.clinicAddress ? ` — ${item.clinicAddress}` : ""}
+                            </span>
+                            <FiArrowUpRight className={styles.clinicLinkArrow} />
+                          </Link>
+                        ) : (
+                          <p className={styles.clinicInfo}>
+                            Clinic: {item.clinicName}
+                            {item.clinicAddress ? ` — ${item.clinicAddress}` : ""}
+                          </p>
+                        )
                       )}
                     </div>
                   </div>
@@ -755,11 +786,21 @@ const UserOrderDetail: React.FC<OrderDetailProps> = ({ orderKey }) => {
             <div className={styles.summaryList}>
               <div className={styles.summaryRow}>
                 <span>{isTreatment ? "Clinic" : "Deliver To"}</span>
-                <strong>
-                  {isTreatment
-                    ? treatmentClinicItem?.clinicName || order.address.type
-                    : order.address.type}
-                </strong>
+                {isTreatment && clinicHref(treatmentClinicItem?.clinicId) ? (
+                  <Link
+                    href={clinicHref(treatmentClinicItem?.clinicId)!}
+                    className={styles.clinicSummaryLink}
+                  >
+                    {treatmentClinicItem?.clinicName}
+                    <FiArrowUpRight />
+                  </Link>
+                ) : (
+                  <strong>
+                    {isTreatment
+                      ? treatmentClinicItem?.clinicName || order.address.type
+                      : order.address.type}
+                  </strong>
+                )}
               </div>
               <div className={styles.summaryRow}>
                 <span>{isTreatment ? "Clinic Address" : "Address"}</span>

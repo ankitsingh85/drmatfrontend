@@ -117,7 +117,6 @@ import ListOfTreatment from "@/components/AdminPanel/ListOfTreatment";
 import CreateOnlineConsultationService from "@/components/AdminPanel/CreateOnlineConsultationService";
 import ListOfOnlineConsultationService from "@/components/AdminPanel/ListOfOnlineConsultationService";
 import Topbar from "@/components/Layout/Topbar";
-import Footer from "@/components/Layout/Footer";
 import MobileNavbar from "@/components/Layout/MobileNavbar";
 import { useToast } from "@/context/ToastContext";
 
@@ -917,8 +916,8 @@ export default function SuperAdminDashboard() {
           className={styles.logo}
           src="/logo.jpeg"
           alt="Logo"
-          width={100}
-          height={90}
+          width={42}
+          height={42}
         />
 
         <div className={styles.adminHeaderRight}>
@@ -1015,7 +1014,7 @@ export default function SuperAdminDashboard() {
                     Treatment Offer
                   </li>
                   <li onClick={() => handleSectionChange("offer3")}>
-                    Clinic Offer
+                    Coupon Offer
                   </li>
                   <li onClick={() => handleSectionChange("featuredSection")}>
                     Featured Section
@@ -1439,9 +1438,11 @@ export default function SuperAdminDashboard() {
 
             </>
           )}
-
-          <Footer />
         </div>
+      </div>
+
+      <div className={styles.adminFooterBar}>
+        2026 © All rights reserved by Dr. Derma Tricho Hair &amp; Skin Aesthetics Clinic.
       </div>
 
       <MobileNavbar />

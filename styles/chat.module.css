@@ -604,10 +604,74 @@
 }
 
 .callOverlay {
-  position: fixed;
+  position: absolute;
   inset: 0;
   z-index: 1000;
   background: #0b141a;
+}
+
+.callOverlayMinimized {
+  inset: auto 20px 20px auto;
+  width: 260px;
+  height: 160px;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.minimizedBar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: linear-gradient(0deg, rgba(0, 0, 0, 0.72), rgba(0, 0, 0, 0.1));
+}
+
+.minimizedName {
+  flex: 1;
+  color: #ffffff;
+  font-size: 0.78rem;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.minimizedTimer {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.72rem;
+}
+
+.minimizedBar button {
+  width: 30px;
+  height: 30px;
+  display: inline-grid;
+  place-items: center;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+  font-size: 0.85rem;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.minimizedBar button:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.minimizedBar .endCallBtn {
+  background: #ea3b3b;
+}
+
+.minimizedBar .endCallBtn:hover {
+  background: #d32f2f;
 }
 
 .callScreen {
@@ -640,6 +704,10 @@
   border-radius: 14px;
   box-shadow: 0 12px 26px rgba(0, 0, 0, 0.4);
   z-index: 3;
+}
+
+.hiddenVideo {
+  display: none;
 }
 
 .callPlaceholder {

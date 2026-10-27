@@ -42,11 +42,25 @@ interface GalleryItem {
 
 interface MediaFileItem {
   _id?: string;
+  label?: string;
   fileName: string;
   fileUrl: string;
   fileType: string;
   uploadedAt?: string;
 }
+
+const formatUploadedAt = (value?: string) => {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
 
 interface OrderProduct {
   id: string;
@@ -151,7 +165,13 @@ export default function YourResult({ userId, userName, initialTab }: UserResultP
   );
   const [specialOffers, setSpecialOffers] = useState<Offer[]>([]);
   const [galleryForm, setGalleryForm] = useState(emptyGalleryForm);
+  const [editingGalleryId, setEditingGalleryId] = useState<string | null>(null);
+  const [galleryEditForm, setGalleryEditForm] = useState(emptyGalleryForm);
+  const [savingGalleryEdit, setSavingGalleryEdit] = useState(false);
+  const [editBeforePreview, setEditBeforePreview] = useState("");
+  const [editAfterPreview, setEditAfterPreview] = useState("");
   const [prescriptionFile, setPrescriptionFile] = useState<File | null>(null);
+  const [prescriptionLabel, setPrescriptionLabel] = useState("");
   const [testReportFile, setTestReportFile] = useState<File | null>(null);
   const [error, setError] = useState("");
   const [beforePreview, setBeforePreview] = useState("");
@@ -190,6 +210,26 @@ export default function YourResult({ userId, userName, initialTab }: UserResultP
     setAfterPreview(url);
     return () => URL.revokeObjectURL(url);
   }, [galleryForm.afterImage]);
+
+  useEffect(() => {
+    if (!galleryEditForm.beforeImage) {
+      setEditBeforePreview("");
+      return;
+    }
+    const url = URL.createObjectURL(galleryEditForm.beforeImage);
+    setEditBeforePreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [galleryEditForm.beforeImage]);
+
+  useEffect(() => {
+    if (!galleryEditForm.afterImage) {
+      setEditAfterPreview("");
+      return;
+    }
+    const url = URL.createObjectURL(galleryEditForm.afterImage);
+    setEditAfterPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [galleryEditForm.afterImage]);
 
   useEffect(() => {
     const fetchResultMedia = async () => {
@@ -356,6 +396,7 @@ export default function YourResult({ userId, userName, initialTab }: UserResultP
 
     const formData = new FormData();
     formData.append("file", prescriptionFile);
+    formData.append("label", prescriptionLabel.trim());
 
     try {
       setSavingPrescription(true);
@@ -369,6 +410,7 @@ export default function YourResult({ userId, userName, initialTab }: UserResultP
 
       setPrescriptions(Array.isArray(data.prescriptions) ? data.prescriptions : []);
       setPrescriptionFile(null);
+      setPrescriptionLabel("");
       toast.success("Prescription uploaded successfully");
     } catch (err: any) {
       toast.error(err.message || "Failed to upload prescription");
@@ -417,6 +459,64 @@ export default function YourResult({ userId, userName, initialTab }: UserResultP
       setGalleryItems(Array.isArray(data.resultGallery) ? data.resultGallery : []);
     } catch (err: any) {
       toast.error(err.message || "Failed to delete gallery item");
+    }
+  };
+
+  const startEditGallery = (item: GalleryItem) => {
+    setEditingGalleryId(item._id || null);
+    setGalleryEditForm({
+      title: item.title || "",
+      note: item.note || "",
+      beforeImage: null,
+      afterImage: null,
+    });
+  };
+
+  const cancelEditGallery = () => {
+    setEditingGalleryId(null);
+    setGalleryEditForm(emptyGalleryForm);
+  };
+
+  const handleGalleryEditFieldChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = e.target;
+
+    if (name === "beforeImage" || name === "afterImage") {
+      const file = (e.target as HTMLInputElement).files?.[0] || null;
+      setGalleryEditForm((prev) => ({ ...prev, [name]: file }));
+      return;
+    }
+
+    setGalleryEditForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const saveGalleryEdit = async (itemId?: string) => {
+    if (!userId || !itemId) return;
+
+    const formData = new FormData();
+    formData.append("title", galleryEditForm.title.trim());
+    formData.append("note", galleryEditForm.note.trim());
+    if (galleryEditForm.beforeImage) formData.append("beforeImage", galleryEditForm.beforeImage);
+    if (galleryEditForm.afterImage) formData.append("afterImage", galleryEditForm.afterImage);
+
+    try {
+      setSavingGalleryEdit(true);
+      const res = await fetch(`${API_URL}/users/${userId}/result-gallery/${itemId}`, {
+        method: "PUT",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to update gallery item");
+
+      setGalleryItems(Array.isArray(data.resultGallery) ? data.resultGallery : []);
+      cancelEditGallery();
+      toast.success("Gallery entry updated successfully");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update gallery item");
+    } finally {
+      setSavingGalleryEdit(false);
     }
   };
 
@@ -732,50 +832,154 @@ export default function YourResult({ userId, userName, initialTab }: UserResultP
               </div>
             ) : (
               <div className={styles.galleryList}>
-                {galleryItems.map((item) => (
-                  <article className={styles.resultCard} key={item._id}>
-                    <div className={styles.resultMediaGrid}>
-                      <figure className={styles.mediaBox}>
-                        <span>Before</span>
-                        {item.beforeImage ? (
-                          <img
-                            src={resolveMediaUrl(item.beforeImage) || item.beforeImage}
-                            alt="Before"
-                          />
-                        ) : (
-                          <div className={styles.mediaFallback}>No before image</div>
-                        )}
-                      </figure>
+                {galleryItems.map((item) => {
+                  const isEditing = editingGalleryId === item._id;
+                  const beforeUrl = resolveMediaUrl(item.beforeImage) || item.beforeImage;
+                  const afterUrl = resolveMediaUrl(item.afterImage) || item.afterImage;
+                  const uploadedAt = formatUploadedAt(item.uploadedAt);
 
-                      <figure className={styles.mediaBox}>
-                        <span>After</span>
-                        {item.afterImage ? (
-                          <img
-                            src={resolveMediaUrl(item.afterImage) || item.afterImage}
-                            alt="After"
-                          />
-                        ) : (
-                          <div className={styles.mediaFallback}>No after image</div>
-                        )}
-                      </figure>
-                    </div>
+                  if (isEditing) {
+                    return (
+                      <article className={styles.resultCard} key={item._id}>
+                        <div className={styles.formGrid}>
+                          <label className={styles.field}>
+                            <span>Title</span>
+                            <input
+                              name="title"
+                              value={galleryEditForm.title}
+                              onChange={handleGalleryEditFieldChange}
+                            />
+                          </label>
+                          <label className={styles.field}>
+                            <span>Note</span>
+                            <textarea
+                              name="note"
+                              value={galleryEditForm.note}
+                              onChange={handleGalleryEditFieldChange}
+                              rows={3}
+                            />
+                          </label>
+                        </div>
 
-                    <div className={styles.resultMeta}>
-                      <div>
-                        <h4>{item.title || "Untitled progress"}</h4>
-                        <p>{item.note || "No note added for this entry."}</p>
+                        <div className={styles.galleryUploadGrid}>
+                          <label className={styles.dropzone}>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              name="beforeImage"
+                              onChange={handleGalleryEditFieldChange}
+                            />
+                            {editBeforePreview ? (
+                              <img src={editBeforePreview} alt="Before preview" />
+                            ) : beforeUrl ? (
+                              <img src={beforeUrl} alt="Current before" />
+                            ) : (
+                              <div>
+                                <FiImage />
+                                <strong>Before image</strong>
+                                <span>Click to replace</span>
+                              </div>
+                            )}
+                          </label>
+
+                          <label className={styles.dropzone}>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              name="afterImage"
+                              onChange={handleGalleryEditFieldChange}
+                            />
+                            {editAfterPreview ? (
+                              <img src={editAfterPreview} alt="After preview" />
+                            ) : afterUrl ? (
+                              <img src={afterUrl} alt="Current after" />
+                            ) : (
+                              <div>
+                                <FiImage />
+                                <strong>After image</strong>
+                                <span>Click to replace</span>
+                              </div>
+                            )}
+                          </label>
+                        </div>
+
+                        <div className={styles.prescriptionActions}>
+                          <button
+                            type="button"
+                            className={styles.primaryBtn}
+                            onClick={() => saveGalleryEdit(item._id)}
+                            disabled={savingGalleryEdit}
+                          >
+                            {savingGalleryEdit ? "Saving..." : "Save Changes"}
+                          </button>
+                          <button
+                            type="button"
+                            className={styles.iconBtn}
+                            onClick={cancelEditGallery}
+                            disabled={savingGalleryEdit}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </article>
+                    );
+                  }
+
+                  return (
+                    <article className={styles.resultCard} key={item._id}>
+                      <div className={styles.resultMediaGrid}>
+                        <figure className={styles.mediaBox}>
+                          <span>Before</span>
+                          {beforeUrl ? (
+                            <a href={beforeUrl} target="_blank" rel="noreferrer">
+                              <img src={beforeUrl} alt="Before" />
+                            </a>
+                          ) : (
+                            <div className={styles.mediaFallback}>No before image</div>
+                          )}
+                        </figure>
+
+                        <figure className={styles.mediaBox}>
+                          <span>After</span>
+                          {afterUrl ? (
+                            <a href={afterUrl} target="_blank" rel="noreferrer">
+                              <img src={afterUrl} alt="After" />
+                            </a>
+                          ) : (
+                            <div className={styles.mediaFallback}>No after image</div>
+                          )}
+                        </figure>
                       </div>
-                      <button
-                        type="button"
-                        className={styles.iconBtn}
-                        onClick={() => deleteGalleryItem(item._id)}
-                      >
-                        <FiTrash2 />
-                        Delete Entry
-                      </button>
-                    </div>
-                  </article>
-                ))}
+
+                      <div className={styles.resultMeta}>
+                        <div>
+                          <h4>{item.title || "Untitled progress"}</h4>
+                          <p>{item.note || "No note added for this entry."}</p>
+                          {uploadedAt ? (
+                            <p className={styles.prescriptionTimestamp}>Uploaded {uploadedAt}</p>
+                          ) : null}
+                        </div>
+                        <div className={styles.prescriptionActions}>
+                          <button
+                            type="button"
+                            className={styles.iconBtn}
+                            onClick={() => startEditGallery(item)}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            className={styles.iconBtn}
+                            onClick={() => deleteGalleryItem(item._id)}
+                          >
+                            <FiTrash2 />
+                            Delete Entry
+                          </button>
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -793,12 +997,28 @@ export default function YourResult({ userId, userName, initialTab }: UserResultP
               <FiFileText className={styles.panelIcon} />
             </div>
 
+            <label className={styles.field} style={{ marginBottom: 14 }}>
+              <span>Prescription name</span>
+              <input
+                type="text"
+                value={prescriptionLabel}
+                onChange={(e) => setPrescriptionLabel(e.target.value)}
+                placeholder="Example: Dr. Sharma - Acne checkup"
+              />
+            </label>
+
             <label className={styles.pdfDropzone}>
-              <input type="file" accept="application/pdf" onChange={handlePrescriptionChange} />
+              <input
+                type="file"
+                accept="application/pdf,image/*"
+                onChange={handlePrescriptionChange}
+              />
               <div>
                 <FiFileText />
-                <strong>{prescriptionFile ? prescriptionFile.name : "Choose a PDF file"}</strong>
-                <span>{prescriptionFile ? "Ready to upload" : "Click to attach prescription PDF"}</span>
+                <strong>{prescriptionFile ? prescriptionFile.name : "Choose a PDF or image file"}</strong>
+                <span>
+                  {prescriptionFile ? "Ready to upload" : "Click to attach a prescription PDF or photo"}
+                </span>
               </div>
             </label>
 
@@ -826,13 +1046,25 @@ export default function YourResult({ userId, userName, initialTab }: UserResultP
               <div className={styles.prescriptionList}>
                 {prescriptions.map((item) => {
                   const fileUrl = resolveMediaUrl(item.fileUrl) || item.fileUrl;
+                  const isImage = item.fileType?.startsWith("image/");
+                  const uploadedAt = formatUploadedAt(item.uploadedAt);
                   return (
                     <article className={styles.prescriptionCard} key={item._id}>
                       <div className={styles.prescriptionInfo}>
-                        <FiFileText className={styles.prescriptionIcon} />
+                        {isImage ? (
+                          <img src={fileUrl} alt={item.fileName} className={styles.prescriptionThumb} />
+                        ) : (
+                          <FiFileText className={styles.prescriptionIcon} />
+                        )}
                         <div>
-                          <h4>{item.fileName}</h4>
-                          <p>PDF prescription</p>
+                          <h4>{item.label || item.fileName}</h4>
+                          <p>
+                            {item.label ? `${item.fileName} · ` : ""}
+                            {isImage ? "Image prescription" : "PDF prescription"}
+                          </p>
+                          {uploadedAt ? (
+                            <p className={styles.prescriptionTimestamp}>Uploaded {uploadedAt}</p>
+                          ) : null}
                         </div>
                       </div>
 
@@ -843,7 +1075,7 @@ export default function YourResult({ userId, userName, initialTab }: UserResultP
                           rel="noreferrer"
                           className={styles.linkBtn}
                         >
-                          Open PDF
+                          {isImage ? "Open Image" : "Open PDF"}
                         </a>
                         <button
                           type="button"

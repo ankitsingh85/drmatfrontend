@@ -6,29 +6,16 @@ import { ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
 import { API_URL } from "@/config/api";
 import { resolveMediaUrl } from "@/lib/media";
 
-interface ClinicRef {
-  _id: string;
-  slug?: string;
-  clinicName?: string;
-}
-
-interface ClinicLight {
-  _id: string;
-  slug?: string;
-  clinicName?: string;
-  dermaCategory?: string | { _id?: string; id?: string; name?: string };
-}
-
 interface Offer {
   _id: string;
   imageUrl: string;
   imageBase64?: string;
-  clinicId?: string | ClinicRef | null;
-  categoryId?: string | { _id?: string; id?: string; name?: string } | null;
 }
 
 const AUTO_DELAY = 3000;
 
+// "Latest Coupon Offer" carousel on the home page — plain promo banners,
+// every slide just links through to the public coupon list.
 const ClinicOffer = () => {
   const router = useRouter();
 
@@ -41,7 +28,6 @@ const ClinicOffer = () => {
 
   const [visibleCount, setVisibleCount] = useState(3);
   const [slides, setSlides] = useState<Offer[]>([]);
-  const [clinics, setClinics] = useState<ClinicLight[]>([]);
   const [index, setIndex] = useState(3);
   const [isPlaying, setIsPlaying] = useState(true);
   const [enableTransition, setEnableTransition] = useState(true);
@@ -60,19 +46,8 @@ const ClinicOffer = () => {
     }
   };
 
-  const fetchClinics = async () => {
-    try {
-      const res = await fetch(`${API_URL}/clinics?light=true`);
-      const data = await res.json();
-      setClinics(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.error("Clinic fetch error:", err);
-    }
-  };
-
   useEffect(() => {
     fetchOffers();
-    fetchClinics();
   }, []);
 
   useEffect(() => {
@@ -149,86 +124,15 @@ const ClinicOffer = () => {
     setIsPlaying((prev) => !prev);
   };
 
-  /* ================= NAVIGATION FIX ================= */
-  const resolveClinicPath = (offer: Offer) => {
-    if (!offer.clinicId) return null;
-
-    if (typeof offer.clinicId === "object") {
-      return offer.clinicId.slug || offer.clinicId._id || null;
-    }
-
-    return offer.clinicId;
-  };
-
-  const resolveCategoryId = (offer: Offer) => {
-    if (!offer.categoryId) return null;
-    if (typeof offer.categoryId === "object") {
-      return offer.categoryId._id || offer.categoryId.id || offer.categoryId.name || null;
-    }
-    return offer.categoryId;
-  };
-
-  const resolveClinicFromCategory = (offer: Offer) => {
-    const categoryKey = resolveCategoryId(offer);
-    if (!categoryKey) return null;
-
-    const normalized = String(categoryKey).trim().toLowerCase();
-    return (
-      clinics.find((clinic) => {
-        const clinicCategory =
-          typeof clinic.dermaCategory === "object"
-            ? clinic.dermaCategory?._id ||
-              clinic.dermaCategory?.id ||
-              clinic.dermaCategory?.name ||
-              ""
-            : clinic.dermaCategory || "";
-
-        return String(clinicCategory).trim().toLowerCase() === normalized;
-      }) || null
-    );
-  };
-
-  const handleSlideClick = async (offer: Offer) => {
-    const directClinicPath = resolveClinicPath(offer);
-    let categoryClinic = directClinicPath ? null : resolveClinicFromCategory(offer);
-
-    if (!directClinicPath && !categoryClinic && clinics.length === 0) {
-      try {
-        const res = await fetch(`${API_URL}/clinics?light=true`);
-        const data = await res.json();
-        const nextClinics = Array.isArray(data) ? data : [];
-        setClinics(nextClinics);
-        categoryClinic =
-          nextClinics.find((clinic) => {
-            const categoryKey = resolveCategoryId(offer);
-            if (!categoryKey) return false;
-            const normalized = String(categoryKey).trim().toLowerCase();
-            const clinicCategory =
-              typeof clinic.dermaCategory === "object"
-                ? clinic.dermaCategory?._id ||
-                  clinic.dermaCategory?.id ||
-                  clinic.dermaCategory?.name ||
-                  ""
-                : clinic.dermaCategory || "";
-
-            return String(clinicCategory).trim().toLowerCase() === normalized;
-          }) || null;
-      } catch (err) {
-        console.error("Clinic fallback fetch error:", err);
-      }
-    }
-
-    const clinicPath = directClinicPath || categoryClinic?.slug || categoryClinic?._id || null;
-    if (!clinicPath) return;
-
-    router.push(`/clinics/${clinicPath}`);
+  const handleSlideClick = () => {
+    router.push("/coupons");
   };
 
   const getOfferImage = (offer: Offer) =>
     offer.imageUrl || offer.imageBase64 || "";
 
   if (slides.length === 0) {
-    return <p style={{ textAlign: "center" }}>No offers available</p>;
+    return <p style={{ textAlign: "center" }}>No coupon offers available</p>;
   }
 
   return (
@@ -257,11 +161,11 @@ const ClinicOffer = () => {
             <div
               className={styles.slide}
               key={`${slide._id}-${i}`}
-              onClick={() => handleSlideClick(slide)}
+              onClick={handleSlideClick}
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
-                  handleSlideClick(slide);
+                  handleSlideClick();
                 }
               }}
               role="button"
@@ -270,7 +174,7 @@ const ClinicOffer = () => {
             >
               <img
                 src={resolveMediaUrl(getOfferImage(slide)) || getOfferImage(slide)}
-                alt="Offer"
+                alt="Coupon offer"
               />
             </div>
           ))}

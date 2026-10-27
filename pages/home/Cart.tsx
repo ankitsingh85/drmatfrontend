@@ -44,6 +44,12 @@ const CartPage: React.FC = () => {
   const [clinicSelections, setClinicSelections] = useState<
     Record<string, { clinicId: string; clinicName: string; clinicAddress?: string }>
   >({});
+  // true while stepping through the auto-queued "Proceed to Pay" flow
+  // (which continues on to checkout once every treatment has a clinic);
+  // false when the modal was opened directly from a single item's own
+  // "Select/Change Clinic" button in the cart list, which should just save
+  // that one choice and stay on the cart page.
+  const [checkoutFlowActive, setCheckoutFlowActive] = useState(false);
 
   useEffect(() => {
     // Guests can review cart items; login is required at checkout.
@@ -130,10 +136,21 @@ const CartPage: React.FC = () => {
       setClinicSelections({});
       setClinicQueue(needsClinic.slice(1));
       setActiveClinicItem(needsClinic[0]);
+      setCheckoutFlowActive(true);
       return;
     }
 
     finalizeCheckout({});
+  };
+
+  // Opens the clinic picker for one specific treatment item directly from
+  // its row in the cart — lets the user pick (or change) a different
+  // clinic per treatment without having to go through "Proceed to Pay".
+  const handleSelectClinicForItem = (item: CartItem) => {
+    setClinicSelections({});
+    setClinicQueue([]);
+    setActiveClinicItem(item);
+    setCheckoutFlowActive(false);
   };
 
   const handleClinicConfirm = (clinic: TreatmentClinicOption) => {
@@ -158,8 +175,12 @@ const CartPage: React.FC = () => {
       const [next, ...rest] = clinicQueue;
       setClinicQueue(rest);
       setActiveClinicItem(next);
-    } else {
-      setActiveClinicItem(null);
+      return;
+    }
+
+    setActiveClinicItem(null);
+    if (checkoutFlowActive) {
+      setCheckoutFlowActive(false);
       finalizeCheckout(nextSelections);
     }
   };
@@ -167,6 +188,7 @@ const CartPage: React.FC = () => {
   const handleClinicModalClose = () => {
     setActiveClinicItem(null);
     setClinicQueue([]);
+    setCheckoutFlowActive(false);
   };
 
   return (
@@ -215,11 +237,20 @@ const CartPage: React.FC = () => {
           ) : (
             cartItems.map((item) => (
               <div key={item.id} className={styles.card}>
-                <Image
-                  src={item.image ?? "/product1.png"}
+                {/* Plain <img>, not next/image — item.image can be any
+                    admin-entered URL (including placeholder/test data from
+                    hosts never configured in next.config.js), and
+                    next/image hard-crashes the whole page on an
+                    unconfigured hostname instead of just showing a broken
+                    image. */}
+                <img
+                  src={item.image || "/product1.png"}
                   alt={item.name}
                   width={100}
                   height={100}
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src = "/product1.png";
+                  }}
                 />
                 <div className={styles.details}>
                   <div className={styles.name}>{item.name}</div>
@@ -255,6 +286,33 @@ const CartPage: React.FC = () => {
                       +
                     </button>
                   </div>
+
+                  {item.itemType === "treatment" && (
+                    <div className={styles.clinicRow}>
+                      {item.clinicId ? (
+                        <>
+                          <span className={styles.clinicLabel}>
+                            <GoLocation /> {item.clinicName}
+                          </span>
+                          <button
+                            type="button"
+                            className={styles.changeClinicBtn}
+                            onClick={() => handleSelectClinicForItem(item)}
+                          >
+                            Change Clinic
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          className={styles.selectClinicBtn}
+                          onClick={() => handleSelectClinicForItem(item)}
+                        >
+                          <GoLocation /> Select Clinic for This Treatment
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div className={styles.actions}>
                   <FaTrashAlt
@@ -297,11 +355,14 @@ const CartPage: React.FC = () => {
                 const inCart = cartItems.some((c) => c.id === item.id);
                 return (
                   <div key={`wish-${item.id}`} className={styles.card}>
-                    <Image
-                      src={item.image ?? "/product1.png"}
+                    <img
+                      src={item.image || "/product1.png"}
                       alt={item.name}
                       width={100}
                       height={100}
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).src = "/product1.png";
+                      }}
                     />
                     <div className={styles.details}>
                       <div className={styles.name}>{item.name}</div>

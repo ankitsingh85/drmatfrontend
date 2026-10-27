@@ -38,7 +38,20 @@ interface Clinic {
   clinicLogo?: string;
   bannerImage?: string;
   photos?: string[];
+  // Ranking inputs: subscription plan + add-ons rank above plan-only,
+  // which ranks above no plan; distanceKm (only present when the /nearby
+  // endpoint was used) breaks ties within each tier, nearest first.
+  hasActiveSubscription?: boolean;
+  hasSubscriptionAddons?: boolean;
+  distanceKm?: number;
 }
+
+// 0 = plan + add-ons, 1 = plan only, 2 = no plan.
+const subscriptionTierRank = (clinic: Clinic) => {
+  if (clinic.hasActiveSubscription && clinic.hasSubscriptionAddons) return 0;
+  if (clinic.hasActiveSubscription) return 1;
+  return 2;
+};
 
 const FindClinicsPage: React.FC = () => {
   const router = useRouter();
@@ -276,25 +289,31 @@ useEffect(() => {
       ? allClinics
       : clinics;
 
-  return source.filter((clinic) => {
+  return source
+    .filter((clinic) => {
 
-    const matchCategory =
-      selectedCategoryId
-        ? clinic.dermaCategory?._id === selectedCategoryId
-        : true;
+      const matchCategory =
+        selectedCategoryId
+          ? clinic.dermaCategory?._id === selectedCategoryId
+          : true;
 
-    const matchSearch =
-      clinic.clinicName
-        .toLowerCase()
-        .includes(search.toLowerCase()) ||
+      const matchSearch =
+        clinic.clinicName
+          .toLowerCase()
+          .includes(search.toLowerCase()) ||
 
-      clinic.address
-        .toLowerCase()
-        .includes(search.toLowerCase());
+        clinic.address
+          .toLowerCase()
+          .includes(search.toLowerCase());
 
-    return matchCategory && matchSearch;
+      return matchCategory && matchSearch;
 
-  });
+    })
+    // Plan + add-ons, then plan-only, then no plan — Array.sort is stable,
+    // so within each tier clinics keep whatever order they arrived in,
+    // which is nearest-first whenever the list came from the location-aware
+    // /clinics/nearby fetch (fetchNearbyClinics already sorts by distance).
+    .sort((a, b) => subscriptionTierRank(a) - subscriptionTierRank(b));
 
 }, [
   clinics,

@@ -5,7 +5,9 @@ import axios from "axios";
 import Cookies from "js-cookie";
 import {
   FiCalendar,
+  FiFileText,
   FiMessageSquare,
+  FiPaperclip,
   FiPhoneIncoming,
   FiSearch,
   FiSend,
@@ -14,8 +16,11 @@ import {
 } from "react-icons/fi";
 import { socket } from "@/utils/socket";
 import { API_URL } from "@/config/api";
+import { resolveMediaUrl } from "@/lib/media";
 import WebRTCCall, { WebRTCCallSignalPayload } from "@/components/chat/WebRTCCall";
 import styles from "@/styles/chat.module.css";
+
+const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
 
 type ChatStatus = "pending" | "accepted" | "declined";
 
@@ -38,6 +43,9 @@ type ChatMessage = {
   messageType?: "text" | "call";
   callType?: "audio" | "video";
   callStatus?: "started" | "missed" | "ended";
+  attachmentUrl?: string;
+  attachmentType?: "image" | "pdf";
+  attachmentName?: string;
   createdAt?: string;
 };
 
@@ -98,7 +106,9 @@ const UserChat = () => {
   const [pendingIncomingCall, setPendingIncomingCall] =
     useState<WebRTCCallSignalPayload | null>(null);
   const [error, setError] = useState("");
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
   const messagesRef = useRef<HTMLDivElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     const id = localStorage.getItem("userId") || Cookies.get("userId");
@@ -330,6 +340,45 @@ const UserChat = () => {
     }
   };
 
+  const handleAttachClick = () => {
+    if (canChat && !uploadingAttachment) fileInputRef.current?.click();
+  };
+
+  const handleFileSelected = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file || !chatId || !activeDoctor || chatStatus !== "accepted") return;
+
+    const isSupported = file.type.startsWith("image/") || file.type === "application/pdf";
+    if (!isSupported) {
+      setError("Only image or PDF files can be attached.");
+      return;
+    }
+    if (file.size > MAX_ATTACHMENT_BYTES) {
+      setError("Attachments must be 5MB or smaller.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("chatId", chatId);
+    formData.append("senderId", userId);
+    formData.append("receiverId", activeDoctor._id);
+
+    try {
+      setUploadingAttachment(true);
+      setError("");
+      const res = await axios.post(`${API_URL}/message/send-attachment`, formData);
+      const savedMessage = res.data;
+      socket.emit("send_message", savedMessage);
+      setMessages((prev) => [...prev, savedMessage]);
+    } catch (err: any) {
+      setError(err?.response?.data?.error || "Could not send the attachment.");
+    } finally {
+      setUploadingAttachment(false);
+    }
+  };
+
   const deleteChat = async () => {
     if (!chatId || !activeDoctor || deletingChat) return;
     if (!window.confirm("Delete this chat and all its messages?")) return;
@@ -553,13 +602,37 @@ const UserChat = () => {
                     );
                   }
 
+                  const imageUrl =
+                    msg.attachmentType === "image" ? resolveMediaUrl(msg.attachmentUrl) : null;
+                  const fileUrl =
+                    msg.attachmentType === "pdf" ? resolveMediaUrl(msg.attachmentUrl) : null;
+
                   return (
                     <div
                       key={msg._id || `${msg.chatId}-${index}`}
                       className={`${styles.msgRow} ${isMe ? styles.right : styles.left}`}
                     >
                       <div className={`${styles.bubble} ${isMe ? styles.me : styles.other}`}>
-                        <p>{msg.message}</p>
+                        {imageUrl ? (
+                          <a href={imageUrl} target="_blank" rel="noreferrer">
+                            <img
+                              src={imageUrl}
+                              alt={msg.attachmentName || "Attachment"}
+                              className={styles.attachmentImage}
+                            />
+                          </a>
+                        ) : fileUrl ? (
+                          <a
+                            href={fileUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className={styles.attachmentFile}
+                          >
+                            <FiFileText />
+                            <span>{msg.attachmentName || "Document.pdf"}</span>
+                          </a>
+                        ) : null}
+                        {msg.message ? <p>{msg.message}</p> : null}
                         <span>{formatTime(msg.createdAt)}</span>
                       </div>
                     </div>
@@ -568,6 +641,22 @@ const UserChat = () => {
               )}
             </div>
             <div className={styles.inputBar}>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*,application/pdf"
+                onChange={handleFileSelected}
+                style={{ display: "none" }}
+              />
+              <button
+                type="button"
+                className={styles.attachBtn}
+                onClick={handleAttachClick}
+                disabled={!canChat || uploadingAttachment}
+                title="Attach image or PDF"
+              >
+                <FiPaperclip />
+              </button>
               <input
                 className={styles.input}
                 value={text}

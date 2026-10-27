@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import styles from "@/styles/UpdateOffer.module.css";
 import { API_URL } from "@/config/api";
@@ -8,43 +8,10 @@ import { resolveMediaUrl } from "@/lib/media";
 import { useToast } from "@/context/ToastContext";
 import TableActions from "@/components/AdminPanel/common/TableActions";
 
-interface ClinicCategoryOption {
-  _id: string;
-  id: string;
-  name: string;
-}
-
-interface ClinicOption {
-  _id: string;
-  cuc?: string;
-  clinicName: string;
-  dermaCategory?:
-    | string
-    | {
-        _id?: string;
-        id?: string;
-        name?: string;
-      };
-}
-
-interface OfferClinicRef {
-  _id: string;
-  cuc?: string;
-  clinicName?: string;
-}
-
-interface OfferCategoryRef {
-  _id?: string;
-  id?: string;
-  name?: string;
-}
-
 interface Offer {
   _id: string;
   imageUrl: string;
   imageBase64?: string;
-  clinicId?: string | OfferClinicRef | null;
-  categoryId?: string | OfferCategoryRef | null;
 }
 
 interface PreviewFile {
@@ -55,25 +22,28 @@ interface PreviewFile {
 }
 
 const MAX_SIZE_MB = 5;
-const REQUIRED_WIDTH = 1600;
-const REQUIRED_HEIGHT = 350;
+// Matches the actual display box in the home page's "Latest Coupon Offer"
+// carousel (components/homePage/..ClinicOffer.tsx + styles/Offer.module.css)
+// — a 2:1 banner, not the old 1600x350 (~4.6:1) ratio, which was being
+// cropped hard by object-fit: cover to fit the much narrower slide.
+const REQUIRED_WIDTH = 1200;
+const REQUIRED_HEIGHT = 600;
 
 type ListofClinicOfferProps = {
   canEdit?: boolean;
   canDelete?: boolean;
 };
 
+// Admin-side "Coupon Offer" banner manager — a plain image upload, no
+// clinic/category link required. The banner is purely promotional (shown
+// in the Coupon Offer carousel on the home page); it isn't tied to any
+// specific clinic the way the old "Clinic Offer" version was.
 const ListofClinicOffer = ({ canEdit = true, canDelete = true }: ListofClinicOfferProps) => {
   const toast = useToast();
   const [offers, setOffers] = useState<Offer[]>([]);
-  const [clinics, setClinics] = useState<ClinicOption[]>([]);
-  const [categories, setCategories] = useState<ClinicCategoryOption[]>([]);
   const [previewFiles, setPreviewFiles] = useState<PreviewFile[]>([]);
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-  const [selectedCategoryId, setSelectedCategoryId] = useState("");
-  const [selectedCategoryLabel, setSelectedCategoryLabel] = useState("");
-  const [selectedClinicId, setSelectedClinicId] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [updatingOfferId, setUpdatingOfferId] = useState<string | null>(null);
   const updateFileInputRef = useRef<HTMLInputElement | null>(null);
@@ -88,23 +58,8 @@ const ListofClinicOffer = ({ canEdit = true, canDelete = true }: ListofClinicOff
     }
   };
 
-  const fetchPickerData = async () => {
-    try {
-      const [clinicRes, categoryRes] = await Promise.all([
-        axios.get(`${API_URL}/clinics?light=true`),
-        axios.get(`${API_URL}/clinic-categories`),
-      ]);
-
-      setClinics(Array.isArray(clinicRes.data) ? clinicRes.data : []);
-      setCategories(Array.isArray(categoryRes.data) ? categoryRes.data : []);
-    } catch (err) {
-      console.error("Fetch picker data error:", err);
-    }
-  };
-
   useEffect(() => {
     fetchOffers();
-    fetchPickerData();
   }, []);
 
   useEffect(() => {
@@ -116,63 +71,6 @@ const ListofClinicOffer = ({ canEdit = true, canDelete = true }: ListofClinicOff
       revokePreviewUrls(previewFilesRef.current);
     };
   }, []);
-
-  useEffect(() => {
-    if (!selectedCategoryId) {
-      setSelectedClinicId("");
-      setSelectedCategoryLabel("");
-      return;
-    }
-
-    const matchedCategory =
-      categories.find((category) => category._id === selectedCategoryId) ||
-      categories.find((category) => category.id === selectedCategoryId) ||
-      categories.find((category) => category.name === selectedCategoryId);
-
-    setSelectedCategoryLabel(
-      matchedCategory?.name || matchedCategory?.id || selectedCategoryId || ""
-    );
-  }, [selectedCategoryId, categories]);
-
-  const filteredClinics = useMemo(() => {
-    if (!selectedCategoryId) return [];
-
-    const normalize = (value: string) => value.trim().toLowerCase();
-    const selectedCategory = categories.find(
-      (category) => category._id === selectedCategoryId || category.id === selectedCategoryId
-    );
-
-    const categoryMatchers = new Set<string>(
-      [
-        selectedCategoryId,
-        selectedCategory?._id || "",
-        selectedCategory?.id || "",
-        selectedCategory?.name || "",
-      ]
-        .filter(Boolean)
-        .map(normalize)
-    );
-
-    return clinics.filter((clinic) => {
-      const clinicCategory =
-        typeof clinic.dermaCategory === "object"
-          ? clinic.dermaCategory?._id ||
-            clinic.dermaCategory?.id ||
-            clinic.dermaCategory?.name ||
-            ""
-          : clinic.dermaCategory || "";
-
-      return clinicCategory ? categoryMatchers.has(normalize(clinicCategory)) : false;
-    });
-  }, [categories, clinics, selectedCategoryId]);
-
-  const selectedCategoryName = useMemo(
-    () =>
-      categories.find((category) => category._id === selectedCategoryId)?.name ||
-      categories.find((category) => category.id === selectedCategoryId)?.name ||
-      selectedCategoryLabel,
-    [categories, selectedCategoryId, selectedCategoryLabel]
-  );
 
   const revokePreviewUrls = (files: PreviewFile[]) => {
     files.forEach((preview) => URL.revokeObjectURL(preview.previewUrl));
@@ -240,30 +138,10 @@ const ListofClinicOffer = ({ canEdit = true, canDelete = true }: ListofClinicOff
     setIsUploadModalOpen(false);
     setPreviewFiles([]);
     setErrorMessage("");
-    setSelectedCategoryId("");
-    setSelectedCategoryLabel("");
-    setSelectedClinicId("");
   };
 
   const handleUpload = async () => {
     const validFiles = previewFiles.filter((preview) => preview.valid);
-
-    if (!selectedCategoryId) {
-      setErrorMessage("Please choose a category before uploading.");
-      return;
-    }
-
-    if (!selectedClinicId) {
-      setErrorMessage("Please choose a clinic before uploading.");
-      return;
-    }
-
-    const matchedClinic = filteredClinics.find((clinic) => clinic._id === selectedClinicId);
-
-    if (!matchedClinic) {
-      setErrorMessage("Please choose a clinic from the selected category.");
-      return;
-    }
 
     if (validFiles.length === 0) {
       setErrorMessage("No valid images selected to upload.");
@@ -276,17 +154,15 @@ const ListofClinicOffer = ({ canEdit = true, canDelete = true }: ListofClinicOff
 
       const formData = new FormData();
       validFiles.forEach((preview) => formData.append("images", preview.file));
-      formData.append("clinicId", selectedClinicId);
-      formData.append("categoryId", selectedCategoryId);
 
       await axios.post(`${API_URL}/offer3`, formData);
 
-      toast.success("Offer uploaded successfully");
+      toast.success("Coupon offer uploaded successfully");
       await fetchOffers();
       closeUploadModal(true);
     } catch (err) {
       console.error("Upload error:", err);
-      setErrorMessage("Failed to upload offer image.");
+      setErrorMessage("Failed to upload coupon offer image.");
     } finally {
       setIsUploading(false);
     }
@@ -330,7 +206,7 @@ const ListofClinicOffer = ({ canEdit = true, canDelete = true }: ListofClinicOff
       await fetchOffers();
     } catch (err) {
       console.error("Update error:", err);
-      setErrorMessage("Failed to update offer image.");
+      setErrorMessage("Failed to update coupon offer image.");
     } finally {
       setIsUploading(false);
       revokePreviewUrls([preview]);
@@ -339,50 +215,12 @@ const ListofClinicOffer = ({ canEdit = true, canDelete = true }: ListofClinicOff
     }
   };
 
-  const getClinicLabel = (offer: Offer) => {
-  // ✅ Handle NULL first
-  if (!offer.clinicId) return "No Clinic Linked";
-
-  // ✅ If object
-  if (typeof offer.clinicId === "object") {
-    return (
-      offer.clinicId?.clinicName ||
-      offer.clinicId?.cuc ||
-      offer.clinicId?._id ||
-      "-"
-    );
-  }
-
-  // ✅ If string (ID)
-  const clinic = clinics.find((c) => c._id === offer.clinicId);
-  return clinic?.clinicName || offer.clinicId || "-";
-};
-  const getCategoryLabel = (offer: Offer) => {
-    if (!offer.categoryId) return "No Category Linked";
-
-    if (typeof offer.categoryId === "object") {
-      return (
-        offer.categoryId.name ||
-        offer.categoryId.id ||
-        offer.categoryId._id ||
-        "-"
-      );
-    }
-
-    return (
-      categories.find((category) => category._id === offer.categoryId)?.name ||
-      categories.find((category) => category.id === offer.categoryId)?.name ||
-      offer.categoryId ||
-      "-"
-    );
-  };
-
   const getOfferImage = (offer: Offer) =>
     offer.imageUrl || offer.imageBase64 || "";
 
   return (
     <div className={styles.container}>
-      <h1>Offer 3</h1>
+      <h1>Coupon Offer</h1>
 
       <div className={styles.instructions}>
         <p>Please upload images with the following requirements:</p>
@@ -427,61 +265,10 @@ const ListofClinicOffer = ({ canEdit = true, canDelete = true }: ListofClinicOff
       {isUploadModalOpen && (
         <div className={styles.modalOverlay}>
           <div className={styles.modal}>
-            <h3>Upload Offer</h3>
+            <h3>Upload Coupon Offer</h3>
             <p className={styles.modalHint}>
-              Choose a category first, then pick a clinic from that category.
+              Just the image — no clinic or category link needed for coupon offers.
             </p>
-
-            <label className={styles.fieldLabel}>Category</label>
-            <select
-              className={styles.field}
-              value={selectedCategoryId}
-              onChange={(e) => {
-                setSelectedCategoryId(e.target.value);
-                setSelectedClinicId("");
-              }}
-            >
-              <option value="">Select a category</option>
-              {categories.map((category) => (
-                <option key={category._id} value={category._id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
-
-            {selectedCategoryName && (
-              <p className={styles.modalHint}>
-                Selected category: <strong>{selectedCategoryName}</strong>
-              </p>
-            )}
-
-            <label className={styles.fieldLabel}>Clinic Name</label>
-            <select
-              className={styles.field}
-              value={selectedClinicId}
-              onChange={(e) => setSelectedClinicId(e.target.value)}
-              disabled={!selectedCategoryId || filteredClinics.length === 0}
-            >
-              <option value="">
-                {!selectedCategoryId
-                  ? "Select a category first"
-                  : filteredClinics.length === 0
-                    ? "No clinics in this category"
-                    : "Select a clinic"}
-              </option>
-              {filteredClinics.map((clinic) => (
-                <option key={clinic._id} value={clinic._id}>
-                  {clinic.clinicName}
-                </option>
-              ))}
-            </select>
-
-            {selectedCategoryId && filteredClinics.length > 0 && (
-              <p className={styles.modalHint}>
-                {filteredClinics.length} clinic
-                {filteredClinics.length === 1 ? "" : "s"} found in this category.
-              </p>
-            )}
 
             <div className={styles.modalActions}>
               <button
@@ -510,17 +297,9 @@ const ListofClinicOffer = ({ canEdit = true, canDelete = true }: ListofClinicOff
           <div key={offer._id} className={styles.offerCard}>
             <img
               src={resolveMediaUrl(getOfferImage(offer)) || getOfferImage(offer)}
-              alt="offer"
+              alt="Coupon offer"
               className={styles.offerImage}
             />
-            <div className={styles.offerMeta}>
-              <p>
-                <strong>Clinic Name:</strong> {getClinicLabel(offer)}
-              </p>
-              <p>
-                <strong>Category:</strong> {getCategoryLabel(offer)}
-              </p>
-            </div>
             <div className={styles.buttons}>
               <TableActions
                 onEdit={() => handleUpdateClick(offer._id)}

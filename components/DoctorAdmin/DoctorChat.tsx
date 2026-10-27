@@ -4,8 +4,10 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import axios from "axios";
 import Cookies from "js-cookie";
 import {
+  FiClipboard,
   FiFileText,
   FiMessageSquare,
+  FiPaperclip,
   FiPhoneIncoming,
   FiSearch,
   FiSend,
@@ -16,6 +18,7 @@ import { socket } from "@/utils/socket";
 import { API_URL } from "@/config/api";
 import { resolveMediaUrl } from "@/lib/media";
 import WebRTCCall, { WebRTCCallSignalPayload } from "@/components/chat/WebRTCCall";
+import PrescriptionModal from "@/components/DoctorAdmin/PrescriptionModal";
 import styles from "@/styles/chat.module.css";
 
 type ChatStatus = "pending" | "accepted" | "declined";
@@ -61,6 +64,8 @@ type ChatNotice = {
   chatId: string;
 };
 
+const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
+
 const getPatientName = (chat?: ChatThread | null) =>
   chat?.user?.name?.trim() ||
   chat?.user?.email?.split("@")[0] ||
@@ -100,8 +105,11 @@ const DoctorChat = () => {
   const [pendingIncomingCall, setPendingIncomingCall] =
     useState<WebRTCCallSignalPayload | null>(null);
   const [error, setError] = useState("");
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
+  const [showPrescriptionModal, setShowPrescriptionModal] = useState(false);
 
   const messagesRef = useRef<HTMLDivElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     const id = localStorage.getItem("doctorId") || Cookies.get("doctorId");
@@ -317,6 +325,74 @@ const DoctorChat = () => {
     }
   };
 
+  const handleAttachClick = () => {
+    if (canChat && !uploadingAttachment) fileInputRef.current?.click();
+  };
+
+  const handleFileSelected = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    const receiverId = activeChat?.user?._id;
+    if (!file || !activeChat || !receiverId || activeChat.status !== "accepted") return;
+
+    const isSupported = file.type.startsWith("image/") || file.type === "application/pdf";
+    if (!isSupported) {
+      setError("Only image or PDF files can be attached.");
+      return;
+    }
+    if (file.size > MAX_ATTACHMENT_BYTES) {
+      setError("Attachments must be 5MB or smaller.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("chatId", activeChat._id);
+    formData.append("senderId", doctorId);
+    formData.append("receiverId", receiverId);
+
+    try {
+      setUploadingAttachment(true);
+      setError("");
+      const res = await axios.post(`${API_URL}/message/send-attachment`, formData);
+      const savedMessage = res.data;
+      socket.emit("send_message", savedMessage);
+      setMessages((prev) => [...prev, savedMessage]);
+      setChats((prev) =>
+        prev.map((chat) =>
+          chat._id === activeChat._id
+            ? {
+                ...chat,
+                lastMessage: savedMessage.message || chat.lastMessage,
+                updatedAt: savedMessage.createdAt || chat.updatedAt,
+              }
+            : chat
+        )
+      );
+    } catch (err: any) {
+      setError(err?.response?.data?.error || "Could not send the attachment.");
+    } finally {
+      setUploadingAttachment(false);
+    }
+  };
+
+  const handlePrescriptionSent = (savedMessage: ChatMessage) => {
+    if (!activeChat) return;
+    socket.emit("send_message", savedMessage);
+    setMessages((prev) => [...prev, savedMessage]);
+    setChats((prev) =>
+      prev.map((chat) =>
+        chat._id === activeChat._id
+          ? {
+              ...chat,
+              lastMessage: "📄 Prescription",
+              updatedAt: savedMessage.createdAt || chat.updatedAt,
+            }
+          : chat
+      )
+    );
+  };
+
   const deleteChat = async () => {
     const receiverId = activeChat?.user?._id;
     if (!activeChat || !receiverId || deletingChat) return;
@@ -491,20 +567,33 @@ const DoctorChat = () => {
                     </button>
                   </div>
                 ) : (
-                  <WebRTCCall
-                    chatId={activeChat._id}
-                    currentUserId={doctorId}
-                    peerId={activeChat.user?._id}
-                    peerName={activePatientName}
-                    canCall={canChat}
-                    externalIncomingCall={
-                      pendingIncomingCall?.chatId === activeChat._id ? pendingIncomingCall : null
-                    }
-                    onExternalIncomingHandled={() => {
-                      setPendingIncomingCall(null);
-                      setNotice(null);
-                    }}
-                  />
+                  <>
+                    <button
+                      type="button"
+                      className={styles.deleteChatBtn}
+                      onClick={() => setShowPrescriptionModal(true)}
+                      disabled={!canChat || !activeChat.user?._id}
+                      title="Send prescription"
+                    >
+                      <FiClipboard />
+                    </button>
+                    <WebRTCCall
+                      chatId={activeChat._id}
+                      currentUserId={doctorId}
+                      peerId={activeChat.user?._id}
+                      peerName={activePatientName}
+                      canCall={canChat}
+                      externalIncomingCall={
+                        pendingIncomingCall?.chatId === activeChat._id ? pendingIncomingCall : null
+                      }
+                      onExternalIncomingHandled={() => {
+                        setPendingIncomingCall(null);
+                        setNotice(null);
+                      }}
+                      showPrescriptionButton
+                      onPrescriptionClick={() => setShowPrescriptionModal(true)}
+                    />
+                  </>
                 )}
                 <button
                   type="button"
@@ -593,6 +682,22 @@ const DoctorChat = () => {
 
             <div className={styles.inputBar}>
               <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*,application/pdf"
+                onChange={handleFileSelected}
+                style={{ display: "none" }}
+              />
+              <button
+                type="button"
+                className={styles.attachBtn}
+                onClick={handleAttachClick}
+                disabled={!canChat || uploadingAttachment}
+                title="Attach image or PDF"
+              >
+                <FiPaperclip />
+              </button>
+              <input
                 className={styles.input}
                 value={text}
                 onChange={(event) => setText(event.target.value)}
@@ -615,6 +720,18 @@ const DoctorChat = () => {
                 {canChat ? "Send" : "Locked"}
               </button>
             </div>
+
+            {showPrescriptionModal && activeChat.user?._id ? (
+              <PrescriptionModal
+                doctorId={doctorId}
+                chatId={activeChat._id}
+                patientId={activeChat.user._id}
+                patientName={activePatientName}
+                patientContactNo={activeChat.user.contactNo}
+                onClose={() => setShowPrescriptionModal(false)}
+                onSent={handlePrescriptionSent}
+              />
+            ) : null}
           </>
         ) : (
           <div className={styles.emptyPanel}>

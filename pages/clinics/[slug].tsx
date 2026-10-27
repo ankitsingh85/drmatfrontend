@@ -68,8 +68,9 @@ const stripHtml = (value?: string) => {
 
 const ClinicDetailPage = () => {
   const router = useRouter();
-  const { slug } = router.query;
+  const { slug, tab } = router.query;
   const slugValue = Array.isArray(slug) ? slug[0] : slug;
+  const tabQueryValue = Array.isArray(tab) ? tab[0] : tab;
   const tabs: Array<"Details" | "Services" | "Doctors" | "Reviews"> = [
     "Details",
     "Services",
@@ -95,6 +96,16 @@ const ClinicDetailPage = () => {
     "Details" | "Services" | "Doctors" | "Reviews"
   >("Details");
   const [error, setError] = useState("");
+
+  // Lets a link (e.g. "View Clinic" from a treatment order) deep-link
+  // straight into the Services tab via ?tab=Services.
+  useEffect(() => {
+    const requested = tabs.find(
+      (t) => t.toLowerCase() === String(tabQueryValue || "").toLowerCase()
+    );
+    if (requested) setActiveTab(requested);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tabQueryValue]);
 
   const getImage = (img?: string) => {
     return resolveMediaUrl(img) || img;

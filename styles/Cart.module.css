@@ -228,6 +228,51 @@
   color: #64748b;
 }
 
+.clinicRow {
+  margin: 0.6rem 0 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.clinicLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #10306b;
+  background: #eaf3ff;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+}
+
+.changeClinicBtn {
+  border: 1px solid rgba(31, 73, 190, 0.3);
+  background: transparent;
+  color: #1f49be;
+  font-size: 0.78rem;
+  font-weight: 800;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.selectClinicBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px dashed #2981b7;
+  background: #f4f9ff;
+  color: #10306b;
+  font-size: 0.82rem;
+  font-weight: 800;
+  padding: 0.4rem 0.8rem;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
 .actions {
   display: flex;
   flex-direction: column;

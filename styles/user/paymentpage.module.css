@@ -293,6 +293,12 @@
   font-weight: 800;
 }
 
+.treatmentBookingList {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
 .addressBox {
   display: grid;
   grid-template-columns: 56px minmax(0, 1fr);

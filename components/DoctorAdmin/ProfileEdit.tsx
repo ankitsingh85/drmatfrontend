@@ -20,6 +20,10 @@ export interface DoctorProfileRecord {
   description?: string;
   profileImage?: string;
   address?: string;
+  qualification?: string;
+  registrationNo?: string;
+  clinicName?: string;
+  clinicAddress?: string;
   isAvailableForConsultation?: boolean;
   addresses?: DoctorAddress[];
 }
@@ -50,6 +54,10 @@ const emptyForm = {
   email: "",
   phone: "",
   description: "",
+  qualification: "",
+  registrationNo: "",
+  clinicName: "",
+  clinicAddress: "",
   password: "",
   addressType: "Office",
   houseNo: "",
@@ -128,6 +136,10 @@ function ProfileEdit({ doctor, onSaved }: ProfileEditProps) {
       email: doctor.email || "",
       phone: doctor.phone || doctor.contactNo || "",
       description: doctor.description || "",
+      qualification: doctor.qualification || "",
+      registrationNo: doctor.registrationNo || "",
+      clinicName: doctor.clinicName || "",
+      clinicAddress: doctor.clinicAddress || "",
       password: "",
       addressType: primaryAddress.type || "Office",
       houseNo: primaryAddress.houseNo || legacyAddress.houseNo || "",
@@ -228,6 +240,10 @@ function ProfileEdit({ doctor, onSaved }: ProfileEditProps) {
       payload.append("email", form.email);
       payload.append("phone", form.phone);
       payload.append("description", form.description);
+      payload.append("qualification", form.qualification);
+      payload.append("registrationNo", form.registrationNo);
+      payload.append("clinicName", form.clinicName);
+      payload.append("clinicAddress", form.clinicAddress);
       payload.append("address", addressText);
       payload.append("addresses", JSON.stringify(addresses));
 
@@ -338,6 +354,35 @@ function ProfileEdit({ doctor, onSaved }: ProfileEditProps) {
         <label className={styles.field}>
           Mobile Number
           <input value={form.phone} onChange={(e) => updateField("phone", e.target.value)} />
+        </label>
+        <label className={styles.field}>
+          Qualification (shown on prescriptions)
+          <input
+            value={form.qualification}
+            onChange={(e) => updateField("qualification", e.target.value)}
+            placeholder="e.g. MBBS"
+          />
+        </label>
+        <label className={styles.field}>
+          Registration No. (shown on prescriptions)
+          <input
+            value={form.registrationNo}
+            onChange={(e) => updateField("registrationNo", e.target.value)}
+          />
+        </label>
+        <label className={styles.field}>
+          Clinic Name (shown on prescriptions)
+          <input
+            value={form.clinicName}
+            onChange={(e) => updateField("clinicName", e.target.value)}
+          />
+        </label>
+        <label className={styles.field} style={{ gridColumn: "1 / -1" }}>
+          Clinic Address (shown on prescriptions)
+          <input
+            value={form.clinicAddress}
+            onChange={(e) => updateField("clinicAddress", e.target.value)}
+          />
         </label>
         {/* <label className={styles.field}>
           New Password

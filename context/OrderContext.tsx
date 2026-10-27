@@ -133,6 +133,23 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({
         clinicAddress: item.clinicAddress,
       }));
 
+      // A cart that mixes treatments with products/consultations is split
+      // into two separate orders sharing the same payment, instead of one
+      // order whose orderType only reflects part of what's in it. This is
+      // what lets the product half stay independently cancellable later
+      // while the treatment half stays protected (self-cancel blocked,
+      // clinic notified, shows up in the clinic's Treatment Booking tab) —
+      // all of that already keys off an order's own orderType/items, which
+      // only works correctly when an order is actually one or the other.
+      const hasTreatmentItem = items.some((item) => item.itemType === "treatment");
+      const hasNonTreatmentItem = items.some((item) => item.itemType !== "treatment");
+      const isMixedCart = hasTreatmentItem && hasNonTreatmentItem;
+
+      const treatmentProducts = formattedProducts.filter((p) => p.itemType === "treatment");
+      const nonTreatmentProducts = formattedProducts.filter((p) => p.itemType !== "treatment");
+      const sumPrice = (list: typeof formattedProducts) =>
+        list.reduce((sum, p) => sum + p.price * p.quantity, 0);
+
       const derivedOrderType =
         items.length > 0 && items.every((item) => item.itemType === "treatment")
           ? "treatment"
@@ -142,30 +159,56 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({
 
       const endpoint =
         ownerType === "doctor" ? `${API_URL}/doctor-orders` : `${API_URL}/orders`;
-      const payload =
+
+      const buildPayload = (
+        products: typeof formattedProducts,
+        amount: number,
+        type: "product" | "treatment" | "consultation",
+        includeCoupon: boolean
+      ) =>
         ownerType === "doctor"
           ? {
               doctorId,
               ownerType: "doctor",
-              products: formattedProducts,
-              totalAmount: total,
-              couponCode: options?.couponCode,
-              discountAmount: options?.discountAmount,
+              products,
+              totalAmount: amount,
+              couponCode: includeCoupon ? options?.couponCode : undefined,
+              discountAmount: includeCoupon ? options?.discountAmount : undefined,
               address,
-              orderType: derivedOrderType,
+              orderType: type,
             }
           : {
               userId: ownerType === "user" ? userId : undefined,
               clinicId: ownerType === "clinic" ? clinicId : undefined,
               b2bUserId: ownerType === "b2buser" ? b2bUserId : undefined,
               ownerType,
-              products: formattedProducts,
-              totalAmount: total,
-              couponCode: options?.couponCode,
-              discountAmount: options?.discountAmount,
+              products,
+              totalAmount: amount,
+              couponCode: includeCoupon ? options?.couponCode : undefined,
+              discountAmount: includeCoupon ? options?.discountAmount : undefined,
               address,
-              orderType: derivedOrderType,
+              orderType: type,
             };
+
+      // Non-treatment subset's own type: "consultation" only if every one
+      // of those items is a consultation, otherwise "product" — same rule
+      // derivedOrderType already used for a non-mixed cart.
+      const nonTreatmentOrderType: "product" | "consultation" =
+        nonTreatmentProducts.length > 0 &&
+        nonTreatmentProducts.every((p) => p.itemType === "consultation")
+          ? "consultation"
+          : "product";
+
+      const payloads = isMixedCart
+        ? [
+            // Coupon/discount is applied to the non-treatment order only —
+            // it was validated against that service section at apply-time,
+            // and splitting a discount across two independent orders would
+            // need its own allocation logic that doesn't exist yet.
+            buildPayload(nonTreatmentProducts, sumPrice(nonTreatmentProducts), nonTreatmentOrderType, true),
+            buildPayload(treatmentProducts, sumPrice(treatmentProducts), "treatment", false),
+          ]
+        : [buildPayload(formattedProducts, total, derivedOrderType, true)];
 
       const scriptLoaded = await loadRazorpayScript();
       if (!scriptLoaded) {
@@ -176,7 +219,7 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({
         amount: total,
       });
 
-      const savedOrder = await new Promise<IOrder>((resolve, reject) => {
+      const savedOrders = await new Promise<IOrder[]>((resolve, reject) => {
         const razorpay = new (window as any).Razorpay({
           key: razorpayOrder.keyId,
           amount: razorpayOrder.amount,
@@ -202,13 +245,18 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({
                 return;
               }
 
-              const res = await axios.post(endpoint, {
-                ...payload,
+              const paymentFields = {
                 razorpayOrderId: response.razorpay_order_id,
                 razorpayPaymentId: response.razorpay_payment_id,
                 razorpaySignature: response.razorpay_signature,
-              });
-              resolve(res.data);
+              };
+
+              const results: IOrder[] = [];
+              for (const onePayload of payloads) {
+                const res = await axios.post(endpoint, { ...onePayload, ...paymentFields });
+                results.push(res.data);
+              }
+              resolve(results);
             } catch (verifyErr) {
               reject(verifyErr);
             }
@@ -222,7 +270,7 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({
         razorpay.open();
       });
 
-      setOrders((prev) => [...prev, savedOrder]);
+      setOrders((prev) => [...prev, ...savedOrders]);
     } catch (err) {
       console.error("❌ Failed to create order:", err);
       throw err;
