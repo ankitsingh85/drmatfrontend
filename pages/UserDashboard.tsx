@@ -178,6 +178,7 @@ const UserDashboard: React.FC = () => {
   const menuItems = [
     { id: "orderhistory", label: "Product Orders", icon: <FiHome /> },
     { id: "treatmentorders", label: "Treatment Orders", icon: <FiHome /> },
+    { id: "consultationorders", label: "Consultation Orders", icon: <FiHome /> },
     { id: "yourresult", label: "Your Result", icon: <FiActivity /> },
     // { id: "appointmenthistory", label: "Appointments", icon: <FiActivity /> },
     { id: "chat", label: "My Consultation", icon: <FiUser /> },
@@ -204,6 +205,7 @@ const UserDashboard: React.FC = () => {
 
     if (activeSection === "orderhistory") return <OrderHistory mode="all" />;
     if (activeSection === "treatmentorders") return <TreatmentOrderHistory/> ;
+    if (activeSection === "consultationorders") return <OrderHistory mode="consultation" />;
     if (activeSection === "yourresult") {
       const tabParam = typeof router.query.tab === "string" ? router.query.tab : "";
       const initialTab = isResultTabKey(tabParam) ? tabParam : "gallery";

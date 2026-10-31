@@ -203,6 +203,18 @@
   font-weight: 600;
 }
 
+.activeNotice {
+  margin-top: 20px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: #f0fdf4;
+  border: 1px solid rgba(15, 157, 88, 0.22);
+  color: #166534;
+  font-weight: 600;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
 /* ---------- Add-ons ---------- */
 .addonsSection {
   padding: 26px 28px;
@@ -248,6 +260,12 @@
   background: #f0f8ff;
 }
 
+.addonCardLocked {
+  cursor: default;
+  border-color: rgba(15, 157, 88, 0.3);
+  background: #f0fdf4;
+}
+
 .addonCheckbox {
   width: 20px;
   height: 20px;
@@ -256,14 +274,34 @@
   flex-shrink: 0;
 }
 
+.addonCheckbox:disabled {
+  accent-color: #16a34a;
+}
+
 .addonBody {
   flex: 1;
 }
 
 .addonName {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-weight: 700;
   color: #163252;
   font-size: 0.95rem;
+}
+
+.addonActiveTag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #dcfce7;
+  color: #166534;
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .addonDescription {
@@ -354,4 +392,112 @@
   .subscribeBtn {
     width: 100%;
   }
+}
+
+/* ---------- Billing history ---------- */
+.historySection {
+  padding: 26px 28px;
+  border-radius: 22px;
+  background: #fff;
+  border: 1px solid rgba(153, 169, 192, 0.2);
+  box-shadow: 0 14px 34px rgba(23, 43, 73, 0.06);
+}
+
+.historyHeading {
+  margin: 0 0 4px;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #163252;
+}
+
+.historySubtext {
+  margin: 0 0 18px;
+  color: #5f718a;
+  font-size: 0.9rem;
+}
+
+.historyEmpty {
+  padding: 18px;
+  text-align: center;
+  color: #8291a8;
+  font-size: 0.9rem;
+}
+
+.historyList {
+  display: grid;
+  gap: 12px;
+}
+
+.historyRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 14px 18px;
+  border-radius: 14px;
+  background: #f8fafc;
+  border: 1px solid rgba(153, 169, 192, 0.18);
+}
+
+.historyRowMain {
+  display: grid;
+  gap: 2px;
+}
+
+.historyRowTitle {
+  font-weight: 700;
+  color: #163252;
+  font-size: 0.95rem;
+}
+
+.historyRowMeta {
+  font-size: 0.8rem;
+  color: #6d7f98;
+}
+
+.historyRowRight {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.historyAmount {
+  font-weight: 800;
+  color: #163252;
+}
+
+.historyStatus {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.historyStatusActive { background: #dcfce7; color: #166534; }
+.historyStatusPaused { background: #fef3c7; color: #92400e; }
+.historyStatusCancelled { background: #ffedd5; color: #9a3412; }
+.historyStatusExpired { background: #fee2e2; color: #991b1b; }
+
+.historyInvoiceBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: none;
+  background: #2981b7;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: transform 0.1s ease;
+}
+
+.historyInvoiceBtn:hover {
+  transform: translateY(-1px);
 }

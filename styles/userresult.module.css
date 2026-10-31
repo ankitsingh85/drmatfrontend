@@ -336,6 +336,83 @@
   padding: 6px 4px;
 }
 
+.timeline {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding-left: 22px;
+}
+
+.timeline::before {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 6px;
+  bottom: 6px;
+  width: 2px;
+  background: #e2e8f0;
+}
+
+.timelineItem {
+  position: relative;
+}
+
+.timelineDot {
+  position: absolute;
+  left: -22px;
+  top: 6px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #0f5f9f;
+  border: 3px solid #dbeafe;
+}
+
+.timelineCard {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 18px;
+  padding: 16px 18px;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.05);
+}
+
+.timelineCard h4 {
+  margin: 4px 0 6px;
+  color: #0f172a;
+}
+
+.timelineCard p {
+  margin: 0 0 4px;
+  color: #475569;
+  line-height: 1.5;
+}
+
+.timelineCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.timelineTestBadge {
+  display: inline-flex;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: #e0f2fe;
+  color: #0369a1;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.timelineDate {
+  font-size: 12.5px;
+  color: #94a3b8;
+}
+
 .resultList,
 .prescriptionList {
   display: grid;

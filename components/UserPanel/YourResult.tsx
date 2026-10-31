@@ -49,6 +49,19 @@ interface MediaFileItem {
   uploadedAt?: string;
 }
 
+interface QuizReportItem {
+  _id?: string;
+  reportId: string;
+  testType: "hair" | "skin";
+  completedAt: string;
+  profileTitle: string;
+  profileDescription: string;
+  mainConcerns: string[];
+  fileUrl: string;
+  fileName: string;
+  createdAt?: string;
+}
+
 const formatUploadedAt = (value?: string) => {
   if (!value) return "";
   const date = new Date(value);
@@ -154,10 +167,9 @@ export default function YourResult({ userId, userName, initialTab }: UserResultP
   const [loading, setLoading] = useState(true);
   const [savingGallery, setSavingGallery] = useState(false);
   const [savingPrescription, setSavingPrescription] = useState(false);
-  const [savingTestReport, setSavingTestReport] = useState(false);
   const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([]);
   const [prescriptions, setPrescriptions] = useState<MediaFileItem[]>([]);
-  const [testReports, setTestReports] = useState<MediaFileItem[]>([]);
+  const [quizReports, setQuizReports] = useState<QuizReportItem[]>([]);
   const [orders, setOrders] = useState<OrderItem[]>([]);
   const [recommendedProducts, setRecommendedProducts] = useState<RecommendedProduct[]>([]);
   const [recommendedTreatments, setRecommendedTreatments] = useState<RecommendedTreatment[]>(
@@ -172,7 +184,6 @@ export default function YourResult({ userId, userName, initialTab }: UserResultP
   const [editAfterPreview, setEditAfterPreview] = useState("");
   const [prescriptionFile, setPrescriptionFile] = useState<File | null>(null);
   const [prescriptionLabel, setPrescriptionLabel] = useState("");
-  const [testReportFile, setTestReportFile] = useState<File | null>(null);
   const [error, setError] = useState("");
   const [beforePreview, setBeforePreview] = useState("");
   const [afterPreview, setAfterPreview] = useState("");
@@ -181,10 +192,10 @@ export default function YourResult({ userId, userName, initialTab }: UserResultP
     () => ({
       gallery: galleryItems.length,
       prescriptions: prescriptions.length,
-      testReports: testReports.length,
+      quizReports: quizReports.length,
       orders: orders.length,
     }),
-    [galleryItems.length, prescriptions.length, testReports.length, orders.length]
+    [galleryItems.length, prescriptions.length, quizReports.length, orders.length]
   );
 
   useEffect(() => {
@@ -247,7 +258,7 @@ export default function YourResult({ userId, userName, initialTab }: UserResultP
         const data = await res.json();
         setGalleryItems(Array.isArray(data.resultGallery) ? data.resultGallery : []);
         setPrescriptions(Array.isArray(data.prescriptions) ? data.prescriptions : []);
-        setTestReports(Array.isArray(data.testReports) ? data.testReports : []);
+        setQuizReports(Array.isArray(data.quizReports) ? data.quizReports : []);
       } catch (err: any) {
         setError(err?.message || "Failed to load your results");
       } finally {
@@ -351,10 +362,6 @@ export default function YourResult({ userId, userName, initialTab }: UserResultP
     setPrescriptionFile(e.target.files?.[0] || null);
   };
 
-  const handleTestReportChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setTestReportFile(e.target.files?.[0] || null);
-  };
-
   const uploadGallery = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userId) return;
@@ -416,33 +423,6 @@ export default function YourResult({ userId, userName, initialTab }: UserResultP
       toast.error(err.message || "Failed to upload prescription");
     } finally {
       setSavingPrescription(false);
-    }
-  };
-
-  const uploadTestReport = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!userId || !testReportFile) return;
-
-    const formData = new FormData();
-    formData.append("file", testReportFile);
-
-    try {
-      setSavingTestReport(true);
-      const res = await fetch(`${API_URL}/users/${userId}/test-reports`, {
-        method: "POST",
-        body: formData,
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Failed to upload test report");
-
-      setTestReports(Array.isArray(data.testReports) ? data.testReports : []);
-      setTestReportFile(null);
-      toast.success("Test report uploaded successfully");
-    } catch (err: any) {
-      toast.error(err.message || "Failed to upload test report");
-    } finally {
-      setSavingTestReport(false);
     }
   };
 
@@ -535,18 +515,20 @@ export default function YourResult({ userId, userName, initialTab }: UserResultP
     }
   };
 
-  const deleteTestReport = async (itemId?: string) => {
+  const deleteQuizReport = async (itemId?: string) => {
     if (!userId || !itemId) return;
+    if (!window.confirm("Delete this assessment report?")) return;
 
     try {
-      const res = await fetch(`${API_URL}/users/${userId}/test-reports/${itemId}`, {
+      const res = await fetch(`${API_URL}/users/${userId}/quiz-reports/${itemId}`, {
         method: "DELETE",
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Failed to delete test report");
-      setTestReports(Array.isArray(data.testReports) ? data.testReports : []);
+      if (!res.ok) throw new Error(data.message || "Failed to delete report");
+      setQuizReports(Array.isArray(data.quizReports) ? data.quizReports : []);
+      toast.success("Report deleted");
     } catch (err: any) {
-      toast.error(err.message || "Failed to delete test report");
+      toast.error(err.message || "Failed to delete report");
     }
   };
 
@@ -667,8 +649,8 @@ export default function YourResult({ userId, userName, initialTab }: UserResultP
             <small>Prescriptions</small>
           </div>
           <div className={styles.statCard}>
-            <span>{counts.testReports}</span>
-            <small>Test reports</small>
+            <span>{counts.quizReports}</span>
+            <small>Online test reports</small>
           </div>
           <div className={styles.statCard}>
             <span>{counts.orders}</span>
@@ -1167,64 +1149,48 @@ export default function YourResult({ userId, userName, initialTab }: UserResultP
         </div>
       )}
 
-      {/* {activeTab === "reports" && (
-        <div className={styles.contentGrid}>
-          <form className={styles.panelCard} onSubmit={uploadTestReport}>
-            <div className={styles.panelHeader}>
-              <div>
-                <h3>Online test report</h3>
-                <p>Upload PDF or image reports for quick reference.</p>
-              </div>
-              <FiClipboard className={styles.panelIcon} />
+      {activeTab === "reports" && (
+        <div className={styles.listColumn}>
+          <div className={styles.sectionHeading}>
+            <h3>Online Test Report</h3>
+            <p>Every Hair/Skin self-assessment you've completed, newest first.</p>
+          </div>
+
+          {quizReports.length === 0 ? (
+            <div className={styles.emptyState}>
+              <h4>No assessment reports yet</h4>
+              <p>
+                Take the{" "}
+                <a href="/quiz/ques1" className={styles.linkBtn} style={{ display: "inline" }}>
+                  Hair or Skin self-assessment
+                </a>{" "}
+                to generate your first personalised report.
+              </p>
             </div>
-
-            <label className={styles.pdfDropzone}>
-              <input
-                type="file"
-                accept="image/*,application/pdf"
-                onChange={handleTestReportChange}
-              />
-              <div>
-                <FiClipboard />
-                <strong>{testReportFile ? testReportFile.name : "Choose a file"}</strong>
-                <span>{testReportFile ? "Ready to upload" : "Click to attach test report"}</span>
-              </div>
-            </label>
-
-            <button
-              type="submit"
-              className={styles.primaryBtn}
-              disabled={savingTestReport || !testReportFile}
-            >
-              {savingTestReport ? "Uploading..." : "Upload Test Report"}
-            </button>
-          </form>
-
-          <div className={styles.listColumn}>
-            <div className={styles.sectionHeading}>
-              <h3>Uploaded reports</h3>
-              <p>Open, review, or remove them anytime.</p>
-            </div>
-
-            {testReports.length === 0 ? (
-              <div className={styles.emptyState}>
-                <h4>No reports uploaded</h4>
-                <p>Your uploaded test reports will appear here.</p>
-              </div>
-            ) : (
-              <div className={styles.prescriptionList}>
-                {testReports.map((item) => {
-                  const fileUrl = resolveMediaUrl(item.fileUrl) || item.fileUrl;
-                  const isPdf = item.fileType === "application/pdf";
-                  return (
-                    <article className={styles.prescriptionCard} key={item._id}>
-                      <div className={styles.prescriptionInfo}>
-                        <FiFileText className={styles.prescriptionIcon} />
-                        <div>
-                          <h4>{item.fileName}</h4>
-                          <p>{isPdf ? "PDF report" : "Image report"}</p>
-                        </div>
+          ) : (
+            <div className={styles.timeline}>
+              {quizReports.map((item) => {
+                const fileUrl = resolveMediaUrl(item.fileUrl) || item.fileUrl;
+                const completedAt = formatUploadedAt(item.completedAt);
+                return (
+                  <article className={styles.timelineItem} key={item._id || item.reportId}>
+                    <span className={styles.timelineDot} />
+                    <div className={styles.timelineCard}>
+                      <div className={styles.timelineCardHeader}>
+                        <span className={styles.timelineTestBadge}>
+                          {item.testType === "hair" ? "Hair Test" : "Skin Test"}
+                        </span>
+                        {completedAt ? (
+                          <span className={styles.timelineDate}>{completedAt}</span>
+                        ) : null}
                       </div>
+                      <h4>{item.profileTitle}</h4>
+                      <p>{item.profileDescription}</p>
+                      {item.mainConcerns?.length ? (
+                        <p className={styles.prescriptionTimestamp}>
+                          Main concerns: {item.mainConcerns.join(", ")}
+                        </p>
+                      ) : null}
 
                       <div className={styles.prescriptionActions}>
                         <a
@@ -1233,25 +1199,25 @@ export default function YourResult({ userId, userName, initialTab }: UserResultP
                           rel="noreferrer"
                           className={styles.linkBtn}
                         >
-                          Open Report
+                          Download Report
                         </a>
                         <button
                           type="button"
                           className={styles.iconBtn}
-                          onClick={() => deleteTestReport(item._id)}
+                          onClick={() => deleteQuizReport(item._id)}
                         >
                           <FiTrash2 />
                           Delete
                         </button>
                       </div>
-                    </article>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
         </div>
-      )} */}
+      )}
 
       {activeTab === "products" && (
         <div className={styles.listColumn}>

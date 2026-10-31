@@ -25,12 +25,26 @@ export interface ProfileRec {
   b: string;
 }
 
+export interface ProfileRoutine {
+  title: string;
+  guidance: string;
+}
+
 export interface QuizProfile {
   type: string;
   desc: string;
   concerns: string[];
   scores: ProfileScore[];
   recs: ProfileRec[];
+  // Extra fields powering the full assessment-report PDF (saved to the
+  // user's profile) — kept separate from scores/recs above since those
+  // still drive the existing on-screen result cards unchanged.
+  indicatorInterpretations: string[]; // same order/length as `scores`
+  factors: string;
+  interpretation: string;
+  routine: ProfileRoutine;
+  clinicianReview: string;
+  followUp: string;
 }
 
 export type QuizAnswerValue = number | "photo_uploaded" | undefined;
@@ -210,6 +224,23 @@ const calculateHairProfile = (answers: QuizAnswerValue[]): QuizProfile => {
         { t: "Biotin + Zinc", b: "Daily supplement for keratin support" },
         { t: "Protein-rich diet", b: "Eggs, nuts, lentils" },
       ],
+      indicatorInterpretations: [
+        "Hair fall is within or just above the typical daily range — not a cause for concern on its own.",
+        "Density loss is minimal and not yet visible in most lighting or angles.",
+        "Stress levels reported are manageable but worth monitoring if they rise.",
+        "Diet has some gaps that could be tightened for stronger hair over time.",
+      ],
+      factors: "Mild shedding with a mostly balanced lifestyle; minor stress and nutritional gaps were reported.",
+      interpretation:
+        "Your results suggest your hair is largely healthy, with shedding that's close to normal. Small, consistent changes to scalp care and nutrition should be enough to restore full strength without needing medical intervention.",
+      routine: {
+        title: "Gentle Strengthening Routine",
+        guidance:
+          "Massage the scalp with rosemary oil 3x/week to support circulation, use a sulphate-free shampoo, and avoid tight hairstyles or excessive heat styling.",
+      },
+      clinicianReview:
+        "A clinical review isn't urgent at this stage — self-care should show improvement within 6-8 weeks. Book a consultation if shedding increases or persists beyond 3 months.",
+      followUp: "Re-check your hair fall and density in 8-12 weeks to confirm the trend is improving.",
     },
     {
       type: "Moderate Thinning",
@@ -226,6 +257,23 @@ const calculateHairProfile = (answers: QuizAnswerValue[]): QuizProfile => {
         { t: "Ketoconazole Shampoo", b: "2-3x per week" },
         { t: "Blood tests", b: "Ferritin, Vitamin D, Thyroid" },
       ],
+      indicatorInterpretations: [
+        "Elevated shedding, noticeably above the typical daily range reported.",
+        "Visible thinning has been reported, consistent with moderate-stage change.",
+        "Moderate stress levels reported, which may be contributing to the shedding pattern.",
+        "Nutritional gaps reported may be limiting hair growth and strength.",
+      ],
+      factors: "A combination of elevated shedding, visible thinning, moderate stress, and nutritional gaps was reported, typically over a period of several months.",
+      interpretation:
+        "Your results point to a combination of lifestyle, nutrition and possibly hormonal factors contributing to visible thinning. A structured 90-day plan combining topical treatment, scalp care and nutrition correction is recommended for best results.",
+      routine: {
+        title: "Structured 90-Day Scalp & Hair Plan",
+        guidance:
+          "Use a ketoconazole-based shampoo 2-3x/week, apply minoxidil 5% once daily as advised by a clinician, and prioritise iron, protein and vitamin D-rich foods.",
+      },
+      clinicianReview:
+        "A dermatologist or trichologist review within the next 2-4 weeks is recommended to confirm the root cause and rule out hormonal or nutritional deficiencies via blood work.",
+      followUp: "Re-assess in 90 days to track progress against this baseline and adjust the plan if needed.",
     },
     {
       type: "Advanced Hair Loss",
@@ -242,6 +290,23 @@ const calculateHairProfile = (answers: QuizAnswerValue[]): QuizProfile => {
         { t: "Finasteride or Spironolactone", b: "Under medical supervision" },
         { t: "PRP / Mesotherapy", b: "Advanced regenerative options" },
       ],
+      indicatorInterpretations: [
+        "Significant hair fall reported, well above the typical daily range — a strong signal for professional evaluation.",
+        "Significant thinning or bald patches reported, consistent with advanced-stage loss.",
+        "High or chronic stress reported, which is a known contributor to accelerated shedding.",
+        "Nutritional gaps reported may be compounding the underlying cause.",
+      ],
+      factors: "Significant hair fall, visible bald patches or pattern thinning, high chronic stress and nutritional gaps were reported, often alongside a family history or suspected/diagnosed hormonal condition.",
+      interpretation:
+        "Your results indicate significant loss that is unlikely to resolve with lifestyle changes alone. Hormonal imbalance, chronic inflammation or pattern baldness may be involved, and early professional intervention gives the best chance of slowing or reversing progression.",
+      routine: {
+        title: "Medical-Grade Hair Loss Management",
+        guidance:
+          "Continue any clinician-prescribed topical or oral treatment consistently, protect the scalp from further stress (heat, tight styling, harsh chemicals), and maintain a nutrient-dense diet alongside medical care.",
+      },
+      clinicianReview:
+        "Book a dermatologist or trichologist consultation as soon as possible. Early-stage intervention with options like Finasteride, Spironolactone, PRP or Mesotherapy (under medical supervision) gives significantly better outcomes than waiting.",
+      followUp: "Follow up with your clinician in 4-6 weeks after starting treatment to review response and adjust the plan.",
     },
   ];
 
@@ -392,6 +457,23 @@ const calculateSkinProfile = (answers: QuizAnswerValue[]): QuizProfile => {
         { t: "Vitamin C Serum", b: "Morning routine" },
         { t: "Gentle Hydration", b: "Hyaluronic acid" },
       ],
+      indicatorInterpretations: [
+        "Acne activity is low, suggesting good oil and pore balance overall.",
+        "Pigmentation is minimal with no significant dark spots or unevenness reported.",
+        "Skin barrier function is strong, supporting resilience against irritation.",
+        "Sun damage indicators are low, reflecting good protective habits.",
+      ],
+      factors: "Overall balanced skin with only minor dullness and early signs of ageing reported.",
+      interpretation:
+        "Your results suggest your skin is in good condition. Focus should be on maintenance and prevention — consistent SPF use and antioxidant support will help preserve this baseline over time.",
+      routine: {
+        title: "Maintenance & Prevention Routine",
+        guidance:
+          "Apply SPF 50 every morning without exception, use a Vitamin C serum to support collagen and brightness, and keep the skin barrier hydrated with a hyaluronic acid-based moisturiser.",
+      },
+      clinicianReview:
+        "No urgent clinical review is needed. A dermatologist consultation once or twice a year for general skin health monitoring is a reasonable baseline.",
+      followUp: "Re-check your skin profile in 3-6 months, or sooner if you notice new dullness or sensitivity.",
     },
     {
       type: "Acne-Prone & Congested",
@@ -408,6 +490,23 @@ const calculateSkinProfile = (answers: QuizAnswerValue[]): QuizProfile => {
         { t: "Niacinamide Serum", b: "10% for oil control" },
         { t: "Spot treatment", b: "Benzoyl Peroxide" },
       ],
+      indicatorInterpretations: [
+        "Acne activity is elevated, reflecting frequent or persistent breakouts.",
+        "Pigmentation is moderate, likely driven by post-acne marks.",
+        "Skin barrier shows some weakening, which can worsen sensitivity to active ingredients.",
+        "Inflammation levels are elevated, consistent with active breakouts and congestion.",
+      ],
+      factors: "Frequent or constant breakouts, oily/congested skin and post-acne marks were reported, often alongside an inconsistent skincare routine.",
+      interpretation:
+        "Your results point to excess oil production, clogged pores and inflammation as the main drivers of your skin concerns. A consistent, oil-control-focused routine introduced gradually should show visible improvement within 4-6 weeks.",
+      routine: {
+        title: "Oil Control & Acne Management Routine",
+        guidance:
+          "Cleanse with a 2% salicylic acid (BHA) cleanser, follow with a 10% niacinamide serum for oil control, and use benzoyl peroxide as a targeted spot treatment rather than all over the face.",
+      },
+      clinicianReview:
+        "A dermatologist review is recommended within 2-4 weeks if breakouts are frequent or leaving marks, to assess whether a prescription-strength treatment is needed.",
+      followUp: "Re-assess breakout frequency and skin texture in 6 weeks to confirm the routine is working.",
     },
     {
       type: "Hyperpigmentation & Sun Damage",
@@ -424,6 +523,23 @@ const calculateSkinProfile = (answers: QuizAnswerValue[]): QuizProfile => {
         { t: "Alpha Arbutin / Tranexamic", b: "Target melanin" },
         { t: "Azelaic Acid", b: "Multi-benefit" },
       ],
+      indicatorInterpretations: [
+        "Acne activity is mild, not the primary driver of current concerns.",
+        "Pigmentation is high, indicating dominant dark spots or uneven tone.",
+        "Sun damage indicators are high, consistent with prolonged unprotected exposure.",
+        "Skin barrier shows moderate weakening, which can make pigmentation harder to treat.",
+      ],
+      factors: "Moderate to severe dark spots or melasma, high daily sun exposure without protection, and an inconsistent SPF routine were reported.",
+      interpretation:
+        "Your results show dark spots and uneven tone as the dominant concern, closely linked to sun exposure. Consistent, daily SPF use combined with targeted brightening actives is essential — results typically take 8-12 weeks to become visible.",
+      routine: {
+        title: "Pigmentation & Sun Protection Routine",
+        guidance:
+          "Apply SPF 50+ broad-spectrum sunscreen every day, reapplying if outdoors for extended periods. Layer in alpha arbutin or tranexamic acid to target melanin, and azelaic acid for additional brightening and anti-inflammatory benefit.",
+      },
+      clinicianReview:
+        "A dermatologist review is recommended to confirm whether melasma or another pigmentation disorder is present, and to discuss in-clinic options (peels, lasers) if topical treatment alone is insufficient.",
+      followUp: "Re-assess pigmentation and tone evenness in 8-12 weeks, as improvement is typically gradual.",
     },
   ];
 

@@ -3,7 +3,9 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import Cookies from "js-cookie";
+import Link from "next/link";
 import { useRouter } from "next/router";
+import { FiArrowUpRight } from "react-icons/fi";
 import { useUser } from "@/context/UserContext";
 import { useConfirm } from "@/context/ConfirmContext";
 import { useToast } from "@/context/ToastContext";
@@ -17,7 +19,7 @@ interface OrderProduct {
   quantity: number;
   price: number;
   image?: string;
-  itemType?: "product" | "treatment";
+  itemType?: "product" | "treatment" | "consultation";
   clinicId?: string;
   clinicName?: string;
   clinicAddress?: string;
@@ -25,7 +27,7 @@ interface OrderProduct {
 
 interface Order {
   _id: string;
-  orderType?: "product" | "treatment";
+  orderType?: "product" | "treatment" | "consultation";
   products: OrderProduct[];
   totalAmount: number;
   address: { type: string; address: string };
@@ -46,7 +48,7 @@ const slugify = (value: string) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 
-type OrderHistoryMode = "all" | "treatment";
+type OrderHistoryMode = "all" | "treatment" | "consultation";
 
 interface OrderHistoryProps {
   mode?: OrderHistoryMode;
@@ -69,13 +71,22 @@ const UserOrderHistory: React.FC<OrderHistoryProps> = ({ mode = "all" }) => {
       ? Cookies.get("userId") || localStorage.getItem("userId")
       : null;
 
+  const hasConsultationItems = (order: Order) =>
+    Array.isArray(order.products) &&
+    order.products.some((item) => item.itemType === "consultation");
+
+  const isConsultationOrder = (order: Order) => {
+    const orderType = String(order.orderType || "").toLowerCase();
+    return orderType === "consultation" || hasConsultationItems(order);
+  };
+
   const hasTreatmentItems = (order: Order) =>
     Array.isArray(order.products) &&
     order.products.some((item) => item.itemType === "treatment");
 
   const hasProductItems = (order: Order) =>
     Array.isArray(order.products) &&
-    order.products.some((item) => item.itemType !== "treatment");
+    order.products.some((item) => item.itemType !== "treatment" && item.itemType !== "consultation");
 
   const hasTreatmentName = (order: Order) =>
     Array.isArray(order.products) &&
@@ -83,7 +94,11 @@ const UserOrderHistory: React.FC<OrderHistoryProps> = ({ mode = "all" }) => {
       String(item.name || "").toLowerCase().includes("treatment")
     );
 
+  // Checked before the treatment heuristic — online consultation checkout
+  // also stamps address.type "Other" (no delivery address needed), which
+  // the legacy treatment fallback below would otherwise swallow.
   const isTreatmentOrder = (order: Order) => {
+    if (isConsultationOrder(order)) return false;
     const orderType = String(order.orderType || "").toLowerCase();
     if (orderType === "treatment" || hasTreatmentItems(order) || hasTreatmentName(order))
       return true;
@@ -99,7 +114,7 @@ const UserOrderHistory: React.FC<OrderHistoryProps> = ({ mode = "all" }) => {
 
   const isProductOrder = (order: Order) => {
     const orderType = String(order.orderType || "").toLowerCase();
-    if (isTreatmentOrder(order)) return false;
+    if (isTreatmentOrder(order) || isConsultationOrder(order)) return false;
     return orderType === "product" || hasProductItems(order);
   };
 
@@ -109,7 +124,13 @@ const UserOrderHistory: React.FC<OrderHistoryProps> = ({ mode = "all" }) => {
       const treatmentItems = products.filter((item) => item.itemType === "treatment");
       if (treatmentItems.length > 0) return treatmentItems;
     }
-    const productItems = products.filter((item) => item.itemType !== "treatment");
+    if (mode === "consultation") {
+      const consultationItems = products.filter((item) => item.itemType === "consultation");
+      if (consultationItems.length > 0) return consultationItems;
+    }
+    const productItems = products.filter(
+      (item) => item.itemType !== "treatment" && item.itemType !== "consultation"
+    );
     return productItems.length > 0 ? productItems : products;
   };
 
@@ -118,10 +139,22 @@ const UserOrderHistory: React.FC<OrderHistoryProps> = ({ mode = "all" }) => {
     if (mode === "treatment") {
       return visibleItems[0]?.name || "treatment booking";
     }
+    if (mode === "consultation") {
+      return visibleItems[0]?.name || "online consultation";
+    }
     return visibleItems[0]?.name || order.products?.[0]?.name || "order";
   };
 
   const getOrderSlug = (order: Order) => slugify(getOrderTitle(order));
+
+  // Lets a shopper jump from an order line item to that product's or
+  // treatment's own page, then use the browser back button to return here.
+  const getItemDetailHref = (item: OrderProduct) => {
+    if (!item.name) return undefined;
+    if (item.itemType === "treatment") return `/treatment-plans/${slugify(item.name)}`;
+    if (item.itemType === "consultation") return undefined;
+    return `/product/${slugify(item.name)}`;
+  };
 
   useEffect(() => {
     if (loading) return;
@@ -193,7 +226,8 @@ const UserOrderHistory: React.FC<OrderHistoryProps> = ({ mode = "all" }) => {
 
         const res = await axios.get(`${API_URL}/orders/my`, {
           params: {
-            orderType: mode === "treatment" ? "treatment" : "product",
+            orderType:
+              mode === "treatment" ? "treatment" : mode === "consultation" ? "consultation" : "product",
           },
           headers: {
             "x-user-id": resolvedUser.id,
@@ -205,6 +239,8 @@ const UserOrderHistory: React.FC<OrderHistoryProps> = ({ mode = "all" }) => {
           const nextOrders =
             mode === "treatment"
               ? res.data.filter((order: Order) => isTreatmentOrder(order))
+              : mode === "consultation"
+              ? res.data.filter((order: Order) => isConsultationOrder(order))
               : res.data.filter((order: Order) => isProductOrder(order));
           setOrders(nextOrders);
         } else {
@@ -303,13 +339,31 @@ const UserOrderHistory: React.FC<OrderHistoryProps> = ({ mode = "all" }) => {
     <div className={styles.container}>
       <div className={styles.header}>
         <div>
-          <h2>{mode === "treatment" ? `${headerName} Treatment Orders` : `${headerName} Orders`}</h2>
+          <h2>
+            {mode === "treatment"
+              ? `${headerName} Treatment Orders`
+              : mode === "consultation"
+              ? `${headerName} Consultation Orders`
+              : `${headerName} Orders`}
+          </h2>
           <p className={styles.subtle}>
-            Track {mode === "treatment" ? "treatment bookings" : "purchases"} and payment status in one place.
+            Track{" "}
+            {mode === "treatment"
+              ? "treatment bookings"
+              : mode === "consultation"
+              ? "online consultation bookings"
+              : "purchases"}{" "}
+            and payment status in one place.
           </p>
         </div>
         <div className={styles.summaryChip}>
-          <span>{mode === "treatment" ? "Treatment Orders" : "Total Orders"}</span>
+          <span>
+            {mode === "treatment"
+              ? "Treatment Orders"
+              : mode === "consultation"
+              ? "Consultation Orders"
+              : "Total Orders"}
+          </span>
           <strong>{orders.length}</strong>
         </div>
       </div>
@@ -317,11 +371,17 @@ const UserOrderHistory: React.FC<OrderHistoryProps> = ({ mode = "all" }) => {
       {orders.length === 0 ? (
         <div className={styles.emptyState}>
           <div className={styles.emptyBadge}>
-            {mode === "treatment" ? "No Treatment Orders Yet" : "No Orders Yet"}
+            {mode === "treatment"
+              ? "No Treatment Orders Yet"
+              : mode === "consultation"
+              ? "No Consultation Orders Yet"
+              : "No Orders Yet"}
           </div>
           <p>
             {mode === "treatment"
               ? "Once you book a treatment plan, it will appear here automatically."
+              : mode === "consultation"
+              ? "Once you book an online consultation, it will appear here automatically."
               : "Once you purchase a product, it will appear here automatically."}
           </p>
         </div>
@@ -363,7 +423,7 @@ const UserOrderHistory: React.FC<OrderHistoryProps> = ({ mode = "all" }) => {
                   >
                     {order.status === "Cancelled" ? "Cancelled" : order.paymentStatus || "Pending"}
                   </span>
-                  {mode !== "treatment" && canCancelOrder(order) && (
+                  {mode !== "treatment" && mode !== "consultation" && canCancelOrder(order) && (
                     <button
                       type="button"
                       className={styles.cancelBtn}
@@ -391,6 +451,16 @@ const UserOrderHistory: React.FC<OrderHistoryProps> = ({ mode = "all" }) => {
                         <div className={styles.itemMeta}>
                           <p className={styles.itemName}>{p.name}</p>
                           <span className={styles.itemQty}>Qty: {p.quantity}</span>
+                          {getItemDetailHref(p) && (
+                            <Link
+                              href={getItemDetailHref(p)!}
+                              className={styles.itemViewLink}
+                              onClick={(event) => event.stopPropagation()}
+                            >
+                              <span>View {p.itemType === "treatment" ? "Treatment" : "Product"}</span>
+                              <FiArrowUpRight />
+                            </Link>
+                          )}
                           {p.itemType === "treatment" && p.clinicName && (
                             <p className={styles.clinicInfo}>
                               Clinic: {p.clinicName}
@@ -408,6 +478,12 @@ const UserOrderHistory: React.FC<OrderHistoryProps> = ({ mode = "all" }) => {
                 {mode === "treatment" && (
                   <p className={styles.supportNote}>
                     Treatment bookings can't be cancelled here — please contact our support
+                    team for cancellation or any other query.
+                  </p>
+                )}
+                {mode === "consultation" && (
+                  <p className={styles.supportNote}>
+                    Consultation bookings can't be cancelled here — please contact our support
                     team for cancellation or any other query.
                   </p>
                 )}

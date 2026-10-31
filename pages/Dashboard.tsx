@@ -50,6 +50,7 @@ import ListOfCourseType from "@/components/AdminPanel/ListOfCourseType";
 import ListOfTrainingType from "@/components/AdminPanel/ListOfTrainingType";
 import ListOfWorkshopTraning from "@/components/AdminPanel/ListOfWorkshopTraning";
 import ListOfSupportTickets from "@/components/AdminPanel/ListOfSupportTickets";
+import ListOfTransactions from "@/components/AdminPanel/ListOfTransactions";
 
 /* ✅ DOCTOR */
 import CreateDoctor from "@/components/AdminPanel/CreateDoctor";
@@ -669,6 +670,7 @@ export default function SuperAdminDashboard() {
       "latestshorts",
       "treatmentshorts",
       "supportTickets",
+      "transactions",
     ];
     const isOthersSection = othersSectionIds.includes(activeSection);
     if (!stillVisible && !(isOthersSection && canView("others"))) {
@@ -1027,6 +1029,9 @@ export default function SuperAdminDashboard() {
                   </li>
                   <li onClick={() => handleSectionChange("supportTickets")}>
                     Hiring &amp; Support Tickets
+                  </li>
+                  <li onClick={() => handleSectionChange("transactions")}>
+                    Transactions
                   </li>
                 </ul>
               )}
@@ -1429,6 +1434,9 @@ export default function SuperAdminDashboard() {
               )}
               {canView("others") && activeSection === "supportTickets" && (
                 <ListOfSupportTickets />
+              )}
+              {canView("others") && activeSection === "transactions" && (
+                <ListOfTransactions />
               )}
               {/* {activeSection === "userorderhistory" && <UserOrderHistory />} */}
               {activeSection === "createPatient" && <CreatePatient />}

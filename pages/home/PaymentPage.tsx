@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
 import Image from "next/image";
+import Link from "next/link";
 import Cookies from "js-cookie";
 import styles from "@/styles/user/paymentpage.module.css";
 import { CartItem, useCart } from "@/context/CartContext";
@@ -15,7 +16,25 @@ import {
   FaMapMarkerAlt,
   FaShieldAlt,
 } from "react-icons/fa";
+import { FiArrowUpRight } from "react-icons/fi";
 import { GoLocation } from "react-icons/go";
+
+const slugify = (value: string) =>
+  value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+// Lets a shopper jump from a booking line item to that product's or
+// treatment's own page before completing payment, then come back here.
+const getItemDetailHref = (item: CartItem) => {
+  if (!item.name) return undefined;
+  if (String(item.id || "").startsWith("course:")) return undefined;
+  if (String(item.id || "").startsWith("workshop:")) return undefined;
+  if (item.itemType === "treatment") return `/treatment-plans/${slugify(item.name)}`;
+  if (item.itemType === "consultation") return undefined;
+  return `/product/${slugify(item.name)}`;
+};
 import FullPageLoader from "@/components/common/FullPageLoader";
 
 const TREATMENT_CHECKOUT_KEY = "treatmentCheckout";
@@ -746,6 +765,12 @@ const PaymentPage: React.FC = () => {
                             }`
                           : "You are paying directly for the treatment plan. No address selection is needed."}
                       </p>
+                      {getItemDetailHref(item) && (
+                        <Link href={getItemDetailHref(item)!} className={styles.itemViewLink}>
+                          <span>View Treatment</span>
+                          <FiArrowUpRight />
+                        </Link>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -829,6 +854,12 @@ const PaymentPage: React.FC = () => {
                 <div className={styles.itemCopy}>
                   <span className={styles.itemName}>{item.name}</span>
                   <span className={styles.itemMeta}>Qty {item.quantity}</span>
+                  {getItemDetailHref(item) && (
+                    <Link href={getItemDetailHref(item)!} className={styles.itemViewLink}>
+                      <span>View {item.itemType === "treatment" ? "Treatment" : "Product"}</span>
+                      <FiArrowUpRight />
+                    </Link>
+                  )}
                 </div>
                 <span className={styles.itemAmount}>₹{item.price * item.quantity}</span>
               </div>

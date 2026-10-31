@@ -348,6 +348,27 @@
   box-shadow: 0 8px 18px rgba(15, 118, 110, 0.18);
 }
 
+.itemViewLink {
+  margin-top: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 11px 5px 9px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #eef2ff, #e0e7ff);
+  color: #3730a3;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  width: fit-content;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.itemViewLink:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(55, 48, 163, 0.18);
+}
+
 .clinicSummaryLink {
   display: inline-flex;
   align-items: center;

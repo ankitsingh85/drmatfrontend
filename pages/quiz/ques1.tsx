@@ -3,17 +3,19 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import Link from "next/link";
+import { useRouter } from "next/router";
 import Topbar from "@/components/Layout/Topbar";
 import Footer from "@/components/Layout/Footer";
 import { API_URL } from "@/config/api";
 import { resolveMediaUrl } from "@/lib/media";
-import { generateQuizReportPdf } from "@/lib/quizReportPdf";
+import { useUser } from "@/context/UserContext";
 import styles from "@/styles/quiz/ques1.module.css";
 import {
   QUIZ_TESTS,
   type QuizCategoryKey,
   type QuizAnswerValue,
   type QuizProfile,
+  type QuizTest,
 } from "@/data/hairSkinQuizData";
 import {
   FiArrowLeft,
@@ -24,7 +26,23 @@ import {
   FiUserCheck,
   FiClipboard,
   FiDownload,
+  FiLock,
 } from "react-icons/fi";
+
+const PENDING_QUIZ_KEY = "pendingQuizSubmission";
+
+const describeAnswer = (
+  question: QuizTest["questions"][number],
+  value: QuizAnswerValue
+): string => {
+  if (question.isPhoto) {
+    return value === "photo_uploaded" ? "Photo uploaded" : "Skipped (optional)";
+  }
+  if (typeof value !== "number") return "Not answered";
+  const option = question.options[value];
+  if (!option) return "Not answered";
+  return option.desc ? `${option.label} (${option.desc})` : option.label;
+};
 
 interface RawProduct {
   _id: string;
@@ -39,6 +57,12 @@ interface RawProduct {
 }
 
 type Screen = "home" | "quiz" | "result";
+
+interface PendingQuizSubmission {
+  testKey: QuizCategoryKey;
+  answers: QuizAnswerValue[];
+  startedAt: string;
+}
 
 const cx = (...classes: Array<string | false | undefined>) =>
   classes.filter(Boolean).join(" ");
@@ -105,6 +129,8 @@ const rankProductsForProfile = (
 };
 
 export default function UserQuiz() {
+  const router = useRouter();
+  const { user, loading: userLoading } = useUser();
   const [screen, setScreen] = useState<Screen>("home");
   const [activeKey, setActiveKey] = useState<QuizCategoryKey | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -113,7 +139,11 @@ export default function UserQuiz() {
   const [products, setProducts] = useState<RawProduct[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [barsAnimated, setBarsAnimated] = useState(false);
-  const [generatingReport, setGeneratingReport] = useState(false);
+  const [testStartedAt, setTestStartedAt] = useState<string>("");
+  const [submittingReport, setSubmittingReport] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+  const [savedReportUrl, setSavedReportUrl] = useState("");
+  const [resumePending, setResumePending] = useState(false);
   const recommendedRef = useRef<HTMLDivElement | null>(null);
 
   const activeTest = activeKey ? QUIZ_TESTS[activeKey] : null;
@@ -167,6 +197,8 @@ export default function UserQuiz() {
     setCurrentIndex(0);
     setAnswers([]);
     setPhotoPreview(null);
+    setTestStartedAt(new Date().toISOString());
+    setSubmitError("");
     setScreen("quiz");
   };
 
@@ -198,13 +230,96 @@ export default function UserQuiz() {
 
   const canContinue = isPhotoStep || selectedOption !== null;
 
+  // Submits a completed test to the backend, which computes the final
+  // profile-derived report, generates the full PDF, and saves it to the
+  // logged-in user's profile. Shared by the normal "finish quiz" path and
+  // the "resume after login" path below.
+  const submitQuizReport = async (
+    key: QuizCategoryKey,
+    submittedAnswers: QuizAnswerValue[],
+    startedAtIso: string,
+    userId: string
+  ) => {
+    const test = QUIZ_TESTS[key];
+    const resultProfile = test.getProfile(submittedAnswers);
+    const hasPhotoQuestion = test.questions.some((q) => q.isPhoto);
+    const photoAnswer = submittedAnswers[test.questions.findIndex((q) => q.isPhoto)];
+    const photoUploadStatus = !hasPhotoQuestion
+      ? "Not applicable"
+      : photoAnswer === "photo_uploaded"
+      ? "Provided"
+      : "Not provided";
+
+    setSubmittingReport(true);
+    setSubmitError("");
+    try {
+      const res = await axios.post(`${API_URL}/users/${userId}/quiz-reports`, {
+        testType: key,
+        startedAt: startedAtIso,
+        completedAt: new Date().toISOString(),
+        profileTitle: resultProfile.type,
+        profileDescription: resultProfile.desc,
+        mainConcerns: resultProfile.concerns,
+        primaryNextStep: resultProfile.recs[0]
+          ? `${resultProfile.recs[0].t} — ${resultProfile.recs[0].b}`
+          : "",
+        indicators: resultProfile.scores.map((score, index) => ({
+          label: score.label,
+          value: score.v,
+          interpretation: resultProfile.indicatorInterpretations[index] || "",
+        })),
+        factors: resultProfile.factors,
+        interpretation: resultProfile.interpretation,
+        nextSteps: resultProfile.recs.map((rec) => ({ title: rec.t, description: rec.b })),
+        routineTitle: resultProfile.routine.title,
+        routineGuidance: resultProfile.routine.guidance,
+        clinicianReview: resultProfile.clinicianReview,
+        followUp: resultProfile.followUp,
+        photoUploadStatus,
+        questions: test.questions
+          .filter((q) => !q.isPhoto)
+          .map((q, index) => ({
+            category: q.cat,
+            text: q.text,
+            selectedAnswer: describeAnswer(q, submittedAnswers[index]),
+          })),
+      });
+
+      const latestReport = res.data?.quizReports?.[0];
+      setSavedReportUrl(latestReport?.fileUrl || "");
+      setActiveKey(key);
+      setAnswers(submittedAnswers);
+      setScreen("result");
+    } catch (err: any) {
+      setSubmitError(
+        err?.response?.data?.message || "Could not save your report. Please try again."
+      );
+    } finally {
+      setSubmittingReport(false);
+    }
+  };
+
   const goNext = () => {
-    if (!activeTest || !canContinue) return;
+    if (!activeTest || !activeKey || !canContinue) return;
     if (currentIndex < activeTest.questions.length - 1) {
       setCurrentIndex((i) => i + 1);
-    } else {
-      setScreen("result");
+      return;
     }
+
+    if (userLoading) return;
+
+    if (!user?._id) {
+      const pending: PendingQuizSubmission = {
+        testKey: activeKey,
+        answers,
+        startedAt: testStartedAt || new Date().toISOString(),
+      };
+      localStorage.setItem(PENDING_QUIZ_KEY, JSON.stringify(pending));
+      router.push(`/Login?next=${encodeURIComponent("/quiz/ques1?resume=1")}`);
+      return;
+    }
+
+    submitQuizReport(activeKey, answers, testStartedAt || new Date().toISOString(), user._id);
   };
 
   const goBack = () => {
@@ -223,17 +338,39 @@ export default function UserQuiz() {
     setAnswers([]);
     setPhotoPreview(null);
     setProducts([]);
+    setSavedReportUrl("");
+    setSubmitError("");
   };
 
-  const handleDownloadReport = async () => {
-    if (!activeTest || !profile || generatingReport) return;
-    setGeneratingReport(true);
+  // Auto-resume: if the quiz redirected to /Login (saving answers to
+  // localStorage first) and the user has just logged in and landed back
+  // here with ?resume=1, pick the submission back up automatically.
+  useEffect(() => {
+    if (resumePending) return;
+    if (router.query.resume !== "1") return;
+    if (userLoading || !user?._id) return;
+
+    const raw = localStorage.getItem(PENDING_QUIZ_KEY);
+    if (!raw) return;
+
+    let pending: PendingQuizSubmission | null = null;
     try {
-      await generateQuizReportPdf(activeTest, answers, profile);
-    } finally {
-      setGeneratingReport(false);
+      pending = JSON.parse(raw);
+    } catch {
+      pending = null;
     }
-  };
+    if (!pending) {
+      localStorage.removeItem(PENDING_QUIZ_KEY);
+      return;
+    }
+
+    setResumePending(true);
+    localStorage.removeItem(PENDING_QUIZ_KEY);
+    setTestStartedAt(pending.startedAt);
+    router.replace("/quiz/ques1", undefined, { shallow: true });
+    submitQuizReport(pending.testKey, pending.answers, pending.startedAt, user._id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router.query.resume, userLoading, user?._id, resumePending]);
 
   const scrollToRecommended = () => {
     recommendedRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -284,7 +421,7 @@ export default function UserQuiz() {
               ))}
             </div>
 
-            <p className={styles.trustLine}>No account required • Trusted by thousands</p>
+            <p className={styles.trustLine}>Free to take • Log in to save your personalised report</p>
           </div>
         </div>
         <Footer />
@@ -360,15 +497,25 @@ export default function UserQuiz() {
               </div>
             )}
 
+            {submitError && <p className={styles.photoSkipNote}>{submitError}</p>}
+
             <button
               type="button"
               className={styles.nextBtn}
               onClick={goNext}
-              disabled={!canContinue}
+              disabled={!canContinue || submittingReport}
             >
-              {currentIndex < activeTest.questions.length - 1
-                ? "Continue →"
-                : "See My Results →"}
+              {currentIndex < activeTest.questions.length - 1 ? (
+                "Continue →"
+              ) : submittingReport ? (
+                "Saving your report..."
+              ) : user?._id ? (
+                "See My Results →"
+              ) : (
+                <>
+                  <FiLock /> Log In &amp; See My Results
+                </>
+              )}
             </button>
           </div>
         </div>
@@ -390,14 +537,25 @@ export default function UserQuiz() {
               </p>
               <p className={styles.resultType}>{profile.type}</p>
               <p className={styles.resultDesc}>{profile.desc}</p>
-              <button
-                type="button"
-                className={styles.downloadReportBtn}
-                onClick={handleDownloadReport}
-                disabled={generatingReport}
-              >
-                <FiDownload /> {generatingReport ? "Preparing PDF..." : "Download PDF Report"}
-              </button>
+              {savedReportUrl ? (
+                <>
+                  <a
+                    href={resolveMediaUrl(savedReportUrl) || savedReportUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className={styles.downloadReportBtn}
+                  >
+                    <FiDownload /> Download PDF Report
+                  </a>
+                  <p className={styles.photoSkipNote}>
+                    Saved to your profile —{" "}
+                    <Link href="/UserDashboard?section=yourresult&tab=reports">
+                      view it anytime under Your Result → Online Test Report
+                    </Link>
+                    .
+                  </p>
+                </>
+              ) : null}
             </div>
 
             <p className={styles.sectionTitle}>Your Main Concerns</p>
@@ -421,19 +579,6 @@ export default function UserQuiz() {
                     />
                   </div>
                   <span className={styles.scoreVal}>{score.v}%</span>
-                </div>
-              ))}
-            </div>
-
-            <p className={styles.sectionTitle}>Recommended Next Steps</p>
-            <div className={styles.recs}>
-              {profile.recs.map((rec, i) => (
-                <div key={rec.t} className={styles.recCard}>
-                  <span className={styles.recNum}>{String(i + 1).padStart(2, "0")}</span>
-                  <div>
-                    <p className={styles.recTitle}>{rec.t}</p>
-                    <p className={styles.recBody}>{rec.b}</p>
-                  </div>
                 </div>
               ))}
             </div>

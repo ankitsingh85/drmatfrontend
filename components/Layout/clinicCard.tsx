@@ -34,10 +34,11 @@ type Clinic = {
   trusted?: boolean;
   mapLink?: string;
   // Computed server-side: only true when the clinic has an active
-  // subscription (or admin forced it on) — gates the WhatsApp button and
-  // the verified badge respectively.
+  // subscription (or admin forced it on) — gates the WhatsApp button, the
+  // verified badge, and the Call button respectively.
   whatsappVisible?: boolean;
   verifiedBadgeVisible?: boolean;
+  callButtonVisible?: boolean;
 };
 
 interface ClinicCardProps {
@@ -267,13 +268,15 @@ const ClinicCard: React.FC<ClinicCardProps> = ({ clinic }) => {
 
         {/* ================= ACTIONS ================= */}
         <div className={styles.buttons}>
-          <a
-            href={callNumber ? `tel:${callNumber}` : undefined}
-            onClick={handleCallClick}
-            className={styles.call}
-          >
-            <IoCall className={styles.icons} /> Call
-          </a>
+          {clinic.callButtonVisible && (
+            <a
+              href={callNumber ? `tel:${callNumber}` : undefined}
+              onClick={handleCallClick}
+              className={styles.call}
+            >
+              <IoCall className={styles.icons} /> Call
+            </a>
+          )}
 
           {clinic.whatsappVisible && (
             <a

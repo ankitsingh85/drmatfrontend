@@ -11,6 +11,7 @@ import { API_URL } from "@/config/api";
 import FullPageLoader from "@/components/common/FullPageLoader";
 import { resolveMediaUrl } from "@/lib/media";
 import { useToast } from "@/context/ToastContext";
+import { formatInvoiceDate, printInvoice } from "@/lib/invoiceTemplate";
 
 interface OrderProduct {
   id: string;
@@ -62,12 +63,6 @@ const formatDateTime = (value?: string) => {
   }).format(date);
 };
 
-const formatInvoiceDate = (value: string) =>
-  new Date(value).toLocaleDateString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
 
 type OrderCategory = "product" | "course" | "workshop" | "treatment";
 
@@ -261,369 +256,47 @@ export default function B2BOrderDetail({ orderKey }: B2BOrderDetailProps) {
   const totalItems = order
     ? order.products.reduce((acc, item) => acc + Number(item.quantity || 0), 0)
     : 0;
-  const subtotal = order
-    ? order.products.reduce(
-        (acc, item) => acc + Number(item.price || 0) * Number(item.quantity || 0),
-        0
-      )
-    : 0;
 
   const handlePrintInvoice = () => {
     if (!order) return;
 
-    const printable = window.open("", "_blank", "width=900,height=700");
-    if (!printable) {
-      toast.error("Unable to open print window. Please allow popups.");
-      return;
-    }
-
     const billingName = b2bProfile?.name || "Business User";
-    const billingEmail = b2bProfile?.email || "";
-    const billingContact = b2bProfile?.contactNo || "";
     const billingAddress =
       b2bProfile?.address || order.address?.address || "B2B billing address";
-    const invoiceDate = formatInvoiceDate(new Date().toISOString());
-    const orderDate = formatInvoiceDate(order.createdAt);
-    const logoUrl = `${window.location.origin}/logo.jpeg`;
 
-    const itemsRows = order.products.length
-      ? order.products
-          .map(
-            (item, index) => `
-              <tr>
-                <td class="sl">${index + 1}</td>
-                <td class="desc">
-                  <div class="itemName">${item.name}</div>
-                  <div class="itemMeta">Qty: ${item.quantity}</div>
-                </td>
-                <td class="num">${formatMoney(Number(item.price || 0))}</td>
-                <td class="num">${item.quantity}</td>
-                <td class="num">${formatMoney(Number(item.price || 0) * Number(item.quantity || 0))}</td>
-              </tr>
-            `
-          )
-          .join("")
-      : `
-        <tr>
-          <td class="sl">1</td>
-          <td class="desc">
-            <div class="itemName">B2B order</div>
-            <div class="itemMeta">No item details available</div>
-          </td>
-          <td class="num">${formatMoney(order.totalAmount)}</td>
-          <td class="num">1</td>
-          <td class="num">${formatMoney(order.totalAmount)}</td>
-        </tr>
-      `;
+    const ok = printInvoice({
+      invoiceNo: invoiceRef,
+      orderNo: order._id.slice(-8),
+      invoiceDate: formatInvoiceDate(new Date()),
+      orderDate: formatInvoiceDate(order.createdAt),
+      docSubtitle: "B2B order invoice",
+      orderTypeLabel: `${orderLabel} order`,
+      paymentStatus: order.paymentStatus || "success",
+      paymentMethod: order.paymentMethod || "Online payment",
+      logoUrl: `${window.location.origin}/logo.jpeg`,
+      billTo: {
+        name: billingName,
+        email: b2bProfile?.email,
+        phone: b2bProfile?.contactNo,
+        address: billingAddress,
+      },
+      shipTo: { name: order.address?.type || "Business", address: order.address?.address || "-" },
+      items: order.products.length
+        ? order.products.map((item) => ({
+            name: item.name,
+            unitPrice: Number(item.price || 0),
+            quantity: Number(item.quantity || 0),
+            amount: Number(item.price || 0) * Number(item.quantity || 0),
+          }))
+        : [{ name: "B2B order", unitPrice: order.totalAmount, quantity: 1, amount: order.totalAmount }],
+      total: order.totalAmount,
+      footerNote:
+        "This invoice is generated for your B2B account records. Keep this copy for future reference and reconciliation.",
+    });
 
-    printable.document.write(`
-      <html>
-        <head>
-          <title>Invoice ${invoiceRef}</title>
-          <style>
-            * { box-sizing: border-box; }
-            body {
-              margin: 0;
-              padding: 22px;
-              font-family: Arial, Helvetica, sans-serif;
-              color: #111827;
-              background: #fff;
-            }
-            .invoice {
-              max-width: 980px;
-              margin: 0 auto;
-              border: 1px solid #cfd7e3;
-            }
-            .header {
-              display: flex;
-              justify-content: space-between;
-              gap: 18px;
-              align-items: flex-start;
-              padding: 18px 20px 12px;
-              border-bottom: 2px solid #111827;
-            }
-            .brand {
-              display: flex;
-              align-items: center;
-              gap: 14px;
-            }
-            .brand img {
-              width: 88px;
-              height: 88px;
-              object-fit: contain;
-            }
-            .brandName {
-              font-size: 34px;
-              font-weight: 800;
-              line-height: 1;
-              letter-spacing: -0.04em;
-            }
-            .brandSub {
-              margin-top: 4px;
-              font-size: 12px;
-              color: #52606d;
-            }
-            .docTitle {
-              text-align: right;
-            }
-            .docTitle h1 {
-              margin: 0;
-              font-size: 22px;
-              line-height: 1.15;
-            }
-            .docTitle p {
-              margin: 2px 0 0;
-              font-size: 12px;
-              color: #52606d;
-            }
-            .meta {
-              display: grid;
-              grid-template-columns: 1fr 1fr;
-              gap: 18px;
-              padding: 16px 20px;
-              border-bottom: 1px solid #cfd7e3;
-            }
-            .block {
-              font-size: 12px;
-              line-height: 1.5;
-            }
-            .block h3 {
-              margin: 0 0 8px;
-              font-size: 13px;
-              text-transform: uppercase;
-              letter-spacing: 0.08em;
-            }
-            .muted {
-              color: #52606d;
-            }
-            .orderMeta {
-              display: grid;
-              grid-template-columns: repeat(4, minmax(0, 1fr));
-              gap: 10px;
-              padding: 14px 20px;
-              border-bottom: 1px solid #cfd7e3;
-              font-size: 12px;
-            }
-            .orderMeta div {
-              min-width: 0;
-            }
-            .orderMeta span {
-              display: block;
-              color: #52606d;
-              text-transform: uppercase;
-              letter-spacing: 0.08em;
-              font-size: 10px;
-              margin-bottom: 4px;
-            }
-            .orderMeta strong {
-              display: block;
-              font-size: 12px;
-            }
-            table {
-              width: 100%;
-              border-collapse: collapse;
-            }
-            thead th {
-              background: #f3f4f6;
-              padding: 10px 8px;
-              font-size: 11px;
-              text-transform: uppercase;
-              letter-spacing: 0.06em;
-              border-bottom: 1px solid #cfd7e3;
-              text-align: left;
-            }
-            tbody td {
-              border-bottom: 1px solid #e5e7eb;
-              padding: 12px 8px;
-              font-size: 12px;
-              vertical-align: top;
-            }
-            .sl {
-              width: 42px;
-              text-align: center;
-            }
-            .desc {
-              width: 50%;
-            }
-            .num {
-              text-align: right;
-              white-space: nowrap;
-            }
-            .itemName {
-              font-weight: 700;
-              color: #111827;
-            }
-            .itemMeta {
-              margin-top: 4px;
-              color: #52606d;
-              font-size: 11px;
-            }
-            .summaryWrap {
-              display: flex;
-              justify-content: flex-end;
-              padding: 16px 20px 20px;
-            }
-            .summary {
-              width: 320px;
-              border: 1px solid #cfd7e3;
-              background: #fafafa;
-            }
-            .summaryRow {
-              display: flex;
-              justify-content: space-between;
-              gap: 16px;
-              padding: 10px 12px;
-              border-bottom: 1px solid #e5e7eb;
-              font-size: 12px;
-            }
-            .summaryRow:last-child {
-              border-bottom: 0;
-            }
-            .summaryRow.total {
-              font-size: 14px;
-              font-weight: 800;
-              background: #fff;
-            }
-            .footer {
-              display: grid;
-              grid-template-columns: 1fr auto;
-              gap: 16px;
-              align-items: end;
-              padding: 0 20px 18px;
-            }
-            .note {
-              font-size: 11px;
-              color: #52606d;
-              line-height: 1.55;
-            }
-            .sign {
-              width: 210px;
-              text-align: center;
-              font-size: 12px;
-            }
-            .signBox {
-              height: 48px;
-              border: 1px solid #9ca3af;
-              margin-bottom: 6px;
-            }
-            @media print {
-              body { padding: 0; }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="invoice">
-            <div class="header">
-              <div class="brand">
-                <img src="${logoUrl}" alt="Dr. Dermat" />
-                <div>
-                  <div class="brandName">Dr. Dermat</div>
-                  <div class="brandSub">B2B order invoice</div>
-                </div>
-              </div>
-              <div class="docTitle">
-                <h1>Tax Invoice / Bill of Supply / Cash Memo</h1>
-                <p>(Original for Recipient)</p>
-              </div>
-            </div>
-
-            <div class="meta">
-              <div class="block">
-                <h3>Sold By</h3>
-                <div>Dr. Dermat Healthcare Marketplace</div>
-                <div class="muted">India</div>
-                <div class="muted">Order support and fulfillment</div>
-              </div>
-              <div class="block" style="text-align:right;">
-                <h3>B2B Billing</h3>
-                <div>${billingName}</div>
-                <div class="muted">${billingEmail}</div>
-                <div class="muted">${billingContact}</div>
-                <div class="muted">${billingAddress}</div>
-              </div>
-              <div class="block">
-                <h3>Order Address</h3>
-                <div>${order.address?.type || "Business"}</div>
-                <div class="muted">${order.address?.address || "-"}</div>
-              </div>
-              <div class="block" style="text-align:right;">
-                <h3>Invoice Details</h3>
-                <div><strong>Invoice No:</strong> ${invoiceRef}</div>
-                <div><strong>Order No:</strong> ${order._id.slice(-8)}</div>
-                <div><strong>Invoice Date:</strong> ${invoiceDate}</div>
-                <div><strong>Order Date:</strong> ${orderDate}</div>
-              </div>
-            </div>
-
-            <div class="orderMeta">
-              <div>
-                <span>Payment Status</span>
-                <strong>${order.paymentStatus || "success"}</strong>
-              </div>
-              <div>
-                <span>Order Type</span>
-                <strong>${orderLabel} order</strong>
-              </div>
-              <div>
-                <span>Items</span>
-                <strong>${totalItems}</strong>
-              </div>
-              <div>
-                <span>Payment Method</span>
-                <strong>${order.paymentMethod || "Online payment"}</strong>
-              </div>
-            </div>
-
-            <table>
-              <thead>
-                <tr>
-                  <th class="sl">#</th>
-                  <th>Description</th>
-                  <th class="num">Unit Price</th>
-                  <th class="num">Qty</th>
-                  <th class="num">Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${itemsRows}
-              </tbody>
-            </table>
-
-            <div class="summaryWrap">
-              <div class="summary">
-                <div class="summaryRow">
-                  <span>Subtotal</span>
-                  <strong>${formatMoney(subtotal)}</strong>
-                </div>
-                <div class="summaryRow">
-                  <span>Shipping</span>
-                  <strong>FREE</strong>
-                </div>
-                <div class="summaryRow total">
-                  <span>Total</span>
-                  <strong>${formatMoney(order.totalAmount)}</strong>
-                </div>
-              </div>
-            </div>
-
-            <div class="footer">
-              <div class="note">
-                This invoice is generated for your B2B account records. Keep this copy for
-                future reference and reconciliation.
-              </div>
-              <div class="sign">
-                <div class="signBox"></div>
-                <div>Authorized Signatory</div>
-              </div>
-            </div>
-          </div>
-        </body>
-      </html>
-    `);
-
-    printable.document.close();
-    printable.focus();
-    printable.print();
+    if (!ok) {
+      toast.error("Unable to open print window. Please allow popups.");
+    }
   };
 
   if (checkingAuth || fetching) {

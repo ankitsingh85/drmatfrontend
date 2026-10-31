@@ -1,0 +1,312 @@
+/* ===== ROOT ===== */
+.container {
+  padding: 0;
+  width: 100%;
+}
+
+.loading,
+.noData {
+  text-align: center;
+  font-size: 16px;
+  color: #64748b;
+  padding: 60px 0;
+}
+
+/* ===== TOOLBAR ===== */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.search {
+  flex: 1;
+  min-width: 220px;
+  padding: 13px 18px;
+  border-radius: 14px;
+  border: 1px solid #c7d2fe;
+  font-size: 14px;
+  background: #fff;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.search:focus {
+  outline: none;
+  border-color: #1264a3;
+  box-shadow: 0 0 0 3px rgba(18, 100, 163, 0.12);
+}
+
+.premiumButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  border-radius: 10px;
+  padding: 11px 18px;
+  background: linear-gradient(180deg, #2981b7 0%, #10678c 100%);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.14);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+  white-space: nowrap;
+}
+
+.premiumButton:hover {
+  transform: translateY(-1px);
+}
+
+/* ===== STAT STRIP ===== */
+.statStrip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.statCard {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 14px 18px;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+}
+
+.statCard .statValue {
+  font-size: 22px;
+  font-weight: 800;
+  color: #0a4b83;
+  line-height: 1.2;
+}
+
+.statCard .statLabel {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+  margin-top: 4px;
+}
+
+/* ===== TABLE WRAPPER ===== */
+.tableWrap {
+  background: linear-gradient(180deg, #ffffff, #f8fafc);
+  border-radius: 20px;
+  box-shadow: 0 30px 80px rgba(15, 23, 42, 0.1);
+  border: 1px solid #e9eef5;
+  overflow: auto;
+  max-height: 72vh;
+}
+
+/* ===== TABLE ===== */
+.table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: 1080px;
+}
+
+.table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: linear-gradient(135deg, #0a4b83 0%, #1264a3 100%);
+  padding: 12px 14px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #eaf3ff;
+  white-space: nowrap;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.table thead th:not(:last-child) {
+  border-right: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.table td {
+  padding: 12px 14px;
+  font-size: 13px;
+  color: #0f172a;
+  border-bottom: 1px solid #eef2f7;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: break-word;
+  vertical-align: middle;
+}
+
+.table tbody tr {
+  transition: background 0.15s ease;
+}
+
+.table tbody tr:nth-child(even) {
+  background: #f8fafc;
+}
+
+.table tbody tr:hover {
+  background: #eef4fb;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.clinicName {
+  font-weight: 700;
+  color: #0a4b83;
+  text-align: left !important;
+}
+
+/* ===== STATUS PILLS ===== */
+.statusPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.statusPill::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.statusActive {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.statusPaused {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.statusCancelled {
+  background: #ffedd5;
+  color: #9a3412;
+}
+
+.statusExpired {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.statusNone {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+/* ===== OVERRIDE SELECT ===== */
+.overrideSelect {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  font-size: 12px;
+  background: #fff;
+  color: #0f172a;
+}
+
+.overrideSelect:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ===== ACTIONS ===== */
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+}
+
+.actionBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: none;
+  padding: 7px 12px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.actionBtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.actionBtn:not(:disabled):hover {
+  transform: translateY(-2px);
+}
+
+.pauseBtn {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.pauseBtn:not(:disabled):hover {
+  background: #fde68a;
+  box-shadow: 0 4px 12px rgba(217, 119, 6, 0.2);
+}
+
+.resumeBtn {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.resumeBtn:not(:disabled):hover {
+  background: #bfdbfe;
+  box-shadow: 0 4px 12px rgba(29, 78, 216, 0.2);
+}
+
+.reactivateBtn {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.reactivateBtn:not(:disabled):hover {
+  background: #bbf7d0;
+  box-shadow: 0 4px 12px rgba(22, 101, 52, 0.2);
+}
+
+.deleteBtn {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.deleteBtn:not(:disabled):hover {
+  background: #fecaca;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+}
+
+.noActions {
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+  .table th,
+  .table td {
+    padding: 10px 10px;
+    font-size: 12px;
+  }
+}

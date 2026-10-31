@@ -11,6 +11,7 @@ import styles from "@/styles/userpanel/orderdetail.module.css";
 import { API_URL } from "@/config/api";
 import FullPageLoader from "@/components/common/FullPageLoader";
 import { useToast } from "@/context/ToastContext";
+import { formatInvoiceDate, printInvoice } from "@/lib/invoiceTemplate";
 
 interface OrderProduct {
   id: string;
@@ -18,7 +19,7 @@ interface OrderProduct {
   quantity: number;
   price: number;
   image?: string;
-  itemType?: "product" | "treatment";
+  itemType?: "product" | "treatment" | "consultation";
   clinicId?: string;
   clinicName?: string;
   clinicAddress?: string;
@@ -26,7 +27,7 @@ interface OrderProduct {
 
 interface Order {
   _id: string;
-  orderType?: "product" | "treatment";
+  orderType?: "product" | "treatment" | "consultation";
   products: OrderProduct[];
   totalAmount: number;
   address: { type: string; address: string };
@@ -52,8 +53,24 @@ const slugify = (value: string) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 
-const looksLikeTreatmentOrder = (order: Order | null) => {
+// Checked before looksLikeTreatmentOrder — online consultation checkout
+// also stamps address.type "Other" (no delivery address needed for a video
+// call), which would otherwise get swallowed into the treatment heuristic
+// below. orderType/itemType "consultation" is an explicit, non-heuristic
+// signal, so it takes priority — same rule the backend's categorizeOrder
+// uses for the admin Transactions report.
+const looksLikeConsultationOrder = (order: Order | null) => {
   if (!order) return false;
+  const orderType = String(order.orderType || "").toLowerCase();
+  const products = Array.isArray(order.products) ? order.products : [];
+  const hasConsultationItem = products.some(
+    (item) => String(item.itemType || "").toLowerCase() === "consultation"
+  );
+  return orderType === "consultation" || hasConsultationItem;
+};
+
+const looksLikeTreatmentOrder = (order: Order | null) => {
+  if (!order || looksLikeConsultationOrder(order)) return false;
   const orderType = String(order.orderType || "").toLowerCase();
   const products = Array.isArray(order.products) ? order.products : [];
   const hasTreatmentItem = products.some(
@@ -83,9 +100,9 @@ const UserOrderDetail: React.FC<OrderDetailProps> = ({ orderKey }) => {
   const [fetching, setFetching] = useState(false);
   const [error, setError] = useState("");
   const [resolvedUser, setResolvedUser] = useState<ResolvedUser | null>(null);
-  const [matchedKind, setMatchedKind] = useState<"product" | "treatment" | "unknown">(
-    "unknown"
-  );
+  const [matchedKind, setMatchedKind] = useState<
+    "product" | "treatment" | "consultation" | "unknown"
+  >("unknown");
 
   const token = Cookies.get("token") || "";
   const storedUserId =
@@ -174,26 +191,46 @@ const UserOrderDetail: React.FC<OrderDetailProps> = ({ orderKey }) => {
 
         const normalizedKey = slugify(String(orderKey));
         let found: Order | null = null;
-        let nextMatchedKind: "product" | "treatment" | "unknown" = "unknown";
+        let nextMatchedKind: "product" | "treatment" | "consultation" | "unknown" = "unknown";
 
         for (const item of [...res.data].sort((a: Order, b: Order) => {
           return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
         })) {
           const products = Array.isArray(item.products) ? item.products : [];
+          const consultationItem = products.find(
+            (product: OrderProduct) => product.itemType === "consultation"
+          );
           const treatmentItem = products.find(
             (product: OrderProduct) => product.itemType === "treatment"
           );
           const productItem = products.find(
-            (product: OrderProduct) => product.itemType !== "treatment"
+            (product: OrderProduct) =>
+              product.itemType !== "treatment" && product.itemType !== "consultation"
           );
           const itemType = String(item.orderType || "").toLowerCase();
+          const consultationSlug = slugify(consultationItem?.name || "online consultation");
           const treatmentSlug = slugify(treatmentItem?.name || "treatment booking");
           const productSlug = slugify(productItem?.name || item.products?.[0]?.name || "order");
 
           if (String(item._id) === String(orderKey) || String(item._id) === normalizedKey) {
             found = item;
             nextMatchedKind =
-              itemType === "treatment" || treatmentItem ? "treatment" : productItem ? "product" : "unknown";
+              itemType === "consultation" || consultationItem
+                ? "consultation"
+                : itemType === "treatment" || treatmentItem
+                ? "treatment"
+                : productItem
+                ? "product"
+                : "unknown";
+            break;
+          }
+
+          if (
+            consultationItem &&
+            (consultationSlug === normalizedKey || consultationSlug === String(orderKey))
+          ) {
+            found = item;
+            nextMatchedKind = "consultation";
             break;
           }
 
@@ -222,7 +259,8 @@ const UserOrderDetail: React.FC<OrderDetailProps> = ({ orderKey }) => {
     fetchOrder();
   }, [orderKey, resolvedUser?.id, token]);
 
-  const isTreatment = matchedKind === "treatment" || looksLikeTreatmentOrder(order);
+  const isConsultation = matchedKind === "consultation" || looksLikeConsultationOrder(order);
+  const isTreatment = !isConsultation && (matchedKind === "treatment" || looksLikeTreatmentOrder(order));
   const treatmentClinicItem = isTreatment
     ? order?.products.find((item) => item.itemType === "treatment" && item.clinicName)
     : undefined;
@@ -230,9 +268,25 @@ const UserOrderDetail: React.FC<OrderDetailProps> = ({ orderKey }) => {
   // orders have no associated clinic to visit.
   const clinicHref = (clinicId?: string) =>
     isTreatment && clinicId ? `/clinics/${clinicId}?tab=Services` : undefined;
-  const headerTitle = isTreatment ? "Treatment Order Details" : "Order Details";
+  // Lets a shopper jump from an order line item to that product's or
+  // treatment's own page, then use the browser back button to return here.
+  const itemDetailHref = (item: OrderProduct) => {
+    if (!item.name) return undefined;
+    if (item.itemType === "treatment") return `/treatment-plans/${slugify(item.name)}`;
+    if (item.itemType === "consultation") return undefined;
+    return `/product/${slugify(item.name)}`;
+  };
+  const headerTitle = isConsultation
+    ? "Online Consultation Details"
+    : isTreatment
+    ? "Treatment Order Details"
+    : "Order Details";
   const orderTitle = order
-    ? isTreatment
+    ? isConsultation
+      ? order.products.find((item) => item.itemType === "consultation")?.name ||
+        order.products[0]?.name ||
+        "online consultation"
+      : isTreatment
       ? order.products.find((item) => item.itemType === "treatment")?.name ||
         order.products[0]?.name ||
         "treatment booking"
@@ -255,7 +309,9 @@ const UserOrderDetail: React.FC<OrderDetailProps> = ({ orderKey }) => {
     return 0;
   }, [order]);
 
-  const steps = isTreatment
+  const steps = isConsultation
+    ? ["Booking Placed", "Confirmed", "Consultation Scheduled", "Completed"]
+    : isTreatment
     ? ["Booking Placed", "Confirmed", "In Progress", "Completed"]
     : ["Order Placed", "Confirmed", "Shipped", "Delivered"];
 
@@ -274,359 +330,53 @@ const UserOrderDetail: React.FC<OrderDetailProps> = ({ orderKey }) => {
   }, [order?.paymentStatus]);
 
   const formatMoney = (value: number) => `Rs. ${value.toLocaleString("en-IN")}`;
-  const formatInvoiceDate = (value: string) =>
-    new Date(value).toLocaleDateString("en-IN", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    });
+
+  const orderTypeLabel = isConsultation
+    ? "Online consultation"
+    : isTreatment
+    ? "Treatment booking"
+    : "Product order";
 
   const handlePrintInvoice = () => {
     if (!order) return;
 
-    const printable = window.open("", "_blank", "width=900,height=700");
-    if (!printable) {
-      toast.error("Unable to open print window. Please allow popups.");
-      return;
-    }
-
-    const invoiceDate = formatInvoiceDate(new Date().toISOString());
-    const orderDate = formatInvoiceDate(order.createdAt);
-    const logoUrl = `${window.location.origin}/logo.jpeg`;
     const shippingAddress = order.address?.address || "-";
-    const billingAddress = shippingAddress;
-    const subtotal = order.products.reduce((acc, item) => acc + item.price * item.quantity, 0);
-    const totalItems = order.products.reduce((acc, item) => acc + item.quantity, 0);
-    const itemsRows = order.products
-      .map(
-        (item, index) => `
-          <tr>
-            <td class="sl">${index + 1}</td>
-            <td class="desc">
-              <div class="itemName">${item.name}</div>
-              <div class="itemMeta">Qty: ${item.quantity}</div>
-              ${
-                item.itemType === "treatment" && item.clinicName
-                  ? `<div class="itemMeta">Clinic: ${item.clinicName}${
-                      item.clinicAddress ? ` — ${item.clinicAddress}` : ""
-                    }</div>`
-                  : ""
-              }
-            </td>
-            <td class="num">${formatMoney(item.price)}</td>
-            <td class="num">${item.quantity}</td>
-            <td class="num">${formatMoney(item.price * item.quantity)}</td>
-          </tr>
-        `
-      )
-      .join("");
+    const ok = printInvoice({
+      invoiceNo: invoiceRef,
+      orderNo: order._id.slice(-8),
+      invoiceDate: formatInvoiceDate(new Date()),
+      orderDate: formatInvoiceDate(order.createdAt),
+      docSubtitle: "Customer order invoice",
+      orderTypeLabel,
+      paymentStatus: order.paymentStatus || "Pending",
+      paymentMethod: order.paymentMethod || "Online payment",
+      logoUrl: `${window.location.origin}/logo.jpeg`,
+      billTo: {
+        name: resolvedUser?.name || "Customer",
+        email: resolvedUser?.email,
+        address: shippingAddress,
+      },
+      shipTo: isConsultation
+        ? { name: resolvedUser?.name || "Customer", address: "Online — no delivery address required" }
+        : { name: resolvedUser?.name || "Customer", address: shippingAddress },
+      items: order.products.map((item) => ({
+        name: item.name,
+        meta:
+          item.itemType === "treatment" && item.clinicName
+            ? `Clinic: ${item.clinicName}${item.clinicAddress ? ` — ${item.clinicAddress}` : ""}`
+            : undefined,
+        unitPrice: item.price,
+        quantity: item.quantity,
+        amount: item.price * item.quantity,
+      })),
+      total: order.totalAmount,
+      footerNote:
+        "This invoice is generated for your order records. Shipping and billing details are shown above for convenience. Please keep this copy for future reference.",
+    });
 
-    printable.document.write(`
-      <html>
-        <head>
-          <title>Invoice ${order._id.slice(-8)}</title>
-          <style>
-            * { box-sizing: border-box; }
-            body {
-              margin: 0;
-              padding: 22px;
-              font-family: Arial, Helvetica, sans-serif;
-              color: #111827;
-              background: #fff;
-            }
-            .invoice {
-              max-width: 980px;
-              margin: 0 auto;
-              border: 1px solid #cfd7e3;
-            }
-            .header {
-              display: flex;
-              justify-content: space-between;
-              gap: 18px;
-              align-items: flex-start;
-              padding: 18px 20px 12px;
-              border-bottom: 2px solid #111827;
-            }
-            .brand {
-              display: flex;
-              align-items: center;
-              gap: 14px;
-            }
-            .brand img {
-              width: 88px;
-              height: 88px;
-              object-fit: contain;
-            }
-            .brandName {
-              font-size: 34px;
-              font-weight: 800;
-              line-height: 1;
-              letter-spacing: -0.04em;
-            }
-            .brandSub {
-              margin-top: 4px;
-              font-size: 12px;
-              color: #52606d;
-            }
-            .docTitle {
-              text-align: right;
-            }
-            .docTitle h1 {
-              margin: 0;
-              font-size: 22px;
-              line-height: 1.15;
-            }
-            .docTitle p {
-              margin: 2px 0 0;
-              font-size: 12px;
-              color: #52606d;
-            }
-            .meta {
-              display: grid;
-              grid-template-columns: 1fr 1fr;
-              gap: 18px;
-              padding: 16px 20px;
-              border-bottom: 1px solid #cfd7e3;
-            }
-            .block {
-              font-size: 12px;
-              line-height: 1.5;
-            }
-            .block h3 {
-              margin: 0 0 8px;
-              font-size: 13px;
-              text-transform: uppercase;
-              letter-spacing: 0.08em;
-            }
-            .muted {
-              color: #52606d;
-            }
-            .orderMeta {
-              display: grid;
-              grid-template-columns: repeat(4, minmax(0, 1fr));
-              gap: 10px;
-              padding: 14px 20px;
-              border-bottom: 1px solid #cfd7e3;
-              font-size: 12px;
-            }
-            .orderMeta div {
-              min-width: 0;
-            }
-            .orderMeta span {
-              display: block;
-              color: #52606d;
-              text-transform: uppercase;
-              letter-spacing: 0.08em;
-              font-size: 10px;
-              margin-bottom: 4px;
-            }
-            .orderMeta strong {
-              display: block;
-              font-size: 12px;
-            }
-            table {
-              width: 100%;
-              border-collapse: collapse;
-            }
-            thead th {
-              background: #f3f4f6;
-              padding: 10px 8px;
-              font-size: 11px;
-              text-transform: uppercase;
-              letter-spacing: 0.06em;
-              border-bottom: 1px solid #cfd7e3;
-              text-align: left;
-            }
-            tbody td {
-              border-bottom: 1px solid #e5e7eb;
-              padding: 12px 8px;
-              font-size: 12px;
-              vertical-align: top;
-            }
-            .sl {
-              width: 42px;
-              text-align: center;
-            }
-            .desc {
-              width: 50%;
-            }
-            .num {
-              text-align: right;
-              white-space: nowrap;
-            }
-            .itemName {
-              font-weight: 700;
-              color: #111827;
-            }
-            .itemMeta {
-              margin-top: 4px;
-              color: #52606d;
-              font-size: 11px;
-            }
-            .summaryWrap {
-              display: flex;
-              justify-content: flex-end;
-              padding: 16px 20px 20px;
-            }
-            .summary {
-              width: 320px;
-              border: 1px solid #cfd7e3;
-              background: #fafafa;
-            }
-            .summaryRow {
-              display: flex;
-              justify-content: space-between;
-              gap: 16px;
-              padding: 10px 12px;
-              border-bottom: 1px solid #e5e7eb;
-              font-size: 12px;
-            }
-            .summaryRow:last-child {
-              border-bottom: 0;
-            }
-            .summaryRow.total {
-              font-size: 14px;
-              font-weight: 800;
-              background: #fff;
-            }
-            .footer {
-              display: grid;
-              grid-template-columns: 1fr auto;
-              gap: 16px;
-              align-items: end;
-              padding: 0 20px 18px;
-            }
-            .note {
-              font-size: 11px;
-              color: #52606d;
-              line-height: 1.55;
-            }
-            .sign {
-              width: 210px;
-              text-align: center;
-              font-size: 12px;
-            }
-            .signBox {
-              height: 48px;
-              border: 1px solid #9ca3af;
-              margin-bottom: 6px;
-            }
-            @media print {
-              body { padding: 0; }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="invoice">
-            <div class="header">
-              <div class="brand">
-                <img src="${logoUrl}" alt="Dr. Dermat" />
-                <div>
-                  <div class="brandName">Dr. Dermat</div>
-                  <div class="brandSub">Customer order invoice</div>
-                </div>
-              </div>
-              <div class="docTitle">
-                <h1>Tax Invoice / Bill of Supply / Cash Memo</h1>
-                <p>(Original for Recipient)</p>
-              </div>
-            </div>
-
-            <div class="meta">
-              <div class="block">
-                <h3>Sold By</h3>
-                <div>Dr. Dermat Healthcare Marketplace</div>
-                <div class="muted">India</div>
-                <div class="muted">Order support and fulfillment</div>
-              </div>
-              <div class="block" style="text-align:right;">
-                <h3>Billing Address</h3>
-                <div>${resolvedUser?.name || "Customer"}</div>
-                <div class="muted">${resolvedUser?.email || ""}</div>
-                <div class="muted">${billingAddress}</div>
-              </div>
-              <div class="block">
-                <h3>Shipping Address</h3>
-                <div>${resolvedUser?.name || "Customer"}</div>
-                <div class="muted">${shippingAddress}</div>
-              </div>
-              <div class="block" style="text-align:right;">
-                <h3>Invoice Details</h3>
-                <div><strong>Invoice No:</strong> ${invoiceRef}</div>
-                <div><strong>Order No:</strong> ${order._id.slice(-8)}</div>
-                <div><strong>Invoice Date:</strong> ${invoiceDate}</div>
-                <div><strong>Order Date:</strong> ${orderDate}</div>
-              </div>
-            </div>
-
-            <div class="orderMeta">
-              <div>
-                <span>Payment Status</span>
-                <strong>${order.paymentStatus || "Pending"}</strong>
-              </div>
-              <div>
-                <span>Order Type</span>
-                <strong>${isTreatment ? "Treatment booking" : "Product order"}</strong>
-              </div>
-              <div>
-                <span>Items</span>
-                <strong>${totalItems}</strong>
-              </div>
-              <div>
-                <span>Payment Method</span>
-                <strong>${order.paymentMethod || "Online payment"}</strong>
-              </div>
-            </div>
-
-            <table>
-              <thead>
-                <tr>
-                  <th class="sl">#</th>
-                  <th>Description</th>
-                  <th class="num">Unit Price</th>
-                  <th class="num">Qty</th>
-                  <th class="num">Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${itemsRows}
-              </tbody>
-            </table>
-
-            <div class="summaryWrap">
-              <div class="summary">
-                <div class="summaryRow">
-                  <span>Subtotal</span>
-                  <strong>${formatMoney(subtotal)}</strong>
-                </div>
-                <div class="summaryRow">
-                  <span>Shipping</span>
-                  <strong>FREE</strong>
-                </div>
-                <div class="summaryRow total">
-                  <span>Total</span>
-                  <strong>${formatMoney(order.totalAmount)}</strong>
-                </div>
-              </div>
-            </div>
-
-            <div class="footer">
-              <div class="note">
-                This invoice is generated for your order records. Shipping and billing details are
-                shown above for convenience. Please keep this copy for future reference.
-              </div>
-              <div class="sign">
-                <div class="signBox"></div>
-                <div>Authorized Signatory</div>
-              </div>
-            </div>
-          </div>
-        </body>
-      </html>
-    `);
-    printable.document.close();
-    printable.focus();
-    printable.print();
+    if (!ok) {
+      toast.error("Unable to open print window. Please allow popups.");
+    }
   };
 
   if (loading) {
@@ -699,7 +449,13 @@ const UserOrderDetail: React.FC<OrderDetailProps> = ({ orderKey }) => {
           <div className={`${styles.statusCard} ${statusCardClass}`}>
             <span>Payment Status</span>
             <strong>{order.paymentStatus || "Pending"}</strong>
-            <p>{isTreatment ? "Treatment booking invoice" : "Product order invoice"}</p>
+            <p>
+              {isConsultation
+                ? "Online consultation invoice"
+                : isTreatment
+                ? "Treatment booking invoice"
+                : "Product order invoice"}
+            </p>
           </div>
         </div>
 
@@ -707,7 +463,7 @@ const UserOrderDetail: React.FC<OrderDetailProps> = ({ orderKey }) => {
           <div className={styles.timelineHeader}>
             <h2>Order Progress</h2>
             <span className={styles.orderTypeTag}>
-              {isTreatment ? "Treatment Order" : "Product Order"}
+              {isConsultation ? "Consultation Order" : isTreatment ? "Treatment Order" : "Product Order"}
             </span>
           </div>
           {progressStage === -1 ? (
@@ -750,6 +506,14 @@ const UserOrderDetail: React.FC<OrderDetailProps> = ({ orderKey }) => {
                     <div>
                       <p className={styles.itemName}>{item.name}</p>
                       <span className={styles.itemMeta}>Qty: {item.quantity}</span>
+                      {itemDetailHref(item) && (
+                        <Link href={itemDetailHref(item)!} className={styles.itemViewLink}>
+                          <span>
+                            View {item.itemType === "treatment" ? "Treatment" : "Product"}
+                          </span>
+                          <FiArrowUpRight className={styles.clinicLinkArrow} />
+                        </Link>
+                      )}
                       {item.itemType === "treatment" && item.clinicName && (
                         clinicHref(item.clinicId) ? (
                           <Link href={clinicHref(item.clinicId)!} className={styles.clinicLink}>
@@ -780,36 +544,48 @@ const UserOrderDetail: React.FC<OrderDetailProps> = ({ orderKey }) => {
 
           <div className={styles.card}>
             <div className={styles.cardHeader}>
-              <h2>{isTreatment ? "Clinic & Summary" : "Delivery & Summary"}</h2>
+              <h2>
+                {isConsultation ? "Consultation & Summary" : isTreatment ? "Clinic & Summary" : "Delivery & Summary"}
+              </h2>
               <span>Order details</span>
             </div>
             <div className={styles.summaryList}>
-              <div className={styles.summaryRow}>
-                <span>{isTreatment ? "Clinic" : "Deliver To"}</span>
-                {isTreatment && clinicHref(treatmentClinicItem?.clinicId) ? (
-                  <Link
-                    href={clinicHref(treatmentClinicItem?.clinicId)!}
-                    className={styles.clinicSummaryLink}
-                  >
-                    {treatmentClinicItem?.clinicName}
-                    <FiArrowUpRight />
-                  </Link>
-                ) : (
-                  <strong>
-                    {isTreatment
-                      ? treatmentClinicItem?.clinicName || order.address.type
-                      : order.address.type}
-                  </strong>
-                )}
-              </div>
-              <div className={styles.summaryRow}>
-                <span>{isTreatment ? "Clinic Address" : "Address"}</span>
-                <strong>
-                  {isTreatment
-                    ? treatmentClinicItem?.clinicAddress || order.address.address
-                    : order.address.address}
-                </strong>
-              </div>
+              {!isConsultation && (
+                <>
+                  <div className={styles.summaryRow}>
+                    <span>{isTreatment ? "Clinic" : "Deliver To"}</span>
+                    {isTreatment && clinicHref(treatmentClinicItem?.clinicId) ? (
+                      <Link
+                        href={clinicHref(treatmentClinicItem?.clinicId)!}
+                        className={styles.clinicSummaryLink}
+                      >
+                        {treatmentClinicItem?.clinicName}
+                        <FiArrowUpRight />
+                      </Link>
+                    ) : (
+                      <strong>
+                        {isTreatment
+                          ? treatmentClinicItem?.clinicName || order.address.type
+                          : order.address.type}
+                      </strong>
+                    )}
+                  </div>
+                  <div className={styles.summaryRow}>
+                    <span>{isTreatment ? "Clinic Address" : "Address"}</span>
+                    <strong>
+                      {isTreatment
+                        ? treatmentClinicItem?.clinicAddress || order.address.address
+                        : order.address.address}
+                    </strong>
+                  </div>
+                </>
+              )}
+              {isConsultation && (
+                <div className={styles.summaryRow}>
+                  <span>Consultation Mode</span>
+                  <strong>Online video consultation</strong>
+                </div>
+              )}
               <div className={styles.summaryRow}>
                 <span>Order Status</span>
                 <strong>{order.status || "Pending"}</strong>
