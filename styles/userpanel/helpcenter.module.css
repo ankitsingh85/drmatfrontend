@@ -1,0 +1,187 @@
+.page {
+  display: grid;
+  gap: 24px;
+  max-width: 900px;
+}
+
+.hero {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 26px 28px;
+  border-radius: 22px;
+  background: linear-gradient(135deg, #163252 0%, #2981b7 100%);
+  color: #fff;
+  box-shadow: 0 16px 34px rgba(22, 50, 82, 0.25);
+}
+
+.heroIcon {
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.15);
+  font-size: 26px;
+}
+
+.heroTitle {
+  margin: 0 0 4px;
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+.heroSubtitle {
+  margin: 0;
+  font-size: 0.92rem;
+  color: rgba(255, 255, 255, 0.85);
+  max-width: 480px;
+}
+
+.cardsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 18px;
+}
+
+.contactCard {
+  padding: 26px 24px;
+  border-radius: 20px;
+  background: #fff;
+  border: 1px solid rgba(153, 169, 192, 0.2);
+  box-shadow: 0 14px 30px rgba(23, 43, 73, 0.06);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.contactCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 36px rgba(23, 43, 73, 0.1);
+}
+
+.contactIcon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  margin-bottom: 14px;
+}
+
+.contactIconEmail {
+  background: #ecfdf5;
+  color: #0f9d58;
+}
+
+.contactIconPhone {
+  background: #eef2ff;
+  color: #3730a3;
+}
+
+.contactLabel {
+  margin: 0 0 4px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #8291a8;
+}
+
+.contactValue {
+  margin: 0 0 6px;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #163252;
+  text-decoration: none;
+  word-break: break-word;
+}
+
+.contactValue:hover {
+  color: #2981b7;
+}
+
+.contactHint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 18px;
+  font-size: 0.82rem;
+  color: #6d7f98;
+}
+
+.contactActions {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  margin-top: auto;
+}
+
+.primaryBtn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: none;
+  background: linear-gradient(180deg, #2981b7 0%, #10678c 100%);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.9rem;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.15s ease;
+  box-shadow: 0 10px 20px rgba(16, 103, 140, 0.3);
+}
+
+.primaryBtn:hover {
+  transform: translateY(-1px);
+}
+
+.copyBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1.5px solid rgba(153, 169, 192, 0.35);
+  background: #f8fafc;
+  color: #41556f;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+
+.copyBtn:hover {
+  border-color: #2981b7;
+  color: #2981b7;
+  background: #eef6fc;
+}
+
+.footNote {
+  padding: 18px 22px;
+  border-radius: 16px;
+  background: #f8fafc;
+  border: 1px solid rgba(153, 169, 192, 0.2);
+  color: #5f718a;
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+
+@media (max-width: 560px) {
+  .hero {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .contactActions {
+    flex-direction: column;
+  }
+}

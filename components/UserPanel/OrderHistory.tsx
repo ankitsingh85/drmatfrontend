@@ -5,7 +5,15 @@ import axios from "axios";
 import Cookies from "js-cookie";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { FiArrowUpRight } from "react-icons/fi";
+import {
+  FiArrowUpRight,
+  FiHelpCircle,
+  FiCalendar,
+  FiMapPin,
+  FiHash,
+  FiVideo,
+  FiArrowRight,
+} from "react-icons/fi";
 import { useUser } from "@/context/UserContext";
 import { useConfirm } from "@/context/ConfirmContext";
 import { useToast } from "@/context/ToastContext";
@@ -154,6 +162,41 @@ const UserOrderHistory: React.FC<OrderHistoryProps> = ({ mode = "all" }) => {
     if (item.itemType === "treatment") return `/treatment-plans/${slugify(item.name)}`;
     if (item.itemType === "consultation") return undefined;
     return `/product/${slugify(item.name)}`;
+  };
+
+  const formatOrderDate = (value: string) =>
+    new Date(value).toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+
+  const shortOrderId = (id: string) => `#${id.slice(-6).toUpperCase()}`;
+
+  // The "where/what" chip under the order title changes meaning per mode —
+  // a delivery address for products, the clinic visited for treatments, and
+  // a fixed "online" label for consultations (there's no address to show).
+  const getOrderLocationChip = (order: Order) => {
+    if (mode === "treatment") {
+      const treatmentItem = order.products.find(
+        (item) => item.itemType === "treatment" && item.clinicName
+      );
+      if (treatmentItem?.clinicName) {
+        return {
+          icon: <FiMapPin />,
+          text: treatmentItem.clinicAddress
+            ? `${treatmentItem.clinicName} — ${treatmentItem.clinicAddress}`
+            : treatmentItem.clinicName,
+        };
+      }
+    }
+    if (mode === "consultation") {
+      return { icon: <FiVideo />, text: "Online video consultation" };
+    }
+    if (order.address?.address) {
+      return { icon: <FiMapPin />, text: order.address.address };
+    }
+    return null;
   };
 
   useEffect(() => {
@@ -387,109 +430,116 @@ const UserOrderHistory: React.FC<OrderHistoryProps> = ({ mode = "all" }) => {
         </div>
       ) : (
         <div className={styles.grid}>
-          {orders.map((order) => (
-            <div
-              key={order._id}
-              className={`${styles.orderCard} ${styles.orderCardClickable}`}
-              role="button"
-              tabIndex={0}
-              onClick={() => handleOrderClick(order)}
-              onKeyDown={(event) => handleOrderKeyDown(event, order)}
-              aria-label={`Open order ${getOrderTitle(order)} details`}
-            >
-              <div className={styles.metaBar}>
-                <div className={styles.metaGroup}>
-                  <span>ORDER PLACED</span>
-                  <strong>{new Date(order.createdAt).toLocaleDateString("en-IN")}</strong>
-                </div>
-                <div className={styles.metaGroup}>
-                  <span>TOTAL</span>
-                  <strong>Rs. {order.totalAmount.toLocaleString("en-IN")}</strong>
-                </div>
-                <div className={styles.metaGroup}>
-                  <span>DELIVER TO</span>
-                  <strong>{order.address.type}</strong>
-                </div>
-                <div className={styles.metaRight}>
-                  <p>{getOrderTitle(order)}</p>
+          {orders.map((order) => {
+            const locationChip = getOrderLocationChip(order);
+            const isCancelled = order.status === "Cancelled";
+            const isPaid = String(order.paymentStatus || "").toLowerCase() === "paid";
+
+            return (
+              <div
+                key={order._id}
+                className={`${styles.orderCard} ${styles.orderCardClickable}`}
+                role="button"
+                tabIndex={0}
+                onClick={() => handleOrderClick(order)}
+                onKeyDown={(event) => handleOrderKeyDown(event, order)}
+                aria-label={`Open order ${getOrderTitle(order)} details`}
+              >
+                <div className={styles.cardTop}>
+                  <div className={styles.cardTopInfo}>
+                    <span className={styles.orderIdTag}>
+                      <FiHash /> {shortOrderId(order._id)}
+                    </span>
+                    <span className={styles.orderDateTag}>
+                      <FiCalendar /> {formatOrderDate(order.createdAt)}
+                    </span>
+                  </div>
                   <span
                     className={`${styles.badge} ${
-                      order.status === "Cancelled"
+                      isCancelled
                         ? styles.badgeCancelled
-                        : String(order.paymentStatus || "").toLowerCase() === "paid"
+                        : isPaid
                         ? styles.badgePaid
                         : styles.badgePending
                     }`}
                   >
-                    {order.status === "Cancelled" ? "Cancelled" : order.paymentStatus || "Pending"}
+                    {isCancelled ? "Cancelled" : order.paymentStatus || "Pending"}
                   </span>
-                  {mode !== "treatment" && mode !== "consultation" && canCancelOrder(order) && (
-                    <button
-                      type="button"
-                      className={styles.cancelBtn}
-                      onClick={(event) => handleCancelOrder(event, order)}
-                      disabled={cancellingId === order._id}
-                    >
-                      {cancellingId === order._id ? "Cancelling..." : "Cancel Order"}
-                    </button>
-                  )}
                 </div>
-              </div>
 
-              <div className={styles.cardBody}>
-                <p className={styles.addressText}>{order.address.address}</p>
-                <p className={styles.hintText}>Tap to view full order details and invoice</p><hr/>
-                <div className={styles.items}>
-                  {getVisibleProducts(order).map((p) => (
-                    <div key={`${order._id}-${p.id}`} className={styles.itemRow}>
-                      <div className={styles.itemLeft}>
-                        <img
-                          src={p.image || ""}
-                          alt={p.name}
-                          className={styles.itemImage}
-                        />
-                        <div className={styles.itemMeta}>
-                          <p className={styles.itemName}>{p.name}</p>
-                          <span className={styles.itemQty}>Qty: {p.quantity}</span>
-                          {getItemDetailHref(p) && (
-                            <Link
-                              href={getItemDetailHref(p)!}
-                              className={styles.itemViewLink}
-                              onClick={(event) => event.stopPropagation()}
-                            >
-                              <span>View {p.itemType === "treatment" ? "Treatment" : "Product"}</span>
-                              <FiArrowUpRight />
-                            </Link>
-                          )}
-                          {p.itemType === "treatment" && p.clinicName && (
-                            <p className={styles.clinicInfo}>
-                              Clinic: {p.clinicName}
-                              {p.clinicAddress ? ` — ${p.clinicAddress}` : ""}
-                            </p>
-                          )}
+                <div className={styles.cardBody}>
+                  <h3 className={styles.orderTitle}>{getOrderTitle(order)}</h3>
+                  {locationChip && (
+                    <p className={styles.locationChip}>
+                      {locationChip.icon}
+                      <span>{locationChip.text}</span>
+                    </p>
+                  )}
+
+                  <div className={styles.items}>
+                    {getVisibleProducts(order).map((p) => (
+                      <div key={`${order._id}-${p.id}`} className={styles.itemRow}>
+                        <div className={styles.itemLeft}>
+                          <img src={p.image || ""} alt={p.name} className={styles.itemImage} />
+                          <div className={styles.itemMeta}>
+                            <p className={styles.itemName}>{p.name}</p>
+                            <span className={styles.itemQty}>Qty: {p.quantity}</span>
+                            {getItemDetailHref(p) && (
+                              <Link
+                                href={getItemDetailHref(p)!}
+                                className={styles.itemViewLink}
+                                onClick={(event) => event.stopPropagation()}
+                              >
+                                <span>View {p.itemType === "treatment" ? "Treatment" : "Product"}</span>
+                                <FiArrowUpRight />
+                              </Link>
+                            )}
+                          </div>
+                        </div>
+                        <div className={styles.itemPrice}>
+                          Rs. {(p.price * p.quantity).toLocaleString("en-IN")}
                         </div>
                       </div>
-                      <div className={styles.itemPrice}>
-                        Rs. {(p.price * p.quantity).toLocaleString("en-IN")}
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-                {mode === "treatment" && (
-                  <p className={styles.supportNote}>
-                    Treatment bookings can't be cancelled here — please contact our support
-                    team for cancellation or any other query.
-                  </p>
-                )}
-                {mode === "consultation" && (
-                  <p className={styles.supportNote}>
-                    Consultation bookings can't be cancelled here — please contact our support
-                    team for cancellation or any other query.
-                  </p>
-                )}
+
+                <div className={styles.cardFooter}>
+                  <div className={styles.totalBlock}>
+                    <span>Total Paid</span>
+                    <strong>Rs. {order.totalAmount.toLocaleString("en-IN")}</strong>
+                  </div>
+                  <div className={styles.footerActions}>
+                    {mode !== "treatment" && mode !== "consultation" && canCancelOrder(order) && (
+                      <button
+                        type="button"
+                        className={styles.cancelBtn}
+                        onClick={(event) => handleCancelOrder(event, order)}
+                        disabled={cancellingId === order._id}
+                      >
+                        {cancellingId === order._id ? "Cancelling..." : "Cancel Order"}
+                      </button>
+                    )}
+                    {(mode === "treatment" || mode === "consultation") && (
+                      <button
+                        type="button"
+                        className={styles.needHelpBtn}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          router.push("/UserDashboard?section=helpcenter");
+                        }}
+                      >
+                        <FiHelpCircle /> Need Help
+                      </button>
+                    )}
+                    <span className={styles.hintText}>
+                      View details & invoice <FiArrowRight />
+                    </span>
+                  </div>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

@@ -56,6 +56,17 @@ interface RawProduct {
   activeStatus?: boolean;
 }
 
+interface RawTreatment {
+  _id: string;
+  treatmentName: string;
+  slug?: string;
+  serviceCategory?: string[];
+  treatmentImages?: string[];
+  mrp?: number;
+  offerPrice?: number;
+  isActive?: boolean;
+}
+
 type Screen = "home" | "quiz" | "result";
 
 interface PendingQuizSubmission {
@@ -128,6 +139,82 @@ const rankProductsForProfile = (
     .map((entry) => entry.product);
 };
 
+/* ================= TREATMENT MATCHING =================
+   Same keyword-heuristic approach as products, since TreatmentPlan has no
+   structured hair/skin flag either — just a free-text serviceCategory list
+   and the treatment name. Treatment names/categories cover many more
+   condition words than product names, so this list is broader than the
+   product one.
+*/
+const TREATMENT_CATEGORY_KEYWORDS: Record<QuizCategoryKey, string[]> = {
+  hair: ["hair", "scalp", "dandruff", "alopecia", "baldness", "regrowth", "transplant"],
+  skin: [
+    "skin",
+    "face",
+    "facial",
+    "acne",
+    "pigmentation",
+    "melasma",
+    "peel",
+    "laser",
+    "brightening",
+    "glow",
+    "wrinkle",
+    "scar",
+    "tan",
+    "dark spot",
+    "dark circle",
+    "anti-aging",
+    "anti aging",
+    "rejuvenation",
+    "resurfacing",
+    "pore",
+    "blemish",
+  ],
+};
+
+const matchesTreatmentCategory = (treatment: RawTreatment, key: QuizCategoryKey) => {
+  const haystack = [treatment.treatmentName, ...(treatment.serviceCategory || [])]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  return TREATMENT_CATEGORY_KEYWORDS[key].some((keyword) => haystack.includes(keyword));
+};
+
+const treatmentConcernScore = (treatment: RawTreatment, concerns: string[]) => {
+  const haystack = [treatment.treatmentName, ...(treatment.serviceCategory || [])]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  const keywords = concerns
+    .join(" ")
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((word) => word.length > 3);
+
+  let score = 0;
+  for (const keyword of keywords) {
+    if (haystack.includes(keyword)) score += 1;
+  }
+  return score;
+};
+
+const rankTreatmentsForProfile = (
+  treatments: RawTreatment[],
+  key: QuizCategoryKey,
+  profile: QuizProfile
+) => {
+  const active = treatments.filter((treatment) => treatment.isActive !== false);
+  // Strictly scoped to the test taken, same rule as product recommendations.
+  const inCategory = active.filter((treatment) => matchesTreatmentCategory(treatment, key));
+
+  return [...inCategory]
+    .map((treatment) => ({ treatment, score: treatmentConcernScore(treatment, profile.concerns) }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 4)
+    .map((entry) => entry.treatment);
+};
+
 export default function UserQuiz() {
   const router = useRouter();
   const { user, loading: userLoading } = useUser();
@@ -138,6 +225,8 @@ export default function UserQuiz() {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [products, setProducts] = useState<RawProduct[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
+  const [treatments, setTreatments] = useState<RawTreatment[]>([]);
+  const [loadingTreatments, setLoadingTreatments] = useState(false);
   const [barsAnimated, setBarsAnimated] = useState(false);
   const [testStartedAt, setTestStartedAt] = useState<string>("");
   const [submittingReport, setSubmittingReport] = useState(false);
@@ -187,10 +276,35 @@ export default function UserQuiz() {
     };
   }, [screen]);
 
+  useEffect(() => {
+    if (screen !== "result") return;
+    let cancelled = false;
+    setLoadingTreatments(true);
+    axios
+      .get<RawTreatment[]>(`${API_URL}/treatment-plans`)
+      .then((res) => {
+        if (!cancelled) setTreatments(Array.isArray(res.data) ? res.data : []);
+      })
+      .catch(() => {
+        if (!cancelled) setTreatments([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingTreatments(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [screen]);
+
   const recommendedProducts = useMemo(() => {
     if (!activeKey || !profile) return [];
     return rankProductsForProfile(products, activeKey, profile);
   }, [products, activeKey, profile]);
+
+  const recommendedTreatments = useMemo(() => {
+    if (!activeKey || !profile) return [];
+    return rankTreatmentsForProfile(treatments, activeKey, profile);
+  }, [treatments, activeKey, profile]);
 
   const startTest = (key: QuizCategoryKey) => {
     setActiveKey(key);
@@ -601,6 +715,51 @@ export default function UserQuiz() {
                 <FiShoppingBag className={styles.actionIcon} />
                 <span className={styles.actionLabel}>Explore Recommended Products</span>
               </button>
+            </div>
+
+            <div>
+            <p className={styles.sectionTitle}>
+              <FiClipboard /> Recommended Treatments For You
+            </p>
+            {loadingTreatments ? (
+              <p className={styles.productsHint}>Finding treatments that match your results...</p>
+            ) : recommendedTreatments.length > 0 ? (
+              <div className={styles.productsGrid}>
+                {recommendedTreatments.map((treatment) => {
+                  const image = resolveMediaUrl(treatment.treatmentImages?.[0]) || "/product1.png";
+                  const price = treatment.offerPrice;
+                  const showStrike =
+                    typeof treatment.mrp === "number" &&
+                    typeof treatment.offerPrice === "number" &&
+                    treatment.mrp > treatment.offerPrice;
+
+                  return (
+                    <Link
+                      key={treatment._id}
+                      href={`/treatment-plans/${treatment.slug || slugify(treatment.treatmentName || treatment._id)}`}
+                      className={styles.productCard}
+                    >
+                      <div className={styles.productImageWrap}>
+                        <img src={image} alt={treatment.treatmentName} />
+                      </div>
+                      <p className={styles.productName}>{treatment.treatmentName}</p>
+                      <div className={styles.productPriceRow}>
+                        {typeof price === "number" && (
+                          <span className={styles.productPrice}>₹{price}</span>
+                        )}
+                        {showStrike && (
+                          <span className={styles.productMrp}>₹{treatment.mrp}</span>
+                        )}
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className={styles.productsHint}>
+                No matching treatments right now for this test — check back soon as we add more.
+              </p>
+            )}
             </div>
 
             <div ref={recommendedRef}>
