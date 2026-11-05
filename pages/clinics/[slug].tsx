@@ -3,6 +3,7 @@
 import { API_URL } from "@/config/api";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
+import Cookies from "js-cookie";
 import styles from "@/styles/pages/clinicDetailPage.module.css";
 import ClinicCard from "@/components/Layout/clinicCard";
 import Footer from "@/components/Layout/Footer";
@@ -88,6 +89,9 @@ const ClinicDetailPage = () => {
 
     comment: "",
   });
+  // One review per logged-in user per clinic (enforced by the backend).
+  const [myReview, setMyReview] = useState<Review | null>(null);
+  const [reviewMessage, setReviewMessage] = useState("");
   const [clinic, setClinic] = useState<Clinic | null>(null);
   const [services, setServices] = useState<ClinicService[]>([]);
   const [loadingClinic, setLoadingClinic] = useState(true);
@@ -150,7 +154,25 @@ const ClinicDetailPage = () => {
     if (!clinic?._id) return;
 
     fetchReviews();
+    fetchMyReview();
   }, [clinic?._id]);
+
+  const fetchMyReview = async () => {
+    const token = Cookies.get("token");
+    if (!token || !clinic?._id) {
+      setMyReview(null);
+      return;
+    }
+    try {
+      const res = await fetch(`${API_URL}/clinic-reviews/${clinic._id}/mine`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      setMyReview(res.ok ? data?.review || null : null);
+    } catch {
+      setMyReview(null);
+    }
+  };
 
   const fetchReviews = async () => {
     try {
@@ -169,7 +191,13 @@ const ClinicDetailPage = () => {
 
     if (!clinic) return;
 
-    await fetch(
+    const token = Cookies.get("token");
+    if (!token) {
+      setReviewMessage("Please log in to write a review.");
+      return;
+    }
+
+    const res = await fetch(
       `${API_URL}/clinic-reviews`,
 
       {
@@ -177,6 +205,7 @@ const ClinicDetailPage = () => {
 
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
 
         body: JSON.stringify({
@@ -186,6 +215,14 @@ const ClinicDetailPage = () => {
         }),
       },
     );
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setReviewMessage(data?.message || "Could not post your review.");
+      if (res.status === 409) fetchMyReview();
+      return;
+    }
+    setReviewMessage("");
+    setMyReview(data?.review || null);
 
     setReviewForm({
       name: "",
@@ -432,7 +469,13 @@ const ClinicDetailPage = () => {
 
               <div className={styles.reviewsLayout}>
                 <div className={styles.reviewPanel}>
+                  {myReview ? (
+                    <p className={styles.reviewComment}>
+                      You have already reviewed this clinic ({myReview.rating}★). Each user can review a clinic only once.
+                    </p>
+                  ) : (
                   <form className={styles.reviewForm} onSubmit={submitReview}>
+                    {reviewMessage && <p className={styles.reviewComment}>{reviewMessage}</p>}
                     <input
                       className={styles.reviewInput}
                       placeholder="Your name"
@@ -484,6 +527,7 @@ const ClinicDetailPage = () => {
                       Submit Review
                     </button>
                   </form>
+                  )}
 
                   <div className={styles.reviewList}>
                     {reviews.length === 0 ? (
