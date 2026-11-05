@@ -7,18 +7,23 @@ import {
   FiClipboard,
   FiFileText,
   FiMessageSquare,
+  FiPackage,
   FiPaperclip,
   FiPhoneIncoming,
   FiSearch,
   FiSend,
+  FiShoppingBag,
   FiTrash2,
   FiUser,
+  FiXCircle,
 } from "react-icons/fi";
 import { socket } from "@/utils/socket";
 import { API_URL } from "@/config/api";
 import { resolveMediaUrl } from "@/lib/media";
 import WebRTCCall, { WebRTCCallSignalPayload } from "@/components/chat/WebRTCCall";
 import PrescriptionModal from "@/components/DoctorAdmin/PrescriptionModal";
+import RecommendModal from "@/components/DoctorAdmin/RecommendModal";
+import { useCall } from "@/context/CallContext";
 import styles from "@/styles/chat.module.css";
 
 type ChatStatus = "pending" | "accepted" | "declined";
@@ -40,6 +45,19 @@ type ChatThread = {
   requestedAt?: string;
   respondedAt?: string;
   updatedAt?: string;
+  source?: "direct" | "consultation";
+  consultationExpiresAt?: string | null;
+  closedAt?: string | null;
+  closedBy?: "doctor" | "system" | null;
+};
+
+type RecommendationItem = {
+  itemType: "product" | "treatment";
+  itemId: string;
+  name: string;
+  image?: string;
+  price: number;
+  mrp?: number;
 };
 
 type ChatMessage = {
@@ -48,12 +66,13 @@ type ChatMessage = {
   senderId: string;
   receiverId: string;
   message: string;
-  messageType?: "text" | "call";
+  messageType?: "text" | "call" | "recommendation";
   callType?: "audio" | "video";
   callStatus?: "started" | "missed" | "ended";
   attachmentUrl?: string;
   attachmentType?: "image" | "pdf";
   attachmentName?: string;
+  recommendations?: RecommendationItem[];
   createdAt?: string;
 };
 
@@ -80,6 +99,19 @@ const getInitials = (name: string) =>
     .map((part) => part[0]?.toUpperCase() || "")
     .join("") || "P";
 
+const formatDateTime = (value?: string | null) => {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
 const formatTime = (value?: string) => {
   if (!value) return "";
   const date = new Date(value);
@@ -90,7 +122,11 @@ const formatTime = (value?: string) => {
   });
 };
 
-const DoctorChat = () => {
+interface DoctorChatProps {
+  doctorName?: string;
+}
+
+const DoctorChat = ({ doctorName }: DoctorChatProps) => {
   const [doctorId, setDoctorId] = useState("");
   const [chats, setChats] = useState<ChatThread[]>([]);
   const [activeChat, setActiveChat] = useState<ChatThread | null>(null);
@@ -100,6 +136,7 @@ const DoctorChat = () => {
   const [loadingChats, setLoadingChats] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [deletingChat, setDeletingChat] = useState(false);
+  const [closingChat, setClosingChat] = useState(false);
   const [unreadByChat, setUnreadByChat] = useState<Record<string, number>>({});
   const [notice, setNotice] = useState<ChatNotice | null>(null);
   const [pendingIncomingCall, setPendingIncomingCall] =
@@ -107,6 +144,7 @@ const DoctorChat = () => {
   const [error, setError] = useState("");
   const [uploadingAttachment, setUploadingAttachment] = useState(false);
   const [showPrescriptionModal, setShowPrescriptionModal] = useState(false);
+  const [showRecommendModal, setShowRecommendModal] = useState(false);
 
   const messagesRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -393,6 +431,23 @@ const DoctorChat = () => {
     );
   };
 
+  const handleRecommendationSent = (savedMessage: ChatMessage) => {
+    if (!activeChat) return;
+    socket.emit("send_message", savedMessage);
+    setMessages((prev) => [...prev, savedMessage]);
+    setChats((prev) =>
+      prev.map((chat) =>
+        chat._id === activeChat._id
+          ? {
+              ...chat,
+              lastMessage: "💊 Suggested products/treatments",
+              updatedAt: savedMessage.createdAt || chat.updatedAt,
+            }
+          : chat
+      )
+    );
+  };
+
   const deleteChat = async () => {
     const receiverId = activeChat?.user?._id;
     if (!activeChat || !receiverId || deletingChat) return;
@@ -425,6 +480,36 @@ const DoctorChat = () => {
     }
   };
 
+  const closeConsultation = async () => {
+    const receiverId = activeChat?.user?._id;
+    if (!activeChat || !receiverId || closingChat) return;
+    if (
+      !window.confirm(
+        "Close this consultation? The patient won't be able to chat, send attachments, or call you here any more."
+      )
+    )
+      return;
+
+    try {
+      setClosingChat(true);
+      setError("");
+      const res = await axios.patch(`${API_URL}/chat/${activeChat._id}/close`, { doctorId });
+
+      socket.emit("chat_closed", {
+        chatId: activeChat._id,
+        from: doctorId,
+        to: receiverId,
+      });
+
+      setChats((prev) => prev.map((chat) => (chat._id === activeChat._id ? res.data : chat)));
+      setActiveChat(res.data);
+    } catch (err: any) {
+      setError(err?.response?.data?.error || "Could not close this consultation.");
+    } finally {
+      setClosingChat(false);
+    }
+  };
+
   const openChatThread = (chat: ChatThread) => {
     setActiveChat(chat);
     setUnreadByChat((prev) => {
@@ -441,7 +526,16 @@ const DoctorChat = () => {
     if (chat) openChatThread(chat);
   };
 
-  const canChat = activeChat?.status === "accepted";
+  // Jumping in from the global incoming-call popup — open the chat the
+  // call belongs to so the ringing WebRTCCall below actually renders for it.
+  const { resumeCall, clearResumeCall } = useCall();
+  useEffect(() => {
+    if (!resumeCall || resumeCall.chatId === activeChat?._id) return;
+    const chat = chats.find((item) => item._id === resumeCall.chatId);
+    if (chat) openChatThread(chat);
+  }, [resumeCall, chats, activeChat?._id]);
+
+  const canChat = activeChat?.status === "accepted" && !activeChat?.closedAt;
 
   if (!doctorId) {
     return (
@@ -577,6 +671,15 @@ const DoctorChat = () => {
                     >
                       <FiClipboard />
                     </button>
+                    <button
+                      type="button"
+                      className={styles.deleteChatBtn}
+                      onClick={() => setShowRecommendModal(true)}
+                      disabled={!canChat || !activeChat.user?._id}
+                      title="Suggest product or treatment"
+                    >
+                      <FiShoppingBag />
+                    </button>
                     <WebRTCCall
                       chatId={activeChat._id}
                       currentUserId={doctorId}
@@ -584,15 +687,33 @@ const DoctorChat = () => {
                       peerName={activePatientName}
                       canCall={canChat}
                       externalIncomingCall={
-                        pendingIncomingCall?.chatId === activeChat._id ? pendingIncomingCall : null
+                        pendingIncomingCall?.chatId === activeChat._id
+                          ? pendingIncomingCall
+                          : resumeCall?.chatId === activeChat._id
+                          ? resumeCall
+                          : null
                       }
                       onExternalIncomingHandled={() => {
                         setPendingIncomingCall(null);
                         setNotice(null);
+                        clearResumeCall();
                       }}
+                      callSurface="doctor"
+                      myName={doctorName}
                       showPrescriptionButton
                       onPrescriptionClick={() => setShowPrescriptionModal(true)}
                     />
+                    {activeChat.source === "consultation" && !activeChat.closedAt && (
+                      <button
+                        type="button"
+                        className={styles.deleteChatBtn}
+                        onClick={closeConsultation}
+                        disabled={closingChat || !activeChat.user?._id}
+                        title="Close consultation"
+                      >
+                        <FiXCircle />
+                      </button>
+                    )}
                   </>
                 )}
                 <button
@@ -606,6 +727,18 @@ const DoctorChat = () => {
                 </button>
               </div>
             </div>
+
+            {activeChat.closedAt && (
+              <div className={`${styles.consultationNotice} ${styles.consultationNoticeClosed}`}>
+                <FiXCircle />
+                <span>
+                  This consultation was closed
+                  {activeChat.closedBy === "doctor" ? " by you" : " automatically after 7 days"} on{" "}
+                  {formatDateTime(activeChat.closedAt)} — no further messages, attachments, or
+                  calls can be sent here.
+                </span>
+              </div>
+            )}
 
             <div className={styles.messages} ref={messagesRef}>
               {loadingMessages ? (
@@ -635,6 +768,42 @@ const DoctorChat = () => {
                             {isMe ? "You started" : `${activePatientName} started`} a{" "}
                             {msg.callType || "video"} call
                           </p>
+                          <span>{formatTime(msg.createdAt)}</span>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  if (msg.messageType === "recommendation") {
+                    return (
+                      <div
+                        key={msg._id || `${msg.chatId}-${index}`}
+                        className={`${styles.msgRow} ${isMe ? styles.right : styles.left}`}
+                      >
+                        <div className={`${styles.bubble} ${styles.recommendBubble} ${isMe ? styles.me : styles.other}`}>
+                          <p className={styles.recommendHeader}>
+                            <FiShoppingBag /> {isMe ? "You suggested" : `${activePatientName} was suggested`}
+                          </p>
+                          {(msg.recommendations || []).map((item) => {
+                            const image = resolveMediaUrl(item.image);
+                            return (
+                              <div key={`${item.itemType}-${item.itemId}`} className={styles.recommendItem}>
+                                {image ? (
+                                  <img src={image} alt={item.name} className={styles.recommendImage} />
+                                ) : (
+                                  <span className={styles.recommendImagePlaceholder}>
+                                    <FiPackage />
+                                  </span>
+                                )}
+                                <span className={styles.recommendInfo}>
+                                  <span className={styles.recommendName}>{item.name}</span>
+                                  <span className={styles.recommendPrice}>
+                                    Rs. {Number(item.price || 0).toLocaleString("en-IN")}
+                                  </span>
+                                </span>
+                              </div>
+                            );
+                          })}
                           <span>{formatTime(msg.createdAt)}</span>
                         </div>
                       </div>
@@ -730,6 +899,17 @@ const DoctorChat = () => {
                 patientContactNo={activeChat.user.contactNo}
                 onClose={() => setShowPrescriptionModal(false)}
                 onSent={handlePrescriptionSent}
+              />
+            ) : null}
+
+            {showRecommendModal && activeChat.user?._id ? (
+              <RecommendModal
+                doctorId={doctorId}
+                chatId={activeChat._id}
+                patientId={activeChat.user._id}
+                patientName={activePatientName}
+                onClose={() => setShowRecommendModal(false)}
+                onSent={handleRecommendationSent}
               />
             ) : null}
           </>

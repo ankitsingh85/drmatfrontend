@@ -68,6 +68,7 @@ const FALLBACK_MODULES = [
   "onlineConsultationService",
   "coupon",
   "clinicSubscription",
+  "clinicService",
   "others",
 ];
 
@@ -90,6 +91,7 @@ const FALLBACK_MODULE_LABELS: Record<string, string> = {
   onlineConsultationService: "Online Consultation Services",
   coupon: "Coupon",
   clinicSubscription: "Clinic Subscription Plan",
+  clinicService: "Clinic Services",
   others: "Others (Top Products, Offers, Featured Section, Shorts, Hiring Requests)",
 };
 
@@ -581,9 +583,19 @@ a.lastModifiedField || "-"
     </th>
   )}
 
-  <th>Admin ID</th>
+  <th
+    className={styles.frozenCell}
+    style={{ left: canDelete ? 36 : 0, width: 100, minWidth: 100 }}
+  >
+    Admin ID
+  </th>
 
-  <th>Name</th>
+  <th
+    className={styles.frozenCell}
+    style={{ left: canDelete ? 136 : 100, width: 160, minWidth: 160 }}
+  >
+    Name
+  </th>
 
   <th>Email</th>
 
@@ -623,7 +635,10 @@ a.lastModifiedField || "-"
 
 {/* ADMIN ID */}
 
-<td>
+<td
+  className={styles.frozenCell}
+  style={{ left: canDelete ? 36 : 0, width: 100, minWidth: 100 }}
+>
 
  {admin.empId}
 
@@ -631,7 +646,10 @@ a.lastModifiedField || "-"
 
 
 
-<td>
+<td
+  className={styles.frozenCell}
+  style={{ left: canDelete ? 136 : 100, width: 160, minWidth: 160 }}
+>
 
  {admin.name}
 

@@ -6,6 +6,9 @@ import dynamic from "next/dynamic";
 import styles from "@/styles/Dashboard/createclinic.module.css";
 import "react-quill/dist/quill.snow.css";
 import { useToast } from "@/context/ToastContext";
+import ClinicServiceCheckboxList, {
+  useClinicServiceCatalog,
+} from "@/components/common/ClinicServiceCheckboxList";
 
 const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
 
@@ -58,6 +61,14 @@ export default function CreateClinic() {
 
   /* ================= CATEGORY STATE ================= */
   const [categories, setCategories] = useState<ClinicCategory[]>([]);
+
+  /* ================= CLINIC SERVICES (CATALOG MULTI-SELECT) ================= */
+  const { catalog: serviceCatalog } = useClinicServiceCatalog();
+  const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
+  const toggleServiceId = (id: string) =>
+    setSelectedServiceIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
 
   /* ================= DOCTOR MODAL STATE ================= */
   const [doctors, setDoctors] = useState<Doctor[]>([]);
@@ -309,6 +320,7 @@ export default function CreateClinic() {
           .filter(Boolean)
       ));
       formData.append("doctors", JSON.stringify(doctors));
+      formData.append("clinicServices", JSON.stringify(selectedServiceIds));
 
       if (media.clinicLogo) formData.append("clinicLogo", media.clinicLogo);
       if (media.bannerImage) formData.append("bannerImage", media.bannerImage);
@@ -752,6 +764,15 @@ export default function CreateClinic() {
                   setForm((prev) => ({ ...prev, availableServices: value }))
                 }
                 modules={quillModules}
+              />
+            </div>
+
+            <div className={styles.field}>
+              <label>Clinic Services (from catalog)</label>
+              <ClinicServiceCheckboxList
+                catalog={serviceCatalog}
+                selectedIds={selectedServiceIds}
+                onToggle={toggleServiceId}
               />
             </div>
           </section>

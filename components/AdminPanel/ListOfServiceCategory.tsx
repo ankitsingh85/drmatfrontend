@@ -333,8 +333,18 @@ const ListOfServiceCategory = ({ canEdit = true, canDelete = true }: ListOfServi
                 />
               </th>
             )}
-            <th>#</th>
-            <th>Name</th>
+            <th
+              className={styles.frozenCell}
+              style={{ left: canDelete ? 36 : 0, width: 100, minWidth: 100 }}
+            >
+              #
+            </th>
+            <th
+              className={styles.frozenCell}
+              style={{ left: canDelete ? 136 : 100, width: 160, minWidth: 160 }}
+            >
+              Name
+            </th>
             <th>Image</th>
             <th>Actions</th>
           </tr>
@@ -352,8 +362,18 @@ const ListOfServiceCategory = ({ canEdit = true, canDelete = true }: ListOfServi
                   />
                 </td>
               )}
-              <td>{`ServiceCat-${(currentPage - 1) * itemsPerPage + index + 1}`}</td>
-              <td>{cat.name}</td>
+              <td
+                className={styles.frozenCell}
+                style={{ left: canDelete ? 36 : 0, width: 100, minWidth: 100 }}
+              >
+                {`ServiceCat-${(currentPage - 1) * itemsPerPage + index + 1}`}
+              </td>
+              <td
+                className={styles.frozenCell}
+                style={{ left: canDelete ? 136 : 100, width: 160, minWidth: 160 }}
+              >
+                {cat.name}
+              </td>
               <td>
                 <img
                   src={resolveMediaUrl(cat.imageUrl) || cat.imageUrl}

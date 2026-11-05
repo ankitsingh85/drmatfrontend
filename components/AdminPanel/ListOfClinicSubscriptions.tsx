@@ -408,7 +408,9 @@ const ListOfClinicSubscriptions: React.FC<ListOfClinicSubscriptionsProps> = ({ c
           <table className={styles.table}>
             <thead>
               <tr>
-                <th>Clinic Name</th>
+                <th className={styles.frozenCell} style={{ width: 180, minWidth: 180 }}>
+                  Clinic Name
+                </th>
                 <th>Contact Number</th>
                 <th>Plan Status</th>
                 <th>Billing Cycle</th>
@@ -431,7 +433,12 @@ const ListOfClinicSubscriptions: React.FC<ListOfClinicSubscriptionsProps> = ({ c
 
                 return (
                   <tr key={row.clinicId}>
-                    <td className={styles.clinicName}>{row.clinicName}</td>
+                    <td
+                      className={`${styles.clinicName} ${styles.frozenCell}`}
+                      style={{ width: 180, minWidth: 180 }}
+                    >
+                      {row.clinicName}
+                    </td>
                     <td>{row.contactNumber || "-"}</td>
                     <td>
                       <span className={`${styles.statusPill} ${statusPillClass(statusLabel)}`}>

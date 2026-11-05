@@ -354,24 +354,38 @@ export default function ListOfSupportTickets({
                   "Priority",
                   "Status",
                   "Last Updated",
-                ].map((label) => (
-                  <th
-                    key={label}
-                    style={{
-                      textAlign: "left",
-                      padding: "12px 14px",
-                      background: "linear-gradient(135deg, #0a4b83 0%, #1264a3 100%)",
-                      color: "#eaf3ff",
-                      fontSize: 12,
-                      fontWeight: 800,
-                      textTransform: "uppercase",
-                      letterSpacing: "0.06em",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {label}
-                  </th>
-                ))}
+                ].map((label) => {
+                  const frozenLeft =
+                    label === "Ticket #" ? (canDelete ? 36 : 0) : label === "Requester" ? (canDelete ? 146 : 110) : null;
+                  const frozenWidth = label === "Ticket #" ? 110 : label === "Requester" ? 170 : undefined;
+                  return (
+                    <th
+                      key={label}
+                      style={{
+                        textAlign: "left",
+                        padding: "12px 14px",
+                        background: "linear-gradient(135deg, #0a4b83 0%, #1264a3 100%)",
+                        color: "#eaf3ff",
+                        fontSize: 12,
+                        fontWeight: 800,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.06em",
+                        whiteSpace: "nowrap",
+                        ...(frozenLeft !== null && {
+                          position: "sticky" as const,
+                          left: frozenLeft,
+                          width: frozenWidth,
+                          minWidth: frozenWidth,
+                          zIndex: 4,
+                          boxShadow:
+                            label === "Requester" ? "2px 0 4px rgba(15, 23, 42, 0.08)" : undefined,
+                        }),
+                      }}
+                    >
+                      {label}
+                    </th>
+                  );
+                })}
               </tr>
             </thead>
             <tbody>
@@ -395,10 +409,34 @@ export default function ListOfSupportTickets({
                       />
                     </td>
                   )}
-                  <td style={{ padding: "12px 14px", borderBottom: "1px solid #e5e7eb", fontWeight: 700 }}>
+                  <td
+                    style={{
+                      padding: "12px 14px",
+                      borderBottom: "1px solid #e5e7eb",
+                      fontWeight: 700,
+                      position: "sticky",
+                      left: canDelete ? 36 : 0,
+                      width: 110,
+                      minWidth: 110,
+                      zIndex: 2,
+                      background: "#ffffff",
+                    }}
+                  >
                     {ticket.ticketNumber}
                   </td>
-                  <td style={{ padding: "12px 14px", borderBottom: "1px solid #e5e7eb" }}>
+                  <td
+                    style={{
+                      padding: "12px 14px",
+                      borderBottom: "1px solid #e5e7eb",
+                      position: "sticky",
+                      left: canDelete ? 146 : 110,
+                      width: 170,
+                      minWidth: 170,
+                      zIndex: 2,
+                      background: "#ffffff",
+                      boxShadow: "2px 0 4px rgba(15, 23, 42, 0.08)",
+                    }}
+                  >
                     {ticket.requesterName}
                     <div style={{ fontSize: 11, color: "#64748b", fontWeight: 700 }}>
                       {REQUESTER_TYPE_LABEL[ticket.requesterType]}

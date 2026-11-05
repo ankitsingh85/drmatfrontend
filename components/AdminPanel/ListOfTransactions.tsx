@@ -26,6 +26,7 @@ import styles from "@/styles/Dashboard/transactions.module.css";
 import { API_URL } from "@/config/api";
 import { useToast } from "@/context/ToastContext";
 import { formatInvoiceDate, printInvoice } from "@/lib/invoiceTemplate";
+import { resolveMediaUrl } from "@/lib/media";
 
 type TransactionCategory =
   | "product"
@@ -73,6 +74,10 @@ interface TransactionOrder {
   ownerType?: "user" | "clinic" | "b2buser";
   products: OrderProductLine[];
   totalAmount: number;
+  couponCode?: string;
+  discountAmount?: number;
+  paymentMethod?: string;
+  paymentMethodDetails?: string;
   paymentStatus?: string;
   status?: string;
   createdAt: string;
@@ -82,6 +87,23 @@ interface TransactionOrder {
   b2bUserId?: PopulatedB2BUser | null;
   address?: { type?: string; address?: string };
   subscriptionMeta?: { billingCycle?: string; startDate?: string; endDate?: string };
+  treatmentStartedAt?: string;
+  // Consultation-only — every doctor connection this patient has for the
+  // ordered service (re-derived from the chat, since there's no direct
+  // order→doctor link) — a patient can have more than one if they connected
+  // with different doctors from the same service's pool on separate
+  // occasions, so all of them are surfaced rather than picking just one.
+  connections?: {
+    doctorName: string | null;
+    connectedAt: string | null;
+    prescriptionUrl: string | null;
+    prescriptionDate: string | null;
+  }[];
+  // First connection by time, kept for simple consumers.
+  connectedDoctor?: string | null;
+  connectedAt?: string | null;
+  prescriptionUrl?: string | null;
+  prescriptionDate?: string | null;
 }
 
 type CategoryMeta = {
@@ -207,6 +229,22 @@ const getBuyerPhone = (order: TransactionOrder) => {
 const getItemsSummary = (order: TransactionOrder) =>
   (order.products || []).map((p) => `${p.name} x${p.quantity}`).join(", ");
 
+const getSubtotal = (order: TransactionOrder) =>
+  (order.products || []).reduce((sum, p) => sum + Number(p.price || 0) * Number(p.quantity || 0), 0);
+
+const formatDateTime = (value?: string | null) => {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
 const buildTransactionInvoice = (order: TransactionOrder) => {
   const meta = CATEGORY_META[order.category];
   const billTo = {
@@ -249,9 +287,20 @@ const getPaymentStatusClass = (status?: string) => {
   return styles.statusPending;
 };
 
+// A treatment booking's real-world progress is tracked via the clinic's
+// OTP-verified "start treatment" flow (treatmentStartedAt), not the
+// generic product-shipping status values — so once that's set, it takes
+// over as the order status shown here, same as the clinic's own booking
+// list and the Treatment Commission report.
+const getDisplayOrderStatus = (order: TransactionOrder) => {
+  if (order.status === "Cancelled") return "Cancelled";
+  if (order.category === "treatment" && order.treatmentStartedAt) return "Treatment Started";
+  return order.status || "Pending";
+};
+
 const getOrderStatusClass = (status?: string) => {
   const s = (status || "Pending").toLowerCase();
-  if (["delivered", "completed", "active"].includes(s)) return styles.statusSuccess;
+  if (["delivered", "completed", "active", "treatment started"].includes(s)) return styles.statusSuccess;
   if (["cancelled", "expired"].includes(s)) return styles.statusFailed;
   if (["shipped", "paused"].includes(s)) return styles.statusInfo;
   return styles.statusPending;
@@ -375,6 +424,7 @@ const ListOfTransactions: React.FC = () => {
 
   const handleDownloadCSV = () => {
     const showCategory = activeTab === "all";
+    const isConsultation = activeTab === "consultation";
     const rows = [
       [
         "Order ID",
@@ -382,10 +432,15 @@ const ListOfTransactions: React.FC = () => {
         "Buyer",
         "Email",
         "Items",
-        "Amount",
+        "Original Amount",
+        "Coupon Code",
+        "Discount",
+        "Final Amount",
         "Payment Status",
-        "Order Status",
+        "Payment Method",
+        ...(isConsultation ? ["Doctor Connected", "Connected On"] : ["Order Status"]),
         "Date",
+        ...(isConsultation ? ["Prescription"] : []),
       ],
       ...filteredOrders.map((o) => [
         o._id,
@@ -393,10 +448,29 @@ const ListOfTransactions: React.FC = () => {
         getBuyerName(o),
         getBuyerEmail(o),
         getItemsSummary(o),
+        String(getSubtotal(o)),
+        o.couponCode || "",
+        String(o.discountAmount || 0),
         String(o.totalAmount),
         o.paymentStatus || "pending",
-        o.status || "Pending",
+        o.paymentMethodDetails || o.paymentMethod || "",
+        ...(isConsultation
+          ? [
+              (o.connections || []).map((c) => c.doctorName || "").join("; ") || "",
+              (o.connections || [])
+                .map((c) => (c.connectedAt ? new Date(c.connectedAt).toLocaleString() : ""))
+                .join("; ") || "",
+            ]
+          : [getDisplayOrderStatus(o)]),
         new Date(o.createdAt).toLocaleString(),
+        ...(isConsultation
+          ? [
+              (o.connections || [])
+                .map((c) => (c.prescriptionUrl ? resolveMediaUrl(c.prescriptionUrl) || "" : ""))
+                .filter(Boolean)
+                .join("; ") || "",
+            ]
+          : []),
       ]),
     ];
 
@@ -431,6 +505,7 @@ const ListOfTransactions: React.FC = () => {
         .replace(/'/g, "&#039;");
 
     const showCategory = activeTab === "all";
+    const isConsultation = activeTab === "consultation";
     const rowsHtml = filteredOrders
       .map(
         (o) => `<tr>
@@ -439,10 +514,34 @@ const ListOfTransactions: React.FC = () => {
           <td>${escapeHtml(getBuyerName(o))}</td>
           <td>${escapeHtml(getBuyerEmail(o))}</td>
           <td>${escapeHtml(getItemsSummary(o))}</td>
+          <td>${escapeHtml(formatMoney(getSubtotal(o)))}</td>
+          <td>${escapeHtml(o.couponCode || "—")}</td>
+          <td>${escapeHtml(formatMoney(o.discountAmount || 0))}</td>
           <td>${escapeHtml(formatMoney(o.totalAmount))}</td>
           <td>${escapeHtml(o.paymentStatus || "pending")}</td>
-          <td>${escapeHtml(o.status || "Pending")}</td>
+          <td>${escapeHtml(o.paymentMethodDetails || o.paymentMethod || "—")}</td>
+          ${
+            isConsultation
+              ? `<td>${
+                  (o.connections || []).map((c) => escapeHtml(c.doctorName || "—")).join("<br/>") ||
+                  "—"
+                }</td>
+                 <td>${
+                   (o.connections || [])
+                     .map((c) => escapeHtml(c.connectedAt ? new Date(c.connectedAt).toLocaleString() : "—"))
+                     .join("<br/>") || "—"
+                 }</td>`
+              : `<td>${escapeHtml(getDisplayOrderStatus(o))}</td>`
+          }
           <td>${escapeHtml(new Date(o.createdAt).toLocaleString())}</td>
+          ${
+            isConsultation
+              ? `<td>${
+                  (o.connections || []).map((c) => (c.prescriptionUrl ? "Yes" : "—")).join("<br/>") ||
+                  "—"
+                }</td>`
+              : ""
+          }
         </tr>`
       )
       .join("");
@@ -469,10 +568,15 @@ const ListOfTransactions: React.FC = () => {
                 <th>Buyer</th>
                 <th>Email</th>
                 <th>Items</th>
-                <th>Amount</th>
+                <th>Original Amount</th>
+                <th>Coupon Code</th>
+                <th>Discount</th>
+                <th>Final Amount</th>
                 <th>Payment Status</th>
-                <th>Order Status</th>
+                <th>Payment Method</th>
+                ${isConsultation ? "<th>Doctor Connected</th><th>Connected On</th>" : "<th>Order Status</th>"}
                 <th>Date</th>
+                ${isConsultation ? "<th>Prescription</th>" : ""}
               </tr>
             </thead>
             <tbody>${rowsHtml}</tbody>
@@ -665,27 +769,59 @@ const ListOfTransactions: React.FC = () => {
                   <table className={styles.table}>
                     <thead>
                       <tr>
-                        <th>Order ID</th>
-                        {activeTab === "all" && <th>Category</th>}
-                        <th>Buyer</th>
+                        <th className={styles.frozenCell} style={{ left: 0, width: 110, minWidth: 110 }}>
+                          Order ID
+                        </th>
+                        {activeTab === "all" && (
+                          <th
+                            className={styles.frozenCell}
+                            style={{ left: 110, width: 130, minWidth: 130 }}
+                          >
+                            Category
+                          </th>
+                        )}
+                        <th
+                          className={styles.frozenCell}
+                          style={{
+                            left: activeTab === "all" ? 240 : 110,
+                            width: 170,
+                            minWidth: 170,
+                          }}
+                        >
+                          Buyer
+                        </th>
                         <th>Items</th>
-                        <th>Amount</th>
+                        <th>Original Amount</th>
+                        <th>Coupon</th>
+                        <th>Discount</th>
+                        <th>Final Amount</th>
                         <th>Payment</th>
-                        <th>Status</th>
-                        <th>Date</th>
+                        <th>Payment Method</th>
+                        {activeTab === "consultation" && <th>Doctor</th>}
+                        {activeTab === "consultation" && <th>Connected On</th>}
+                        {activeTab !== "consultation" && <th>Status</th>}
+                        <th>{activeTab === "consultation" ? "Date & Time" : "Date"}</th>
+                        {activeTab === "consultation" && <th>Prescription</th>}
                         <th>Invoice</th>
                       </tr>
                     </thead>
                     <tbody>
                       {paginatedOrders.map((o) => {
                         const meta = CATEGORY_META[o.category];
+                        const subtotal = getSubtotal(o);
                         return (
                           <tr key={o._id}>
-                            <td className={styles.orderIdCell}>
+                            <td
+                              className={`${styles.orderIdCell} ${styles.frozenCell}`}
+                              style={{ left: 0, width: 110, minWidth: 110 }}
+                            >
                               #{o._id.slice(-8).toUpperCase()}
                             </td>
                             {activeTab === "all" && (
-                              <td>
+                              <td
+                                className={styles.frozenCell}
+                                style={{ left: 110, width: 130, minWidth: 130 }}
+                              >
                                 <span
                                   className={styles.categoryBadge}
                                   style={
@@ -699,11 +835,23 @@ const ListOfTransactions: React.FC = () => {
                                 </span>
                               </td>
                             )}
-                            <td>
+                            <td
+                              className={styles.frozenCell}
+                              style={{
+                                left: activeTab === "all" ? 240 : 110,
+                                width: 170,
+                                minWidth: 170,
+                              }}
+                            >
                               <div className={styles.buyerName}>{getBuyerName(o)}</div>
                               <div className={styles.buyerEmail}>{getBuyerEmail(o)}</div>
                             </td>
                             <td>{getItemsSummary(o)}</td>
+                            <td className={styles.amountCell}>{formatMoney(subtotal)}</td>
+                            <td>{o.couponCode || "—"}</td>
+                            <td className={styles.amountCell}>
+                              {o.discountAmount ? `- ${formatMoney(o.discountAmount)}` : "—"}
+                            </td>
                             <td className={styles.amountCell}>{formatMoney(o.totalAmount)}</td>
                             <td>
                               <span
@@ -714,16 +862,69 @@ const ListOfTransactions: React.FC = () => {
                                 {o.paymentStatus || "pending"}
                               </span>
                             </td>
+                            <td>{o.paymentMethodDetails || o.paymentMethod || "—"}</td>
+                            {activeTab === "consultation" && (
+                              <td>
+                                {o.connections && o.connections.length > 0 ? (
+                                  o.connections.map((c, idx) => (
+                                    <div key={idx}>{c.doctorName || "—"}</div>
+                                  ))
+                                ) : (
+                                  "—"
+                                )}
+                              </td>
+                            )}
+                            {activeTab === "consultation" && (
+                              <td>
+                                {o.connections && o.connections.length > 0 ? (
+                                  o.connections.map((c, idx) => (
+                                    <div key={idx}>{formatDateTime(c.connectedAt)}</div>
+                                  ))
+                                ) : (
+                                  "—"
+                                )}
+                              </td>
+                            )}
+                            {activeTab !== "consultation" && (
+                              <td>
+                                <span
+                                  className={`${styles.statusPill} ${getOrderStatusClass(
+                                    getDisplayOrderStatus(o)
+                                  )}`}
+                                >
+                                  {getDisplayOrderStatus(o)}
+                                </span>
+                              </td>
+                            )}
                             <td>
-                              <span
-                                className={`${styles.statusPill} ${getOrderStatusClass(
-                                  o.status
-                                )}`}
-                              >
-                                {o.status || "Pending"}
-                              </span>
+                              {activeTab === "consultation"
+                                ? formatDateTime(o.createdAt)
+                                : new Date(o.createdAt).toLocaleDateString("en-IN")}
                             </td>
-                            <td>{new Date(o.createdAt).toLocaleDateString("en-IN")}</td>
+                            {activeTab === "consultation" && (
+                              <td>
+                                {o.connections && o.connections.some((c) => c.prescriptionUrl) ? (
+                                  o.connections.map((c, idx) =>
+                                    c.prescriptionUrl ? (
+                                      <div key={idx}>
+                                        <a
+                                          href={resolveMediaUrl(c.prescriptionUrl) || "#"}
+                                          target="_blank"
+                                          rel="noreferrer"
+                                          className={styles.invoiceBtn}
+                                        >
+                                          <FiDownload /> Rx
+                                        </a>
+                                      </div>
+                                    ) : (
+                                      <div key={idx}>—</div>
+                                    )
+                                  )
+                                ) : (
+                                  "—"
+                                )}
+                              </td>
+                            )}
                             <td>
                               <button
                                 type="button"

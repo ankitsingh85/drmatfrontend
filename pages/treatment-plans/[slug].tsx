@@ -11,7 +11,6 @@ import {
   FaClock,
   FaInfoCircle,
   FaStar,
-  FaTags,
   FaUserAlt,
   FaVideo,
 } from "react-icons/fa";
@@ -288,21 +287,6 @@ comment:""
         icon: <FaUserAlt />,
       });
     }
-    if (plan?.promoCode) {
-      items.push({
-        label: "Promo code",
-        value: plan.promoCode,
-        icon: <FaTags />,
-      });
-    }
-    if (plan?.pricePerSession) {
-      items.push({
-        label: "Per session",
-        value: `Rs. ${Number(plan.pricePerSession).toFixed(0)}`,
-        icon: <FaInfoCircle />,
-      });
-    }
-
     return items;
   }, [plan]);
 

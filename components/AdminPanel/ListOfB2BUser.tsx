@@ -351,8 +351,18 @@ export default function ListOfB2BUser({
                   />
                 </th>
               )}
-              <th>B2B User ID</th>
-              <th>Name</th>
+              <th
+                className={styles.frozenCell}
+                style={{ left: canDelete ? 36 : 0, width: 110, minWidth: 110 }}
+              >
+                B2B User ID
+              </th>
+              <th
+                className={styles.frozenCell}
+                style={{ left: canDelete ? 146 : 110, width: 160, minWidth: 160 }}
+              >
+                Name
+              </th>
               <th>Contact Person</th>
               <th>Email</th>
               <th>Contact</th>
@@ -380,8 +390,18 @@ export default function ListOfB2BUser({
                     />
                   </td>
                 )}
-                <td>{user.b2bUserId}</td>
-                <td>{user.name}</td>
+                <td
+                  className={styles.frozenCell}
+                  style={{ left: canDelete ? 36 : 0, width: 110, minWidth: 110 }}
+                >
+                  {user.b2bUserId}
+                </td>
+                <td
+                  className={styles.frozenCell}
+                  style={{ left: canDelete ? 146 : 110, width: 160, minWidth: 160 }}
+                >
+                  {user.name}
+                </td>
                 <td>{user.contactPerson}</td>
                 <td>{user.email || "-"}</td>
                 <td>{user.contactNo}</td>

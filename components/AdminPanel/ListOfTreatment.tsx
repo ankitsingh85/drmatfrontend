@@ -681,9 +681,24 @@ const ListOfTreatment = ({ canEdit = true, canDelete = true }: ListOfTreatmentPr
                   />
                 </th>
               )}
-              <th>Code</th>
-              <th>Image</th>
-              <th>Treatment Name</th>
+              <th
+                className={styles.frozenCell}
+                style={{ left: canDelete ? 36 : 0, width: 90, minWidth: 90 }}
+              >
+                Code
+              </th>
+              <th
+                className={styles.frozenCell}
+                style={{ left: canDelete ? 126 : 90, width: 56, minWidth: 56 }}
+              >
+                Image
+              </th>
+              <th
+                className={styles.frozenCell}
+                style={{ left: canDelete ? 182 : 146, width: 170, minWidth: 170 }}
+              >
+                Treatment Name
+              </th>
               <th>Clinic</th>
               <th>Category</th>
               <th>Gender</th>
@@ -717,8 +732,16 @@ const ListOfTreatment = ({ canEdit = true, canDelete = true }: ListOfTreatmentPr
                     />
                   </td>
                 )}
-                <td>{treatment.tuc || "-"}</td>
-                <td>
+                <td
+                  className={styles.frozenCell}
+                  style={{ left: canDelete ? 36 : 0, width: 90, minWidth: 90 }}
+                >
+                  {treatment.tuc || "-"}
+                </td>
+                <td
+                  className={styles.frozenCell}
+                  style={{ left: canDelete ? 126 : 90, width: 56, minWidth: 56 }}
+                >
                   {treatment.treatmentImages?.length ? (
                     <img
                       src={resolveMediaUrl(treatment.treatmentImages[0]) || undefined}
@@ -731,7 +754,12 @@ const ListOfTreatment = ({ canEdit = true, canDelete = true }: ListOfTreatmentPr
                     "-"
                   )}
                 </td>
-                <td>{treatment.treatmentName}</td>
+                <td
+                  className={styles.frozenCell}
+                  style={{ left: canDelete ? 182 : 146, width: 170, minWidth: 170 }}
+                >
+                  {treatment.treatmentName}
+                </td>
                 <td>{clinicNamesFor(treatment)}</td>
                 <td>{(treatment.serviceCategory || []).join(", ") || "-"}</td>
                 <td>{treatment.gender || "-"}</td>

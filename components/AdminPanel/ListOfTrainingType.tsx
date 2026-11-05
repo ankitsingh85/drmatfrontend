@@ -324,8 +324,18 @@ const ListOfTrainingType = ({ canEdit = true, canDelete = true }: ListOfTraining
         />
       </th>
     )}
-    <th>Training Type ID</th>
-    <th>Name</th>
+    <th
+      className={styles.frozenCell}
+      style={{ left: canDelete ? 36 : 0, width: 120, minWidth: 120 }}
+    >
+      Training Type ID
+    </th>
+    <th
+      className={styles.frozenCell}
+      style={{ left: canDelete ? 156 : 120, width: 160, minWidth: 160 }}
+    >
+      Name
+    </th>
     <th>Image</th>
     <th>Actions</th>
   </tr>
@@ -345,9 +355,19 @@ const ListOfTrainingType = ({ canEdit = true, canDelete = true }: ListOfTraining
     </td>
   )}
 
-  <td>{item.id}</td>
+  <td
+    className={styles.frozenCell}
+    style={{ left: canDelete ? 36 : 0, width: 120, minWidth: 120 }}
+  >
+    {item.id}
+  </td>
 
-  <td>{item.name}</td>
+  <td
+    className={styles.frozenCell}
+    style={{ left: canDelete ? 156 : 120, width: 160, minWidth: 160 }}
+  >
+    {item.name}
+  </td>
 
   <td>
     <img

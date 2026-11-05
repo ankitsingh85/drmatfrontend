@@ -7,7 +7,7 @@ import Link from "next/link";
 import Cookies from "js-cookie";
 import styles from "@/styles/user/paymentpage.module.css";
 import { CartItem, useCart } from "@/context/CartContext";
-import { useOrder } from "@/context/OrderContext";
+import { IOrder, useOrder } from "@/context/OrderContext";
 import { API_URL } from "@/config/api";
 import Topbar from "@/components/Layout/Topbar";
 import {
@@ -49,6 +49,7 @@ const PaymentPage: React.FC = () => {
 
   const [isHydrated, setIsHydrated] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [bookedOrders, setBookedOrders] = useState<IOrder[]>([]);
   const [loading, setLoading] = useState(false);
   const [paymentError, setPaymentError] = useState("");
   const [checkoutItems, setCheckoutItems] = useState<CartItem[]>([]);
@@ -374,7 +375,7 @@ const PaymentPage: React.FC = () => {
         ? { couponCode: appliedCoupon.code, discountAmount: appliedCoupon.discount }
         : {};
 
-      await createOrder(
+      const savedOrders = await createOrder(
         activeItems,
         grandTotal,
         {
@@ -390,6 +391,7 @@ const PaymentPage: React.FC = () => {
           ? { ownerType: "b2buser", b2bUserId: Cookies.get("b2bUserId") || "", ...couponOptions }
           : { ownerType: "user", ...couponOptions }
       );
+      setBookedOrders(savedOrders);
 
       if (isConsultationCheckout) {
         sessionStorage.removeItem(CONSULTATION_CHECKOUT_KEY);
@@ -556,6 +558,56 @@ const PaymentPage: React.FC = () => {
                 <p>{summaryItems.length} item(s)</p>
               </div>
             </div>
+
+            {bookedOrders.length > 0 && (
+              <div className={styles.bookingDetails}>
+                {bookedOrders.map((order) => (
+                  <div key={order._id} className={styles.bookingCard}>
+                    <div className={styles.bookingCardHeader}>
+                      <span>
+                        {order.orderType === "treatment"
+                          ? "Treatment booking ID"
+                          : order.orderType === "consultation"
+                          ? "Consultation booking ID"
+                          : "Order ID"}
+                        : <span className={styles.bookingId}>#{String(order._id).slice(-8).toUpperCase()}</span>
+                      </span>
+                      {order.createdAt && (
+                        <span className={styles.bookingDate}>
+                          {new Date(order.createdAt).toLocaleString("en-IN", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                      )}
+                    </div>
+
+                    {order.products.map((item, idx) => (
+                      <div key={`${item.id}-${idx}`} className={styles.bookingItemRow}>
+                        <span>
+                          <span className={styles.bookingItemName}>{item.name}</span>
+                          <span className={styles.bookingItemMeta}>
+                            Qty: {item.quantity}
+                            {item.clinicName ? ` · ${item.clinicName}` : ""}
+                          </span>
+                        </span>
+                        <span className={styles.bookingItemPrice}>
+                          ₹{item.price * item.quantity}
+                        </span>
+                      </div>
+                    ))}
+
+                    <div className={styles.bookingCardTotal}>
+                      <span>Total paid</span>
+                      <span>₹{order.totalAmount}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
 
             <div className={styles.successActions}>
               {isBusinessCheckout ? (

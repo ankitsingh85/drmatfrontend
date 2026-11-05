@@ -871,9 +871,24 @@ export default function ListOfUser({ canEdit = true, canDelete = true }: ListOfU
                   />
                 </th>
               )}
-              <th>Patient ID</th>
-              <th>Profile</th>
-              <th>Name</th>
+              <th
+                className={styles.frozenCell}
+                style={{ left: canDelete ? 36 : 0, width: 100, minWidth: 100 }}
+              >
+                Patient ID
+              </th>
+              <th
+                className={styles.frozenCell}
+                style={{ left: canDelete ? 136 : 100, width: 56, minWidth: 56 }}
+              >
+                Profile
+              </th>
+              <th
+                className={styles.frozenCell}
+                style={{ left: canDelete ? 192 : 156, width: 160, minWidth: 160 }}
+              >
+                Name
+              </th>
               <th>Email</th>
               <th>Contact</th>
               <th>Address</th>
@@ -895,8 +910,16 @@ export default function ListOfUser({ canEdit = true, canDelete = true }: ListOfU
                     />
                   </td>
                 )}
-                <td>{u.patientId}</td>
-                <td>
+                <td
+                  className={styles.frozenCell}
+                  style={{ left: canDelete ? 36 : 0, width: 100, minWidth: 100 }}
+                >
+                  {u.patientId}
+                </td>
+                <td
+                  className={styles.frozenCell}
+                  style={{ left: canDelete ? 136 : 100, width: 56, minWidth: 56 }}
+                >
                   {u.profileImage ? (
                     <img
                       src={resolveMediaUrl(u.profileImage) || u.profileImage}
@@ -907,7 +930,12 @@ export default function ListOfUser({ canEdit = true, canDelete = true }: ListOfU
                     "-"
                   )}
                 </td>
-                <td>{u.name}</td>
+                <td
+                  className={styles.frozenCell}
+                  style={{ left: canDelete ? 192 : 156, width: 160, minWidth: 160 }}
+                >
+                  {u.name}
+                </td>
                 <td>{u.email}</td>
                 <td>{u.contactNo || "-"}</td>
                 <td>{u.address || "-"}</td>

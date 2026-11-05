@@ -197,7 +197,29 @@ const theadStyle: React.CSSProperties = {
   letterSpacing: "0.06em",
   whiteSpace: "nowrap",
   borderRight: "1px solid rgba(255, 255, 255, 0.15)",
+  position: "sticky",
+  top: 0,
+  zIndex: 3,
 };
+
+const frozenCellStyle = (left: number, width: number): React.CSSProperties => ({
+  position: "sticky",
+  left,
+  width,
+  minWidth: width,
+  zIndex: 2,
+  background: "#ffffff",
+  boxShadow: "2px 0 4px rgba(15, 23, 42, 0.08)",
+});
+
+const frozenHeadCellStyle = (left: number, width: number): React.CSSProperties => ({
+  ...theadStyle,
+  position: "sticky",
+  left,
+  width,
+  minWidth: width,
+  zIndex: 4,
+});
 
 const infoCardStyle: React.CSSProperties = {
   padding: "10px 14px",
@@ -896,7 +918,7 @@ export default function ListOfWorkshopTraning({
                     />
                   </th>
                 )}
-                <th style={theadStyle}>Training</th>
+                <th style={frozenHeadCellStyle(canDelete ? 36 : 0, 160)}>Training</th>
                 <th style={theadStyle}>Code</th>
                 <th style={theadStyle}>Type</th>
                 <th style={theadStyle}>HSN Code</th>
@@ -948,7 +970,9 @@ export default function ListOfWorkshopTraning({
                       />
                     </td>
                   )}
-                  <td style={thTdStyle}>{item.trainingName || "-"}</td>
+                  <td style={{ ...thTdStyle, ...frozenCellStyle(canDelete ? 36 : 0, 160) }}>
+                    {item.trainingName || "-"}
+                  </td>
                   <td style={thTdStyle}>{item.trainingUniqueCode || "-"}</td>
                   <td style={thTdStyle}>{(item.trainingType || []).join(", ") || "-"}</td>
                   <td style={thTdStyle}>{item.hsnCode || "-"}</td>

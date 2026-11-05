@@ -1,0 +1,142 @@
+.overlay {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 9999;
+  animation: slideIn 0.25s ease-out;
+}
+
+.card {
+  position: relative;
+  width: 290px;
+  max-width: calc(100vw - 36px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 24px 20px 20px;
+  border-radius: 22px;
+  background: linear-gradient(160deg, #10306b 0%, #1f49be 55%, #2981b7 100%);
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.35);
+  color: #fff;
+  text-align: center;
+}
+
+.pulseRing {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 86px;
+  height: 86px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  animation: pulse 1.6s ease-out infinite;
+}
+
+.avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 800;
+  background: rgba(255, 255, 255, 0.18);
+  border: 2px solid rgba(255, 255, 255, 0.4);
+}
+
+.caller {
+  margin: 6px 0 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.subtitle {
+  margin: 0;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 14px;
+  width: 100%;
+}
+
+.declineBtn,
+.acceptBtn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  border-radius: 16px;
+  padding: 10px 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.declineBtn:hover,
+.acceptBtn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+}
+
+.declineBtn {
+  background: rgba(239, 68, 68, 0.9);
+  color: #fff;
+}
+
+.declineBtn svg {
+  font-size: 18px;
+}
+
+.acceptBtn {
+  background: #16a34a;
+  color: #fff;
+}
+
+.acceptBtn svg {
+  font-size: 18px;
+}
+
+@keyframes pulse {
+  0% {
+    transform: translateX(-50%) scale(0.85);
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateX(-50%) scale(1.25);
+    opacity: 0;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 480px) {
+  .overlay {
+    top: auto;
+    bottom: 18px;
+    right: 18px;
+    left: 18px;
+  }
+
+  .card {
+    width: 100%;
+  }
+}

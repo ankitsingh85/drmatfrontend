@@ -40,6 +40,12 @@ interface Clinic {
   trusted?: boolean;
   reviews?: number;
   availableServices?: string;
+  clinicServices?: Array<{
+    _id: string;
+    name: string;
+    description?: string;
+    imageUrl?: string;
+  }>;
   doctors?: Array<{
     name: string;
     regNo?: string;
@@ -50,6 +56,8 @@ interface Clinic {
 interface ClinicService {
   id: string;
   name: string;
+  description?: string;
+  imageUrl?: string;
 }
 
 const stripHtml = (value?: string) => {
@@ -261,7 +269,22 @@ const ClinicDetailPage = () => {
         };
 
         setClinic(normalizedClinic);
-        setServices(parseServices(data.availableServices));
+
+        // Prefer the admin/clinic-picked catalog services (real name +
+        // image + description) over the legacy free-text availableServices
+        // blob — only fall back to parsing that text when nothing has been
+        // picked from the catalog yet.
+        const catalogServices = (data.clinicServices || []).map((s) => ({
+          id: s._id,
+          name: s.name,
+          description: s.description,
+          imageUrl: s.imageUrl,
+        }));
+        setServices(
+          catalogServices.length > 0
+            ? catalogServices
+            : parseServices(data.availableServices)
+        );
       } catch (err: any) {
         setError(err.message || "Error loading clinic");
       } finally {
@@ -376,12 +399,27 @@ const ClinicDetailPage = () => {
                 <div className={styles.servicesGrid}>
                   {services.map((service, index) => (
                     <article key={service.id} className={styles.serviceCard}>
-                      <span className={styles.serviceNumber}>
-                        {(index + 1).toString().padStart(2, "0")}
-                      </span>
+                      {service.imageUrl ? (
+                        <img
+                          src={getImage(service.imageUrl)}
+                          alt={service.name}
+                          style={{
+                            width: "100%",
+                            height: 120,
+                            objectFit: "cover",
+                            borderRadius: 10,
+                            marginBottom: 8,
+                          }}
+                        />
+                      ) : (
+                        <span className={styles.serviceNumber}>
+                          {(index + 1).toString().padStart(2, "0")}
+                        </span>
+                      )}
                       <h4 className={styles.serviceTitle}>{service.name}</h4>
                       <p className={styles.serviceMeta}>
-                        Personalized dermatology support and treatment planning.
+                        {service.description ||
+                          "Personalized dermatology support and treatment planning."}
                       </p>
                     </article>
                   ))}

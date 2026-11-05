@@ -10,10 +10,12 @@ import { OrderProvider } from "@/context/OrderContext";
 import { TopbarProfileProvider } from "@/context/TopbarProfileContext";
 import { ToastProvider } from "@/context/ToastContext";
 import { ConfirmProvider } from "@/context/ConfirmContext";
+import { CallProvider } from "@/context/CallContext";
 
 // Global Loader
 import { LoaderProvider } from "@/components/global/LoderProvider";
 import CartToast from "@/components/common/CartToast";
+import IncomingCallPopup from "@/components/chat/IncomingCallPopup";
 
 export default function App({ Component, pageProps }: AppProps) {
   const [isDesktop, setIsDesktop] = useState(false);
@@ -37,8 +39,11 @@ export default function App({ Component, pageProps }: AppProps) {
             <CartProvider>
               <OrderProvider>
                 <LoaderProvider>
-                  <Component {...pageProps} />
-                  <CartToast />
+                  <CallProvider>
+                    <Component {...pageProps} />
+                    <CartToast />
+                    <IncomingCallPopup />
+                  </CallProvider>
 
                 {/* Optional cursor */}
                 {/* {isDesktop && (

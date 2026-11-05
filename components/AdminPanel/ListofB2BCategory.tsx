@@ -297,8 +297,18 @@ export default function ListofB2BCategory({
                   />
                 </th>
               )}
-              <th>S.No</th>
-              <th>Name</th>
+              <th
+                className={styles.frozenCell}
+                style={{ left: canDelete ? 36 : 0, width: 60, minWidth: 60 }}
+              >
+                S.No
+              </th>
+              <th
+                className={styles.frozenCell}
+                style={{ left: canDelete ? 96 : 60, width: 160, minWidth: 160 }}
+              >
+                Name
+              </th>
               <th>Image</th>
               <th>Action</th>
             </tr>
@@ -317,8 +327,18 @@ export default function ListofB2BCategory({
                     />
                   </td>
                 )}
-                <td>{(currentPage - 1) * itemsPerPage + index + 1}</td>
-                <td>{cat.name}</td>
+                <td
+                  className={styles.frozenCell}
+                  style={{ left: canDelete ? 36 : 0, width: 60, minWidth: 60 }}
+                >
+                  {(currentPage - 1) * itemsPerPage + index + 1}
+                </td>
+                <td
+                  className={styles.frozenCell}
+                  style={{ left: canDelete ? 96 : 60, width: 160, minWidth: 160 }}
+                >
+                  {cat.name}
+                </td>
                 <td>
                   <img
                     src={resolveMediaUrl(cat.imageUrl) || cat.imageUrl}

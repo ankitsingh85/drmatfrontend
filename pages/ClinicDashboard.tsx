@@ -24,6 +24,7 @@ import {
   FiPhone,
   FiGift,
   FiActivity,
+  FiClipboard,
 } from "react-icons/fi";
 
 import styles from "@/styles/clinicdashboard/clinicportal.module.css";
@@ -38,7 +39,9 @@ import ClinicReviews from "@/components/ClinicAdmin/ClinicReviews";
 import EditClinic from "@/components/ClinicAdmin/EditClinic";
 import ClinicOrderHistory from "@/components/ClinicAdmin/ClinicOrderHistory";
 import ClinicTreatmentBookings from "@/components/ClinicAdmin/ClinicTreatmentBookings";
+import ClinicTreatmentSettlements from "@/components/ClinicAdmin/ClinicTreatmentSettlements";
 import SubscriptionPlan from "@/components/ClinicAdmin/SubscriptionPlan";
+import ClinicServicesTab from "@/components/ClinicAdmin/ClinicServicesTab";
 
 
 type JwtPayload = {
@@ -60,6 +63,7 @@ type ClinicRecord = {
   certifications?: string[];
   website?: string;
   dermaCategory?: { _id?: string; name?: string } | string;
+  clinicServices?: Array<{ _id: string; name: string; imageUrl?: string; description?: string }>;
 };
 
 type SectionId =
@@ -69,6 +73,7 @@ type SectionId =
   | "lead"
   | "orders"
   | "treatmentBookings"
+  | "treatmentSettlements"
   | "services"
   | "purchased"
   | "help"
@@ -345,9 +350,14 @@ export default function ClinicDashboard() {
           label: "Treatment Booking",
           icon: FiActivity,
         },
+        {
+          id: "treatmentSettlements" as const,
+          label: "Treatment Settlements",
+          icon: FiTrendingUp,
+        },
         { id: "plan" as const, label: "Subscription Plan", icon: FiCreditCard },
+        { id: "services" as const, label: "Services", icon: FiClipboard },
         // { id: "doctors" as const, label: "Doctors", icon: FiUsers },
-        // { id: "services" as const, label: "Services", icon: FiClipboard },
         // { id: "purchased" as const, label: "Purchased Services", icon: FiClipboard },
         { id: "help" as const, label: "Help Center", icon: FiHelpCircle },
         { id: "settings" as const, label: "Settings", icon: FiSettings },
@@ -636,6 +646,7 @@ export default function ClinicDashboard() {
     lead: "Lead",
     orders: "Orders",
     treatmentBookings: "Treatment Booking",
+    treatmentSettlements: "Treatment Settlements",
     services: "Services",
     purchased: "Purchased Services",
     help: "Help Center",
@@ -673,10 +684,30 @@ export default function ClinicDashboard() {
       );
     }
 
+    if (activeSection === "treatmentSettlements") {
+      return (
+        <div className={styles.sectionShell}>
+          <ClinicTreatmentSettlements clinicId={clinicId} />
+        </div>
+      );
+    }
+
     if (activeSection === "plan") {
       return (
         <div className={styles.sectionShell}>
           <SubscriptionPlan clinicId={clinicId} />
+        </div>
+      );
+    }
+
+    if (activeSection === "services") {
+      return (
+        <div className={styles.sectionShell}>
+          <ClinicServicesTab
+            clinicId={clinicId}
+            initialSelectedIds={(clinic?.clinicServices || []).map((s) => s._id)}
+            onSaved={() => fetchClinic(clinicId)}
+          />
         </div>
       );
     }

@@ -320,8 +320,18 @@ const ListOfCategory = ({ canEdit = true, canDelete = true }: ListOfCategoryProp
                 />
               </th>
             )}
-            <th>ID</th>
-            <th>Name</th>
+            <th
+              className={styles.frozenCell}
+              style={{ left: canDelete ? 36 : 0, width: 70, minWidth: 70 }}
+            >
+              ID
+            </th>
+            <th
+              className={styles.frozenCell}
+              style={{ left: canDelete ? 106 : 70, width: 160, minWidth: 160 }}
+            >
+              Name
+            </th>
             <th>Image</th>
             <th>Actions</th>
           </tr>
@@ -339,8 +349,18 @@ const ListOfCategory = ({ canEdit = true, canDelete = true }: ListOfCategoryProp
                   />
                 </td>
               )}
-              <td>{cat.id}</td>
-              <td>{cat.name}</td>
+              <td
+                className={styles.frozenCell}
+                style={{ left: canDelete ? 36 : 0, width: 70, minWidth: 70 }}
+              >
+                {cat.id}
+              </td>
+              <td
+                className={styles.frozenCell}
+                style={{ left: canDelete ? 106 : 70, width: 160, minWidth: 160 }}
+              >
+                {cat.name}
+              </td>
               <td>
                 <img
                   src={resolveMediaUrl(cat.imageUrl) || cat.imageUrl}

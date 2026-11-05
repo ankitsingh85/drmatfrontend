@@ -8,10 +8,7 @@ import createStyles from "@/styles/Dashboard/createdoctor.module.css";
 import { API_URL } from "@/config/api";
 import FullPageLoader from "@/components/common/FullPageLoader";
 import { useToast } from "@/context/ToastContext";
-import { useConfirm } from "@/context/ConfirmContext";
 import TableActions from "@/components/AdminPanel/common/TableActions";
-import BulkSelectBar from "@/components/AdminPanel/common/BulkSelectBar";
-import { useBulkSelection } from "@/hooks/useBulkSelection";
 import bulkStyles from "@/styles/Dashboard/bulkSelect.module.css";
 import { resolveMediaUrl, getExportSafeMediaValue } from "@/lib/media";
 // import { ListOfDoctors } from '@/components/ClinicAdmin/ListOfDoctors';
@@ -29,6 +26,7 @@ interface Doctor {
   profileImage?: string;
   address?: string;
   isAvailableForConsultation?: boolean;
+  isActive?: boolean;
   createdAt: string;
 }
 
@@ -43,12 +41,10 @@ const specialists = [
 
 type ListOfDoctorProps = {
   canEdit?: boolean;
-  canDelete?: boolean;
 };
 
-const ListOfDoctor: React.FC<ListOfDoctorProps> = ({ canEdit = true, canDelete = true }) => {
+const ListOfDoctor: React.FC<ListOfDoctorProps> = ({ canEdit = true }) => {
   const toast = useToast();
-  const confirmDialog = useConfirm();
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -84,11 +80,40 @@ const ListOfDoctor: React.FC<ListOfDoctorProps> = ({ canEdit = true, canDelete =
     fetchDoctors();
   }, []);
 
-  /* ================= DELETE ================= */
-  const handleDelete = async (id: string) => {
-    if (!(await confirmDialog("Are you sure you want to delete this doctor?", { danger: true }))) return;
-    await axios.delete(`${API_URL}/doctoradmin/${id}`);
-    fetchDoctors();
+  /* ================= ENABLE / DISABLE ================= */
+  // Doctors are never deleted from the admin panel — disabling blocks their
+  // login and takes them out of consultation matching while keeping their
+  // history (chats, orders, commissions) intact.
+  const handleToggleActive = async (doctor: Doctor) => {
+    const nextIsActive = doctor.isActive === false;
+
+    setDoctors((prev) =>
+      prev.map((item) => (item._id === doctor._id ? { ...item, isActive: nextIsActive } : item))
+    );
+
+    try {
+      const res = await fetch(`${API_URL}/doctoradmin/${doctor._id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isActive: nextIsActive }),
+      });
+
+      const updated = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(updated?.msg || "Failed to update doctor status");
+      }
+
+      setDoctors((prev) =>
+        prev.map((item) => (item._id === doctor._id ? { ...item, ...updated } : item))
+      );
+    } catch (err: any) {
+      setDoctors((prev) =>
+        prev.map((item) =>
+          item._id === doctor._id ? { ...item, isActive: doctor.isActive } : item
+        )
+      );
+      toast.error(err?.message || "Failed to update doctor status");
+    }
   };
 
   /* ================= EDIT ================= */
@@ -208,8 +233,6 @@ const ListOfDoctor: React.FC<ListOfDoctorProps> = ({ canEdit = true, canDelete =
     return filteredDoctors.slice(start, start + itemsPerPage);
   }, [filteredDoctors, currentPage, itemsPerPage]);
 
-  const bulkSelection = useBulkSelection(paginatedDoctors, (d) => d._id);
-
   const stripHtmlToText = (value: string | undefined, maxLength = 60) => {
     if (!value) return "-";
     const text = value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
@@ -231,6 +254,7 @@ const ListOfDoctor: React.FC<ListOfDoctorProps> = ({ canEdit = true, canDelete =
         "Address",
         "Description",
         "Available",
+        "Status",
         "Created",
       ],
       ...filteredDoctors.map((d) => [
@@ -245,6 +269,7 @@ const ListOfDoctor: React.FC<ListOfDoctorProps> = ({ canEdit = true, canDelete =
         d.address || "-",
         stripHtmlToText(d.description),
         d.isAvailableForConsultation ? "Yes" : "No",
+        d.isActive === false ? "Inactive" : "Active",
         d.createdAt ? String(d.createdAt).slice(0, 10) : "-",
       ]),
     ];
@@ -298,6 +323,7 @@ const ListOfDoctor: React.FC<ListOfDoctorProps> = ({ canEdit = true, canDelete =
             <td>${escapeHtml(d.address || "-")}</td>
             <td>${escapeHtml(stripHtmlToText(d.description))}</td>
             <td>${d.isAvailableForConsultation ? "Yes" : "No"}</td>
+            <td>${d.isActive === false ? "Inactive" : "Active"}</td>
             <td>${escapeHtml(d.createdAt ? String(d.createdAt).slice(0, 10) : "-")}</td>
           </tr>`
       )
@@ -331,6 +357,7 @@ const ListOfDoctor: React.FC<ListOfDoctorProps> = ({ canEdit = true, canDelete =
                 <th>Address</th>
                 <th>Description</th>
                 <th>Available</th>
+                <th>Status</th>
                 <th>Created</th>
               </tr>
             </thead>
@@ -386,38 +413,29 @@ const ListOfDoctor: React.FC<ListOfDoctorProps> = ({ canEdit = true, canDelete =
       </div>
 
       {/* ================= TABLE ================= */}
-      <BulkSelectBar
-        endpointPath="doctoradmin"
-        selectedIds={Array.from(bulkSelection.selectedIds)}
-        noun="doctors"
-        canDelete={canDelete}
-        onClear={bulkSelection.clear}
-        onDeleted={(deletedIds) => {
-          setDoctors((prev) => prev.filter((d) => !deletedIds.includes(d._id)));
-          bulkSelection.removeIds(deletedIds);
-        }}
-      />
       <div className={bulkStyles.tableScroll}>
       <table className={styles.table}>
         <thead>
           <tr>
-            {canDelete && (
-              <th className={bulkStyles.checkboxCell}>
-                <input
-                  type="checkbox"
-                  checked={bulkSelection.isAllSelected}
-                  ref={(el) => {
-                    if (el) el.indeterminate = bulkSelection.isSomeSelected;
-                  }}
-                  onChange={bulkSelection.toggleAll}
-                  aria-label="Select all doctors on this page"
-                />
+              <th
+                className={`${styles.th} ${styles.frozenCell}`}
+                style={{ left: 0, width: 90, minWidth: 90 }}
+              >
+                Doctor ID
               </th>
-            )}
-              <th className={styles.th}>Doctor ID</th>
-            <th className={styles.th}>Photo</th>
+            <th
+              className={`${styles.th} ${styles.frozenCell}`}
+              style={{ left: 90, width: 56, minWidth: 56 }}
+            >
+              Photo
+            </th>
             <th className={styles.th}>Title</th>
-            <th className={styles.th}>First Name</th>
+            <th
+              className={`${styles.th} ${styles.frozenCell}`}
+              style={{ left: 146, width: 130, minWidth: 130 }}
+            >
+              First Name
+            </th>
             <th className={styles.th}>Last Name</th>
             <th className={styles.th}>Specialist</th>
             <th className={styles.th}>Email</th>
@@ -425,6 +443,7 @@ const ListOfDoctor: React.FC<ListOfDoctorProps> = ({ canEdit = true, canDelete =
             <th className={styles.th}>Address</th>
             <th className={styles.th}>Description</th>
             <th className={styles.th}>Available</th>
+            <th className={styles.th}>Status</th>
             <th className={styles.th}>Created</th>
             <th className={styles.th}>Actions</th>
           </tr>
@@ -433,18 +452,16 @@ const ListOfDoctor: React.FC<ListOfDoctorProps> = ({ canEdit = true, canDelete =
         <tbody>
           {paginatedDoctors.map((d) => (
         <tr key={d._id}>
-  {canDelete && (
-    <td className={bulkStyles.checkboxCell}>
-      <input
-        type="checkbox"
-        checked={bulkSelection.isSelected(d._id)}
-        onChange={() => bulkSelection.toggle(d._id)}
-        aria-label={`Select ${d.firstName} ${d.lastName}`}
-      />
-    </td>
-  )}
-  <td className={styles.td}>{d.doctorCode || "-"}</td>
-  <td className={styles.td}>
+  <td
+    className={`${styles.td} ${styles.frozenCell}`}
+    style={{ left: 0, width: 90, minWidth: 90 }}
+  >
+    {d.doctorCode || "-"}
+  </td>
+  <td
+    className={`${styles.td} ${styles.frozenCell}`}
+    style={{ left: 90, width: 56, minWidth: 56 }}
+  >
     {d.profileImage ? (
       <img
         src={resolveMediaUrl(d.profileImage) || d.profileImage}
@@ -456,7 +473,12 @@ const ListOfDoctor: React.FC<ListOfDoctorProps> = ({ canEdit = true, canDelete =
     )}
   </td>
   <td className={styles.td}>{d.title || "-"}</td>
-  <td className={styles.td}>{d.firstName}</td>
+  <td
+    className={`${styles.td} ${styles.frozenCell}`}
+    style={{ left: 146, width: 130, minWidth: 130 }}
+  >
+    {d.firstName}
+  </td>
   <td className={styles.td}>{d.lastName}</td>
   <td className={styles.td}>{d.specialist}</td>
   <td className={styles.td}>{d.email}</td>
@@ -464,21 +486,32 @@ const ListOfDoctor: React.FC<ListOfDoctorProps> = ({ canEdit = true, canDelete =
   <td className={styles.td}>{d.address || "-"}</td>
   <td className={styles.td}>{stripHtmlToText(d.description)}</td>
   <td className={styles.td}>{d.isAvailableForConsultation ? "Yes" : "No"}</td>
+  <td className={styles.td}>
+    <button
+      type="button"
+      className={`${styles.toggleSwitch} ${
+        d.isActive === false ? "" : styles.toggleSwitchOn
+      }`}
+      onClick={() => handleToggleActive(d)}
+      aria-pressed={d.isActive !== false}
+    >
+      <span className={styles.toggleKnob} />
+      {d.isActive === false ? "Disabled" : "Enabled"}
+    </button>
+  </td>
   <td className={styles.td}>{d.createdAt ? String(d.createdAt).slice(0, 10) : "-"}</td>
 
   <td className={styles.td}>
     <TableActions
       onEdit={() => handleEdit(d)}
-      onDelete={() => handleDelete(d._id)}
       canEdit={canEdit}
-      canDelete={canDelete}
     />
   </td>
 </tr>
           ))}
           {paginatedDoctors.length === 0 && (
             <tr>
-              <td className={styles.td} colSpan={canDelete ? 13 : 12}>
+              <td className={styles.td} colSpan={14}>
                 No doctors found.
               </td>
             </tr>

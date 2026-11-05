@@ -15,6 +15,9 @@ import { useBulkSelection } from "@/hooks/useBulkSelection";
 import bulkStyles from "@/styles/Dashboard/bulkSelect.module.css";
 import { useConfirm } from "@/context/ConfirmContext";
 import "react-quill/dist/quill.snow.css";
+import ClinicServiceCheckboxList, {
+  useClinicServiceCatalog,
+} from "@/components/common/ClinicServiceCheckboxList";
 
 const ReactQuill = dynamicImport(() => import("react-quill"), { ssr: false });
 
@@ -93,6 +96,7 @@ type Clinic = {
   experience?: string;
   treatmentsAvailable?: string;
   availableServices?: string;
+  clinicServices?: Array<{ _id: string; name: string; imageUrl?: string; description?: string }>;
   consultationFee?: string;
   bookingMode?: string;
   clinicDescription?: string;
@@ -198,6 +202,13 @@ function ListOfClinic({ canEdit = true, canDelete = true }: ListOfClinicProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editLoading, setEditLoading] = useState(false);
   const [editSubmitting, setEditSubmitting] = useState(false);
+
+  const { catalog: serviceCatalog } = useClinicServiceCatalog();
+  const [editSelectedServiceIds, setEditSelectedServiceIds] = useState<string[]>([]);
+  const toggleEditServiceId = (id: string) =>
+    setEditSelectedServiceIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
 
   const [editDoctors, setEditDoctors] = useState<Doctor[]>([]);
   const [showEditDoctorModal, setShowEditDoctorModal] = useState(false);
@@ -405,6 +416,7 @@ function ListOfClinic({ canEdit = true, canDelete = true }: ListOfClinicProps) {
         clinicStatus: full.clinicStatus || "Open",
         verifiedBadge: !!full.verifiedBadge,
       });
+      setEditSelectedServiceIds((full.clinicServices || []).map((s) => s._id));
       setEditDoctors(full.doctors || []);
       setEditWorkingHours({
         openTime: full.workingHours?.openTime || "",
@@ -561,6 +573,7 @@ function ListOfClinic({ canEdit = true, canDelete = true }: ListOfClinicProps) {
       formData.append("clinicStatus", editForm.clinicStatus);
       formData.append("verifiedBadge", String(editForm.verifiedBadge));
       formData.append("doctors", JSON.stringify(editDoctors));
+      formData.append("clinicServices", JSON.stringify(editSelectedServiceIds));
 
       formData.append("rateCard", JSON.stringify(editKeptRateCard));
       formData.append("specialOffers", JSON.stringify(editKeptSpecialOffers));
@@ -1083,9 +1096,15 @@ function ListOfClinic({ canEdit = true, canDelete = true }: ListOfClinicProps) {
                     />
                   </th>
                 )}
-                <th>CUC</th>
-                <th>Logo</th>
-                <th>Name</th>
+                <th className={styles.frozenCell} style={{ left: 36, width: 110, minWidth: 110 }}>
+                  CUC
+                </th>
+                <th className={styles.frozenCell} style={{ left: 146, width: 60, minWidth: 60 }}>
+                  Logo
+                </th>
+                <th className={styles.frozenCell} style={{ left: 206, width: 160, minWidth: 160 }}>
+                  Name
+                </th>
                 <th>Slug</th>
                 <th>Type</th>
                 <th>Owner</th>
@@ -1146,8 +1165,10 @@ function ListOfClinic({ canEdit = true, canDelete = true }: ListOfClinicProps) {
                       />
                     </td>
                   )}
-                  <td>{clinic.cuc}</td>
-                  <td>
+                  <td className={styles.frozenCell} style={{ left: 36, width: 110, minWidth: 110 }}>
+                    {clinic.cuc}
+                  </td>
+                  <td className={styles.frozenCell} style={{ left: 146, width: 60, minWidth: 60 }}>
                     {clinic.clinicLogo ? (
                       <img
                         src={resolveMediaUrl(clinic.clinicLogo) || clinic.clinicLogo}
@@ -1158,7 +1179,9 @@ function ListOfClinic({ canEdit = true, canDelete = true }: ListOfClinicProps) {
                       "-"
                     )}
                   </td>
-                  <td>{clinic.clinicName}</td>
+                  <td className={styles.frozenCell} style={{ left: 206, width: 160, minWidth: 160 }}>
+                    {clinic.clinicName}
+                  </td>
                   <td>{clinic.slug || "-"}</td>
                   <td>{clinic.clinicType || "-"}</td>
                   <td>{clinic.ownerName || "-"}</td>
@@ -1911,6 +1934,15 @@ function ListOfClinic({ canEdit = true, canDelete = true }: ListOfClinicProps) {
                     modules={quillModules}
                   />
                 </div>
+
+                <div className={editStyles.fullField}>
+                  <label className={editStyles.label}>Clinic Services (from catalog)</label>
+                  <ClinicServiceCheckboxList
+                    catalog={serviceCatalog}
+                    selectedIds={editSelectedServiceIds}
+                    onToggle={toggleEditServiceId}
+                  />
+                </div>
               </section>
 
               {/* 8. PRICING & BOOKING */}
@@ -2373,6 +2405,31 @@ function ListOfClinic({ canEdit = true, canDelete = true }: ListOfClinicProps) {
                       />
                     </div>
                   ) : null
+                )}
+
+                {viewClinic.clinicServices && viewClinic.clinicServices.length > 0 && (
+                  <div style={{ marginBottom: 16 }}>
+                    <h4 style={{ margin: "0 0 6px", fontSize: 15, fontWeight: 800, color: "#173252" }}>
+                      Clinic Services
+                    </h4>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                      {viewClinic.clinicServices.map((s) => (
+                        <span
+                          key={s._id}
+                          style={{
+                            fontSize: 13,
+                            padding: "4px 10px",
+                            borderRadius: 999,
+                            background: "#eef6fb",
+                            border: "1px solid #2981b7",
+                            color: "#0f172a",
+                          }}
+                        >
+                          {s.name}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
                 )}
 
                 {viewClinic.video && (

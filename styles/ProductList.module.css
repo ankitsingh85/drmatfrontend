@@ -168,6 +168,7 @@
 }
 
 .productImageWrap {
+  position: relative;
   width: 100%;
   aspect-ratio: 4 / 3;
   border-radius: 16px;
@@ -186,10 +187,51 @@
   border-radius: 12px;
 }
 
+.discountBadge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  padding: 5px 10px;
+  border-radius: 999px;
+  box-shadow: 0 6px 14px rgba(220, 38, 38, 0.35);
+}
+
+.unavailableBadge {
+  position: absolute;
+  inset: 8px;
+  background: rgba(15, 23, 42, 0.55);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-radius: 12px;
+}
+
 .productInfo {
   display: grid;
   gap: 4px;
   flex: 1;
+}
+
+.categoryName {
+  margin: 0;
+  display: inline-flex;
+  width: fit-content;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #0a4b83;
+  background: #eaf3ff;
+  padding: 3px 10px;
+  border-radius: 999px;
 }
 
 .productName {
