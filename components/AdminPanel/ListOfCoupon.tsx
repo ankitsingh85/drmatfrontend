@@ -419,7 +419,7 @@ const ListOfCoupon: React.FC<ListOfCouponProps> = ({ canEdit = true, canDelete =
             <thead>
               <tr>
                 {canDelete && (
-                  <th>
+                  <th className={styles.frozenCell} style={{ left: 0, width: 36, minWidth: 36 }}>
                     <input
                       type="checkbox"
                       checked={bulkSelection.isAllSelected}
@@ -431,8 +431,18 @@ const ListOfCoupon: React.FC<ListOfCouponProps> = ({ canEdit = true, canDelete =
                     />
                   </th>
                 )}
-                <th>Coupon ID</th>
-                <th>Coupon Name</th>
+                <th
+                  className={styles.frozenCell}
+                  style={{ left: canDelete ? 36 : 0, width: 90, minWidth: 90 }}
+                >
+                  Coupon ID
+                </th>
+                <th
+                  className={styles.frozenCell}
+                  style={{ left: canDelete ? 126 : 90, width: 170, minWidth: 170 }}
+                >
+                  Coupon Name
+                </th>
                 <th>Coupon Code</th>
                 <th>Discount Type</th>
                 <th>Amount</th>
@@ -456,7 +466,7 @@ const ListOfCoupon: React.FC<ListOfCouponProps> = ({ canEdit = true, canDelete =
               {paginatedCoupons.map((c) => (
                 <tr key={c._id}>
                   {canDelete && (
-                    <td>
+                    <td className={styles.frozenCell} style={{ left: 0, width: 36, minWidth: 36 }}>
                       <input
                         type="checkbox"
                         checked={bulkSelection.isSelected(c._id)}
@@ -465,8 +475,18 @@ const ListOfCoupon: React.FC<ListOfCouponProps> = ({ canEdit = true, canDelete =
                       />
                     </td>
                   )}
-                  <td className={styles.id}>{c.couponId}</td>
-                  <td>{c.couponName}</td>
+                  <td
+                    className={`${styles.id} ${styles.frozenCell}`}
+                    style={{ left: canDelete ? 36 : 0, width: 90, minWidth: 90 }}
+                  >
+                    {c.couponId}
+                  </td>
+                  <td
+                    className={styles.frozenCell}
+                    style={{ left: canDelete ? 126 : 90, width: 170, minWidth: 170 }}
+                  >
+                    {c.couponName}
+                  </td>
                   <td>{c.couponCode}</td>
                   <td>{c.discountType === "percent" ? "Percent" : "Amount"}</td>
                   <td>{discountLabel(c)}</td>
@@ -552,26 +572,105 @@ const ListOfCoupon: React.FC<ListOfCouponProps> = ({ canEdit = true, canDelete =
       {viewCoupon && (
         <div className={styles.modalOverlay} onClick={() => setViewCoupon(null)}>
           <div className={styles.viewModal} onClick={(e) => e.stopPropagation()}>
-            <h2>{viewCoupon.couponName}</h2>
-            <div className={styles.viewGrid}>
-              <p><strong>Coupon ID:</strong> {viewCoupon.couponId}</p>
-              <p><strong>Coupon Code:</strong> {viewCoupon.couponCode}</p>
-              <p><strong>Discount Type:</strong> {viewCoupon.discountType}</p>
-              <p><strong>Amount:</strong> {discountLabel(viewCoupon)}</p>
-              <p><strong>Start Date:</strong> {formatDate(viewCoupon.startDate)}</p>
-              <p><strong>Expiry Date:</strong> {formatDate(viewCoupon.expiryDate)}</p>
-              <p><strong>Status:</strong> {viewCoupon.isActive ? "Active" : "Disabled"}</p>
-              <p><strong>No. of Uses:</strong> {viewCoupon.usageLimit ?? "Unlimited"}</p>
-              <p><strong>Times Used:</strong> {viewCoupon.timesUsed ?? 0}</p>
-              <p><strong>Customer No. Allocation:</strong> {viewCoupon.perCustomerLimit ?? "Unlimited"}</p>
-              <p><strong>Service Section:</strong> {viewCoupon.serviceSection}</p>
-              <p><strong>Sub-service:</strong> {viewCoupon.subService || "-"}</p>
-              <p><strong>Cart Value:</strong> {viewCoupon.cartValue !== undefined ? `₹${viewCoupon.cartValue}` : "-"}</p>
-              <p><strong>New User Only:</strong> {viewCoupon.newUserOnly ? "Yes" : "No"}</p>
-              <p><strong>Maximum Coupon Discount:</strong> {viewCoupon.maxDiscount !== undefined ? `₹${viewCoupon.maxDiscount}` : "-"}</p>
-              <p><strong>Shown to Users in Cart:</strong> {viewCoupon.isPublic ? "Yes" : "No"}</p>
-              <p><strong>Created:</strong> {formatDate(viewCoupon.createdAt)}</p>
+            <div className={styles.viewHeader}>
+              <div>
+                <p className={styles.viewKicker}>Coupon</p>
+                <h2 className={styles.viewTitle}>{viewCoupon.couponName}</h2>
+                <span className={styles.viewCodeChip}>{viewCoupon.couponCode}</span>
+              </div>
+              <button
+                type="button"
+                className={styles.viewCloseIcon}
+                onClick={() => setViewCoupon(null)}
+                aria-label="Close"
+              >
+                ×
+              </button>
             </div>
+
+            <div className={styles.viewStatusRow}>
+              <span
+                className={`${styles.viewPill} ${
+                  viewCoupon.isActive ? styles.viewPillOn : styles.viewPillOff
+                }`}
+              >
+                {viewCoupon.isActive ? "Active" : "Disabled"}
+              </span>
+              <span
+                className={`${styles.viewPill} ${
+                  viewCoupon.isPublic ? styles.viewPillOn : styles.viewPillOff
+                }`}
+              >
+                {viewCoupon.isPublic ? "Shown in Cart" : "Hidden from Cart"}
+              </span>
+              {viewCoupon.newUserOnly && (
+                <span className={`${styles.viewPill} ${styles.viewPillInfo}`}>New Users Only</span>
+              )}
+            </div>
+
+            <div className={styles.viewGrid}>
+              <div className={styles.viewItem}>
+                <span className={styles.viewLabel}>Coupon ID</span>
+                <span className={styles.viewValue}>{viewCoupon.couponId}</span>
+              </div>
+              <div className={styles.viewItem}>
+                <span className={styles.viewLabel}>Discount Type</span>
+                <span className={styles.viewValue}>
+                  {viewCoupon.discountType === "percent" ? "Percent" : "Flat Amount"}
+                </span>
+              </div>
+              <div className={styles.viewItem}>
+                <span className={styles.viewLabel}>Amount</span>
+                <span className={`${styles.viewValue} ${styles.viewValueStrong}`}>
+                  {discountLabel(viewCoupon)}
+                </span>
+              </div>
+              <div className={styles.viewItem}>
+                <span className={styles.viewLabel}>Maximum Coupon Discount</span>
+                <span className={styles.viewValue}>
+                  {viewCoupon.maxDiscount !== undefined ? `₹${viewCoupon.maxDiscount}` : "-"}
+                </span>
+              </div>
+              <div className={styles.viewItem}>
+                <span className={styles.viewLabel}>Start Date</span>
+                <span className={styles.viewValue}>{formatDate(viewCoupon.startDate)}</span>
+              </div>
+              <div className={styles.viewItem}>
+                <span className={styles.viewLabel}>Expiry Date</span>
+                <span className={styles.viewValue}>{formatDate(viewCoupon.expiryDate)}</span>
+              </div>
+              <div className={styles.viewItem}>
+                <span className={styles.viewLabel}>No. of Uses</span>
+                <span className={styles.viewValue}>{viewCoupon.usageLimit ?? "Unlimited"}</span>
+              </div>
+              <div className={styles.viewItem}>
+                <span className={styles.viewLabel}>Times Used</span>
+                <span className={styles.viewValue}>{viewCoupon.timesUsed ?? 0}</span>
+              </div>
+              <div className={styles.viewItem}>
+                <span className={styles.viewLabel}>Customer No. Allocation</span>
+                <span className={styles.viewValue}>{viewCoupon.perCustomerLimit ?? "Unlimited"}</span>
+              </div>
+              <div className={styles.viewItem}>
+                <span className={styles.viewLabel}>Service Section</span>
+                <span className={styles.viewValue}>{viewCoupon.serviceSection}</span>
+              </div>
+              <div className={styles.viewItem}>
+                <span className={styles.viewLabel}>Sub-service</span>
+                <span className={styles.viewValue}>{viewCoupon.subService || "-"}</span>
+              </div>
+              <div className={styles.viewItem}>
+                <span className={styles.viewLabel}>Cart Value</span>
+                <span className={styles.viewValue}>
+                  {viewCoupon.cartValue !== undefined ? `₹${viewCoupon.cartValue}` : "-"}
+                </span>
+              </div>
+              <div className={styles.viewItem}>
+                <span className={styles.viewLabel}>Created</span>
+                <span className={styles.viewValue}>{formatDate(viewCoupon.createdAt)}</span>
+              </div>
+            </div>
+
             <button className={styles.closeBtn} onClick={() => setViewCoupon(null)}>
               Close
             </button>

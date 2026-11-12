@@ -329,8 +329,18 @@ const ListOfClinicCategory = ({ canEdit = true, canDelete = true }: ListOfClinic
         />
       </th>
     )}
-    <th>Category ID</th>
-    <th>Name</th>
+    <th
+      className={styles.frozenCell}
+      style={{ left: canDelete ? 36 : 0, width: 100, minWidth: 100 }}
+    >
+      Category ID
+    </th>
+    <th
+      className={styles.frozenCell}
+      style={{ left: canDelete ? 136 : 100, width: 160, minWidth: 160 }}
+    >
+      Name
+    </th>
     <th>Image</th>
     <th>Actions</th>
   </tr>
@@ -350,9 +360,19 @@ const ListOfClinicCategory = ({ canEdit = true, canDelete = true }: ListOfClinic
     </td>
   )}
 
-  <td>{cat.categoryId}</td>
+  <td
+    className={styles.frozenCell}
+    style={{ left: canDelete ? 36 : 0, width: 100, minWidth: 100 }}
+  >
+    {cat.categoryId}
+  </td>
 
-  <td>{cat.name}</td>
+  <td
+    className={styles.frozenCell}
+    style={{ left: canDelete ? 136 : 100, width: 160, minWidth: 160 }}
+  >
+    {cat.name}
+  </td>
 
   <td>
     <img

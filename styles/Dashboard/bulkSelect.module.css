@@ -61,8 +61,32 @@
 .checkboxCell {
   width: 36px;
   text-align: center;
+  position: sticky;
+  left: 0;
+}
+
+thead .checkboxCell {
+  z-index: 4;
+}
+
+tbody .checkboxCell {
+  z-index: 2;
 }
 
 .tableScroll {
-  overflow-x: auto;
+  overflow: auto;
+  max-height: 72vh;
+}
+
+/* Generic frozen "identity" column (usually Name/Title), used alongside
+   .checkboxCell — pass the left offset (checkbox width, or 0 if no
+   checkbox column) via inline style={{ left }} on the th/td. */
+.stickyCol {
+  position: sticky;
+  z-index: 2;
+  box-shadow: 2px 0 4px rgba(15, 23, 42, 0.08);
+}
+
+thead .stickyCol {
+  z-index: 4;
 }

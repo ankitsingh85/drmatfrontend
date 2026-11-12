@@ -796,9 +796,24 @@ export default function ListOfB2BProduct({ canEdit = true, canDelete = true }: L
                   />
                 </th>
               )}
-              <th>SKU</th>
-              <th>Image</th>
-              <th>Name</th>
+              <th
+                className={styles.frozenCell}
+                style={{ left: canDelete ? 36 : 0, width: 100, minWidth: 100 }}
+              >
+                SKU
+              </th>
+              <th
+                className={styles.frozenCell}
+                style={{ left: canDelete ? 136 : 100, width: 60, minWidth: 60 }}
+              >
+                Image
+              </th>
+              <th
+                className={styles.frozenCell}
+                style={{ left: canDelete ? 196 : 160, width: 170, minWidth: 170 }}
+              >
+                Name
+              </th>
               <th>Category</th>
               <th>Sub Category</th>
               <th>Brand</th>
@@ -845,8 +860,16 @@ export default function ListOfB2BProduct({ canEdit = true, canDelete = true }: L
                     />
                   </td>
                 )}
-                <td>{p.sku}</td>
-                <td>
+                <td
+                  className={styles.frozenCell}
+                  style={{ left: canDelete ? 36 : 0, width: 100, minWidth: 100 }}
+                >
+                  {p.sku}
+                </td>
+                <td
+                  className={styles.frozenCell}
+                  style={{ left: canDelete ? 136 : 100, width: 60, minWidth: 60 }}
+                >
                   {p.productImages?.length ? (
                     <img
                       src={resolveMediaUrl(p.productImages[0]) || undefined}
@@ -859,7 +882,12 @@ export default function ListOfB2BProduct({ canEdit = true, canDelete = true }: L
                     "-"
                   )}
                 </td>
-                <td>{p.productName}</td>
+                <td
+                  className={styles.frozenCell}
+                  style={{ left: canDelete ? 196 : 160, width: 170, minWidth: 170 }}
+                >
+                  {p.productName}
+                </td>
                 <td>{(p.category || []).join(", ") || "-"}</td>
                 <td>{p.subCategory || "-"}</td>
                 <td>{p.brandName || "-"}</td>

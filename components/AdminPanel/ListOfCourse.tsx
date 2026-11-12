@@ -661,10 +661,30 @@ const ListOfCourse = ({ canEdit = true, canDelete = true }: ListOfCourseProps) =
                       />
                     </th>
                   )}
-                  <th>#</th>
-                  <th>Image</th>
-                  <th>Course Code</th>
-                  <th>Course Name</th>
+                  <th
+                    className={styles.frozenCell}
+                    style={{ left: canDelete ? 36 : 0, width: 40, minWidth: 40 }}
+                  >
+                    #
+                  </th>
+                  <th
+                    className={styles.frozenCell}
+                    style={{ left: canDelete ? 76 : 40, width: 60, minWidth: 60 }}
+                  >
+                    Image
+                  </th>
+                  <th
+                    className={styles.frozenCell}
+                    style={{ left: canDelete ? 136 : 100, width: 110, minWidth: 110 }}
+                  >
+                    Course Code
+                  </th>
+                  <th
+                    className={styles.frozenCell}
+                    style={{ left: canDelete ? 246 : 210, width: 200, minWidth: 200 }}
+                  >
+                    Course Name
+                  </th>
                   <th>Course Type</th>
                   <th>HSN Code</th>
                   <th>Institute</th>
@@ -715,8 +735,16 @@ const ListOfCourse = ({ canEdit = true, canDelete = true }: ListOfCourseProps) =
                         />
                       </td>
                     )}
-                    <td>{(currentPage - 1) * itemsPerPage + index + 1}</td>
-                    <td>
+                    <td
+                      className={styles.frozenCell}
+                      style={{ left: canDelete ? 36 : 0, width: 40, minWidth: 40 }}
+                    >
+                      {(currentPage - 1) * itemsPerPage + index + 1}
+                    </td>
+                    <td
+                      className={styles.frozenCell}
+                      style={{ left: canDelete ? 76 : 40, width: 60, minWidth: 60 }}
+                    >
                       {course.courseImage ? (
                         <img
                           src={resolveAssetUrl(course.courseImage)}
@@ -727,8 +755,21 @@ const ListOfCourse = ({ canEdit = true, canDelete = true }: ListOfCourseProps) =
                         "-"
                       )}
                     </td>
-                    <td>{course.courseUniqueCode || "-"}</td>
-                    <td style={{ wordBreak: "break-word" }}>
+                    <td
+                      className={styles.frozenCell}
+                      style={{ left: canDelete ? 136 : 100, width: 110, minWidth: 110 }}
+                    >
+                      {course.courseUniqueCode || "-"}
+                    </td>
+                    <td
+                      className={styles.frozenCell}
+                      style={{
+                        left: canDelete ? 246 : 210,
+                        width: 200,
+                        minWidth: 200,
+                        wordBreak: "break-word",
+                      }}
+                    >
                       {course.courseName || "Untitled Course"}
                     </td>
                     <td>

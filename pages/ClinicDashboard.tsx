@@ -38,6 +38,7 @@ import ClinicReviews from "@/components/ClinicAdmin/ClinicReviews";
 import EditClinic from "@/components/ClinicAdmin/EditClinic";
 import ClinicOrderHistory from "@/components/ClinicAdmin/ClinicOrderHistory";
 import ClinicTreatmentBookings from "@/components/ClinicAdmin/ClinicTreatmentBookings";
+import ClinicTreatmentSettlements from "@/components/ClinicAdmin/ClinicTreatmentSettlements";
 import SubscriptionPlan from "@/components/ClinicAdmin/SubscriptionPlan";
 
 
@@ -69,6 +70,7 @@ type SectionId =
   | "lead"
   | "orders"
   | "treatmentBookings"
+  | "treatmentSettlements"
   | "services"
   | "purchased"
   | "help"
@@ -344,6 +346,11 @@ export default function ClinicDashboard() {
           id: "treatmentBookings" as const,
           label: "Treatment Booking",
           icon: FiActivity,
+        },
+        {
+          id: "treatmentSettlements" as const,
+          label: "Treatment Settlements",
+          icon: FiTrendingUp,
         },
         { id: "plan" as const, label: "Subscription Plan", icon: FiCreditCard },
         // { id: "doctors" as const, label: "Doctors", icon: FiUsers },
@@ -636,6 +643,7 @@ export default function ClinicDashboard() {
     lead: "Lead",
     orders: "Orders",
     treatmentBookings: "Treatment Booking",
+    treatmentSettlements: "Treatment Settlements",
     services: "Services",
     purchased: "Purchased Services",
     help: "Help Center",
@@ -669,6 +677,14 @@ export default function ClinicDashboard() {
       return (
         <div className={styles.sectionShell}>
           <ClinicTreatmentBookings clinicId={clinicId} />
+        </div>
+      );
+    }
+
+    if (activeSection === "treatmentSettlements") {
+      return (
+        <div className={styles.sectionShell}>
+          <ClinicTreatmentSettlements clinicId={clinicId} />
         </div>
       );
     }

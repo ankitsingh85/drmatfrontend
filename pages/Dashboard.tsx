@@ -51,6 +51,7 @@ import ListOfTrainingType from "@/components/AdminPanel/ListOfTrainingType";
 import ListOfWorkshopTraning from "@/components/AdminPanel/ListOfWorkshopTraning";
 import ListOfSupportTickets from "@/components/AdminPanel/ListOfSupportTickets";
 import ListOfTransactions from "@/components/AdminPanel/ListOfTransactions";
+import ListOfTreatmentCommissions from "@/components/AdminPanel/ListOfTreatmentCommissions";
 
 /* ✅ DOCTOR */
 import CreateDoctor from "@/components/AdminPanel/CreateDoctor";
@@ -81,8 +82,6 @@ import {
   FiX,
   FiLogOut,
   FiRefreshCw,
-  FiChevronDown,
-  FiChevronRight,
   FiLock,
   FiTag,
   FiBookOpen,
@@ -103,6 +102,15 @@ import {
   FiPercent,
   FiCreditCard,
   FiStar,
+  FiTrendingUp,
+  FiGift,
+  FiZap,
+  FiBookmark,
+  FiFilm,
+  FiPlayCircle,
+  FiHeadphones,
+  FiDollarSign,
+  FiBarChart2,
 } from "react-icons/fi";
 import {
   BULK_UPLOAD_CONFIG,
@@ -150,7 +158,6 @@ export default function SuperAdminDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
-  const [othersOpen, setOthersOpen] = useState(false);
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [summaryError, setSummaryError] = useState("");
   const [lastUpdated, setLastUpdated] = useState("");
@@ -671,6 +678,7 @@ export default function SuperAdminDashboard() {
       "treatmentshorts",
       "supportTickets",
       "transactions",
+      "treatmentCommission",
     ];
     const isOthersSection = othersSectionIds.includes(activeSection);
     if (!stillVisible && !(isOthersSection && canView("others"))) {
@@ -682,7 +690,6 @@ export default function SuperAdminDashboard() {
   const handleModuleChange = (moduleId: string) => {
     setActiveSection(moduleId);
     setSectionMode("list");
-    setOthersOpen(false);
     setSidebarOpen(false);
   };
 
@@ -989,54 +996,35 @@ export default function SuperAdminDashboard() {
             </li>
           ))}
 
-          {/* The whole "OTHERS" group is gated behind a single
-              "others" permission toggle. */}
-          {canView("others") && (
-            <>
+          {/* These used to be nested under a collapsible "OTHERS" group;
+              now shown as regular top-level items, still gated behind the
+              single "others" permission toggle. */}
+          {canView("others") &&
+            [
+              { id: "listOfTopProduct", label: "List Top Product", icon: <FiTrendingUp /> },
+              { id: "offer1", label: "Product Offer", icon: <FiGift /> },
+              { id: "offer2", label: "Treatment Offer", icon: <FiZap /> },
+              { id: "offer3", label: "Coupon Offer", icon: <FiTag /> },
+              { id: "featuredSection", label: "Featured Section", icon: <FiBookmark /> },
+              { id: "latestshorts", label: "Latest Shorts", icon: <FiFilm /> },
+              { id: "treatmentshorts", label: "Treatment Shorts", icon: <FiPlayCircle /> },
+              { id: "supportTickets", label: "Hiring & Support Tickets", icon: <FiHeadphones /> },
+              { id: "transactions", label: "Transactions", icon: <FiDollarSign /> },
+              { id: "treatmentCommission", label: "Treatment Commission", icon: <FiBarChart2 /> },
+            ].map((item) => (
               <li
-                className={styles.menuItem}
-                onClick={() => setOthersOpen((prev) => !prev)}
+                key={item.id}
+                className={`${styles.menuItem} ${
+                  activeSection === item.id ? styles.menuItemActive : ""
+                }`}
+                onClick={() => handleSectionChange(item.id)}
               >
                 <span className={styles.iconLabel}>
-                  <FiLayers />
-                  <span className={styles.label}>OTHERS</span>
+                  {item.icon}
+                  <span className={styles.label}>{item.label}</span>
                 </span>
-                {othersOpen ? <FiChevronDown /> : <FiChevronRight />}
               </li>
-
-              {othersOpen && (
-                <ul className={styles.inlineDropdown}>
-                  <li onClick={() => handleSectionChange("listOfTopProduct")}>
-                    List Top Product
-                  </li>
-                  <li onClick={() => handleSectionChange("offer1")}>
-                    Product Offer
-                  </li>
-                  <li onClick={() => handleSectionChange("offer2")}>
-                    Treatment Offer
-                  </li>
-                  <li onClick={() => handleSectionChange("offer3")}>
-                    Coupon Offer
-                  </li>
-                  <li onClick={() => handleSectionChange("featuredSection")}>
-                    Featured Section
-                  </li>
-                  <li onClick={() => handleSectionChange("latestshorts")}>
-                    Latest Shorts
-                  </li>
-                  <li onClick={() => handleSectionChange("treatmentshorts")}>
-                    Treatment Shorts
-                  </li>
-                  <li onClick={() => handleSectionChange("supportTickets")}>
-                    Hiring &amp; Support Tickets
-                  </li>
-                  <li onClick={() => handleSectionChange("transactions")}>
-                    Transactions
-                  </li>
-                </ul>
-              )}
-            </>
-          )}
+            ))}
 
           {!isSuperAdmin && visibleModules.length === 0 && !canView("others") && (
             <p
@@ -1437,6 +1425,9 @@ export default function SuperAdminDashboard() {
               )}
               {canView("others") && activeSection === "transactions" && (
                 <ListOfTransactions />
+              )}
+              {canView("others") && activeSection === "treatmentCommission" && (
+                <ListOfTreatmentCommissions />
               )}
               {/* {activeSection === "userorderhistory" && <UserOrderHistory />} */}
               {activeSection === "createPatient" && <CreatePatient />}

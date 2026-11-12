@@ -5,12 +5,15 @@ import axios from "axios";
 import Cookies from "js-cookie";
 import {
   FiCalendar,
+  FiCheck,
   FiFileText,
   FiMessageSquare,
+  FiPackage,
   FiPaperclip,
   FiPhoneIncoming,
   FiSearch,
   FiSend,
+  FiShoppingBag,
   FiTrash2,
   FiUser,
 } from "react-icons/fi";
@@ -18,6 +21,9 @@ import { socket } from "@/utils/socket";
 import { API_URL } from "@/config/api";
 import { resolveMediaUrl } from "@/lib/media";
 import WebRTCCall, { WebRTCCallSignalPayload } from "@/components/chat/WebRTCCall";
+import { useCart } from "@/context/CartContext";
+import { useCall } from "@/context/CallContext";
+import { useUser } from "@/context/UserContext";
 import styles from "@/styles/chat.module.css";
 
 const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
@@ -34,18 +40,28 @@ type Doctor = {
   phone?: string;
 };
 
+type RecommendationItem = {
+  itemType: "product" | "treatment";
+  itemId: string;
+  name: string;
+  image?: string;
+  price: number;
+  mrp?: number;
+};
+
 type ChatMessage = {
   _id?: string;
   chatId: string;
   senderId: string;
   receiverId: string;
   message: string;
-  messageType?: "text" | "call";
+  messageType?: "text" | "call" | "recommendation";
   callType?: "audio" | "video";
   callStatus?: "started" | "missed" | "ended";
   attachmentUrl?: string;
   attachmentType?: "image" | "pdf";
   attachmentName?: string;
+  recommendations?: RecommendationItem[];
   createdAt?: string;
 };
 
@@ -89,6 +105,7 @@ const formatTime = (value?: string) => {
 };
 
 const UserChat = () => {
+  const { addToCart } = useCart();
   const [userId, setUserId] = useState("");
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [activeDoctor, setActiveDoctor] = useState<Doctor | null>(null);
@@ -107,8 +124,22 @@ const UserChat = () => {
     useState<WebRTCCallSignalPayload | null>(null);
   const [error, setError] = useState("");
   const [uploadingAttachment, setUploadingAttachment] = useState(false);
+  const [addedKeys, setAddedKeys] = useState<Record<string, boolean>>({});
   const messagesRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleAddRecommendation = (item: RecommendationItem) => {
+    const key = `${item.itemType}-${item.itemId}`;
+    addToCart({
+      id: item.itemId,
+      name: item.name,
+      price: item.price,
+      mrp: item.mrp,
+      image: item.image,
+      itemType: item.itemType,
+    });
+    setAddedKeys((prev) => ({ ...prev, [key]: true }));
+  };
 
   useEffect(() => {
     const id = localStorage.getItem("userId") || Cookies.get("userId");
@@ -281,6 +312,17 @@ const UserChat = () => {
       setLoadingMessages(false);
     }
   };
+
+  // Jumping in from the global incoming-call popup — open the chat with
+  // whichever doctor is calling so the ringing WebRTCCall below renders.
+  const { resumeCall, clearResumeCall } = useCall();
+  const { user } = useUser();
+  useEffect(() => {
+    if (!resumeCall || resumeCall.chatId === chatId) return;
+    const doctor = doctors.find((item) => item._id === resumeCall.from);
+    if (doctor) openChat(doctor);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resumeCall, doctors]);
 
   const requestAppointment = async () => {
     if (!activeDoctor || !userId) return;
@@ -524,12 +566,19 @@ const UserChat = () => {
                   peerName={activeDoctorName}
                   canCall={canChat}
                   externalIncomingCall={
-                    pendingIncomingCall?.chatId === chatId ? pendingIncomingCall : null
+                    pendingIncomingCall?.chatId === chatId
+                      ? pendingIncomingCall
+                      : resumeCall?.chatId === chatId
+                      ? resumeCall
+                      : null
                   }
                   onExternalIncomingHandled={() => {
                     setPendingIncomingCall(null);
                     setNotice(null);
+                    clearResumeCall();
                   }}
+                  callSurface="direct"
+                  myName={user?.name}
                 />
                 {chatId ? (
                   <button
@@ -596,6 +645,62 @@ const UserChat = () => {
                             {isMe ? "You started" : `${activeDoctorName} started`} a{" "}
                             {msg.callType || "video"} call
                           </p>
+                          <span>{formatTime(msg.createdAt)}</span>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  if (msg.messageType === "recommendation") {
+                    return (
+                      <div
+                        key={msg._id || `${msg.chatId}-${index}`}
+                        className={`${styles.msgRow} ${isMe ? styles.right : styles.left}`}
+                      >
+                        <div className={`${styles.bubble} ${styles.recommendBubble} ${isMe ? styles.me : styles.other}`}>
+                          <p className={styles.recommendHeader}>
+                            <FiShoppingBag /> {isMe ? "You suggested" : `${activeDoctorName} suggested`}
+                          </p>
+                          {(msg.recommendations || []).map((item) => {
+                            const image = resolveMediaUrl(item.image);
+                            const key = `${item.itemType}-${item.itemId}`;
+                            const added = addedKeys[key];
+                            return (
+                              <div key={key} className={styles.recommendItem}>
+                                {image ? (
+                                  <img src={image} alt={item.name} className={styles.recommendImage} />
+                                ) : (
+                                  <span className={styles.recommendImagePlaceholder}>
+                                    <FiPackage />
+                                  </span>
+                                )}
+                                <span className={styles.recommendInfo}>
+                                  <span className={styles.recommendName}>{item.name}</span>
+                                  <span className={styles.recommendPrice}>
+                                    Rs. {Number(item.price || 0).toLocaleString("en-IN")}
+                                  </span>
+                                </span>
+                                {!isMe && (
+                                  <span className={styles.recommendActions}>
+                                    <button
+                                      type="button"
+                                      className={added ? styles.recommendAddedBtn : styles.recommendAddBtn}
+                                      onClick={() => !added && handleAddRecommendation(item)}
+                                      disabled={added}
+                                    >
+                                      {added ? (
+                                        <>
+                                          <FiCheck /> Added
+                                        </>
+                                      ) : (
+                                        "Add to Cart"
+                                      )}
+                                    </button>
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })}
                           <span>{formatTime(msg.createdAt)}</span>
                         </div>
                       </div>

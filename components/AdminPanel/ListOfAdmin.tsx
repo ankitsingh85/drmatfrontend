@@ -581,9 +581,19 @@ a.lastModifiedField || "-"
     </th>
   )}
 
-  <th>Admin ID</th>
+  <th
+    className={styles.frozenCell}
+    style={{ left: canDelete ? 36 : 0, width: 100, minWidth: 100 }}
+  >
+    Admin ID
+  </th>
 
-  <th>Name</th>
+  <th
+    className={styles.frozenCell}
+    style={{ left: canDelete ? 136 : 100, width: 160, minWidth: 160 }}
+  >
+    Name
+  </th>
 
   <th>Email</th>
 
@@ -623,7 +633,10 @@ a.lastModifiedField || "-"
 
 {/* ADMIN ID */}
 
-<td>
+<td
+  className={styles.frozenCell}
+  style={{ left: canDelete ? 36 : 0, width: 100, minWidth: 100 }}
+>
 
  {admin.empId}
 
@@ -631,7 +644,10 @@ a.lastModifiedField || "-"
 
 
 
-<td>
+<td
+  className={styles.frozenCell}
+  style={{ left: canDelete ? 136 : 100, width: 160, minWidth: 160 }}
+>
 
  {admin.name}
 

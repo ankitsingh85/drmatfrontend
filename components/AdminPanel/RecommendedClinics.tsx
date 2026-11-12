@@ -250,7 +250,9 @@ export default function RecommendedClinics() {
           <table className={styles.table}>
             <thead>
               <tr>
-                <th>Clinic</th>
+                <th className={styles.frozenCell} style={{ width: 180, minWidth: 180 }}>
+                  Clinic
+                </th>
                 <th>Category</th>
                 <th>Location</th>
                 <th>Contact</th>
@@ -265,7 +267,12 @@ export default function RecommendedClinics() {
                   key={clinic._id}
                   className={clinic.isRecommended ? styles.recommendedRow : ""}
                 >
-                  <td className={styles.clinicNameCell}>{clinic.clinicName}</td>
+                  <td
+                    className={`${styles.clinicNameCell} ${styles.frozenCell}`}
+                    style={{ width: 180, minWidth: 180 }}
+                  >
+                    {clinic.clinicName}
+                  </td>
                   <td>{getCategoryName(clinic)}</td>
                   <td>
                     {[clinic.sector, clinic.city].filter(Boolean).join(", ") || "-"}

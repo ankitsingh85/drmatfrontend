@@ -363,38 +363,47 @@ const TreatmentListingPage: React.FC = () => {
                       }
                     >
                       <div className={styles.productItem}>
-                        <img
-                          src={image}
-                          alt={plan.treatmentName}
-                          className={styles.productImage}
-                        />
-
-                        <h3 className={styles.productName}>{plan.treatmentName}</h3>
-
-                        <p className={styles.productSize}>
-                          {clinicName ||
-                            plan.serviceCategory?.join(", ") ||
-                            "Treatment Plan"}
-                        </p>
-
-                        {plan.categoryObjs.length > 0 && (
-                          <p className={styles.categoryName}>
-                            Category: {plan.categoryObjs.map((c) => c.name).join(", ")}
-                          </p>
-                        )}
-
-                        <div className={styles.productPriceContainer}>
-                          {hasDiscount ? (
-                            <>
-                              <p className={styles.productPrice}>Rs. {discount}</p>
-                              <p className={styles.productMrp}>Rs. {price}</p>
-                              <span className={styles.discountTag}>
-                                {Math.round(((price - discount) / price) * 100)}% OFF
-                              </span>
-                            </>
-                          ) : (
-                            <p className={styles.productPrice}>Rs. {price}</p>
+                        <div className={styles.productImageWrap}>
+                          <img
+                            src={image}
+                            alt={plan.treatmentName}
+                            className={styles.productImage}
+                          />
+                          {hasDiscount && (
+                            <span className={styles.discountBadge}>
+                              {Math.round(((price - discount) / price) * 100)}% OFF
+                            </span>
                           )}
+                          {!isAvailable && (
+                            <span className={styles.unavailableBadge}>Unavailable</span>
+                          )}
+                        </div>
+
+                        <div className={styles.productInfo}>
+                          <h3 className={styles.productName}>{plan.treatmentName}</h3>
+
+                          <p className={styles.productSize}>
+                            {clinicName ||
+                              plan.serviceCategory?.join(", ") ||
+                              "Treatment Plan"}
+                          </p>
+
+                          {plan.categoryObjs.length > 0 && (
+                            <p className={styles.categoryName}>
+                              {plan.categoryObjs.map((c) => c.name).join(", ")}
+                            </p>
+                          )}
+
+                          <div className={styles.productPriceContainer}>
+                            {hasDiscount ? (
+                              <>
+                                <p className={styles.productPrice}>Rs. {discount}</p>
+                                <p className={styles.productMrp}>Rs. {price}</p>
+                              </>
+                            ) : (
+                              <p className={styles.productPrice}>Rs. {price}</p>
+                            )}
+                          </div>
                         </div>
 
                         <div className={styles.productActionsRow}>

@@ -79,8 +79,8 @@
   background: linear-gradient(180deg, #ffffff, #f8fafc);
   border-radius: 22px;
   box-shadow: 0 30px 80px rgba(15, 23, 42, 0.12);
-  overflow: hidden;
-  overflow-x: auto;
+  overflow: auto;
+  max-height: 72vh;
 }
 
 /* ===== TABLE ===== */
@@ -104,6 +104,24 @@
   color: #eaf3ff;
   white-space: nowrap;
   border-right: 1px solid rgba(255, 255, 255, 0.15);
+  position: sticky;
+  top: 0;
+  z-index: 3;
+}
+
+/* Frozen identity column (Name/Title) — stays put during horizontal
+   scroll. Left offset passed via inline style (0, or 36 if the table has
+   a checkbox column before it). */
+.frozenCell {
+  position: sticky;
+  z-index: 2;
+  background: #ffffff;
+  box-shadow: 2px 0 4px rgba(15, 23, 42, 0.08);
+}
+
+thead .frozenCell {
+  z-index: 4;
+  background: linear-gradient(135deg, #0a4b83 0%, #1264a3 100%);
 }
 
 .table td {
@@ -510,6 +528,175 @@
   border-radius: 10px;
   border-left: 4px solid #dc2626;
   font-weight: 600;
+}
+
+/* ===== VIEW MODAL (coupon / entity detail view) ===== */
+.viewModal {
+  width: min(620px, 92vw);
+  max-height: 88vh;
+  overflow-y: auto;
+  background: #ffffff;
+  border-radius: 24px;
+  padding: 32px;
+  box-shadow: 0 40px 100px rgba(0, 0, 0, 0.18);
+  animation: slideUp 0.3s ease-in-out;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+}
+
+.viewHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 18px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid #eef2f7;
+}
+
+.viewKicker {
+  margin: 0 0 4px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.viewTitle {
+  margin: 0 0 10px;
+  font-size: 22px;
+  font-weight: 900;
+  color: #020617;
+}
+
+.viewCodeChip {
+  display: inline-block;
+  padding: 5px 14px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #3730a3;
+  font-weight: 800;
+  font-size: 12.5px;
+  letter-spacing: 0.04em;
+}
+
+.viewCloseIcon {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 10px;
+  background: #f1f5f9;
+  color: #334155;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.viewCloseIcon:hover {
+  background: #e2e8f0;
+  transform: scale(1.05);
+}
+
+.viewStatusRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.viewPill {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  border: 1px solid transparent;
+}
+
+.viewPillOn {
+  background: #dcfce7;
+  color: #166534;
+  border-color: #bbf7d0;
+}
+
+.viewPillOff {
+  background: #fee2e2;
+  color: #991b1b;
+  border-color: #fecaca;
+}
+
+.viewPillInfo {
+  background: #e0f2fe;
+  color: #075985;
+  border-color: #bae6fd;
+}
+
+.viewGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.viewItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #f8fafc;
+  border: 1px solid #eef2f7;
+}
+
+.viewLabel {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+
+.viewValue {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #0f172a;
+  word-break: break-word;
+}
+
+.viewValueStrong {
+  color: #0a4b83;
+  font-size: 17px;
+}
+
+.closeBtn {
+  display: block;
+  margin: 26px 0 0 auto;
+  border: none;
+  padding: 11px 26px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #2981b7 0%, #10678c 100%);
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 13.5px;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.closeBtn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.14);
+}
+
+@media (max-width: 640px) {
+  .viewModal {
+    padding: 22px;
+  }
+
+  .viewGrid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ===== ANIMATIONS ===== */

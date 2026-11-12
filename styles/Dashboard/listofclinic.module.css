@@ -88,8 +88,8 @@
   border-radius: 12px;
   border: 1px solid #e2e8f0;
   box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
-  overflow: hidden;
-  overflow-x: auto;
+  overflow: auto;
+  max-height: 72vh;
 }
 
 /* ===== TABLE ===== */
@@ -110,6 +110,23 @@
   color: #eaf3ff;
   white-space: nowrap;
   border-right: 1px solid rgba(255, 255, 255, 0.15);
+  position: sticky;
+  top: 0;
+  z-index: 3;
+}
+
+/* Frozen identity columns (CUC, Logo, Name) — stay put while the rest of
+   the table scrolls horizontally. Left offset passed via inline style. */
+.frozenCell {
+  position: sticky;
+  z-index: 2;
+  background: #ffffff;
+  box-shadow: 2px 0 4px rgba(15, 23, 42, 0.08);
+}
+
+thead .frozenCell {
+  z-index: 4;
+  background: linear-gradient(135deg, #0a4b83 0%, #1264a3 100%);
 }
 
 .table td {

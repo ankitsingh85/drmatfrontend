@@ -1083,9 +1083,15 @@ function ListOfClinic({ canEdit = true, canDelete = true }: ListOfClinicProps) {
                     />
                   </th>
                 )}
-                <th>CUC</th>
-                <th>Logo</th>
-                <th>Name</th>
+                <th className={styles.frozenCell} style={{ left: 36, width: 110, minWidth: 110 }}>
+                  CUC
+                </th>
+                <th className={styles.frozenCell} style={{ left: 146, width: 60, minWidth: 60 }}>
+                  Logo
+                </th>
+                <th className={styles.frozenCell} style={{ left: 206, width: 160, minWidth: 160 }}>
+                  Name
+                </th>
                 <th>Slug</th>
                 <th>Type</th>
                 <th>Owner</th>
@@ -1146,8 +1152,10 @@ function ListOfClinic({ canEdit = true, canDelete = true }: ListOfClinicProps) {
                       />
                     </td>
                   )}
-                  <td>{clinic.cuc}</td>
-                  <td>
+                  <td className={styles.frozenCell} style={{ left: 36, width: 110, minWidth: 110 }}>
+                    {clinic.cuc}
+                  </td>
+                  <td className={styles.frozenCell} style={{ left: 146, width: 60, minWidth: 60 }}>
                     {clinic.clinicLogo ? (
                       <img
                         src={resolveMediaUrl(clinic.clinicLogo) || clinic.clinicLogo}
@@ -1158,7 +1166,9 @@ function ListOfClinic({ canEdit = true, canDelete = true }: ListOfClinicProps) {
                       "-"
                     )}
                   </td>
-                  <td>{clinic.clinicName}</td>
+                  <td className={styles.frozenCell} style={{ left: 206, width: 160, minWidth: 160 }}>
+                    {clinic.clinicName}
+                  </td>
                   <td>{clinic.slug || "-"}</td>
                   <td>{clinic.clinicType || "-"}</td>
                   <td>{clinic.ownerName || "-"}</td>

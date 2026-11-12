@@ -318,8 +318,18 @@ const ListOfCourseType = ({ canEdit = true, canDelete = true }: ListOfCourseType
                   />
                 </th>
               )}
-              <th>ID</th>
-              <th>Name</th>
+              <th
+                className={styles.frozenCell}
+                style={{ left: canDelete ? 36 : 0, width: 70, minWidth: 70 }}
+              >
+                ID
+              </th>
+              <th
+                className={styles.frozenCell}
+                style={{ left: canDelete ? 106 : 70, width: 160, minWidth: 160 }}
+              >
+                Name
+              </th>
               <th>Image</th>
               <th>Actions</th>
             </tr>
@@ -337,8 +347,18 @@ const ListOfCourseType = ({ canEdit = true, canDelete = true }: ListOfCourseType
                     />
                   </td>
                 )}
-                <td>{item.id}</td>
-                <td>{item.name}</td>
+                <td
+                  className={styles.frozenCell}
+                  style={{ left: canDelete ? 36 : 0, width: 70, minWidth: 70 }}
+                >
+                  {item.id}
+                </td>
+                <td
+                  className={styles.frozenCell}
+                  style={{ left: canDelete ? 106 : 70, width: 160, minWidth: 160 }}
+                >
+                  {item.name}
+                </td>
                 <td>
                   <img
                     src={resolveMediaUrl(item.imageUrl) || item.imageUrl}

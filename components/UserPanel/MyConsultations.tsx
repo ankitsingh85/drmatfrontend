@@ -12,11 +12,17 @@ import {
   FiTrash2,
   FiPaperclip,
   FiFileText,
+  FiCheck,
+  FiPackage,
+  FiShoppingBag,
 } from "react-icons/fi";
 import { socket } from "@/utils/socket";
 import { API_URL } from "@/config/api";
 import { resolveMediaUrl } from "@/lib/media";
 import WebRTCCall, { WebRTCCallSignalPayload } from "@/components/chat/WebRTCCall";
+import { useCart } from "@/context/CartContext";
+import { useCall } from "@/context/CallContext";
+import { useUser } from "@/context/UserContext";
 import styles from "@/styles/userpanel/myconsultations.module.css";
 import chatStyles from "@/styles/chat.module.css";
 
@@ -41,18 +47,28 @@ type ConsultationService = {
   doctors?: Doctor[];
 };
 
+type RecommendationItem = {
+  itemType: "product" | "treatment";
+  itemId: string;
+  name: string;
+  image?: string;
+  price: number;
+  mrp?: number;
+};
+
 type ChatMessage = {
   _id?: string;
   chatId: string;
   senderId: string;
   receiverId: string;
   message: string;
-  messageType?: "text" | "call";
+  messageType?: "text" | "call" | "recommendation";
   callType?: "audio" | "video";
   callStatus?: "started" | "missed" | "ended";
   attachmentUrl?: string;
   attachmentType?: "image" | "pdf";
   attachmentName?: string;
+  recommendations?: RecommendationItem[];
   createdAt?: string;
 };
 
@@ -86,6 +102,7 @@ const formatTime = (value?: string) => {
 };
 
 export default function MyConsultations() {
+  const { addToCart } = useCart();
   const [userId, setUserId] = useState("");
   const [services, setServices] = useState<ConsultationService[]>([]);
   const [loading, setLoading] = useState(true);
@@ -99,6 +116,9 @@ export default function MyConsultations() {
   const [bookingDoctor, setBookingDoctor] = useState<Doctor | null>(null);
   const [chatId, setChatId] = useState("");
   const [chatStatus, setChatStatus] = useState<ChatStatus | "">("");
+  const [chatClosedAt, setChatClosedAt] = useState<string | null>(null);
+  const [chatClosedBy, setChatClosedBy] = useState<"doctor" | "system" | null>(null);
+  const [consultationExpiresAt, setConsultationExpiresAt] = useState<string | null>(null);
   const [loadingBooking, setLoadingBooking] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [bookingError, setBookingError] = useState("");
@@ -109,8 +129,22 @@ export default function MyConsultations() {
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [deletingChat, setDeletingChat] = useState(false);
   const [uploadingAttachment, setUploadingAttachment] = useState(false);
+  const [addedKeys, setAddedKeys] = useState<Record<string, boolean>>({});
   const messagesRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleAddRecommendation = (item: RecommendationItem) => {
+    const key = `${item.itemType}-${item.itemId}`;
+    addToCart({
+      id: item.itemId,
+      name: item.name,
+      price: item.price,
+      mrp: item.mrp,
+      image: item.image,
+      itemType: item.itemType,
+    });
+    setAddedKeys((prev) => ({ ...prev, [key]: true }));
+  };
 
   useEffect(() => {
     const token = Cookies.get("token");
@@ -230,10 +264,19 @@ export default function MyConsultations() {
       setPendingIncomingCall(data);
     };
 
+    // The doctor closed this consultation from their side — lock the chat
+    // immediately instead of only finding out on the next failed send.
+    const handleChatClosed = (data: { chatId: string }) => {
+      if (data.chatId !== chatId) return;
+      setChatClosedAt(new Date().toISOString());
+      setChatClosedBy("doctor");
+    };
+
     socket.on("receive_message", handleReceiveMessage);
     socket.on("chat_status_updated", handleChatStatus);
     socket.on("chat_deleted", handleChatDeleted);
     socket.on("call:invite", handleCallInvite);
+    socket.on("chat_closed", handleChatClosed);
     socket.on("connect", registerSocket);
 
     return () => {
@@ -241,6 +284,7 @@ export default function MyConsultations() {
       socket.off("chat_status_updated", handleChatStatus);
       socket.off("chat_deleted", handleChatDeleted);
       socket.off("call:invite", handleCallInvite);
+      socket.off("chat_closed", handleChatClosed);
       socket.off("connect", registerSocket);
     };
   }, [userId, chatId]);
@@ -268,6 +312,9 @@ export default function MyConsultations() {
     setBookingDoctor(null);
     setChatId("");
     setChatStatus("");
+    setChatClosedAt(null);
+    setChatClosedBy(null);
+    setConsultationExpiresAt(null);
     setBookingError("");
     setMessages([]);
     setText("");
@@ -275,7 +322,7 @@ export default function MyConsultations() {
 
   const sendMessage = async () => {
     const trimmed = text.trim();
-    if (!trimmed || !chatId || !bookingDoctor || chatStatus !== "accepted") return;
+    if (!trimmed || !chatId || !bookingDoctor || chatStatus !== "accepted" || chatClosedAt) return;
 
     const payload: ChatMessage = {
       chatId,
@@ -297,7 +344,7 @@ export default function MyConsultations() {
   };
 
   const handleAttachClick = () => {
-    if (chatStatus === "accepted" && !uploadingAttachment) fileInputRef.current?.click();
+    if (canChat && !uploadingAttachment) fileInputRef.current?.click();
   };
 
   const handleFileSelected = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -403,6 +450,9 @@ export default function MyConsultations() {
       setBookingDoctor(matchedDoctor);
       setChatId(nextChatId);
       setChatStatus(nextStatus);
+      setChatClosedAt(null);
+      setChatClosedBy(null);
+      setConsultationExpiresAt(res.data.consultationExpiresAt || null);
       setBookingError("");
       setMessages([]);
 
@@ -429,6 +479,21 @@ export default function MyConsultations() {
     }
   };
 
+  // Jumping in from the global incoming-call popup — reconnect to whichever
+  // service this doctor belongs to (the match is sticky server-side, so
+  // this reopens the exact same chat the call belongs to) so the ringing
+  // WebRTCCall below renders for it.
+  const { resumeCall, clearResumeCall } = useCall();
+  const { user } = useUser();
+  useEffect(() => {
+    if (!resumeCall || resumeCall.chatId === chatId || connectingServiceId) return;
+    const service = services.find((item) =>
+      (item.doctors || []).some((doctor) => doctor._id === resumeCall.from)
+    );
+    if (service) connectToService(service, resumeCall.from);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resumeCall, services]);
+
   const cancelBookingRequest = async () => {
     if (!chatId || !bookingDoctor || cancelling) return;
 
@@ -454,6 +519,7 @@ export default function MyConsultations() {
   };
 
   const bookingDoctorName = getDoctorName(bookingDoctor);
+  const canChat = chatStatus === "accepted" && !chatClosedAt;
 
   if (!userId) {
     return (
@@ -649,11 +715,20 @@ export default function MyConsultations() {
                   currentUserId={userId}
                   peerId={bookingDoctor._id}
                   peerName={bookingDoctorName}
-                  canCall={chatStatus === "accepted"}
+                  canCall={canChat}
                   externalIncomingCall={
-                    pendingIncomingCall?.chatId === chatId ? pendingIncomingCall : null
+                    pendingIncomingCall?.chatId === chatId
+                      ? pendingIncomingCall
+                      : resumeCall?.chatId === chatId
+                      ? resumeCall
+                      : null
                   }
-                  onExternalIncomingHandled={() => setPendingIncomingCall(null)}
+                  onExternalIncomingHandled={() => {
+                    setPendingIncomingCall(null);
+                    clearResumeCall();
+                  }}
+                  callSurface="consultation"
+                  myName={user?.name}
                 />
                 {chatId ? (
                   <button
@@ -676,6 +751,31 @@ export default function MyConsultations() {
                 </button>
               </div>
             </div>
+
+            {chatClosedAt ? (
+              <div className={`${chatStyles.consultationNotice} ${chatStyles.consultationNoticeClosed}`}>
+                <FiXCircle />
+                <span>
+                  This consultation was closed
+                  {chatClosedBy === "doctor" ? " by the doctor" : " automatically after 7 days"} — you
+                  can no longer chat or call here. Book another consultation to speak with a doctor
+                  again.
+                </span>
+              </div>
+            ) : consultationExpiresAt ? (
+              <div className={chatStyles.consultationNotice}>
+                <FiClock />
+                <span>
+                  This consultation closes on{" "}
+                  {new Date(consultationExpiresAt).toLocaleDateString("en-IN", {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                  })}
+                  .
+                </span>
+              </div>
+            ) : null}
 
             <div className={chatStyles.messages} ref={messagesRef}>
               {loadingBooking || loadingMessages ? (
@@ -725,6 +825,66 @@ export default function MyConsultations() {
                             {isMe ? "You started" : `${bookingDoctorName} started`} a{" "}
                             {msg.callType || "video"} call
                           </p>
+                          <span>{formatTime(msg.createdAt)}</span>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  if (msg.messageType === "recommendation") {
+                    return (
+                      <div
+                        key={msg._id || `${msg.chatId}-${index}`}
+                        className={`${chatStyles.msgRow} ${isMe ? chatStyles.right : chatStyles.left}`}
+                      >
+                        <div
+                          className={`${chatStyles.bubble} ${chatStyles.recommendBubble} ${
+                            isMe ? chatStyles.me : chatStyles.other
+                          }`}
+                        >
+                          <p className={chatStyles.recommendHeader}>
+                            <FiShoppingBag /> {isMe ? "You suggested" : `${bookingDoctorName} suggested`}
+                          </p>
+                          {(msg.recommendations || []).map((item) => {
+                            const image = resolveMediaUrl(item.image);
+                            const key = `${item.itemType}-${item.itemId}`;
+                            const added = addedKeys[key];
+                            return (
+                              <div key={key} className={chatStyles.recommendItem}>
+                                {image ? (
+                                  <img src={image} alt={item.name} className={chatStyles.recommendImage} />
+                                ) : (
+                                  <span className={chatStyles.recommendImagePlaceholder}>
+                                    <FiPackage />
+                                  </span>
+                                )}
+                                <span className={chatStyles.recommendInfo}>
+                                  <span className={chatStyles.recommendName}>{item.name}</span>
+                                  <span className={chatStyles.recommendPrice}>
+                                    Rs. {Number(item.price || 0).toLocaleString("en-IN")}
+                                  </span>
+                                </span>
+                                {!isMe && (
+                                  <span className={chatStyles.recommendActions}>
+                                    <button
+                                      type="button"
+                                      className={added ? chatStyles.recommendAddedBtn : chatStyles.recommendAddBtn}
+                                      onClick={() => !added && handleAddRecommendation(item)}
+                                      disabled={added}
+                                    >
+                                      {added ? (
+                                        <>
+                                          <FiCheck /> Added
+                                        </>
+                                      ) : (
+                                        "Add to Cart"
+                                      )}
+                                    </button>
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })}
                           <span>{formatTime(msg.createdAt)}</span>
                         </div>
                       </div>
@@ -782,7 +942,7 @@ export default function MyConsultations() {
                 type="button"
                 className={chatStyles.attachBtn}
                 onClick={handleAttachClick}
-                disabled={chatStatus !== "accepted" || uploadingAttachment}
+                disabled={!canChat || uploadingAttachment}
                 title="Attach image or PDF"
               >
                 <FiPaperclip />
@@ -798,18 +958,22 @@ export default function MyConsultations() {
                   }
                 }}
                 placeholder={
-                  uploadingAttachment ? "Sending attachment..." : `Message ${bookingDoctorName}`
+                  uploadingAttachment
+                    ? "Sending attachment..."
+                    : chatClosedAt
+                    ? "This consultation has been closed"
+                    : `Message ${bookingDoctorName}`
                 }
-                disabled={chatStatus !== "accepted" || uploadingAttachment}
+                disabled={!canChat || uploadingAttachment}
               />
               <button
                 type="button"
                 className={chatStyles.sendBtn}
                 onClick={sendMessage}
-                disabled={!text.trim() || chatStatus !== "accepted"}
+                disabled={!text.trim() || !canChat}
               >
                 <FiSend />
-                {chatStatus === "accepted" ? "Send" : "Waiting"}
+                {canChat ? "Send" : chatClosedAt ? "Closed" : "Waiting"}
               </button>
             </div>
 

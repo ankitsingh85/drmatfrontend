@@ -498,8 +498,18 @@ const ListOfOnlineConsultationService = ({
                   />
                 </th>
               )}
-              <th>Service Code</th>
-              <th>Service Type</th>
+              <th
+                className={styles.frozenCell}
+                style={{ left: canDelete ? 36 : 0, width: 110, minWidth: 110 }}
+              >
+                Service Code
+              </th>
+              <th
+                className={styles.frozenCell}
+                style={{ left: canDelete ? 146 : 110, width: 160, minWidth: 160 }}
+              >
+                Service Type
+              </th>
               <th>Doctors</th>
               <th>Image</th>
               <th>Fee</th>
@@ -522,8 +532,18 @@ const ListOfOnlineConsultationService = ({
                     />
                   </td>
                 )}
-                <td>{service.serviceCode}</td>
-                <td>{service.serviceType}</td>
+                <td
+                  className={styles.frozenCell}
+                  style={{ left: canDelete ? 36 : 0, width: 110, minWidth: 110 }}
+                >
+                  {service.serviceCode}
+                </td>
+                <td
+                  className={styles.frozenCell}
+                  style={{ left: canDelete ? 146 : 110, width: 160, minWidth: 160 }}
+                >
+                  {service.serviceType}
+                </td>
                 <td>
                   {(service.doctors || []).length > 0
                     ? service.doctors.map(getDoctorName).join(", ")

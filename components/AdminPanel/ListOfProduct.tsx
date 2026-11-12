@@ -612,11 +612,26 @@ const getCategoryName = (ids: string[]) => {
   </th>
 )}
 
-<th>SKU Code</th>
+<th
+  className={styles.frozenCell}
+  style={{ left: canDelete ? 36 : 0, width: 100, minWidth: 100 }}
+>
+  SKU Code
+</th>
 
-<th>Image</th>
+<th
+  className={styles.frozenCell}
+  style={{ left: canDelete ? 136 : 100, width: 60, minWidth: 60 }}
+>
+  Image
+</th>
 
-<th>Product Name</th>
+<th
+  className={styles.frozenCell}
+  style={{ left: canDelete ? 196 : 160, width: 170, minWidth: 170 }}
+>
+  Product Name
+</th>
 
 <th>Category</th>
 
@@ -694,12 +709,18 @@ const getCategoryName = (ids: string[]) => {
   </td>
 )}
 
-<td>
+<td
+  className={styles.frozenCell}
+  style={{ left: canDelete ? 36 : 0, width: 100, minWidth: 100 }}
+>
 {p.productSKU || "-"}
 </td>
 
 
-<td>
+<td
+  className={styles.frozenCell}
+  style={{ left: canDelete ? 136 : 100, width: 60, minWidth: 60 }}
+>
 
 {p.productImages?.length ? (
 
@@ -724,7 +745,10 @@ height={50}
 </td>
 
 
-<td>
+<td
+  className={styles.frozenCell}
+  style={{ left: canDelete ? 196 : 160, width: 170, minWidth: 170 }}
+>
 {p.productName}
 </td>
 

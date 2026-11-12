@@ -120,10 +120,24 @@
 }
 
 .tableWrap {
-  overflow-x: auto;
+  overflow: auto;
+  max-height: 72vh;
   border: 1px solid #e5e7eb;
   border-radius: 14px;
   background: #fff;
+}
+
+.frozenCell {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: #ffffff;
+  box-shadow: 2px 0 4px rgba(15, 23, 42, 0.08);
+}
+
+thead .frozenCell {
+  z-index: 4;
+  background: #f8fafc;
 }
 
 .table {
@@ -139,6 +153,9 @@
   font-weight: 800;
   background: #f8fafc;
   padding: 12px 14px;
+  position: sticky;
+  top: 0;
+  z-index: 3;
   border-bottom: 1px solid #e2e8f0;
   white-space: nowrap;
 }

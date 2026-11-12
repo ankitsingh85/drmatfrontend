@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "next/router";
 import Cookies from "js-cookie";
 import {
   FiCalendar,
@@ -98,6 +98,17 @@ export default function DoctorDashboard() {
     setDoctorId(storedDoctorId);
     setCheckingAuth(false);
   }, [router]);
+
+  // Lets the global incoming-call popup deep-link straight into the chat
+  // section (e.g. /DoctorDashboard?section=chat) instead of landing on
+  // whatever section was last open.
+  useEffect(() => {
+    if (!router.isReady) return;
+    const section = typeof router.query.section === "string" ? router.query.section : "";
+    if (section) {
+      setActiveSection(section as SectionId);
+    }
+  }, [router.isReady, router.query.section]);
 
   useEffect(() => {
     const section = new URLSearchParams(window.location.search).get("section");
@@ -524,7 +535,7 @@ export default function DoctorDashboard() {
     if (activeSection === "chat") {
       return (
         <div className={styles.sectionShell}>
-          <DoctorChat />
+          <DoctorChat doctorName={getDoctorName(doctor)} />
         </div>
       );
     }

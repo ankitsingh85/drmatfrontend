@@ -27,6 +27,11 @@ export type WebRTCCallSignalPayload = {
   offer?: RTCSessionDescriptionInit;
   answer?: RTCSessionDescriptionInit;
   candidate?: RTCIceCandidateInit;
+  // Carried through the relay as plain extra fields so the global
+  // incoming-call popup (which has no page context of its own) can show who
+  // is calling and know which page to send the callee to.
+  fromName?: string;
+  surface?: string;
 };
 
 type WebRTCCallProps = {
@@ -42,7 +47,16 @@ type WebRTCCallProps = {
   // automatically so the prescription modal (lower z-index) is reachable.
   showPrescriptionButton?: boolean;
   onPrescriptionClick?: () => void;
+  // Caller's own display name + which chat surface this is, stamped onto
+  // the invite so the global incoming-call popup can show it without
+  // needing its own lookups.
+  myName?: string;
+  callSurface?: string;
 };
+
+// How long an outgoing call rings before we give up and tell the caller the
+// other side isn't picking up, instead of leaving "Calling..." up forever.
+const RING_TIMEOUT_MS = 45000;
 
 const formatDuration = (totalSeconds: number) => {
   const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, "0");
@@ -74,6 +88,8 @@ const WebRTCCall = ({
   onExternalIncomingHandled,
   showPrescriptionButton,
   onPrescriptionClick,
+  myName,
+  callSurface,
 }: WebRTCCallProps) => {
   const [mode, setMode] = useState<CallMode>("idle");
   const [callType, setCallType] = useState<CallType>("video");
@@ -93,6 +109,7 @@ const WebRTCCall = ({
   const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
   const modeRef = useRef<CallMode>("idle");
   const callIdRef = useRef("");
+  const ringTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     modeRef.current = mode;
@@ -130,8 +147,16 @@ const WebRTCCall = ({
     localStreamRef.current = null;
   }, []);
 
+  const clearRingTimeout = useCallback(() => {
+    if (ringTimeoutRef.current) {
+      clearTimeout(ringTimeoutRef.current);
+      ringTimeoutRef.current = null;
+    }
+  }, []);
+
   const resetCall = useCallback(
     (notifyPeer = false) => {
+      clearRingTimeout();
       if (notifyPeer && peerId && callIdRef.current) {
         socket.emit("call:ended", {
           chatId,
@@ -154,7 +179,7 @@ const WebRTCCall = ({
       setCameraEnabled(true);
       setMinimized(false);
     },
-    [chatId, currentUserId, peerId, stopLocalMedia]
+    [chatId, currentUserId, peerId, stopLocalMedia, clearRingTimeout]
   );
 
   useEffect(() => () => resetCall(false), [resetCall]);
@@ -240,7 +265,16 @@ const WebRTCCall = ({
         from: currentUserId,
         to: peerId,
         callType: nextCallType,
+        fromName: myName,
+        surface: callSurface,
       });
+
+      clearRingTimeout();
+      ringTimeoutRef.current = setTimeout(() => {
+        if (modeRef.current !== "calling" || callIdRef.current !== nextCallId) return;
+        resetCall(true);
+        setCallError(`${peerName} is not available right now. Please try again later.`);
+      }, RING_TIMEOUT_MS);
     } catch (err: any) {
       resetCall(false);
       setCallError(err?.message || "Camera or microphone permission was blocked.");
@@ -348,6 +382,7 @@ const WebRTCCall = ({
 
     const handleAccepted = async (data: WebRTCCallSignalPayload) => {
       if (!isCurrentCall(data) || data.callId !== callIdRef.current || !peerId) return;
+      clearRingTimeout();
 
       const connection = createPeerConnection(data.callId, peerId);
       localStreamRef.current?.getTracks().forEach((track) => {
@@ -420,6 +455,24 @@ const WebRTCCall = ({
       resetCall(false);
     };
 
+    // Sent only to the caller — either the callee's socket wasn't even
+    // registered (offline) when the invite went out, or this consultation
+    // chat has been closed (ended by the doctor, or past its 7-day window).
+    const handleUnavailable = (data: {
+      chatId: string;
+      callId: string;
+      to?: string;
+      reason?: string;
+    }) => {
+      if (data.chatId !== chatId || data.callId !== callIdRef.current) return;
+      resetCall(false);
+      setCallError(
+        data.reason === "chat-closed"
+          ? "This consultation has been closed. You can no longer chat or call here."
+          : `${peerName} is not available right now. Please try again later.`
+      );
+    };
+
     socket.on("call:invite", handleInvite);
     socket.on("call:accepted", handleAccepted);
     socket.on("call:rejected", handleRejected);
@@ -427,6 +480,7 @@ const WebRTCCall = ({
     socket.on("call:answer", handleAnswer);
     socket.on("call:ice-candidate", handleCandidate);
     socket.on("call:ended", handleEnded);
+    socket.on("call:unavailable", handleUnavailable);
 
     return () => {
       socket.off("call:invite", handleInvite);
@@ -436,10 +490,12 @@ const WebRTCCall = ({
       socket.off("call:answer", handleAnswer);
       socket.off("call:ice-candidate", handleCandidate);
       socket.off("call:ended", handleEnded);
+      socket.off("call:unavailable", handleUnavailable);
     };
   }, [
     addPendingCandidates,
     chatId,
+    clearRingTimeout,
     createPeerConnection,
     currentUserId,
     peerId,
@@ -466,7 +522,7 @@ const WebRTCCall = ({
                 {mode === "incoming"
                   ? `Incoming ${callType} call...`
                   : mode === "calling"
-                  ? "Calling..."
+                  ? "Waiting for them to answer..."
                   : mode === "connecting"
                   ? "Connecting..."
                   : callType === "audio"
