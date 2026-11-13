@@ -68,6 +68,10 @@ import ListOfClinicSubscriptions from "@/components/AdminPanel/ListOfClinicSubsc
 /* ✅ RECOMMENDED CLINICS */
 import RecommendedClinics from "@/components/AdminPanel/RecommendedClinics";
 
+/* ✅ CLINIC SERVICES */
+import CreateClinicService from "@/components/AdminPanel/CreateClinicService";
+import ListOfClinicService from "@/components/AdminPanel/ListOfClinicService";
+
 import styles from "@/styles/dashboard.module.css";
 import {
   FiUsers,
@@ -111,6 +115,7 @@ import {
   FiHeadphones,
   FiDollarSign,
   FiBarChart2,
+  FiHeart,
 } from "react-icons/fi";
 import {
   BULK_UPLOAD_CONFIG,
@@ -584,6 +589,15 @@ export default function SuperAdminDashboard() {
       icon: <FiCreditCard />,
       ListComponent: ListOfClinicSubscriptions,
       CreateComponent: ClinicPlanSettings,
+    },
+    {
+      id: "clinicService",
+      label: "CLINIC SERVICES",
+      listLabel: "List of Clinic Services",
+      createLabel: "Create Clinic Service",
+      icon: <FiHeart />,
+      ListComponent: ListOfClinicService,
+      CreateComponent: CreateClinicService,
     },
   ];
 

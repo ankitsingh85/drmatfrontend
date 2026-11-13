@@ -68,6 +68,7 @@ const FALLBACK_MODULES = [
   "onlineConsultationService",
   "coupon",
   "clinicSubscription",
+  "clinicService",
   "others",
 ];
 
@@ -90,6 +91,7 @@ const FALLBACK_MODULE_LABELS: Record<string, string> = {
   onlineConsultationService: "Online Consultation Services",
   coupon: "Coupon",
   clinicSubscription: "Clinic Subscription Plan",
+  clinicService: "Clinic Services",
   others: "Others (Top Products, Offers, Featured Section, Shorts, Hiring Requests)",
 };
 

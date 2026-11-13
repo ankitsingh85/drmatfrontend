@@ -27,6 +27,8 @@ import {
   FiClipboard,
   FiDownload,
   FiLock,
+  FiCamera,
+  FiX,
 } from "react-icons/fi";
 
 const PENDING_QUIZ_KEY = "pendingQuizSubmission";
@@ -223,6 +225,10 @@ export default function UserQuiz() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<QuizAnswerValue[]>([]);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [cameraError, setCameraError] = useState("");
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const cameraStreamRef = useRef<MediaStream | null>(null);
   const [products, setProducts] = useState<RawProduct[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [treatments, setTreatments] = useState<RawTreatment[]>([]);
@@ -341,6 +347,68 @@ export default function UserQuiz() {
     };
     reader.readAsDataURL(file);
   };
+
+  const stopCameraStream = () => {
+    cameraStreamRef.current?.getTracks().forEach((track) => track.stop());
+    cameraStreamRef.current = null;
+  };
+
+  const closeCamera = () => {
+    stopCameraStream();
+    setCameraOpen(false);
+    setCameraError("");
+  };
+
+  const openCamera = async () => {
+    setCameraError("");
+    setCameraOpen(true);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "user" },
+        audio: false,
+      });
+      cameraStreamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play().catch(() => {});
+      }
+    } catch (err: any) {
+      setCameraError(
+        err?.name === "NotAllowedError"
+          ? "Camera access was blocked. Please allow camera permission, or upload a photo instead."
+          : "Could not access the camera. Please upload a photo instead."
+      );
+    }
+  };
+
+  const capturePhoto = () => {
+    const video = videoRef.current;
+    if (!video || !video.videoWidth) return;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
+
+    setPhotoPreview(dataUrl);
+    setAnswers((prev) => {
+      const next = [...prev];
+      next[currentIndex] = "photo_uploaded";
+      return next;
+    });
+    closeCamera();
+  };
+
+  // Stop the webcam the moment the camera view closes or the component
+  // unmounts — otherwise the browser's "camera in use" indicator stays on.
+  useEffect(() => {
+    if (!cameraOpen) return;
+    return () => stopCameraStream();
+  }, [cameraOpen]);
 
   const canContinue = isPhotoStep || selectedOption !== null;
 
@@ -573,11 +641,17 @@ export default function UserQuiz() {
 
             {isPhotoStep ? (
               <div className={styles.photoStep}>
-                <label className={styles.photoUpload}>
-                  <FiUploadCloud className={styles.photoUploadIcon} />
-                  <span>{photoPreview ? "Change photo" : "Tap to upload photo"}</span>
-                  <input type="file" accept="image/*" hidden onChange={handlePhotoUpload} />
-                </label>
+                <div className={styles.photoChoiceRow}>
+                  <label className={styles.photoUpload}>
+                    <FiUploadCloud className={styles.photoUploadIcon} />
+                    <span>{photoPreview ? "Change photo" : "Upload photo"}</span>
+                    <input type="file" accept="image/*" hidden onChange={handlePhotoUpload} />
+                  </label>
+                  <button type="button" className={styles.photoUpload} onClick={openCamera}>
+                    <FiCamera className={styles.photoUploadIcon} />
+                    <span>{photoPreview ? "Retake photo" : "Take photo"}</span>
+                  </button>
+                </div>
                 {photoPreview && (
                   <div className={styles.photoPreview}>
                     <img src={photoPreview} alt="Uploaded preview" />
@@ -586,6 +660,52 @@ export default function UserQuiz() {
                 <p className={styles.photoSkipNote}>
                   This step is optional — you can continue without uploading.
                 </p>
+
+                {cameraOpen && (
+                  <div className={styles.cameraOverlay} role="dialog" aria-label="Take a photo">
+                    <div className={styles.cameraModal}>
+                      <button
+                        type="button"
+                        className={styles.cameraCloseBtn}
+                        onClick={closeCamera}
+                        aria-label="Close camera"
+                      >
+                        <FiX />
+                      </button>
+
+                      {cameraError ? (
+                        <p className={styles.cameraError}>{cameraError}</p>
+                      ) : (
+                        <video
+                          ref={videoRef}
+                          autoPlay
+                          playsInline
+                          muted
+                          className={styles.cameraVideo}
+                        />
+                      )}
+
+                      <div className={styles.cameraActions}>
+                        <button
+                          type="button"
+                          className={styles.cameraCancelBtn}
+                          onClick={closeCamera}
+                        >
+                          Cancel
+                        </button>
+                        {!cameraError && (
+                          <button
+                            type="button"
+                            className={styles.cameraCaptureBtn}
+                            onClick={capturePhoto}
+                          >
+                            <FiCamera /> Capture
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <div className={styles.optionsGrid}>

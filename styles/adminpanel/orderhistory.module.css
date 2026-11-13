@@ -136,11 +136,21 @@
   font-weight: 700;
   color: #0f766e;
   line-height: 1.5;
+  text-decoration: none;
+  width: fit-content;
+}
+
+a.locationChip:hover {
+  text-decoration: underline;
 }
 
 .locationChip svg {
   flex-shrink: 0;
   margin-top: 2px;
+}
+
+.locationChip svg:last-child {
+  opacity: 0.7;
 }
 
 .badge {

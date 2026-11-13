@@ -76,6 +76,8 @@ interface TransactionOrder {
   totalAmount: number;
   couponCode?: string;
   discountAmount?: number;
+  paymentMethod?: string;
+  paymentMethodDetails?: string;
   paymentStatus?: string;
   status?: string;
   createdAt: string;
@@ -430,10 +432,12 @@ const ListOfTransactions: React.FC = () => {
         "Buyer",
         "Email",
         "Items",
-        "Subtotal",
+        "Original Amount",
+        "Coupon Code",
         "Discount",
-        "Amount",
+        "Final Amount",
         "Payment Status",
+        "Payment Method",
         ...(isConsultation ? ["Doctor Connected", "Connected On"] : ["Order Status"]),
         "Date",
         ...(isConsultation ? ["Prescription"] : []),
@@ -445,9 +449,11 @@ const ListOfTransactions: React.FC = () => {
         getBuyerEmail(o),
         getItemsSummary(o),
         String(getSubtotal(o)),
+        o.couponCode || "",
         String(o.discountAmount || 0),
         String(o.totalAmount),
         o.paymentStatus || "pending",
+        o.paymentMethodDetails || o.paymentMethod || "",
         ...(isConsultation
           ? [
               (o.connections || []).map((c) => c.doctorName || "").join("; ") || "",
@@ -509,9 +515,11 @@ const ListOfTransactions: React.FC = () => {
           <td>${escapeHtml(getBuyerEmail(o))}</td>
           <td>${escapeHtml(getItemsSummary(o))}</td>
           <td>${escapeHtml(formatMoney(getSubtotal(o)))}</td>
+          <td>${escapeHtml(o.couponCode || "—")}</td>
           <td>${escapeHtml(formatMoney(o.discountAmount || 0))}</td>
           <td>${escapeHtml(formatMoney(o.totalAmount))}</td>
           <td>${escapeHtml(o.paymentStatus || "pending")}</td>
+          <td>${escapeHtml(o.paymentMethodDetails || o.paymentMethod || "—")}</td>
           ${
             isConsultation
               ? `<td>${
@@ -560,10 +568,12 @@ const ListOfTransactions: React.FC = () => {
                 <th>Buyer</th>
                 <th>Email</th>
                 <th>Items</th>
-                <th>Subtotal</th>
+                <th>Original Amount</th>
+                <th>Coupon Code</th>
                 <th>Discount</th>
-                <th>Amount</th>
+                <th>Final Amount</th>
                 <th>Payment Status</th>
+                <th>Payment Method</th>
                 ${isConsultation ? "<th>Doctor Connected</th><th>Connected On</th>" : "<th>Order Status</th>"}
                 <th>Date</th>
                 ${isConsultation ? "<th>Prescription</th>" : ""}
@@ -781,8 +791,12 @@ const ListOfTransactions: React.FC = () => {
                           Buyer
                         </th>
                         <th>Items</th>
-                        <th>Amount</th>
+                        <th>Original Amount</th>
+                        <th>Coupon</th>
+                        <th>Discount</th>
+                        <th>Final Amount</th>
                         <th>Payment</th>
+                        <th>Payment Method</th>
                         {activeTab === "consultation" && <th>Doctor</th>}
                         {activeTab === "consultation" && <th>Connected On</th>}
                         {activeTab !== "consultation" && <th>Status</th>}
@@ -833,15 +847,12 @@ const ListOfTransactions: React.FC = () => {
                               <div className={styles.buyerEmail}>{getBuyerEmail(o)}</div>
                             </td>
                             <td>{getItemsSummary(o)}</td>
+                            <td className={styles.amountCell}>{formatMoney(subtotal)}</td>
+                            <td>{o.couponCode || "—"}</td>
                             <td className={styles.amountCell}>
-                              {formatMoney(o.totalAmount)}
-                              {activeTab === "consultation" && Number(o.discountAmount) > 0 && (
-                                <div className={styles.buyerEmail}>
-                                  {formatMoney(subtotal)} - {formatMoney(o.discountAmount || 0)}
-                                  {o.couponCode ? ` (${o.couponCode})` : ""} off
-                                </div>
-                              )}
+                              {o.discountAmount ? `- ${formatMoney(o.discountAmount)}` : "—"}
                             </td>
+                            <td className={styles.amountCell}>{formatMoney(o.totalAmount)}</td>
                             <td>
                               <span
                                 className={`${styles.statusPill} ${getPaymentStatusClass(
@@ -851,6 +862,7 @@ const ListOfTransactions: React.FC = () => {
                                 {o.paymentStatus || "pending"}
                               </span>
                             </td>
+                            <td>{o.paymentMethodDetails || o.paymentMethod || "—"}</td>
                             {activeTab === "consultation" && (
                               <td>
                                 {o.connections && o.connections.length > 0 ? (

@@ -621,6 +621,82 @@
   line-height: 1.55;
 }
 
+/* ===== BOOKING DETAILS (post-payment confirmation) ===== */
+.bookingDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 22px;
+  text-align: left;
+}
+
+.bookingCard {
+  padding: 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.bookingCardHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px dashed rgba(148, 163, 184, 0.35);
+}
+
+.bookingId {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-weight: 800;
+  color: var(--ink-900);
+  font-size: 1rem;
+}
+
+.bookingDate {
+  color: var(--ink-500);
+  font-size: 0.82rem;
+}
+
+.bookingItemRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0;
+  font-size: 0.92rem;
+  color: var(--ink-700);
+}
+
+.bookingItemName {
+  font-weight: 700;
+  color: var(--ink-900);
+}
+
+.bookingItemMeta {
+  display: block;
+  color: var(--ink-500);
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+.bookingItemPrice {
+  white-space: nowrap;
+  font-weight: 700;
+  color: var(--ink-900);
+}
+
+.bookingCardTotal {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(148, 163, 184, 0.2);
+  font-weight: 800;
+  color: var(--ink-900);
+}
+
 .successActions {
   display: flex;
   justify-content: center;

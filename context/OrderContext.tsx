@@ -29,6 +29,8 @@ export interface IOrder {
   totalAmount: number;
   couponCode?: string;
   discountAmount?: number;
+  paymentMethod?: string;
+  paymentMethodDetails?: string;
   address: { type: string; address: string };
   createdAt?: string;
 }
@@ -48,7 +50,7 @@ interface OrderContextType {
       couponCode?: string;
       discountAmount?: number;
     }
-  ) => Promise<void>;
+  ) => Promise<IOrder[]>;
   setOrders: React.Dispatch<React.SetStateAction<IOrder[]>>;
 }
 
@@ -249,6 +251,8 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({
                 razorpayOrderId: response.razorpay_order_id,
                 razorpayPaymentId: response.razorpay_payment_id,
                 razorpaySignature: response.razorpay_signature,
+                paymentMethod: verification.method,
+                paymentMethodDetails: verification.methodDetails,
               };
 
               const results: IOrder[] = [];
@@ -271,6 +275,7 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({
       });
 
       setOrders((prev) => [...prev, ...savedOrders]);
+      return savedOrders;
     } catch (err) {
       console.error("❌ Failed to create order:", err);
       throw err;

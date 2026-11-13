@@ -42,6 +42,10 @@ interface Order {
   createdAt: string;
   paymentStatus?: string;
   status?: "Pending" | "Shipped" | "Delivered" | "Cancelled";
+  // Set once the clinic has OTP-verified the patient in person and begun
+  // the treatment — same signal the admin Transactions table uses to show
+  // "Treatment Started" instead of a generic payment/shipping status.
+  treatmentStartedAt?: string;
 }
 
 interface ResolvedUser {
@@ -173,9 +177,22 @@ const UserOrderHistory: React.FC<OrderHistoryProps> = ({ mode = "all" }) => {
 
   const shortOrderId = (id: string) => `#${id.slice(-6).toUpperCase()}`;
 
+  // Treatment-only progress badge — mirrors the admin Transactions table's
+  // getDisplayOrderStatus(): once the clinic OTP-verifies the patient and
+  // starts the treatment, that's a more meaningful status to the patient
+  // than the payment status (which is just "paid" forever after checkout).
+  const getTreatmentStatus = (order: Order) => {
+    if (order.status === "Cancelled") return "Cancelled";
+    if (order.treatmentStartedAt) return "Treatment Started";
+    return "In Progress";
+  };
+
   // The "where/what" chip under the order title changes meaning per mode —
   // a delivery address for products, the clinic visited for treatments, and
   // a fixed "online" label for consultations (there's no address to show).
+  // Clicking it jumps straight to the clinic's own page (same destination
+  // the order-detail/summary page already links to) instead of only being
+  // reachable after drilling into the summary first.
   const getOrderLocationChip = (order: Order) => {
     if (mode === "treatment") {
       const treatmentItem = order.products.find(
@@ -187,14 +204,15 @@ const UserOrderHistory: React.FC<OrderHistoryProps> = ({ mode = "all" }) => {
           text: treatmentItem.clinicAddress
             ? `${treatmentItem.clinicName} — ${treatmentItem.clinicAddress}`
             : treatmentItem.clinicName,
+          href: treatmentItem.clinicId ? `/clinics/${treatmentItem.clinicId}?tab=Services` : undefined,
         };
       }
     }
     if (mode === "consultation") {
-      return { icon: <FiVideo />, text: "Online video consultation" };
+      return { icon: <FiVideo />, text: "Online video consultation", href: undefined };
     }
     if (order.address?.address) {
-      return { icon: <FiMapPin />, text: order.address.address };
+      return { icon: <FiMapPin />, text: order.address.address, href: undefined };
     }
     return null;
   };
@@ -433,7 +451,10 @@ const UserOrderHistory: React.FC<OrderHistoryProps> = ({ mode = "all" }) => {
           {orders.map((order) => {
             const locationChip = getOrderLocationChip(order);
             const isCancelled = order.status === "Cancelled";
-            const isPaid = String(order.paymentStatus || "").toLowerCase() === "paid";
+            const isPaid = ["paid", "success"].includes(
+              String(order.paymentStatus || "").toLowerCase()
+            );
+            const treatmentStatus = getTreatmentStatus(order);
 
             return (
               <div
@@ -456,25 +477,46 @@ const UserOrderHistory: React.FC<OrderHistoryProps> = ({ mode = "all" }) => {
                   </div>
                   <span
                     className={`${styles.badge} ${
-                      isCancelled
+                      mode === "treatment"
+                        ? treatmentStatus === "Cancelled"
+                          ? styles.badgeCancelled
+                          : treatmentStatus === "Treatment Started"
+                          ? styles.badgePaid
+                          : styles.badgePending
+                        : isCancelled
                         ? styles.badgeCancelled
                         : isPaid
                         ? styles.badgePaid
                         : styles.badgePending
                     }`}
                   >
-                    {isCancelled ? "Cancelled" : order.paymentStatus || "Pending"}
+                    {mode === "treatment"
+                      ? treatmentStatus
+                      : isCancelled
+                      ? "Cancelled"
+                      : order.paymentStatus || "Pending"}
                   </span>
                 </div>
 
                 <div className={styles.cardBody}>
                   <h3 className={styles.orderTitle}>{getOrderTitle(order)}</h3>
-                  {locationChip && (
-                    <p className={styles.locationChip}>
-                      {locationChip.icon}
-                      <span>{locationChip.text}</span>
-                    </p>
-                  )}
+                  {locationChip &&
+                    (locationChip.href ? (
+                      <Link
+                        href={locationChip.href}
+                        className={styles.locationChip}
+                        onClick={(event) => event.stopPropagation()}
+                      >
+                        {locationChip.icon}
+                        <span>{locationChip.text}</span>
+                        <FiArrowUpRight />
+                      </Link>
+                    ) : (
+                      <p className={styles.locationChip}>
+                        {locationChip.icon}
+                        <span>{locationChip.text}</span>
+                      </p>
+                    ))}
 
                   <div className={styles.items}>
                     {getVisibleProducts(order).map((p) => (
