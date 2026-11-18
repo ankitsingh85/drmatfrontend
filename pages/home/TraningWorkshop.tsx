@@ -6,13 +6,13 @@ import { useRouter } from "next/router";
 import { API_URL } from "@/config/api";
 import { useCart } from "@/context/CartContext";
 import { resolveMediaUrl } from "@/lib/media";
-import { FiBookOpen, FiCalendar, FiUser } from "react-icons/fi";
+import { FiBookOpen, FiCalendar } from "react-icons/fi";
 
 type WorkshopTraining = {
   _id: string;
   trainingName?: string;
   trainingUniqueCode?: string;
-  trainingType?: string;
+  trainingType?: string | string[];
   instituteName?: string;
   trainingDuration?: string;
   modeOfTraining?: string;
@@ -30,6 +30,9 @@ type TraningWorkshopProps = {
   showSeeMore?: boolean;
   seeMoreHref?: string;
   seeMoreLabel?: string;
+  // When set, only shows trainings tagged with this training type name
+  // (case-insensitive) — used by the per-category workshop trainings page.
+  filterTrainingType?: string;
 };
 
 const endpointCandidates = [
@@ -96,6 +99,7 @@ export default function TraningWorkshop({
   showSeeMore = true,
   seeMoreHref = "/workshop-trainings",
   seeMoreLabel = "See More",
+  filterTrainingType,
 }: TraningWorkshopProps) {
   const router = useRouter();
   const { addToCart, cartItems } = useCart();
@@ -104,15 +108,28 @@ export default function TraningWorkshop({
   const [error, setError] = useState("");
   const [isWideScreen, setIsWideScreen] = useState(false);
 
-  const displayItems = useMemo<Array<WorkshopTraining | null>>(() => {
-    if (showAll) return items;
+  const filteredItems = useMemo(() => {
+    if (!filterTrainingType) return items;
+    const wanted = filterTrainingType.toLowerCase();
+    return items.filter((item) => {
+      const types = Array.isArray(item.trainingType)
+        ? item.trainingType
+        : item.trainingType
+        ? [item.trainingType]
+        : [];
+      return types.some((type) => String(type).toLowerCase() === wanted);
+    });
+  }, [items, filterTrainingType]);
 
-    const paddedItems: Array<WorkshopTraining | null> = [...items];
+  const displayItems = useMemo<Array<WorkshopTraining | null>>(() => {
+    if (showAll) return filteredItems;
+
+    const paddedItems: Array<WorkshopTraining | null> = [...filteredItems];
     while (paddedItems.length < FEATURED_CARD_COUNT) {
       paddedItems.push(null);
     }
     return paddedItems;
-  }, [items, showAll]);
+  }, [filteredItems, showAll]);
 
   useEffect(() => {
     let mounted = true;
@@ -232,11 +249,11 @@ export default function TraningWorkshop({
 
       {loading ? <p style={{ margin: 0 }}>Loading workshop trainings...</p> : null}
 
-      {!loading && items.length === 0 ? (
+      {!loading && filteredItems.length === 0 ? (
         <p style={{ margin: 0, color: "#64748b" }}>No workshop trainings found.</p>
       ) : null}
 
-      {!loading && items.length > 0 ? (
+      {!loading && filteredItems.length > 0 ? (
         <div
           style={{
             display: "grid",
@@ -294,16 +311,37 @@ export default function TraningWorkshop({
               >
                 <div
                   style={{
+                    position: "relative",
                     background: "linear-gradient(135deg, rgba(37,99,235,0.12) 0%, rgba(15,23,42,0.04) 100%)",
                   }}
                 >
+                  <span
+                    style={{
+                      position: "absolute",
+                      top: 10,
+                      right: 10,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 5,
+                      padding: "5px 10px",
+                      borderRadius: 999,
+                      background: "rgba(255,255,255,0.95)",
+                      color: "#ef4444",
+                      fontSize: 11,
+                      fontWeight: 800,
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    <FiBookOpen />
+                    Enroll
+                  </span>
                   {image ? (
                     <img
                       src={image}
                       alt={item.trainingName || "Workshop training"}
                       style={{
                         width: "100%",
-                        height: 150,
+                        height: 112,
                         objectFit: "fill",
                         display: "block",
                       }}
@@ -311,14 +349,14 @@ export default function TraningWorkshop({
                   ) : (
                     <div
                       style={{
-                        height: 150,
+                        height: 112,
                         display: "grid",
                         placeItems: "center",
-                        padding: 20,
+                        padding: 14,
                         textAlign: "center",
                         color: "#334155",
-                        fontWeight: 800,
-                        fontSize: 18,
+                        fontWeight: 700,
+                        fontSize: 14,
                       }}
                     >
                       {item.trainingName || "Workshop Training"}
@@ -326,104 +364,110 @@ export default function TraningWorkshop({
                   )}
                 </div>
 
-                <div style={{ padding: 18, display: "grid", gap: 14, flex: 1 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
-                    <div style={{ minWidth: 0 }}>
-                      <h3 style={{ margin: 0, fontSize: 20, lineHeight: 1.25, color: "#111827" }}>
-                        {item.trainingName || "Workshop Training"}
-                      </h3>
-                      <p style={{ margin: "6px 0 0", color: "#475569", lineHeight: 1.45 }}>
+                <div style={{ padding: "14px 16px 16px", display: "grid", gap: 10, flex: 1 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div
+                      style={{
+                        flexShrink: 0,
+                        width: 36,
+                        height: 36,
+                        borderRadius: "50%",
+                        background: "linear-gradient(135deg, #c4b5fd, #60a5fa)",
+                        color: "#fff",
+                        display: "grid",
+                        placeItems: "center",
+                        fontWeight: 900,
+                        fontSize: 15,
+                      }}
+                    >
+                      {item.trainerInstructorName?.charAt(0) || "T"}
+                    </div>
+
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p
+                        style={{
+                          margin: 0,
+                          fontSize: 14,
+                          fontWeight: 700,
+                          color: "#111827",
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        }}
+                      >
+                        {item.trainerInstructorName || "Expert Trainer"}
+                      </p>
+                      <p
+                        style={{
+                          margin: 0,
+                          fontSize: 12,
+                          color: "#98a2b3",
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        }}
+                      >
                         {item.instituteName || "Institute not specified"}
                       </p>
+                    </div>
+                  </div>
+
+                  <h3
+                    style={{
+                      margin: 0,
+                      fontSize: 16,
+                      fontWeight: 800,
+                      lineHeight: 1.3,
+                      color: "#080f3a",
+                      display: "-webkit-box",
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: "vertical" as any,
+                      overflow: "hidden",
+                      minHeight: 42,
+                    }}
+                  >
+                    {item.trainingName || "Workshop Training"}
+                  </h3>
+
+                  <div style={{ display: "flex", gap: 6, alignItems: "center", color: "#667085", fontSize: 12, fontWeight: 600 }}>
+                    <FiCalendar />
+                    <span>
+                      {formatDate(item.startDate)} - {formatDate(item.endDate)}
+                    </span>
+                  </div>
+
+                  <div
+                    style={{
+                      borderTop: "1px solid #ececec",
+                      paddingTop: 10,
+                      display: "flex",
+                      flexWrap: "wrap",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      gap: 8,
+                    }}
+                  >
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 11, color: "#64748b" }}>Fee</div>
+                      <div style={{ fontSize: 18, fontWeight: 800, color: "#111827" }}>
+                        {price > 0 ? `INR ${price}` : "Free"}
+                      </div>
                     </div>
 
                     <span
                       style={{
                         ...cardLabelStyle,
-                        background: "rgba(239, 68, 68, 0.08)",
-                        color: "#ef4444",
+                        flexShrink: 0,
+                        maxWidth: 140,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
+                        background: "#f3f4f6",
+                        color: "#374151",
                       }}
                     >
-                      <FiBookOpen />
-                      Enroll
+                      {item.modeOfTraining || "Mode not specified"}
                     </span>
-                  </div>
-
-                  <div>
-                    <div style={{ marginBottom: 10, color: "#6b7280", fontSize: 13, fontWeight: 700 }}>
-                      Training Details
-                    </div>
-                    <div style={{ display: "grid", gap: 8, color: "#475569", fontSize: 14 }}>
-                      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                        <FiUser />
-                        <span>Trainer: {item.trainerInstructorName || "-"}</span>
-                      </div>
-                      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                        <FiCalendar />
-                        <span>
-                          {formatDate(item.startDate)} - {formatDate(item.endDate)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div
-                    style={{
-                      borderTop: "1px dashed #e5e7eb",
-                      paddingTop: 14,
-                      display: "grid",
-                      gap: 12,
-                    }}
-                  >
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
-                      <div>
-                        <div style={{ fontSize: 12, color: "#64748b" }}>Fee</div>
-                        <div style={{ fontSize: 24, fontWeight: 800, color: "#111827" }}>
-                          {price > 0 ? `INR ${price}` : "Free"}
-                        </div>
-                      </div>
-
-                      <span
-                        style={{
-                          ...cardLabelStyle,
-                          background: "#f3f4f6",
-                          color: "#374151",
-                        }}
-                      >
-                        {item.modeOfTraining || "Mode not specified"}
-                      </span>
-                    </div>
-
-                    <div
-                      style={{
-                        background: "#0d5d8f",
-                        borderRadius: 16,
-                        padding: "8px 10px",
-                      }}
-                    >
-                      <div style={{ display: "flex", alignItems: "center", gap: 10, color: "#fff" }}>
-                        <div
-                          style={{
-                            width: 38,
-                            height: 38,
-                            borderRadius: 999,
-                            background: "rgba(255,255,255,0.14)",
-                            display: "grid",
-                            placeItems: "center",
-                            flexShrink: 0,
-                          }}
-                        >
-                          <FiUser />
-                        </div>
-                        <div style={{ minWidth: 0 }}>
-                          <div style={{ fontSize: 12, opacity: 0.7 }}>Course Instructor</div>
-                          <div style={{ fontWeight: 700 }}>
-                            {item.trainerInstructorName || "Not specified"}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
                   </div>
 
                   <button
@@ -434,15 +478,14 @@ export default function TraningWorkshop({
                     }}
                     style={{
                       border: "none",
-                      borderRadius: 14,
-                      padding: "11px 16px",
+                      borderRadius: 999,
+                      padding: "9px 16px",
                       background: inCart ? "#0f172a" : "#1d4ed8",
                       color: "#fff",
-                      fontWeight: 800,
+                      fontWeight: 700,
                       cursor: "pointer",
                       width: "100%",
                       fontSize: 14,
-                      boxShadow: "0 10px 20px rgba(29, 78, 216, 0.18)",
                     }}
                   >
                     {inCart ? "Go to Cart" : "Enroll Now"}

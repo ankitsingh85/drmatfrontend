@@ -26,6 +26,7 @@ import Offer1 from "@/components/AdminPanel/ListofProductOffer";
 import Offer2 from "@/components/AdminPanel/ListofTreatmentOffer";
 import Offer3 from "@/components/AdminPanel/ListofClinicOffer";
 import FeaturedSectionManager from "@/components/AdminPanel/FeaturedSectionManager";
+import B2BFeaturedSectionManager from "@/components/AdminPanel/B2BFeaturedSectionManager";
 import LatestShorts from "@/components/AdminPanel/LatestShorts";
 import TreatmentShorts from "@/components/AdminPanel/TreatmentShorts";
 import CreateTreatment from "@/components/AdminPanel/CreateTreatment";
@@ -665,6 +666,7 @@ export default function AdminDashboard() {
       "offer2",
       "offer3",
       "featuredSection",
+      "b2bFeaturedSection",
       "latestshorts",
       "treatmentshorts",
       "supportTickets",
@@ -1017,6 +1019,9 @@ export default function AdminDashboard() {
                   </li>
                   <li onClick={() => handleSectionChange("featuredSection")}>
                     Featured Section
+                  </li>
+                  <li onClick={() => handleSectionChange("b2bFeaturedSection")}>
+                    B2B Featured Section
                   </li>
                   <li onClick={() => handleSectionChange("latestshorts")}>
                     Latest Shorts
@@ -1425,6 +1430,12 @@ export default function AdminDashboard() {
               )}
               {canView("others") && activeSection === "featuredSection" && (
                 <FeaturedSectionManager
+                  canEdit={canCreate("others")}
+                  canDelete={canDelete("others")}
+                />
+              )}
+              {canView("others") && activeSection === "b2bFeaturedSection" && (
+                <B2BFeaturedSectionManager
                   canEdit={canCreate("others")}
                   canDelete={canDelete("others")}
                 />
