@@ -20,7 +20,7 @@ interface Course {
   _id: string;
   courseName: string;
   courseUniqueCode: string;
-  courseType?: string;
+  courseType?: string | string[];
   courseImage?: string;
   trainerImage?: string;
   instituteName?: string;
@@ -78,6 +78,16 @@ export default function CourseListing({
   showSeeMore = true,
   seeMoreHref = "/course-listing",
   seeMoreLabel = "See More",
+  filterCourseType,
+}: {
+  title?: string;
+  showAll?: boolean;
+  showSeeMore?: boolean;
+  seeMoreHref?: string;
+  seeMoreLabel?: string;
+  // When set, only shows courses tagged with this course type name
+  // (case-insensitive) — used by the per-category courses page.
+  filterCourseType?: string;
 }) {
   const router = useRouter();
   const { addToCart } = useCart();
@@ -117,9 +127,22 @@ export default function CourseListing({
     fetchCourses();
   }, []);
 
+  const filteredCourses = useMemo(() => {
+    if (!filterCourseType) return courses;
+    const wanted = filterCourseType.toLowerCase();
+    return courses.filter((course) => {
+      const types = Array.isArray(course.courseType)
+        ? course.courseType
+        : course.courseType
+        ? [course.courseType]
+        : [];
+      return types.some((type) => String(type).toLowerCase() === wanted);
+    });
+  }, [courses, filterCourseType]);
+
   const visibleCourses = useMemo(
-    () => (showAll ? courses : courses.slice(0, MAX_VISIBLE_TILES)),
-    [courses, showAll]
+    () => (showAll ? filteredCourses : filteredCourses.slice(0, MAX_VISIBLE_TILES)),
+    [filteredCourses, showAll]
   );
 
   if (loading) return <FullPageLoader />;
@@ -148,7 +171,11 @@ export default function CourseListing({
                   <img src={image} className={styles.image} />
                 ) : (
                   <div className={styles.fallbackImage}>
-                    <span>{course.courseType}</span>
+                    <span>
+                      {Array.isArray(course.courseType)
+                        ? course.courseType.join(", ")
+                        : course.courseType}
+                    </span>
                     <strong>{course.courseUniqueCode}</strong>
                   </div>
                 )}
@@ -159,21 +186,23 @@ export default function CourseListing({
 
               {/* CONTENT */}
               <div className={styles.content}>
-                {/* Trainer Avatar */}
-                <div className={styles.avatar}>
-                  {course.trainerInstructorName?.charAt(0) || "C"}
-                </div>
+                <div className={styles.trainerRow}>
+                  <div className={styles.avatar}>
+                    {course.trainerInstructorName?.charAt(0) || "C"}
+                  </div>
 
-                <p className={styles.trainerName}>
-                  {course.trainerInstructorName || "Expert Trainer"}
-                </p>
+                  <div className={styles.trainerInfo}>
+                    <p className={styles.trainerName}>
+                      {course.trainerInstructorName || "Expert Trainer"}
+                    </p>
+                    <p className={styles.trainerRole}>
+                      {course.instituteName || "Institute"}
+                    </p>
+                  </div>
 
-                <p className={styles.trainerRole}>
-                  {course.instituteName || "Institute"}
-                </p>
-
-                <div className={styles.featuredBadge}>
-                  <FaStar /> <span>Featured</span>
+                  <span className={styles.featuredBadge}>
+                    <FaStar />
+                  </span>
                 </div>
 
                 <h3 className={styles.title}>{course.courseName}</h3>
@@ -188,14 +217,11 @@ export default function CourseListing({
                   <span>
                     <FaCalendarAlt />
                     {course.courseDuration || "N/A"}
+                    {course.startDate
+                      ? ` · ${new Date(course.startDate).toLocaleDateString()}`
+                      : ""}
                   </span>
                 </div>
-
-                <p className={styles.summary}>
-                  {course.startDate
-                    ? new Date(course.startDate).toLocaleDateString()
-                    : course.currentAvailability || "Open"}
-                </p>
 
                 {/* META */}
                 <div className={styles.bottomMeta}>

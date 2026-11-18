@@ -27,11 +27,11 @@ import Link from "next/link";
 import TopProducts from "@/components/Layout/TopProducts";
 import ProductCategory from "@/components/homePage/productCategories";
 import FullPageLoader from "@/components/common/FullPageLoader";
-import CourseListing from "@/components/Layout/CourseListing";
 import ClinicOffer from "./ClinicOffer";
 import RecommendedClinicsSection from "@/components/homePage/RecommendedClinicsSection";
 import B2BProductCategories from "@/components/homePage/B2BProductCategories";
-import TraningWorkshop from "./TraningWorkshop";
+import WorkshopTrainingCategories from "@/components/homePage/WorkshopTrainingCategories";
+import CourseTypeCategories from "@/components/homePage/CourseTypeCategories";
 import ClinicHiringPortal from "./ClinicHiringPortal";
 
 const defaultFeaturedSlides = [
@@ -42,6 +42,12 @@ const defaultFeaturedSlides = [
   },
   { url: "/card-2.png", heading: "Book A Video Consultation", link: "/video-consultation" },
   { url: "/card-3.png", heading: "Take Free Hair & Skin Test", link: "/#" },
+];
+
+const defaultB2BFeaturedSlides = [
+  { url: "/card-1.png", heading: "Grow Your Clinic With Us", link: "/home/B2bProductsList" },
+  { url: "/card-2.png", heading: "Partner With Top Doctors", link: "/#" },
+  { url: "/card-3.png", heading: "Explore B2B Workshops", link: "/#" },
 ];
 
 const Index = () => {
@@ -57,6 +63,7 @@ const Index = () => {
   const [progress, setProgress] = useState(0);
   const [message, setMessage] = useState("Preparing...");
   const [featuredSlides, setFeaturedSlides] = useState(defaultFeaturedSlides);
+  const [b2bFeaturedSlides, setB2BFeaturedSlides] = useState(defaultB2BFeaturedSlides);
 
   useEffect(() => {
     setIsHydrated(true);
@@ -171,17 +178,51 @@ const Index = () => {
     };
   }, [isBusinessMode]);
 
+  useEffect(() => {
+    if (!isBusinessMode) return;
+
+    let mounted = true;
+
+    const fetchB2BFeaturedSlides = async () => {
+      try {
+        const res = await fetch(`${API_URL}/b2b-featured-section/active`);
+        const data = await res.json();
+
+        if (!res.ok || !Array.isArray(data) || data.length === 0) return;
+
+        const slides = data.map((item: any) => ({
+          url: item.imageUrl,
+          heading: item.heading,
+          link: item.link || "/#",
+        }));
+
+        if (mounted) setB2BFeaturedSlides(slides);
+      } catch (err) {
+        console.warn("Failed to load B2B featured section", err);
+      }
+    };
+
+    fetchB2BFeaturedSlides();
+
+    return () => {
+      mounted = false;
+    };
+  }, [isBusinessMode]);
+
   if (isBusinessMode) {
     return (
       <>
         <Topbar />
+        <div style={{ position: "relative" }}>
+          <FeaturedSection slides={b2bFeaturedSlides} loading={!appReady} />
+        </div>
         <div style={{ backgroundColor: "#ffffff" }}>
           <div style={{ padding: "30px 60px" }}>
                       <B2BProductCategories/>
 
-            
-            <TraningWorkshop/>
-            <CourseListing />
+
+            <WorkshopTrainingCategories/>
+            <CourseTypeCategories/>
             {/* {isClinicMode && <ClinicHiringPortal />} */}
           </div>
         </div>

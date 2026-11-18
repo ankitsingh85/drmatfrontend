@@ -26,6 +26,7 @@ import Offer1 from "@/components/AdminPanel/ListofProductOffer";
 import Offer2 from "@/components/AdminPanel/ListofTreatmentOffer";
 import Offer3 from "@/components/AdminPanel/ListofClinicOffer";
 import FeaturedSectionManager from "@/components/AdminPanel/FeaturedSectionManager";
+import B2BFeaturedSectionManager from "@/components/AdminPanel/B2BFeaturedSectionManager";
 import LatestShorts from "@/components/AdminPanel/LatestShorts";
 import TreatmentShorts from "@/components/AdminPanel/TreatmentShorts";
 import CreateTreatment from "@/components/AdminPanel/CreateTreatment";
@@ -116,6 +117,7 @@ import {
   FiDollarSign,
   FiBarChart2,
   FiHeart,
+  FiImage,
 } from "react-icons/fi";
 import {
   BULK_UPLOAD_CONFIG,
@@ -688,6 +690,7 @@ export default function SuperAdminDashboard() {
       "offer2",
       "offer3",
       "featuredSection",
+      "b2bFeaturedSection",
       "latestshorts",
       "treatmentshorts",
       "supportTickets",
@@ -1020,6 +1023,7 @@ export default function SuperAdminDashboard() {
               { id: "offer2", label: "Treatment Offer", icon: <FiZap /> },
               { id: "offer3", label: "Coupon Offer", icon: <FiTag /> },
               { id: "featuredSection", label: "Featured Section", icon: <FiBookmark /> },
+              { id: "b2bFeaturedSection", label: "B2B Featured Section", icon: <FiImage /> },
               { id: "latestshorts", label: "Latest Shorts", icon: <FiFilm /> },
               { id: "treatmentshorts", label: "Treatment Shorts", icon: <FiPlayCircle /> },
               { id: "supportTickets", label: "Hiring & Support Tickets", icon: <FiHeadphones /> },
@@ -1427,6 +1431,9 @@ export default function SuperAdminDashboard() {
               {canView("others") && activeSection === "offer3" && <Offer3 />}
               {canView("others") && activeSection === "featuredSection" && (
                 <FeaturedSectionManager />
+              )}
+              {canView("others") && activeSection === "b2bFeaturedSection" && (
+                <B2BFeaturedSectionManager />
               )}
               {canView("others") && activeSection === "latestshorts" && (
                 <LatestShorts />
