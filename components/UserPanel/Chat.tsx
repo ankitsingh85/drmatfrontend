@@ -112,6 +112,12 @@ const UserChat = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [chatId, setChatId] = useState("");
   const [chatStatus, setChatStatus] = useState<ChatStatus | "">("");
+  // Place in the doctor's first-come queue (doctors attend one patient at a time).
+  const [queueInfo, setQueueInfo] = useState<{
+    position: number | null;
+    ahead: number;
+    doctorBusy: boolean;
+  } | null>(null);
   const [text, setText] = useState("");
   const [search, setSearch] = useState("");
   const [loadingDoctors, setLoadingDoctors] = useState(false);
@@ -267,6 +273,37 @@ const UserChat = () => {
         .includes(q)
     );
   }, [doctors, search]);
+
+  // While the request is pending, poll /chat/:id/queue for our position.
+  // Acceptance also arrives over the socket; this keeps the number fresh.
+  useEffect(() => {
+    if (chatStatus !== "pending" || !chatId) {
+      setQueueInfo(null);
+      return;
+    }
+    let cancelled = false;
+    const fetchQueue = async () => {
+      try {
+        const res = await axios.get(`${API_URL}/chat/${chatId}/queue`);
+        if (cancelled) return;
+        if (res.data?.status && res.data.status !== "pending") {
+          setChatStatus(res.data.status);
+          if (res.data.status === "accepted") loadMessages(chatId);
+          return;
+        }
+        setQueueInfo(res.data);
+      } catch {
+        // older backend without the queue API, or offline — keep the plain text
+      }
+    };
+    fetchQueue();
+    const timer = setInterval(fetchQueue, 15000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chatStatus, chatId]);
 
   const loadMessages = async (nextChatId: string) => {
     const messageRes = await axios.get(`${API_URL}/message/${nextChatId}`);
@@ -613,7 +650,23 @@ const UserChat = () => {
                 </div>
               ) : chatStatus === "pending" ? (
                 <div className={styles.messageState}>
-                  Chat request sent to {activeDoctorName}. You can message after the doctor accepts.
+                  {queueInfo?.position ? (
+                    <>
+                      <p>Your place in queue</p>
+                      <h3 style={{ fontSize: 42, margin: "4px 0", color: "#155e95" }}>#{queueInfo.position}</h3>
+                      <p>
+                        {queueInfo.ahead > 0
+                          ? `${queueInfo.ahead} ${queueInfo.ahead === 1 ? "patient" : "patients"} ahead of you.`
+                          : "You're next!"}{" "}
+                        {queueInfo.doctorBusy
+                          ? `${activeDoctorName} is consulting another patient right now.`
+                          : `${activeDoctorName} will accept you shortly.`}
+                      </p>
+                      <p style={{ fontSize: 13, opacity: 0.75 }}>This page updates automatically.</p>
+                    </>
+                  ) : (
+                    <>Chat request sent to {activeDoctorName}. You can message after the doctor accepts.</>
+                  )}
                 </div>
               ) : chatStatus === "declined" ? (
                 <div className={styles.messageState}>

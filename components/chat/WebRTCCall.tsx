@@ -100,6 +100,9 @@ const WebRTCCall = ({
   const [callError, setCallError] = useState("");
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [minimized, setMinimized] = useState(false);
+  // Doctors take one call at a time: while they're on another call ours waits
+  // in the server's queue ({ position, ahead } from "call:queued").
+  const [queuePos, setQueuePos] = useState<{ position: number; ahead: number } | null>(null);
 
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
@@ -157,6 +160,7 @@ const WebRTCCall = ({
   const resetCall = useCallback(
     (notifyPeer = false) => {
       clearRingTimeout();
+      setQueuePos(null);
       if (notifyPeer && peerId && callIdRef.current) {
         socket.emit("call:ended", {
           chatId,
@@ -482,7 +486,32 @@ const WebRTCCall = ({
     socket.on("call:ended", handleEnded);
     socket.on("call:unavailable", handleUnavailable);
 
+    // Waiting in the doctor's call queue: don't time out while in line;
+    // the ring timeout starts again once it's actually ringing.
+    const handleQueued = (data: { chatId: string; callId: string; position: number; ahead: number }) => {
+      if (data.chatId !== chatId || data.callId !== callIdRef.current) return;
+      clearRingTimeout();
+      setQueuePos({ position: data.position, ahead: data.ahead });
+    };
+
+    const handleDequeued = (data: { chatId: string; callId: string }) => {
+      if (data.chatId !== chatId || data.callId !== callIdRef.current) return;
+      setQueuePos(null);
+      const ringingCallId = data.callId;
+      clearRingTimeout();
+      ringTimeoutRef.current = setTimeout(() => {
+        if (modeRef.current !== "calling" || callIdRef.current !== ringingCallId) return;
+        resetCall(true);
+        setCallError(`${peerName} is not available right now. Please try again later.`);
+      }, RING_TIMEOUT_MS);
+    };
+
+    socket.on("call:queued", handleQueued);
+    socket.on("call:dequeued", handleDequeued);
+
     return () => {
+      socket.off("call:queued", handleQueued);
+      socket.off("call:dequeued", handleDequeued);
       socket.off("call:invite", handleInvite);
       socket.off("call:accepted", handleAccepted);
       socket.off("call:rejected", handleRejected);
@@ -521,6 +550,8 @@ const WebRTCCall = ({
               <p className={styles.callStatusText}>
                 {mode === "incoming"
                   ? `Incoming ${callType} call...`
+                  : mode === "calling" && queuePos
+                  ? `${peerName} is on another call · You're #${queuePos.position} in queue`
                   : mode === "calling"
                   ? "Waiting for them to answer..."
                   : mode === "connecting"
