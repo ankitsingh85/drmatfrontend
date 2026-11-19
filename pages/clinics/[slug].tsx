@@ -32,6 +32,8 @@ interface Clinic {
   clinicDescription?: string;
   address?: string;
   photos?: string[];
+  bannerImage?: string;
+  clinicLogo?: string;
   contactNumber?: string;
   mobile?: string;
   whatsapp?: string;
@@ -255,6 +257,12 @@ const ClinicDetailPage = () => {
           ...(data.photos?.map((img) => getImage(img)) || []),
         ].filter((img): img is string => Boolean(img));
 
+        // No separate gallery photos uploaded — fall back to whichever
+        // single image the clinic does have (banner, then logo) instead
+        // of jumping straight to the generic placeholder.
+        const fallbackImage =
+          getImage(data.bannerImage) || getImage(data.clinicLogo) || "/clinic-image.png";
+
         const normalizedClinic: Clinic = {
           ...data,
           name: data.name || data.clinicName || "Clinic",
@@ -264,7 +272,7 @@ const ClinicDetailPage = () => {
           photos:
             normalizedImages.length > 0
               ? Array.from(new Set(normalizedImages))
-              : ["/placeholder-clinic.jpg"],
+              : [fallbackImage],
           mobile: data.mobile || data.contactNumber,
         };
 

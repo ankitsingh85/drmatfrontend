@@ -53,6 +53,19 @@ const defaultB2BFeaturedSlides = [
 const Index = () => {
   const router = useRouter();
   const [isHydrated, setIsHydrated] = useState(false);
+
+  // The browser's own scroll-restoration remembers the last scroll offset
+  // on this URL and reapplies it on a hard reload — as the page's section
+  // heights change over time, that same remembered pixel offset can land
+  // in a completely different section than before. The home page should
+  // always open at the top on a fresh load, so force that explicitly.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if ("scrollRestoration" in window.history) {
+      window.history.scrollRestoration = "manual";
+    }
+    window.scrollTo(0, 0);
+  }, []);
   const currentRole = isHydrated ? Cookies.get("role")?.toLowerCase() : null;
   const isBusinessMode =
     currentRole === "clinic" || currentRole === "doctor" || currentRole === "b2buser";

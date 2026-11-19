@@ -67,8 +67,32 @@ const HappyStories = () => {
   }, [shorts, isMuted]);
 
   // ✅ Load Instagram embed script for reel blocks
+  //
+  // Instagram's embed.js resizes each embed's iframe asynchronously once
+  // its content loads, and as part of that it silently scrolls the page
+  // to bring the embed into view. Snapshot the scroll position before
+  // triggering it and snap back shortly after, unless the visitor has
+  // genuinely scrolled by hand in the meantime.
   useEffect(() => {
     if (!shorts.some((short) => short.platform === "instagram")) return;
+
+    const scrollYBeforeEmbed = window.scrollY;
+    let userScrolled = false;
+    const markUserScrolled = () => {
+      userScrolled = true;
+    };
+    window.addEventListener("wheel", markUserScrolled, { passive: true, once: true });
+    window.addEventListener("touchmove", markUserScrolled, { passive: true, once: true });
+
+    const restoreScroll = () => {
+      if (!userScrolled) window.scrollTo(0, scrollYBeforeEmbed);
+    };
+
+    const runProcess = () => {
+      (window as any).instgrm?.Embeds?.process?.();
+      window.setTimeout(restoreScroll, 400);
+      window.setTimeout(restoreScroll, 1200);
+    };
 
     const existing = document.getElementById("instagram-embed-script");
     if (!existing) {
@@ -76,13 +100,16 @@ const HappyStories = () => {
       script.id = "instagram-embed-script";
       script.src = "https://www.instagram.com/embed.js";
       script.async = true;
-      script.onload = () => {
-        (window as any).instgrm?.Embeds?.process?.();
-      };
+      script.onload = runProcess;
       document.body.appendChild(script);
     } else {
-      (window as any).instgrm?.Embeds?.process?.();
+      runProcess();
     }
+
+    return () => {
+      window.removeEventListener("wheel", markUserScrolled);
+      window.removeEventListener("touchmove", markUserScrolled);
+    };
   }, [shorts]);
 
   // ✅ Toggle mute

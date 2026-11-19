@@ -25,6 +25,8 @@ type Clinic = {
   images?: string[];       // legacy gallery
   image?: string;          // from FindClinic normalize
   imageUrl?: string;       // legacy
+  bannerImage?: string;    // set during clinic creation, separate from the photos gallery
+  clinicLogo?: string;     // set during clinic creation, separate from the photos gallery
 
   reviews?: number;
   address?: string;
@@ -124,11 +126,20 @@ const ClinicCard: React.FC<ClinicCardProps> = ({ clinic }) => {
     window.location.href = `tel:${callNumber}`;
   };
 
-  /* ================= IMAGE NORMALIZATION ================= */
+  /* ================= IMAGE NORMALIZATION =================
+     A clinic only has a "photos" gallery if the admin/clinic explicitly
+     uploaded extra gallery images — the banner/logo uploaded during
+     clinic creation live in separate fields and are a perfectly good
+     single image to show here when the gallery is empty, instead of
+     falling straight through to a generic placeholder. */
   const images: string[] =
     clinic.photos && clinic.photos.length > 0
       ? clinic.photos.map((img) => resolveMediaUrl(img) || img)
-      : ["/placeholder-clinic.jpg"];
+      : clinic.bannerImage
+      ? [resolveMediaUrl(clinic.bannerImage) || clinic.bannerImage]
+      : clinic.clinicLogo
+      ? [resolveMediaUrl(clinic.clinicLogo) || clinic.clinicLogo]
+      : ["/clinic-image.png"];
 
   /* ================= AUTO SLIDE ================= */
   useEffect(() => {
@@ -177,7 +188,10 @@ const ClinicCard: React.FC<ClinicCardProps> = ({ clinic }) => {
 
       {/* ================= IMAGE ================= */}
       <div className={styles.leftSection}>
-        <div className={styles.mediaPanel}>
+        <div
+          className={styles.mediaPanel}
+          style={images.length <= 1 ? { gridTemplateColumns: "1fr" } : undefined}
+        >
           {images.length > 1 && (
             <div className={styles.thumbnailRail}>
               {images.map((img, index) => (
@@ -208,8 +222,9 @@ const ClinicCard: React.FC<ClinicCardProps> = ({ clinic }) => {
               className={styles.image}
               loading="lazy"
               onError={(e) => {
-                (e.currentTarget as HTMLImageElement).src =
-                  "/placeholder-clinic.jpg";
+                const img = e.currentTarget as HTMLImageElement;
+                if (img.src.endsWith("/clinic-image.png")) return;
+                img.src = "/clinic-image.png";
               }}
             />
 

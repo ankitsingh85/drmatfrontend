@@ -197,11 +197,13 @@ const RecommendedClinicsSection: React.FC = () => {
             >
               <div className={styles.miniCardImage}>
                 <img
-                  src={resolveMediaUrl(clinic.bannerImage) || "/placeholder-clinic.jpg"}
+                  src={resolveMediaUrl(clinic.bannerImage) || "/clinic-image.png"}
                   alt={clinic.clinicName}
                   loading="lazy"
                   onError={(event) => {
-                    (event.currentTarget as HTMLImageElement).src = "/placeholder-clinic.jpg";
+                    const img = event.currentTarget as HTMLImageElement;
+                    if (img.src.endsWith("/clinic-image.png")) return;
+                    img.src = "/clinic-image.png";
                   }}
                 />
                 {clinic.verifiedBadgeVisible && (

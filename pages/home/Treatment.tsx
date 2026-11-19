@@ -115,8 +115,38 @@ const TreatmentStories = () => {
 
   // Load Instagram's embed script whenever a reel is present, and re-run
   // Embeds.process() so newly added blockquotes actually render.
+  //
+  // Instagram's own embed.js resizes each embed's iframe asynchronously
+  // once its content finishes loading inside Instagram's origin, and as
+  // part of that it silently scrolls the page to bring the embed into
+  // view — which is exactly what yanks a visitor down to this section
+  // once the reels finish loading, well after the page itself settled.
+  // There's no official opt-out, so the fix is to snapshot the scroll
+  // position right before triggering Embeds.process() and snap back to
+  // it shortly after, unless the visitor has genuinely scrolled by hand.
   useEffect(() => {
     if (!shorts.some((short) => short.platform === "instagram")) return;
+
+    const scrollYBeforeEmbed = window.scrollY;
+    let userScrolled = false;
+    const markUserScrolled = () => {
+      userScrolled = true;
+    };
+    window.addEventListener("wheel", markUserScrolled, { passive: true, once: true });
+    window.addEventListener("touchmove", markUserScrolled, { passive: true, once: true });
+
+    const restoreScroll = () => {
+      if (!userScrolled) window.scrollTo(0, scrollYBeforeEmbed);
+    };
+
+    const runProcess = () => {
+      (window as any).instgrm?.Embeds?.process?.();
+      // The resize-triggered scroll happens async after the iframe's own
+      // content loads — give it a moment (and a second check, since that
+      // load time varies), then correct for it if it moved the page.
+      window.setTimeout(restoreScroll, 400);
+      window.setTimeout(restoreScroll, 1200);
+    };
 
     const existing = document.getElementById("instagram-embed-script");
     if (!existing) {
@@ -124,13 +154,16 @@ const TreatmentStories = () => {
       script.id = "instagram-embed-script";
       script.src = "https://www.instagram.com/embed.js";
       script.async = true;
-      script.onload = () => {
-        (window as any).instgrm?.Embeds?.process?.();
-      };
+      script.onload = runProcess;
       document.body.appendChild(script);
     } else {
-      (window as any).instgrm?.Embeds?.process?.();
+      runProcess();
     }
+
+    return () => {
+      window.removeEventListener("wheel", markUserScrolled);
+      window.removeEventListener("touchmove", markUserScrolled);
+    };
   }, [shorts]);
 
   const toggleMute = () => {
