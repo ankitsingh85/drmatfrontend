@@ -8,7 +8,6 @@ import {
   FiHome,
   FiShoppingBag,
   FiHelpCircle,
-  FiSettings,
   FiChevronRight,
   FiEdit3,
   FiMenu,
@@ -59,7 +58,7 @@ type B2BUserRecord = {
   pendingClinicId?: string;
 };
 
-type SectionId = "dashboard" | "profile" | "orders" | "help" | "settings";
+type SectionId = "dashboard" | "profile" | "orders" | "help";
 
 const quickLinks = [
   { label: "B2B Products", description: "Browse B2B product catalog", href: "/home/B2bProductsList", icon: FiBox },
@@ -158,7 +157,6 @@ export default function B2BUserDashboard() {
       "profile",
       "orders",
       "help",
-      "settings",
     ];
 
     if (section && allowedSections.includes(section as SectionId)) {
@@ -313,7 +311,6 @@ export default function B2BUserDashboard() {
       { id: "dashboard" as const, label: "Dashboard", icon: FiHome },
       { id: "orders" as const, label: "Orders", icon: FiShoppingBag },
       { id: "help" as const, label: "Help Center", icon: FiHelpCircle },
-      { id: "settings" as const, label: "Settings", icon: FiSettings },
     ],
     []
   );
@@ -351,7 +348,6 @@ export default function B2BUserDashboard() {
     profile: "Edit Profile",
     orders: "Orders",
     help: "Help Center",
-    settings: "Settings",
   }[activeSection];
 
   const renderDashboardOverview = () => (

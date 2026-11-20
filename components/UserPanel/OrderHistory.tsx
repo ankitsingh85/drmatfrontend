@@ -20,6 +20,7 @@ import { useToast } from "@/context/ToastContext";
 import styles from "@/styles/adminpanel/orderhistory.module.css";
 import { API_URL } from "@/config/api";
 import FullPageLoader from "@/components/common/FullPageLoader";
+import ProductReviewModal from "@/components/modal/ProductReviewModal";
 
 interface OrderProduct {
   id: string;
@@ -76,6 +77,7 @@ const UserOrderHistory: React.FC<OrderHistoryProps> = ({ mode = "all" }) => {
   const [error, setError] = useState<string>("");
   const [resolvedUser, setResolvedUser] = useState<ResolvedUser | null>(null);
   const [cancellingId, setCancellingId] = useState("");
+  const [reviewTarget, setReviewTarget] = useState<{ id: string; name: string } | null>(null);
 
   const token = Cookies.get("token") || "";
   const storedUserId =
@@ -536,6 +538,22 @@ const UserOrderHistory: React.FC<OrderHistoryProps> = ({ mode = "all" }) => {
                                 <FiArrowUpRight />
                               </Link>
                             )}
+                            {isPaid &&
+                              !isCancelled &&
+                              p.itemType !== "treatment" &&
+                              p.itemType !== "consultation" && (
+                                <button
+                                  type="button"
+                                  className={styles.itemViewLink}
+                                  style={{ border: "none", background: "none", cursor: "pointer" }}
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    setReviewTarget({ id: p.id, name: p.name });
+                                  }}
+                                >
+                                  <span>Write a Review</span>
+                                </button>
+                              )}
                           </div>
                         </div>
                         <div className={styles.itemPrice}>
@@ -583,6 +601,14 @@ const UserOrderHistory: React.FC<OrderHistoryProps> = ({ mode = "all" }) => {
             );
           })}
         </div>
+      )}
+
+      {reviewTarget && (
+        <ProductReviewModal
+          productId={reviewTarget.id}
+          productName={reviewTarget.name}
+          onClose={() => setReviewTarget(null)}
+        />
       )}
     </div>
   );

@@ -11,7 +11,6 @@ import {
   FiX,
   FiChevronRight,
   FiHelpCircle,
-  FiSettings,
   FiStar,
   FiActivity,
   FiUser,
@@ -185,7 +184,6 @@ const UserDashboard: React.FC = () => {
     { id: "chat", label: "My Consultation", icon: <FiUser /> },
     // { id: "chat", label: "Chat", icon: <FiMessageSquare /> },
     { id: "helpcenter", label: "Help Center", icon: <FiHelpCircle /> },
-    { id: "settings", label: "Settings", icon: <FiSettings /> },
     { id: "rating", label: "Like Us? Give us 5 Stars", icon: <FiStar /> },
   ];
 

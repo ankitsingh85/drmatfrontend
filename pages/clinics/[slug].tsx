@@ -93,8 +93,6 @@ const ClinicDetailPage = () => {
   const [hoverRating, setHoverRating] = useState(0);
 
   const [reviewForm, setReviewForm] = useState({
-    name: "",
-
     rating: 0,
 
     comment: "",
@@ -102,6 +100,11 @@ const ClinicDetailPage = () => {
   // One review per logged-in user per clinic (enforced by the backend).
   const [myReview, setMyReview] = useState<Review | null>(null);
   const [reviewMessage, setReviewMessage] = useState("");
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    setIsLoggedIn(Boolean(Cookies.get("token")));
+  }, []);
   const [clinic, setClinic] = useState<Clinic | null>(null);
   const [services, setServices] = useState<ClinicService[]>([]);
   const [loadingClinic, setLoadingClinic] = useState(true);
@@ -235,8 +238,6 @@ const ClinicDetailPage = () => {
     setMyReview(data?.review || null);
 
     setReviewForm({
-      name: "",
-
       rating: 0,
 
       comment: "",
@@ -515,25 +516,17 @@ const ClinicDetailPage = () => {
 
               <div className={styles.reviewsLayout}>
                 <div className={styles.reviewPanel}>
-                  {myReview ? (
+                  {!isLoggedIn ? (
+                    <p className={styles.reviewComment}>
+                      Please log in to write a review for this clinic.
+                    </p>
+                  ) : myReview ? (
                     <p className={styles.reviewComment}>
                       You have already reviewed this clinic ({myReview.rating}★). Each user can review a clinic only once.
                     </p>
                   ) : (
                   <form className={styles.reviewForm} onSubmit={submitReview}>
                     {reviewMessage && <p className={styles.reviewComment}>{reviewMessage}</p>}
-                    <input
-                      className={styles.reviewInput}
-                      placeholder="Your name"
-                      value={reviewForm.name}
-                      onChange={(e) =>
-                        setReviewForm({
-                          ...reviewForm,
-                          name: e.target.value,
-                        })
-                      }
-                      required
-                    />
 
                     <div className={styles.starSelect}>
                       {[1, 2, 3, 4, 5].map((star) => (

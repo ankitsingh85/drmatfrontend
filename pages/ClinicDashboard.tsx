@@ -6,10 +6,8 @@ import Cookies from "js-cookie";
 import { jwtDecode } from "jwt-decode";
 import {
   FiHome,
-  FiCalendar,
   FiUsers,
   FiHelpCircle,
-  FiSettings,
   FiShoppingBag,
   FiStar,
   FiChevronRight,
@@ -42,6 +40,7 @@ import ClinicTreatmentBookings from "@/components/ClinicAdmin/ClinicTreatmentBoo
 import ClinicTreatmentSettlements from "@/components/ClinicAdmin/ClinicTreatmentSettlements";
 import SubscriptionPlan from "@/components/ClinicAdmin/SubscriptionPlan";
 import ClinicServicesTab from "@/components/ClinicAdmin/ClinicServicesTab";
+import HelpCenter from "@/components/UserPanel/HelpCenter";
 
 
 type JwtPayload = {
@@ -69,7 +68,6 @@ type ClinicRecord = {
 type SectionId =
   | "dashboard"
   | "profile"
-  | "appointments"
   | "lead"
   | "orders"
   | "treatmentBookings"
@@ -77,7 +75,6 @@ type SectionId =
   | "services"
   | "purchased"
   | "help"
-  | "settings"
   | "rating"
   | "plan";
 
@@ -180,13 +177,11 @@ export default function ClinicDashboard() {
     const allowedSections: SectionId[] = [
       "dashboard",
       "profile",
-      "appointments",
       "lead",
       "orders",
       "services",
       "purchased",
       "help",
-      "settings",
       "rating",
       "plan",
     ];
@@ -340,7 +335,6 @@ export default function ClinicDashboard() {
     () =>
       [
         { id: "dashboard" as const, label: "Dashboard", icon: FiHome },
-        { id: "appointments" as const, label: "Appointments", icon: FiCalendar },
         // Hidden entirely (not just gated) until admin/plan grants lead
         // access — the clinic shouldn't even know there's a tab to unlock.
         leadAccessVisible ? { id: "lead" as const, label: "Lead", icon: FiUsers } : null,
@@ -360,7 +354,6 @@ export default function ClinicDashboard() {
         // { id: "doctors" as const, label: "Doctors", icon: FiUsers },
         // { id: "purchased" as const, label: "Purchased Services", icon: FiClipboard },
         { id: "help" as const, label: "Help Center", icon: FiHelpCircle },
-        { id: "settings" as const, label: "Settings", icon: FiSettings },
         { id: "rating" as const, label: "Like Us? Give us 5 Stars", icon: FiStar },
       ].filter((item): item is NonNullable<typeof item> => item !== null),
     [leadAccessVisible]
@@ -642,7 +635,6 @@ export default function ClinicDashboard() {
   const activeTitle = {
     dashboard: "Clinic Dashboard",
     profile: "Edit Profile",
-    appointments: "Appointments",
     lead: "Lead",
     orders: "Orders",
     treatmentBookings: "Treatment Booking",
@@ -650,7 +642,6 @@ export default function ClinicDashboard() {
     services: "Services",
     purchased: "Purchased Services",
     help: "Help Center",
-    settings: "Settings",
     rating: "Rating",
     plan: "Subscription Plan",
   }[activeSection];
@@ -708,6 +699,14 @@ export default function ClinicDashboard() {
             initialSelectedIds={(clinic?.clinicServices || []).map((s) => s._id)}
             onSaved={() => fetchClinic(clinicId)}
           />
+        </div>
+      );
+    }
+
+    if (activeSection === "help") {
+      return (
+        <div className={styles.sectionShell}>
+          <HelpCenter />
         </div>
       );
     }

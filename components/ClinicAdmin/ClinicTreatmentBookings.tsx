@@ -50,8 +50,6 @@ const formatDateTime = (value?: string) => {
   }).format(date);
 };
 
-const formatMoney = (value: number) => `Rs. ${value.toLocaleString("en-IN")}`;
-
 export default function ClinicTreatmentBookings({ clinicId }: ClinicTreatmentBookingsProps) {
   const [orders, setOrders] = useState<BookingOrder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -219,10 +217,6 @@ export default function ClinicTreatmentBookings({ clinicId }: ClinicTreatmentBoo
         <div className={styles.grid}>
           {filteredBookings.map(({ order, items }) => {
             const patient = typeof order.userId === "object" ? order.userId : null;
-            const bookingAmount = items.reduce(
-              (sum, item) => sum + item.price * item.quantity,
-              0
-            );
             const statusLabel =
               order.status === "Cancelled"
                 ? "Cancelled"
@@ -243,10 +237,6 @@ export default function ClinicTreatmentBookings({ clinicId }: ClinicTreatmentBoo
                   <div className={styles.metaGroup}>
                     <span>BOOKED ON</span>
                     <strong>{formatDateTime(order.createdAt)}</strong>
-                  </div>
-                  <div className={styles.metaGroup}>
-                    <span>AMOUNT</span>
-                    <strong>{formatMoney(bookingAmount)}</strong>
                   </div>
                   <div className={styles.metaRight}>
                     <p>Order #{order._id.slice(-8).toUpperCase()}</p>
@@ -315,9 +305,6 @@ export default function ClinicTreatmentBookings({ clinicId }: ClinicTreatmentBoo
                             <p className={styles.itemName}>{item.name}</p>
                             <span className={styles.itemQty}>Qty: {item.quantity}</span>
                           </div>
-                        </div>
-                        <div className={styles.itemPrice}>
-                          {formatMoney(item.price * item.quantity)}
                         </div>
                       </div>
                     ))}

@@ -17,7 +17,7 @@ import { useToast } from "@/context/ToastContext";
 
 interface Review {
   _id: string;
-  user?: { name: string };
+  user?: string;
   rating: number;
   comment: string;
   createdAt: string;
@@ -49,10 +49,6 @@ export default function ProductDetail() {
   const [activeTab, setActiveTab] =
     useState<"details" | "services" | "reviews">("details");
   const [mainImage, setMainImage] = useState<string | null>(null);
-
-  const [rating, setRating] = useState(0);
-  const [comment, setComment] = useState("");
-  const [submitting, setSubmitting] = useState(false);
   const [zoomStyle, setZoomStyle] = useState<React.CSSProperties>({});
 
   useEffect(() => {
@@ -75,33 +71,6 @@ export default function ProductDetail() {
 
     fetchProduct();
   }, [resolvedId]);
-
-  const handleSubmitReview = async () => {
-    if (!rating || !comment.trim()) {
-      toast.error("Please provide rating and comment");
-      return;
-    }
-
-    try {
-      setSubmitting(true);
-      const res = await fetch(`${API_URL}/products/${resolvedId}/reviews`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rating, comment, user: "Guest User" }),
-      });
-
-      if (!res.ok) throw new Error("Failed to submit review");
-
-      const updated: Product = await res.json();
-      setProduct(updated);
-      setRating(0);
-      setComment("");
-    } catch (err) {
-      toast.error("Failed to submit review");
-    } finally {
-      setSubmitting(false);
-    }
-  };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!mainImage) return;
@@ -308,40 +277,22 @@ export default function ProductDetail() {
 
           {activeTab === "reviews" && (
             <>
-              {product.reviews?.map((rev) => (
-                <div key={rev._id} className={styles.reviewCard}>
-                  <strong>{rev.user?.name || "Anonymous"}</strong>
-                  <p>{rev.comment}</p>
-                </div>
-              ))}
+              {product.reviews?.length ? (
+                product.reviews.map((rev) => (
+                  <div key={rev._id} className={styles.reviewCard}>
+                    <strong>{rev.user || "Anonymous"}</strong>
+                    <p>{rev.comment}</p>
+                  </div>
+                ))
+              ) : (
+                <p>No reviews yet.</p>
+              )}
 
-              <div className={styles.addReview}>
-                <div className={styles.ratingInput}>
-                  {[...Array(5)].map((_, i) => (
-                    <FaStar
-                      key={i}
-                      onClick={() => setRating(i + 1)}
-                      className={`${styles.star} ${
-                        i < rating ? styles.filledStar : ""
-                      }`}
-                    />
-                  ))}
-                </div>
-
-                <textarea
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
-                  className={styles.commentBox}
-                />
-
-                <button
-                  className={styles.submitButton}
-                  onClick={handleSubmitReview}
-                  disabled={submitting}
-                >
-                  {submitting ? "Submitting..." : "Submit Review"}
-                </button>
-              </div>
+              <p style={{ marginTop: 16, color: "#64748b", fontSize: 13 }}>
+                Only customers who've purchased this product can leave a
+                review — you can write one from your Order History after a
+                purchase.
+              </p>
             </>
           )}
         </div>

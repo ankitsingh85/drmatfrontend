@@ -12,7 +12,6 @@ import {
   FiLogOut,
   FiMenu,
   FiMessageSquare,
-  FiSettings,
   FiShoppingBag,
   FiStar,
   FiUser,
@@ -37,8 +36,7 @@ type SectionId =
   | "orders"
   | "ratings"
   | "chat"
-  | "help"
-  | "settings";
+  | "help";
 
 const getInitials = (doctor?: DoctorProfileRecord | null) => {
   const name =
@@ -120,7 +118,6 @@ export default function DoctorDashboard() {
       "ratings",
       "chat",
       "help",
-      "settings",
     ];
 
     if (section && allowedSections.includes(section as SectionId)) {
@@ -273,7 +270,6 @@ export default function DoctorDashboard() {
       { id: "chat" as const, label: "Chat", icon: FiMessageSquare },
       { id: "ratings" as const, label: "Ratings", icon: FiStar },
       { id: "help" as const, label: "Help Center", icon: FiHelpCircle },
-      { id: "settings" as const, label: "Settings", icon: FiSettings },
     ],
     []
   );
@@ -287,7 +283,6 @@ export default function DoctorDashboard() {
     ratings: "Ratings",
     chat: "Chat",
     help: "Help Center",
-    settings: "Settings",
   }[activeSection];
 
   const dashboardCards = [
